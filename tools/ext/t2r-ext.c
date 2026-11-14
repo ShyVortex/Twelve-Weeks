@@ -49947,7 +49947,7 @@ static int ent_tick(void) {                    // 0 = waiting, 1 = finished, -1 
     uint64_t want = g_veil_on ? PS : PM;
     if (g_ent_st == 1) {
         if (now - t0 > ENT_WAIT_MS) { g_ent_st = 0; xlog("entry: first page (%llx) not up after %d ms - plain fade-in", (unsigned long long)want, ENT_WAIT_MS); return -1; }
-        if (!g_veil_on && top != PM && !page_on_stack(PM)) { push_page("to1/main-menu"); return 0; }
+        if (!g_veil_on && top != PM && !page_on_stack(PM) && !(g_ln_page && top == g_ln_page)) { push_page("to1/main-menu"); return 0; }
         // After a match ended the screen stayed black for a while while the post match screens could still be heard. After a match the
         // post-match scoreboard (to1/clan13x) goes over the MP menu under the black, the hand-off waited for main-menu on top and fell back only after the
         // 5 s wait. The post-match page on top = the world and that page fade up at once (plain fade-in).
@@ -49958,6 +49958,9 @@ static int ent_tick(void) {                    // 0 = waiting, 1 = finished, -1 
             clan_t cc = clan_get();
             if ((g_ev.pending || ev_wanted(&cc) > 0) && now - t0 < 4500) { want = PE; static int ln; if (LOGCAP(ln, 3)) xlog("entry: clan event due - the hand-off waits for the event page"); }
         }
+        // launch notice (launchnote.c): it goes on first (over the MP menu, or the veiled one), so the hand-off waits for IT - else the wait for main-menu on top
+        // re-pushed main-menu every frame under the notice and fell back to the plain fade-in after 5 s
+        if (g_lds_hold && g_ln_page && ln_busy() && now - t0 < 4500) { want = g_ln_page; static int lnn; if (LOGCAP(lnn, 2)) xlog("entry: launch notice due - the hand-off waits for the notice page"); }
         if (top != want || now - top_at < 60) return 0;
         mix_under_black();                                        // ONLY the ~120 ms from the page being up to the release (the page-enable click window); the sound trace / filter below finds the real sound
         uint64_t c = ui_w("anim-group.t2rEnter");

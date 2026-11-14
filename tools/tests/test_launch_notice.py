@@ -78,9 +78,11 @@ lay = nw.layout()
 check(lay["check"] > lay["lnP1"] and lay["btn"] > lay["check"] and lay["h"] > lay["btn"] + 124, "checkbox, then buttons, then the box edge")
 
 # every text piece the driver sets has a Polish entry (the loc layer cuts at tags and trims blanks)
-texts = re.findall(r'ui_text\("[^"]+",\s*((?:"(?:[^"\\]|\\.)*"\s*(?:LN_EM\s*)?)+)\)', src)
+texts = re.findall(r'ui_text(?:_db)?\("[^"]+",\s*((?:"(?:[^"\\]|\\.)*"\s*(?:LN_EM\s*)?)+)\)', src)
 texts += re.findall(r'snprintf\(b, sizeof b, ("(?:[^"\\]|\\.)*")', src)
 texts += re.findall(r'locked \? ("[^"]+") : ticked \? ("[^"]+") : ("[^"]+")', src)[0] if re.search(r'locked \? "', src) else []
+for t in re.findall(r'ui_text_db\("([^"]+)"', src):
+    check(t + "B" in P, "double-buffer twin %sB exists (the timer flicker fix)" % t)
 pieces = set()
 for t in texts:
     t = t.replace("LN_EM", '"<font>"')                 # (the emphasis macro = a tag: the loc layer cuts there)

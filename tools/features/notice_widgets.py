@@ -97,6 +97,8 @@ def build_page(main):
                pointsUv=[0.0, 0.53, 0.35, 1.0, 1.0, 0.0], **{"color.a": 255})
     tk["visible"] = 0
     b.text("lnAck", cg, b.tl(96, 0, inner - 96, 60), "I ACKNOWLEDGE", ACK_PT, WHITE, tracking=4)
+    # hidden twin (the timer flicker fix: a gui2 text whose string changes draws nothing for a frame - the ext writes the hidden copy and swaps, ui_text_db)
+    b.text("lnAckB", cg, b.tl(96, 0, inner - 96, 60), "I ACKNOWLEDGE", ACK_PT, WHITE, tracking=4, visible=0)
     # the two buttons (t2r-ext: greyed until ticked; the focused one's lnBtn?Fo frame on)
     bw = (inner - 40) // 2
     for i, label in enumerate(("CLOSE", "CLOSE, DON'T SHOW AGAIN")):
@@ -111,6 +113,7 @@ def build_page(main):
     hg = b.group("lnHint", a, b.tl(bx, by + bh + 44, 1200, 60))["guid"]
     b.image("lnHintIcon", hg, b.tl(0, 2, 56, 56), "menu:select", 0xFFFFFFFF)
     b.text("lnHintTx", hg, b.tl(76, 0, 1100, 60), "READ THE NOTICE", HINT_PT, DIM, tracking=4)
+    b.text("lnHintTxB", hg, b.tl(76, 0, 1100, 60), "READ THE NOTICE", HINT_PT, DIM, tracking=4, visible=0)   # twin (ui_text_db)
     w = {k: copy.deepcopy(v) for k, v in main.items() if k != "items"}
     w["items"] = b.items
     return w

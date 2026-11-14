@@ -49,8 +49,9 @@ static void ln_fill(int left_s) {
     ui_text("anim-group.lnBox.lnB2", "EXPECT " LN_EM "BUGS AND CRASHES</font>, DISCONNECTS, BROKEN ANIMATIONS AND ROUGH EDGES.");
     ui_text("anim-group.lnBox.lnB3", "SOME FEATURES ARE " LN_EM "MISSING OR PLACEHOLDER</font>.");
     ui_text("anim-group.lnBox.lnP1", "BY PLAYING, YOU AGREE TO REPORT THE BUGS YOU FIND WITH " LN_EM "REPORT A BUG</font> IN THE LAUNCHER. SAY WHAT HAPPENED AND WHERE. EVERY REPORT HELPS.");
-    if (left_s > 0) { snprintf(b, sizeof b, "I ACKNOWLEDGE (%d)", left_s); ui_text("anim-group.lnBox.lnCheck.lnAck", b); }
-    else ui_text("anim-group.lnBox.lnCheck.lnAck", "I ACKNOWLEDGE");
+    // (the countdown flickered every second - the timer fix: double-buffered through the hidden twin lnAckB)
+    if (left_s > 0) { snprintf(b, sizeof b, "I ACKNOWLEDGE (%d)", left_s); ui_text_db("anim-group.lnBox.lnCheck.lnAck", b); }
+    else ui_text_db("anim-group.lnBox.lnCheck.lnAck", "I ACKNOWLEDGE");
     ui_text("anim-group.lnBox.lnBtn0.lnBtn0Tx", "CLOSE");
     ui_text("anim-group.lnBox.lnBtn1.lnBtn1Tx", "CLOSE, DON'T SHOW AGAIN");
 }
@@ -142,7 +143,7 @@ static void ln_page(int entered) {
     ln_vis("anim-group.lnBox.lnBtn0.lnBtn0Fo", &v_fo0, ticked && focus == 1);
     ln_vis("anim-group.lnBox.lnBtn1.lnBtn1Fo", &v_fo1, ticked && focus == 2);
     ln_vis("anim-group.lnHint.lnHintIcon", &v_icon, !locked);
-    ui_text("anim-group.lnHint.lnHintTx", locked ? "READ THE NOTICE" : ticked ? "SELECT" : "TICK");
+    ui_text_db("anim-group.lnHint.lnHintTx", locked ? "READ THE NOTICE" : ticked ? "SELECT" : "TICK");
     float tm = !read_t0 ? 1.0f : locked ? 1.0f - (float)rd / LN_READ_MS : 0.0f;
     if (fabsf(tm - a_tm) > 0.002f || (tm == 0.0f && a_tm != 0.0f)) {
         a_tm = tm;
