@@ -45,6 +45,7 @@ def main():
     dry = "--dry-run" in sys.argv
     repo = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
     files, dirs = tracked(repo)
+    files_ci, dirs_ci = {f.lower() for f in files}, {d.lower() for d in dirs}  # Windows paths ignore case: README.MD in the data root is the tracked README.md
     linked, n_dir, n_file = [], 0, 0
 
     def walk(rel):
@@ -58,9 +59,9 @@ def main():
                 continue
             src = os.path.join(base, name)
             dst = os.path.join(repo, r)
-            if r in files:
+            if r.lower() in files_ci:
                 continue
-            if r in dirs:
+            if r in dirs or r.lower() in dirs_ci:
                 if os.path.isdir(src):
                     walk(r)
                 continue
