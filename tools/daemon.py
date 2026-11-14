@@ -1147,7 +1147,7 @@ HOSTMIG_NOCAND_S = float(os.environ.get("T2R_HOSTMIG_NOCAND_S", "45"))   # host 
 CLAN_START_GRACE_S = float(os.environ.get("T2R_CLAN_START_GRACE", "45"))
 CLAN_END_GRACE_S = float(os.environ.get("T2R_CLAN_END_GRACE", "30"))
 CLAN_REJOIN_MAX_S = float(os.environ.get("T2R_CLAN_REJOIN_MAX", "900"))
-CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again", "afk")     # (an AFK removal counts as leaving early, like a quit)
+CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again")     # (kicks carry no penalty: an AFK removal does not count as leaving early)
 CLAN_EXCUSE_WHY = {}   # (token, mid) -> why the departure was excused (the log line of clan_finalize)
 # Kicks carry no penalty: (token, mid) removed by an admin kick or the ping limit. Its clan day for that match never books a
 # deficit: 0 parts = no day at all, parts > 0 = the parts count and the deficit is forgiven - even when the match ended normally afterwards (an admin kick
@@ -8203,8 +8203,8 @@ def kick_token(tok, why, ktxt, kind="admin-kick", reason="", keep_out=False, no_
 
 def afk_report(token, idle_s, flags=0):
     """Op 0xE3 trailer (ext afk.c): `idle_s` seconds without any input while alive in the running match (0xFFFF = unknown / the ext's AFK is off).
-    At AFK_KICK_S the player is removed with the kick path: back to the menu with the AFK text, out of the match like a quit (no win, left-early clan
-    day unless an excuse applies, CLAN_DELIBERATE_WHY 'afk'), no requeue ticket. Once per (token, match). Returns True when it removed the player."""
+    At AFK_KICK_S the player is removed with the kick path: back to the menu with the AFK text, out of the match like a quit (no win; no clan
+    deficit, CLAN_KICKED - kicks carry no penalty), no requeue ticket. Once per (token, match). Returns True when it removed the player."""
     if AFK_KICK_S <= 0 or idle_s == 0xFFFF or idle_s < AFK_KICK_S:
         return False
     with MM.lock:
@@ -8217,7 +8217,7 @@ def afk_report(token, idle_s, flags=0):
         AFK_KICKED.clear()
     log("afk:", tag(token), "no input for %d s in match %s (ext flags %d) - removed from the match (counts as leaving early)" % (idle_s, mid, flags))
     did = kick_token(token, "left: afk (no input for %d s)" % idle_s, srv_text("afk_kicked", lang_of(token), s=int(idle_s)), "afk-kick",
-                     "no input for %d s" % idle_s, keep_out=True)
+                     "no input for %d s" % idle_s, keep_out=True, no_penalty=True)
     log("afk:", tag(token), "removal done:", ", ".join(did) or "nothing")
     return True
 
