@@ -37,7 +37,7 @@ static int afk_off(void) {
         if (o != g_afk.off) xlog("afk: %s", o ? "off (t2r-no-afk.txt)" : "on (warning at 60 s idle, the server removes at 90 s)");
         g_afk.off = o;
     }
-    return g_afk.off;
+    return g_afk.off || (g_srv_test_flags & 0x40);      // (the test server removes nobody for inactivity - no warning either)
 }
 static int afk_countable(void) {
     if (match_substate() != 6) return 0;

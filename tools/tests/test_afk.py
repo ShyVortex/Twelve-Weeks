@@ -1,6 +1,6 @@
 """Anti-AFK: the ext reports its idle seconds on every 0xE3 clock report ([76] 0xAF [77..78] u16 idle s [79] flags, ext afk.c); at
-T2R_AFK_KICK_S (90) the daemon removes the player through the kick path: back to the menu with the AFK text, out of the match like a quit (no win,
-left-early clan day), no requeue ticket. Run: python tools/tests/test_afk.py   (no sockets are opened, temp DB)."""
+T2R_AFK_KICK_S (90) the daemon removes the player through the kick path: back to the menu with the AFK text, out of the match like a quit (no win;
+no clan deficit - kicks carry no penalty), no requeue ticket. Run: python tools/tests/test_afk.py   (no sockets are opened, temp DB)."""
 import os, sys, tempfile, time, struct
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
@@ -69,8 +69,9 @@ check((T[1], mid) in daemon.AFK_KICKED, "noted once per match")
 check(b"no input for 90 seconds (AFK)" in conn.out and conn.out.endswith(daemon.msg(0x0d, b"\x01")), "kick text + 0x0d back to the menu on his session socket")
 check(conn.out.find(b"You got kicked from the match") >= 0, "the text starts like the kick text (the ext shows it as the server toast)")
 check(any(n[0] == T[1] and n[1] == "kicked" for n in notes), "the kick notice for the notice poll too")
-check(daemon.clan_why_deliberate("left: afk (no input for 90 s)") is True, "the clan sees a deliberate leave (left early)")
-check(daemon.clan_leave_excuse(T[1], mid, "left: afk (no input for 90 s)") is None, "no excuse mid-match: a left-early day like a quitter")
+# kicks carry no penalty: an AFK removal is no deliberate leave and its clan day never books a deficit
+check(daemon.clan_why_deliberate("left: afk (no input for 90 s)") is False, "the clan does not see a deliberate leave")
+check((T[1], mid) in daemon.CLAN_KICKED, "marked as kicked: no clan deficit for this match")
 check(any(l.startswith("afk:") and "removed from the match" in l for l in LOGS), "'afk:' log line")
 check(MM.in_match(T[0]) and T[0] not in MM.departed.get(mid, ()), "the others play on")
 n0 = len(conn.out)
