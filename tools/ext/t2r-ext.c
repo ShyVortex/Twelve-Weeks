@@ -49100,6 +49100,7 @@ static int ev_wanted(const clan_t *c) {
 }
 static int ev_due(const clan_t *c) { return g_ev.pending || ev_wanted(c) != 0; }   // for the mission offer: the event screen goes first
 static int g_lds_hold, g_ent_st;
+#include "launchnote.c"        // the unfinished-state notice once per game start: to1/launch-notice under the TWELVE WEEKS title
 static void ev_close(const clan_t *c, const char *why) {
     tr_open(5000); tr_logf("event close (%s, mode %d)", why, g_ev.mode);
     if (g_ev.mode == 2) g_ev.out_done = 1;
@@ -49655,7 +49656,7 @@ static void feature_clan(void) {
         if (c.st == 1) { cl13_open_check(); panel_tick(&c, fresh); }     // (the CLAN row opens the CLAN page while searching too)
         return;
     }
-    if (top != PAGE_MAIN) return;
+    if (top != PAGE_MAIN || ln_busy()) return;          // (launchnote.c: the launch notice goes first, the clan pages wait for it)
     if (ce_test_push()) return;                         // t2r-ce-test.txt: the end screens on demand (clanend.c)
     ev_offer(&c, now);                                  // a clan event's screen (announcement / result) when one is due
     if (g_pm.pending && g_pm.sb < 2) {                  // back on the MP menu after a clan match: the scoreboard of both teams comes first
@@ -56308,6 +56309,8 @@ static void ui_click_gate_tick(void) {
         for (int k = g_pick_lo; k < g_pick_hi && !hit; k++) { snprintf(rp, sizeof rp, "anim-group.pickerList.Item%d", k); hit = ui_mouse_over(rp, 1); }
         if (top != PAGE_PURCHASE && !hit) hit = lo_r3() ? ui_mouse_over("anim-group.detailPanel.t3Lv0Tx", 0) || ui_mouse_over("anim-group.detailPanel.t3Lv1Tx", 0)   // R3: the LOUD / QUIET lines
                                                    : ui_mouse_over("anim-group.detailPanel.lvlBg0", 0) || ui_mouse_over("anim-group.detailPanel.lvlBg1", 0);
+    } else if (g_ln_page && top == g_ln_page) {
+        hit = ln_click_hit();                    // launchnote.c: the I ACKNOWLEDGE box and the two buttons
     } else gated = 0;
     if (top != PAGE_SKILL) g_sk_chip_hov = -1;
     if (g_click_edge && gated && n_log++ < 30) xlog("click gate: click on %s -> %s", page_name(top), hit ? "over a button, passed" : "empty space, select suppressed");
@@ -69542,6 +69545,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(afk_tick());                                // Idle time in a running match (afk.c)
     PF(feature_steam_status_text());
     PF(ui_click_gate_tick());                      // mouse clicks count only over a clickable widget (hook of the menu-select query)
+    PF(ln_tick());                                 // launch notice (launchnote.c), before the clan pages
     if (!g_no_clan) PF(feature_clan());
     PF(feature_menu_scene());                      // faction MP menu background (after the clan state)
     PF(feature_menu_scout());

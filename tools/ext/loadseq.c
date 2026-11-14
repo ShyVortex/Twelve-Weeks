@@ -177,7 +177,9 @@ static void lds_tick(void) {
         // after 5000 ms - plain fade-in", g_ent_st back to 0) so it never reached state 2, the release above never came and the page stayed up for the 120 s cap - through
         // the vote, gear up and into the match. The entry's plain fade-in is a release too: the menu is live (state >= 2) and the native black reads 0.
         if (!L->rel_t0 && g_ent_st == 0 && bfv < 0.02f && match_substate() >= 2) { L->rel_t0 = now; xlog("load seq: resume - the entry fell back to the plain fade-in (menu live, black 0): released"); }
-        if ((L->rel_t0 && bfv < 0.02f && match_substate() != 1) || (L->rel_t0 && now - L->rel_t0 > 4000) || now - L->rs_t0 > 120000) {
+        int go = (L->rel_t0 && bfv < 0.02f && match_substate() != 1) || (L->rel_t0 && now - L->rel_t0 > 4000) || now - L->rs_t0 > 120000;
+        if (go && L->rel_t0 && ln_hold_fade(now)) go = 0;      // launchnote.c: the launch notice goes on under the title first (<= 4 s)
+        if (go) {
             L->out = 1; L->out_t0 = now;
             xlog("load seq: resume - native black reads %.2f (state %d, %llu ms after the release): the page fades out over the live menu (%d ms)", (double)bfv, (int)match_substate(), (unsigned long long)(L->rel_t0 ? now - L->rel_t0 : 0), LDS_RESUME_OUT_MS);
         }
