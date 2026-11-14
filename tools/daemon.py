@@ -182,6 +182,17 @@ RQ_CAP = {}              # token -> time of its last 0xE3 report with flag 0x20
 # every 0xE3 clock report; at AFK_KICK_S the player is removed through the kick path (counts as leaving early, no requeue). 0 = off. The ext warns at 60 s.
 AFK_KICK_S = float(os.environ.get("T2R_AFK_KICK_S", "90"))      # warning ~60 s, removal ~90 s
 AFK_KICKED = set()       # (token, mid) removed for inactivity (once per match)
+# Ping limit: a player whose Steam ping to the match host stays
+# above PING_KICK_MS for PING_KICK_S is removed through the kick path (the ext shows the must-close kick box with the numbers). Not counted as leaving early
+# (no clan penalty), no requeue ticket, join in progress keeps it out of that match. Never the host itself, never while most players are high to the host
+# (then the host's link is the problem: host migration's business), not in the first PING_GRACE_S of a match, only fresh measurements (PING_FRESH_S).
+# T2R_PING_KICK_MS=0 = off.
+PING_KICK_MS = int(os.environ.get("T2R_PING_KICK_MS", "190"))
+PING_KICK_S = float(os.environ.get("T2R_PING_KICK_S", "60"))
+PING_GRACE_S = 45.0
+PING_FRESH_S = 90.0
+PING_HIGH = {}           # (token, mid) -> time its ping to the host was first seen above the limit (cleared when it drops below)
+PING_KICKED = set()      # (token, mid) removed for ping (once per match)
 QUEUE_HOLD_MAX = float(os.environ.get("T2R_QUEUE_HOLD_MAX", "75"))  # s the oldest searcher may sit in the second-match queue hold; then the searchers start their own match (0 = hold forever)
 PARTY_HOLD_S = float(os.environ.get("T2R_PARTY_HOLD_S", "120"))   # s a ready party short of players holds the solos back from a tiny match of their own (0 = off)
 MAX_WAIT = float(os.environ.get("T2R_MAX_WAIT", "150"))              # s the oldest searcher may wait for a fuller lobby: then the match forms with everybody searching (JIP fills it later)
@@ -1138,6 +1149,10 @@ CLAN_END_GRACE_S = float(os.environ.get("T2R_CLAN_END_GRACE", "30"))
 CLAN_REJOIN_MAX_S = float(os.environ.get("T2R_CLAN_REJOIN_MAX", "900"))
 CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again", "afk")     # (an AFK removal counts as leaving early, like a quit)
 CLAN_EXCUSE_WHY = {}   # (token, mid) -> why the departure was excused (the log line of clan_finalize)
+# Kicks carry no penalty: (token, mid) removed by an admin kick or the ping limit. Its clan day for that match never books a
+# deficit: 0 parts = no day at all, parts > 0 = the parts count and the deficit is forgiven - even when the match ended normally afterwards (an admin kick
+# of the last opponent ends it with an abort award, CLAN_ENDED, and the kicked player's 0-part report used to book a full starving day).
+CLAN_KICKED = {}       # (token, mid) -> why (log text)
 CLAN_LEFT_AT = {}      # (token, mid) -> time of its departure from the running match (a 'back in the match' needs a departure first)
 CLAN_REJOINED = {}     # (token, mid) -> time the first deferral happened: the player is back in the match, its first report waits for the next one
 CLAN_LAST_DEPART = {}  # mid -> (time, token) of the latest departure from the running match
@@ -1325,6 +1340,12 @@ def clan_finalize(token):
         CLAN_EXCUSED.add((token, mid))
         log("CLAN excuse", tag(token), "mid", mid, "report within %.0f s of the daemon restart that restored this match - no left-early penalty" % (time.time() - RESTORED_T[mid]))
     forgive_excused = False
+    if (token, mid) in CLAN_KICKED:
+        if int(parts) <= 0:
+            log("CLAN day", tag(token), "mid", mid, "kicked (%s) - nothing earned, no day, no penalty" % CLAN_KICKED[(token, mid)])
+            return
+        left, forgive_excused = False, True
+        log("CLAN day", tag(token), "mid", mid, "kicked (%s) - parts count, deficit forgiven" % CLAN_KICKED[(token, mid)])
     if left and (token, mid) in CLAN_EXCUSED and (token, mid) not in CLAN_QUITTERS:
         if int(parts) <= 0:
             log("CLAN day", tag(token), "mid", mid, "excused (%s) - nothing earned, no day, no penalty" % CLAN_EXCUSE_WHY.get((token, mid), "left after another player left / crashed"))
@@ -2504,6 +2525,9 @@ SRV_TEXT = {
     "kicked_why": ('You got kicked from the match. Reason: "{r}"', 'Wyrzucono cię z meczu. Powód: "{r}"'),
     # anti-AFK (the English text starts like the kick text: the ext shows it as the server toast on the menu, msg_is_kick)
     "afk_kicked": ("You got kicked from the match: no input for {s} seconds (AFK).", "Wyrzucono cię z meczu: brak aktywności przez {s} s (AFK)."),
+    # ping limit (the ext's kick box reads the three numbers: ping, seconds, limit)
+    "ping_kicked": ("You got kicked from the match: your ping to the host was {ms} ms for over {s} seconds (limit {lim} ms).",
+                    "Wyrzucono cię z meczu: twój ping do hosta wynosił {ms} ms przez ponad {s} s (limit {lim} ms)."),
     # The admin team move - the client recognises this text (ext msg_is_move: "TEAMS:" prefix) and searches again by itself, straight back in on the other team
     "moved": ("TEAMS: you were moved to the other team - rejoining the match", "DRUŻYNY: przeniesiono cię do drugiej drużyny - wracasz do meczu"),
     "warn": ("Warning from the Twelve Weeks team: {t}", "Ostrzeżenie od zespołu Twelve Weeks: {t}"),
@@ -5239,6 +5263,8 @@ def wave_byte(late=False, back=False):
     # test server: 0x08 = every player may use the free camera (T2R_TEST_FREECAM=1), 0x10 = Supply Raid clock x2 (T2R_TEST_CLOCK2=1), 0x20 = team lives x2 (T2R_TEST_LIVES2=1).
     # A live server leaves both unset; an older ext ignores the bits.
     test = (8 if os.environ.get("T2R_TEST_FREECAM", "") == "1" else 0) | (0x10 if os.environ.get("T2R_TEST_CLOCK2", "") == "1" else 0) | (0x20 if os.environ.get("T2R_TEST_LIVES2", "") == "1" else 0)
+    # 0x40 = no AFK removal on this server (T2R_AFK_KICK_S=0, the test server): the ext drops its inactivity warning too
+    test |= 0x40 if AFK_KICK_S <= 0 else 0
     return 0x80 | (1 if WAVE_RESPAWN else 0) | (2 if late else 0) | (4 if late and back else 0) | test
 
 def jip_is_late(token):
@@ -8029,6 +8055,8 @@ def status_loop():
             readopt_expire()
             live_save()
             net_report()
+            try: ping_check()                                    # ping limit (never breaks the status tick)
+            except Exception as e: log("PING-CHECK ERR", repr(e))
             if UDP is not None and UDP.pk_in:
                 log("UDP-HEALTH", UDP.health_line())
             if UDP is not None and UDP.counters:
@@ -8115,12 +8143,19 @@ def kick_text(reason, lang="en"):
     reason = kick_reason_clean(reason).replace('"', "'")
     return srv_text("kicked_why", lang, r=reason) if reason else srv_text("kicked", lang)
 
-def kick_token(tok, why, ktxt, kind="admin-kick", reason="", keep_out=False):
+def kick_token(tok, why, ktxt, kind="admin-kick", reason="", keep_out=False, no_penalty=False):
     """The kick itself (admin kick / team move / AFK removal): out of the queue and the requeue, out of its match (a not yet launched match is called off
     and the others go back to searching, a running one is left like a normal leave with `why` as the reason: the others play on), LOADED / countdown /
     silence marks, presence, the text `ktxt` + a 0x0d (back to the menu) on its held matchmaking socket. keep_out (AFK): join in progress never puts it
     back into the match it was removed from (an admin kick clears that mark: the player may come back). Returns the list of what was done."""
     did = []
+    if no_penalty:                                                # its clan day for this match never books a deficit (CLAN_KICKED)
+        _km = MM.mid_of(tok)
+        if _km is not None:
+            CLAN_KICKED[(tok, _km)] = why
+            if len(CLAN_KICKED) > 2000:
+                for _k in list(CLAN_KICKED)[:500]:
+                    CLAN_KICKED.pop(_k, None)
     if MM.dequeue(tok):
         did.append("queue")
     if MM.rq.drop(tok):
@@ -8186,6 +8221,62 @@ def afk_report(token, idle_s, flags=0):
     log("afk:", tag(token), "removal done:", ", ".join(did) or "nothing")
     return True
 
+def _ping_fresh(a, b, now):
+    """pair_ping(a, b) when one of the two directions was measured in the last PING_FRESH_S, else None (a stale median says nothing about now)."""
+    at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
+    return pair_ping(a, b) if now - at <= PING_FRESH_S else None
+
+def ping_check(now=None):
+    """Every status tick (10 s): the ping limit (PING_KICK_MS / PING_KICK_S, see the table above). Returns the tokens removed."""
+    now = time.time() if now is None else now
+    out = []
+    if PING_KICK_MS <= 0:
+        return out
+    live = set()
+    for mid, players, formed, launched, ended, _, dep in MM.snapshot():
+        if not launched or ended or now - formed < PING_GRACE_S:
+            continue
+        act = [p for p in players if p not in dep]
+        if len(act) < 2:
+            continue
+        host = HM.host_token(act[0]) if (HM.enabled and HM.has(act[0])) else players[0]
+        if host not in act:
+            continue
+        pings = {p: _ping_fresh(p, host, now) for p in act if p != host}
+        high = [p for p, ms in pings.items() if ms is not None and ms > PING_KICK_MS]
+        known = [p for p, ms in pings.items() if ms is not None]
+        if len(known) >= 2 and len(high) * 2 > len(known):         # most of them are high to the host: its link is the problem, nobody is removed
+            for p in act:
+                PING_HIGH.pop((p, mid), None)
+            continue
+        for p in act:
+            if p == host:
+                continue
+            key = (p, mid)
+            live.add(key)
+            if p not in high:
+                if PING_HIGH.pop(key, None) is not None:
+                    log("ping:", tag(p), "back under %d ms to the host in match %s (%s ms)" % (PING_KICK_MS, mid, pings.get(p)))
+                continue
+            t0 = PING_HIGH.setdefault(key, now)
+            if t0 == now:
+                log("ping:", tag(p), "%d ms to the host %s in match %s - over the %d ms limit, removed after %d s of it" % (pings[p], tag(host), mid, PING_KICK_MS, PING_KICK_S))
+            if now - t0 < PING_KICK_S or key in PING_KICKED:
+                continue
+            PING_KICKED.add(key)
+            if len(PING_KICKED) > 2000:
+                PING_KICKED.clear()
+            ms, secs = int(pings[p]), int(now - t0)
+            log("ping:", tag(p), "%d ms to the host for %d s in match %s - removed from the match (not counted as leaving early)" % (ms, secs, mid))
+            did = kick_token(p, "removed: high ping (%d ms to the host for %d s)" % (ms, secs),
+                             srv_text("ping_kicked", lang_of(p), ms=ms, s=secs, lim=PING_KICK_MS), "ping-kick",
+                             "%d ms to the host for %d s (limit %d ms)" % (ms, secs, PING_KICK_MS), keep_out=True, no_penalty=True)
+            log("ping:", tag(p), "removal done:", ", ".join(did) or "nothing")
+            out.append(p)
+    for k in [k for k in PING_HIGH if k not in live]:            # finished matches / departed players
+        PING_HIGH.pop(k, None)
+    return out
+
 def admin_kick(pid, reason="", move=False):
     """Clear a player's stuck server-side state so it can matchmake again: queue, match membership (a not yet launched match is called off and the
     others go back to searching, a running one is left like a normal leave: the others play on), LOADED / countdown / silence marks, presence,
@@ -8210,7 +8301,7 @@ def admin_kick(pid, reason="", move=False):
         tok = toks[0]
         name = tag(tok)
         ktxt = srv_text("moved", lang_of(tok)) if move else kick_text(reason, lang_of(tok))
-        did = kick_token(tok, "team move" if move else "admin kick", ktxt, "admin-kick", kick_reason_clean(reason))
+        did = kick_token(tok, "team move" if move else "admin kick", ktxt, "admin-kick", kick_reason_clean(reason), no_penalty=not move)
         return {"ok": True, "name": name, "did": did}
     except Exception as e:
         log("ADMIN-KICK-ERR", repr(e))

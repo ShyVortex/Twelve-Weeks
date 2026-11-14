@@ -102,5 +102,33 @@ check(not miss, "every English piece has a Polish line in 11-notice.txt (%d piec
 miss_h = sorted(k for k in pl if '{"%s", ' % k.replace('"', '\\"') not in hdr)
 check(not miss_h, "every 11-notice.txt line is in loc_pl.h%s" % ((": " + " | ".join(miss_h)) if miss_h else ""))
 check("I ACKNOWLEDGE (%d)" in pl, "the countdown label has a template entry")
+# ---- kick box (to1/kick-notice, kicknote.c)
+check(nw.add_kick_page(tmp) == 1, "kick page built")
+kp = json.load(open(os.path.join(tmp, "to1", nw.KICK_PAGE + ".widget.json"), encoding="utf-8"))["items"]
+kby = {i["guid"]: i for i in kp}
+kroot = next(i for i in kp if i["name"] == "root")
+
+
+def kpath(i):
+    p = []
+    while i["guid"] != kroot["guid"]:
+        p.append(i["name"])
+        i = kby[i["parent"]]
+    return ".".join(reversed(p))
+
+
+KP = {kpath(i) for i in kp if i is not kroot}
+ksrc = open(os.path.join(ROOT, "tools", "ext", "kicknote.c"), encoding="utf-8").read()
+kused = set(re.findall(r'"((?:anim-group|knDimG)(?:\.[A-Za-z0-9]+)*)"', ksrc))
+kmiss = sorted(u for u in kused if u not in KP)
+check(not kmiss, "every widget path kicknote.c writes exists (%d paths)%s" % (len(kused), (": missing " + ", ".join(kmiss)) if kmiss else ""))
+kpieces = set()
+for f in re.findall(r'(?:ui_text\("[^"]+",\s*|snprintf\(out, n, )("(?:[^"\\]|\\.)*")', ksrc):
+    for piece in re.split(r"<[^>]*>", f.strip('"').replace('\\"', '"')):
+        piece = piece.strip()
+        if re.search(r"[A-Za-z]{2}", piece) and piece != "%s":
+            kpieces.add(piece)
+kmissp = sorted(p for p in kpieces if p not in pl)
+check(not kmissp, "every kick box text piece has a Polish line (%d pieces)%s" % (len(kpieces), (": " + " | ".join(kmissp)) if kmissp else ""))
 print("FAILED: %d" % len(FAILS) if FAILS else "all ok")
 sys.exit(1 if FAILS else 0)

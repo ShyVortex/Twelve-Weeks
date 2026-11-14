@@ -14256,7 +14256,8 @@ static volatile uint64_t g_kick_ms;   // admin kick: when the kick text last cam
 // and move_rejoin_tick searches again by itself once the MP menu is back (the daemon's move ticket puts us into the same match on the other team)
 static volatile uint64_t g_move_ms;
 static int msg_is_move(const char *t) { return t && !IsBadReadPtr(t, 12) && (!strncmp(t, "TEAMS: ", 7) || !strncmp(t, "DRUÅ»YNY: ", 10)); }
-static int msg_is_kick(const char *t) { return t && !IsBadReadPtr(t, 30) && (!strncmp(t, "You got kicked from the match", 29) || msg_is_move(t)); }
+static int msg_is_kick(const char *t) { return t && !IsBadReadPtr(t, 30) && (!strncmp(t, "You got kicked from the match", 29) || !strncmp(t, "Wyrzucono ci", 12) || msg_is_move(t)); }   // (+ the Polish kick text)
+static int kn_set(const char *t);       // kicknote.c: the kick text opens a box on the MP menu that stays until closed
 static void msg_hook(const char *text, float secs, int flag, uint64_t id) {
     (void)id;
     // admin kick: the daemon sends the text as op 0x11 right before 0x0d (back to the menu). As a plain HUD line it died with the match (the level unload) and
@@ -14264,6 +14265,7 @@ static void msg_hook(const char *text, float secs, int flag, uint64_t id) {
     if (msg_is_kick(text)) {
         g_kick_ms = GetTickCount64();
         if (msg_is_move(text)) { g_move_ms = g_kick_ms; xlog("kick: admin team move - searching again once the MP menu is back"); }
+        else if (kn_set(text)) { xlog("kick: admin kick text \"%.120s\" -> kick notice box on the MP menu (substate %d)", text, (int)match_substate()); return; }
         int ok = ntf_push(NTF_SERVER, text, 12.0f);
         xlog("kick: admin kick text \"%.120s\" -> %s (substate %d)", text, ok ? "server toast queued" : "no toast widgets, plain line", (int)match_substate());
         if (ok) return;
@@ -49101,6 +49103,7 @@ static int ev_wanted(const clan_t *c) {
 static int ev_due(const clan_t *c) { return g_ev.pending || ev_wanted(c) != 0; }   // for the mission offer: the event screen goes first
 static int g_lds_hold, g_ent_st;
 #include "launchnote.c"        // the unfinished-state notice once per game start: to1/launch-notice under the TWELVE WEEKS title
+#include "kicknote.c"          // the kick text as a box on the MP menu that stays until closed: to1/kick-notice
 static void ev_close(const clan_t *c, const char *why) {
     tr_open(5000); tr_logf("event close (%s, mode %d)", why, g_ev.mode);
     if (g_ev.mode == 2) g_ev.out_done = 1;
@@ -49656,7 +49659,7 @@ static void feature_clan(void) {
         if (c.st == 1) { cl13_open_check(); panel_tick(&c, fresh); }     // (the CLAN row opens the CLAN page while searching too)
         return;
     }
-    if (top != PAGE_MAIN || ln_busy()) return;          // (launchnote.c: the launch notice goes first, the clan pages wait for it)
+    if (top != PAGE_MAIN || ln_busy() || kn_busy()) return;   // (launchnote.c / kicknote.c: the launch notice and the kick box go first, the clan pages wait)
     if (ce_test_push()) return;                         // t2r-ce-test.txt: the end screens on demand (clanend.c)
     ev_offer(&c, now);                                  // a clan event's screen (announcement / result) when one is due
     if (g_pm.pending && g_pm.sb < 2) {                  // back on the MP menu after a clan match: the scoreboard of both teams comes first
@@ -56314,6 +56317,8 @@ static void ui_click_gate_tick(void) {
                                                    : ui_mouse_over("anim-group.detailPanel.lvlBg0", 0) || ui_mouse_over("anim-group.detailPanel.lvlBg1", 0);
     } else if (g_ln_page && top == g_ln_page) {
         hit = ln_click_hit();                    // launchnote.c: the I ACKNOWLEDGE box and the two buttons
+    } else if (g_kn_page && top == g_kn_page) {
+        hit = kn_click_hit();                    // kicknote.c: the CLOSE button
     } else gated = 0;
     if (top != PAGE_SKILL) g_sk_chip_hov = -1;
     if (g_click_edge && gated && n_log++ < 30) xlog("click gate: click on %s -> %s", page_name(top), hit ? "over a button, passed" : "empty space, select suppressed");
@@ -62675,6 +62680,15 @@ static void feature_menu_lock(void) {
 //   Shift / Ctrl        fast (x4) / slow (x0.15)       Z / X   zoom in / out (FOV, override-fov every frame)
 //   F9                  save the pose: log line "freecam: SHOT x y z yaw pitch fov" + a line in t2r-freecam-shots.txt (goto format)
 //   F11                 hide / show our own body (default hidden)
+//   C                   smoothing: off / light / medium (default) / heavy
+//   + / -               base speed up / down (x1.5 a step, 0.1 - 20)
+// Controller (XInput pad; the game's own camera command stays on, so the right stick looks like the mouse does):
+//   L3 + R3 together    toggle the free camera          left stick   fly (analog)        right stick   look
+//   RT / LT             zoom in / out (analog)          RB / LB      base speed up / down (x1.5 a step)
+//   D-pad up / down     up / down (world)               D-pad left / right   smoothing less / more
+//   L3                  hide / show our body            R3           save the shot (F9)
+// Smoothing: the fly speed, the look and the zoom each ease toward what the input asks (exponential, time constants per level), so a
+// stick or key release glides to a stop and turns don't snap. A goto (t2r-freecam-goto.txt) places the camera at once.
 // HUD: canvas.hudRoot / hudRootMp alpha 0, winmm text + radar hidden, hud2 health / ammo hidden, while active.
 // t2r-freecam-goto.txt "x y z yaw pitch [fov]" (yaw degrees, 0 = +Z, atan2(fx, fz); pitch degrees DOWN): polled every 0.25 s while
 // t2r-freecam.txt exists; a changed content places the camera exactly there and switches the free camera on (no keys needed).
@@ -62883,16 +62897,29 @@ static void test_clock2_tick(void) {
     if (tm[0] < 2.0f * base - 0.5f) tm[0] = 2.0f * base;
     if (!added) { added = 1; tm[1] += base; xlog("test server: clock x2 - duration %.0f -> %.0f s, remaining now %.0f s", (double)base, (double)tm[0], (double)tm[1]); }
 }
+// pad buttons + sticks + triggers for the free camera (pad_state's per-frame XInput read; the right stick is not needed: it turns the game camera)
+static int fc_pad(WORD *b, float *lx, float *ly, float *lt, float *rt) {
+    BYTE l = 0, r = 0; SHORT x = 0, y = 0; WORD bb = 0;
+    if (!pad_state(&bb, &l, &r, &x, &y)) { *b = 0; *lx = *ly = *lt = *rt = 0.0f; return 0; }
+    float fx = x / 32767.0f, fy = y / 32767.0f, m = sqrtf(fx * fx + fy * fy), dz = 0.24f;
+    if (m < dz) fx = fy = 0.0f;
+    else { float k = (m > 1.0f ? 1.0f : m); k = (k - dz) / (1.0f - dz); k *= k; fx = fx / m * k; fy = fy / m * k; }   // radial dead zone + squared response (fine control near the centre)
+    *b = bb; *lx = fx; *ly = fy;
+    *lt = l > 30 ? (l - 30) / 225.0f : 0.0f; *rt = r > 30 ? (r - 30) / 225.0f : 0.0f;
+    return 1;
+}
 static void feature_freecam(void) {
-    static int enabled = -1, active, hide_body = 1, lg_ok, goto_init;
+    static int enabled = -1, active, hide_body = 1, lg_ok, goto_init, smooth = 2;
     static uint64_t chk, last_ms, goto_at;
     static float p[3], yaw, pitch, fov, lgy, lgp;
+    static float tyaw, tpitch, tfov, vel[3], speed = 1.0f;      // smoothing: the targets (input) and the eased fly velocity
+    static WORD pb_last; static int l3r3, l3_solo;
     static char goto_last[160];
     if (enabled < 0 || g_frame >= chk) {
         chk = g_frame + 120;
         FILE *f = exe_side_open("t2r-freecam.txt", "r");
         int e = f != NULL || (g_srv_test_flags & 0x08); if (f) fclose(f);
-        if (e != enabled) { enabled = e; if (e) xlog("freecam: ON (%s; F8 / Scroll Lock toggle, WASD QE, mouse, Shift/Ctrl, Z/X fov, F9 save shot, F11 body; t2r-freecam-goto.txt)", f ? "t2r-freecam.txt" : "test server"); }
+        if (e != enabled) { enabled = e; if (e) xlog("freecam: ON (%s; F8 / Scroll Lock / pad L3+R3 toggle, WASD QE / left stick, mouse / right stick, Shift/Ctrl, +/- or RB/LB speed, Z/X or RT/LT fov, C or d-pad left/right smoothing, F9 / R3 save shot, F11 / L3 body; t2r-freecam-goto.txt)", f ? "t2r-freecam.txt" : "test server"); }
     }
     uint64_t now = GetTickCount64();
     const char *why = !enabled ? "t2r-freecam.txt removed / not on the test server" : match_substate() != 6 ? "left the match" : NULL;
@@ -62917,6 +62944,21 @@ static void feature_freecam(void) {
         if (!goto_init) { goto_init = 1; }
     }
     int toggle = fc_edge(VK_F8) | fc_edge(VK_SCROLL);
+    // pad: L3 + R3 together toggles; L3 alone (released without R3 having been down) hides the body, R3 alone saves the shot
+    WORD pb = 0; float plx = 0, ply = 0, plt = 0, prt = 0;
+    int pad = fc_pad(&pb, &plx, &ply, &plt, &prt);
+    WORD pe = (WORD)(pb & ~pb_last), pr = (WORD)(~pb & pb_last);
+    pb_last = pb;
+    int pad_hide = 0, pad_shot = 0;
+    if ((pb & 0x00c0) == 0x00c0) { if (!l3r3) { l3r3 = 1; toggle = 1; } l3_solo = 0; }
+    else {
+        if (!(pb & 0x00c0)) l3r3 = 0;
+        if (pe & 0x0040) l3_solo = 1;
+        if ((pr & 0x0040) && l3_solo && !l3r3) pad_hide = 1;
+        if ((pr & 0x0040) || l3r3) l3_solo = 0;
+        if ((pr & 0x0080) && !l3r3 && !(pb & 0x0040)) pad_shot = 1;
+    }
+    if (!active) pad_hide = pad_shot = 0;
     if (!active && (toggle || gn)) {
         uint8_t *m = icam_manager();
         uint64_t none = 0;
@@ -62939,7 +62981,8 @@ static void feature_freecam(void) {
         g_fcam_look[0] = sinf(y) * cosf(pp); g_fcam_look[1] = -sinf(pp); g_fcam_look[2] = cosf(y) * cosf(pp);
         for (int i = 0; i < 3; i++) g_fcam_pos[i] = p[i];
         g_fcam_on = 1; g_mcam_watch = 1; active = 1;
-        xlog("freecam: ON at %.2f %.2f %.2f yaw %.1f pitch %.1f fov %.1f", p[0], p[1], p[2], yaw, pitch, fov);
+        tyaw = yaw; tpitch = pitch; tfov = fov; vel[0] = vel[1] = vel[2] = 0.0f;
+        xlog("freecam: ON at %.2f %.2f %.2f yaw %.1f pitch %.1f fov %.1f (smoothing %d, speed x%.2f%s)", p[0], p[1], p[2], yaw, pitch, fov, smooth, speed, pad ? ", pad connected" : "");
         toggle = 0;
     } else if (active && toggle) { active = 0; g_fcam_on = 0; g_fcam_sign = 0; if (!g_xcam_on) g_mcam_watch = 0; fc_hud(0); fc_body_hide(0); xlog("freecam: off (toggle)"); return; }
     if (!active) return;
@@ -62950,6 +62993,7 @@ static void feature_freecam(void) {
         p[0] = gv[0]; p[1] = gv[1]; p[2] = gv[2]; yaw = gv[3]; pitch = gv[4];
         if (gn >= 6 && gv[5] > 5.0f && gv[5] < 140.0f) fov = gv[5];
         lg_ok = 0;
+        tyaw = yaw; tpitch = pitch; tfov = fov; vel[0] = vel[1] = vel[2] = 0.0f;     // a goto is exact: no easing into it
         xlog("freecam: goto %.2f %.2f %.2f yaw %.1f pitch %.1f fov %.1f", p[0], p[1], p[2], yaw, pitch, fov);
     }
     {   // our body stays put, no input to it; our body out of the shot
@@ -62962,7 +63006,7 @@ static void feature_freecam(void) {
         dc_call(fnv64("player-disable-jump"), 0, &none);
         dc_call(fnv64("player-disable-roll"), 0, &none);
         dc_call(0x0fa21391e0e4e478ULL /* player-disable-melee */, 0, &none);
-        if (fc_edge(VK_F11)) { hide_body = !hide_body; xlog("freecam: own body %s", hide_body ? "hidden" : "shown"); }
+        if (fc_edge(VK_F11) || pad_hide) { hide_body = !hide_body; xlog("freecam: own body %s", hide_body ? "hidden" : "shown"); }
         if (hide_body || g_fc_body_hidden) fc_body_hide(hide_body);
     }
     fc_hud(1);
@@ -62972,29 +63016,54 @@ static void feature_freecam(void) {
         float gy = atan2f(gf[0], gf[2]) * 57.29578f, gp = atan2f(-gf[1], sqrtf(gf[0] * gf[0] + gf[2] * gf[2])) * 57.29578f;
         if (lg_ok) {
             float dy = gy - lgy; if (dy > 180) dy -= 360; if (dy < -180) dy += 360;
-            yaw += dy; pitch += gp - lgp;
+            tyaw += dy; tpitch += gp - lgp;
         }
         lgy = gy; lgp = gp; lg_ok = 1;
     }
-    float kspd = fc_key(VK_SHIFT) ? 4.0f : fc_key(VK_CONTROL) ? 0.15f : 1.0f;
-    yaw += ((fc_key(VK_LEFT) ? 1.0f : 0) - (fc_key(VK_RIGHT) ? 1.0f : 0)) * 40.0f * kspd * dt;   // (A/D were reversed: yaw grows to the LEFT)
-    pitch += ((fc_key(VK_DOWN) ? 1.0f : 0) - (fc_key(VK_UP) ? 1.0f : 0)) * 40.0f * kspd * dt;
-    if (yaw > 180) yaw -= 360; if (yaw < -180) yaw += 360;
-    if (pitch > 89) pitch = 89; if (pitch < -89) pitch = -89;
-    if (fc_key('Z')) fov *= powf(0.45f, dt);
-    if (fc_key('X')) fov /= powf(0.45f, dt);
-    if (fov < 5.0f) fov = 5.0f; if (fov > 140.0f) fov = 140.0f;
+    // smoothing level: C cycles, d-pad left / right steps; speed: + / - , RB / LB (x1.5 a step)
+    {
+        int sm0 = smooth;
+        if (fc_edge('C')) smooth = (smooth + 1) % 4;
+        if (pe & 0x0004) smooth = smooth > 0 ? smooth - 1 : 0;
+        if (pe & 0x0008) smooth = smooth < 3 ? smooth + 1 : 3;
+        if (smooth != sm0) xlog("freecam: smoothing %s", (const char *[]){"off", "light", "medium", "heavy"}[smooth]);
+        float sp0 = speed;
+        if (fc_edge(VK_OEM_PLUS) || fc_edge(VK_ADD) || (pe & 0x0200)) speed *= 1.5f;
+        if (fc_edge(VK_OEM_MINUS) || fc_edge(VK_SUBTRACT) || (pe & 0x0100)) speed /= 1.5f;
+        if (speed < 0.1f) speed = 0.1f; if (speed > 20.0f) speed = 20.0f;
+        if (speed != sp0) xlog("freecam: speed x%.2f (%.1f m/s)", speed, 4.0f * speed);
+    }
+    static const float TAU_MOVE[4] = {0.0f, 0.12f, 0.28f, 0.55f}, TAU_LOOK[4] = {0.0f, 0.06f, 0.14f, 0.30f}, TAU_FOV[4] = {0.0f, 0.10f, 0.22f, 0.40f};
+    float kspd = (fc_key(VK_SHIFT) ? 4.0f : fc_key(VK_CONTROL) ? 0.15f : 1.0f) * speed;
+    tyaw += ((fc_key(VK_LEFT) ? 1.0f : 0) - (fc_key(VK_RIGHT) ? 1.0f : 0)) * 40.0f * kspd * dt;   // (A/D were reversed: yaw grows to the LEFT)
+    tpitch += ((fc_key(VK_DOWN) ? 1.0f : 0) - (fc_key(VK_UP) ? 1.0f : 0)) * 40.0f * kspd * dt;
+    if (tpitch > 89) tpitch = 89; if (tpitch < -89) tpitch = -89;
+    if (fc_key('Z')) tfov *= powf(0.45f, dt);
+    if (fc_key('X')) tfov /= powf(0.45f, dt);
+    if (prt > 0.0f) tfov *= powf(0.45f, dt * prt);          // RT zoom in, LT zoom out (analog)
+    if (plt > 0.0f) tfov /= powf(0.45f, dt * plt);
+    if (tfov < 5.0f) tfov = 5.0f; if (tfov > 140.0f) tfov = 140.0f;
+    {   // ease the shown look / fov toward the targets (yaw the short way round)
+        float kl = TAU_LOOK[smooth] > 0 ? 1.0f - expf(-dt / TAU_LOOK[smooth]) : 1.0f, kf = TAU_FOV[smooth] > 0 ? 1.0f - expf(-dt / TAU_FOV[smooth]) : 1.0f;
+        float dy = tyaw - yaw; while (dy > 180) dy -= 360; while (dy < -180) dy += 360;
+        yaw += dy * kl; pitch += (tpitch - pitch) * kl; fov += (tfov - fov) * kf;
+        while (yaw > 180) { yaw -= 360; tyaw -= 360; } while (yaw < -180) { yaw += 360; tyaw += 360; }
+    }
     {
         float y = yaw * 3.14159265f / 180.0f, pp = pitch * 3.14159265f / 180.0f;
         float fw[3] = {sinf(y) * cosf(pp), -sinf(pp), cosf(y) * cosf(pp)}, rt[3] = {-cosf(y), 0, sinf(y)};   // screen right (+X is screen-left at yaw 0)
-        float mf = (fc_key('W') ? 1.0f : 0) - (fc_key('S') ? 1.0f : 0), mr = (fc_key('D') ? 1.0f : 0) - (fc_key('A') ? 1.0f : 0);
-        float mu = (fc_key('E') ? 1.0f : 0) - (fc_key('Q') ? 1.0f : 0), s = 4.0f * kspd * dt;
-        for (int i = 0; i < 3; i++) p[i] += (fw[i] * mf + rt[i] * mr) * s;
-        p[1] += mu * s;
+        float mf = (fc_key('W') ? 1.0f : 0) - (fc_key('S') ? 1.0f : 0) + ply, mr = (fc_key('D') ? 1.0f : 0) - (fc_key('A') ? 1.0f : 0) + plx;
+        float mu = (fc_key('E') ? 1.0f : 0) - (fc_key('Q') ? 1.0f : 0) + ((pb & 0x0001) ? 1.0f : 0) - ((pb & 0x0002) ? 1.0f : 0);
+        if (mf > 1) mf = 1; if (mf < -1) mf = -1; if (mr > 1) mr = 1; if (mr < -1) mr = -1; if (mu > 1) mu = 1; if (mu < -1) mu = -1;
+        float s = 4.0f * kspd, want[3];
+        for (int i = 0; i < 3; i++) want[i] = (fw[i] * mf + rt[i] * mr) * s;
+        want[1] += mu * s;
+        float km = TAU_MOVE[smooth] > 0 ? 1.0f - expf(-dt / TAU_MOVE[smooth]) : 1.0f;
+        for (int i = 0; i < 3; i++) { vel[i] += (want[i] - vel[i]) * km; p[i] += vel[i] * dt; }
         for (int i = 0; i < 3; i++) { g_fcam_look[i] = fw[i]; g_fcam_pos[i] = p[i]; }
     }
     { uint64_t a = 0; memcpy(&a, &fov, 4); dc_call(fnv64("override-fov"), 1, &a); }
-    if (fc_edge(VK_F9)) {
+    if (fc_edge(VK_F9) || pad_shot) {
         FILE *o = exe_side_open("t2r-freecam-shots.txt", "a");
         if (o) { fprintf(o, "%.3f %.3f %.3f %.2f %.2f %.2f\n", p[0], p[1], p[2], yaw, pitch, fov); fclose(o); }
         xlog("freecam: SHOT %.3f %.3f %.3f %.2f %.2f %.2f", p[0], p[1], p[2], yaw, pitch, fov);
@@ -67539,8 +67608,8 @@ static void feature_join_in_progress(void) {
             int rn = g_jip_rep[1] > 8 ? 8 : g_jip_rep[1], at = 2 + rn * 0x32;
             int v = g_jip_rep_n > at && (g_jip_rep[at] & 0x80) ? (g_jip_rep[at] & 1) : -1;
             if (v != g_wave_srv) { xlog("wave respawn: server setting %s", v < 0 ? "not sent (default on)" : v ? "ON" : "OFF"); g_wave_srv = v; }
-            int tf = g_jip_rep_n > at && (g_jip_rep[at] & 0x80) ? (g_jip_rep[at] & 0x38) : 0;
-            if (tf != g_srv_test_flags) { xlog("test server: flags %02x (free camera %s, Supply Raid clock %s, lives %s)", tf, tf & 0x08 ? "allowed" : "off", tf & 0x10 ? "x2" : "normal", tf & 0x20 ? "x2" : "normal"); g_srv_test_flags = tf; }
+            int tf = g_jip_rep_n > at && (g_jip_rep[at] & 0x80) ? (g_jip_rep[at] & 0x78) : 0;
+            if (tf != g_srv_test_flags) { xlog("test server: flags %02x (free camera %s, Supply Raid clock %s, lives %s, AFK removal %s)", tf, tf & 0x08 ? "allowed" : "off", tf & 0x10 ? "x2" : "normal", tf & 0x20 ? "x2" : "normal", tf & 0x40 ? "OFF" : "on"); g_srv_test_flags = tf; }
         }
         g_jip_srv_on = g_jip_rep[0] ? 1 : 0;
         if (!g_jip_rep[0]) {
@@ -69549,6 +69618,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(feature_steam_status_text());
     PF(ui_click_gate_tick());                      // mouse clicks count only over a clickable widget (hook of the menu-select query)
     PF(ln_tick());                                 // launch notice (launchnote.c), before the clan pages
+    PF(kn_tick());                                 // kick box (kicknote.c), after the launch notice, before the clan pages
     if (!g_no_clan) PF(feature_clan());
     PF(feature_menu_scene());                      // faction MP menu background (after the clan state)
     PF(feature_menu_scout());

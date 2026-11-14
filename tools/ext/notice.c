@@ -134,6 +134,7 @@ static void nt_apply(const char *rep) {
         char m[300];
         nt_render(k, param, text, pl, m, sizeof m);
         if (!m[0]) continue;
+        if (k == 'p' && msg_is_kick(m) && kn_set(m)) { xlog("notice: kick line -> kick notice box (kicknote.c)"); continue; }   // (the box on the MP menu; a duplicate of the 0x11 text is dropped there)
         if (k == 'p' && msg_is_kick(m) && g_kick_ms && GetTickCount64() - g_kick_ms < 120000ULL) { xlog("notice: kick line already shown through the session note - skipped"); continue; }   // admin kick: the 0x11 toast came first
         if (k == 'p') {
             fr13_note_seen(m);

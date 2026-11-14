@@ -123,3 +123,67 @@ def add_notice_page(wdir):
     main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
     json.dump(build_page(main), open(os.path.join(wdir, "to1", PAGE + ".widget.json"), "w", encoding="utf-8"), indent=4)
     return 1
+
+
+# ---- to1/kick-notice: the admin kick / AFK
+# removal text as a box on the MP menu that stays until CLOSE, instead of the 12 s toast next to the title. Same look as the launch notice:
+# dim, black box with the grey frame, a title, a rule, the message (t2r-ext kicknote.c fills it), one CLOSE button (focused; locked for a
+# moment so a held button does not close it unread) and the select prompt under the box.
+KICK_PAGE = "kick-notice"
+KN_W = 1640
+KN_TITLE_PT, KN_MSG_PT = 64, 46
+
+
+def kick_layout():
+    y = 84
+    L = {"title": y}
+    y += 110 + 30
+    L["rule"] = y
+    y += 56
+    L["msg"] = y
+    y += 3 * LINE + 64
+    L["btn"] = y
+    y += 124 + 80
+    L["h"] = y
+    return L
+
+
+def build_kick_page(main):
+    t, root0, anim0 = _templates(main)
+    b = Builder(t)
+    root = copy.deepcopy(root0); root.update(guid=t2guid.guid())
+    anim = copy.deepcopy(anim0); anim.update(guid=t2guid.guid(), parent=root["guid"])
+    b.items += [root]
+    dg = b.group("knDimG", root["guid"], b.bleed())["guid"]
+    b.rect("knDim", dg, b.bleed(), 0xFF000000, 120)
+    anim["depth"] = float(len(b.items)) * 0.01
+    b.items.append(anim)
+    a = anim["guid"]
+    L = kick_layout()
+    bh = L["h"]
+    bx, by = (W - KN_W) // 2, (H - bh) // 2 - 30
+    box = b.group("knBox", a, b.tl(bx, by, KN_W, bh))["guid"]
+    b.rect("knPanel", box, b.fill(), FILL, 246)
+    b.frame("knPanelFr", box, b.fill(), 0xFF464646, 255, 2.0)
+    inner = KN_W - 2 * PAD
+    b.text("knTitle", box, b.tl(PAD, L["title"], inner, 110), "KICKED FROM THE MATCH", KN_TITLE_PT, WHITE, align=1, tracking=6)
+    b.line("knRule", box, PAD, L["rule"], KN_W - PAD, L["rule"], 0xFF3A3A3A, 255, 2.0)
+    b.text("knMsg", box, b.tl(PAD, L["msg"], inner, 3 * LINE), "", KN_MSG_PT, BODY, align=1, multiline=1, valign=0, tracking=3)
+    bw = 640
+    g = b.group("knBtn", box, b.tl((KN_W - bw) // 2, L["btn"], bw, 124))["guid"]
+    b.rect("knBtnBg", g, b.fill(), BTN_FILL, 255)
+    b.frame("knBtnFr", g, b.fill(), FRAME, 255, 2.0)
+    b.frame("knBtnFo", g, b.fill(), FOCUS, 255, 4.0)
+    b.text("knBtnTx", g, b.fill(), "CLOSE", BTN_PT, WHITE, align=1, tracking=4)
+    hg = b.group("knHint", a, b.tl(bx, by + bh + 44, 1200, 60))["guid"]
+    b.image("knHintIcon", hg, b.tl(0, 2, 56, 56), "menu:select", 0xFFFFFFFF)
+    b.text("knHintTx", hg, b.tl(76, 0, 1100, 60), "CLOSE", HINT_PT, DIM, tracking=4)
+    w = {k: copy.deepcopy(v) for k, v in main.items() if k != "items"}
+    w["items"] = b.items
+    return w
+
+
+def add_kick_page(wdir):
+    main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
+    json.dump(build_kick_page(main), open(os.path.join(wdir, "to1", KICK_PAGE + ".widget.json"), "w", encoding="utf-8"), indent=4)
+    return 1

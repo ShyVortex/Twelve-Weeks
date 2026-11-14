@@ -433,6 +433,7 @@ def patch_widgets(pak_path):
         print(f"gui2-widgets: clan UI - main menu survivors panel ({panels}), pages to1/clan-side + to1/clan-postmatch + to1/clan-event ({pages})")
         import notice_widgets
         print(f"gui2-widgets: launch notice page to1/launch-notice ({notice_widgets.add_notice_page(tmp)})")
+        print(f"gui2-widgets: kick notice page to1/kick-notice ({notice_widgets.add_kick_page(tmp)})")
         import matchflow_widgets
         print(f"gui2-widgets: match flow page to1/matchflow ({matchflow_widgets.add_matchflow_page(tmp)}), "
               f"MATCH FOUND map preview hidden ({matchflow_widgets.hide_lobby_map(tmp)} widgets), "

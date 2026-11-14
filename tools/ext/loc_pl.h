@@ -1257,6 +1257,15 @@ static const loc_ent_t LOC_PL[] = {
     {"CLOSE, DON'T SHOW AGAIN", "ZAMKNIJ, NIE POKAZUJ WIĘCEJ"},
     {"READ THE NOTICE", "PRZECZYTAJ KOMUNIKAT"},
     {"TICK", "ZAZNACZ"},
+    {"KICKED FROM THE MATCH", "WYRZUCONO CIĘ Z MECZU"},
+    {"AN ADMIN REMOVED YOU FROM THE MATCH. REASON:", "ADMIN USUNĄŁ CIĘ Z MECZU. POWÓD:"},
+    {"AN ADMIN REMOVED YOU FROM THE MATCH.", "ADMIN USUNĄŁ CIĘ Z MECZU."},
+    {"NO INPUT FOR %d SECONDS (AFK).", "BRAK AKTYWNOŚCI PRZEZ {1} S (AFK)."},
+    {"KICKED FOR HIGH PING", "WYRZUCONO CIĘ ZA WYSOKI PING"},
+    {"YOUR PING TO THE HOST WAS", "TWÓJ PING DO HOSTA WYNOSIŁ"},
+    {"%d MS", "{1} MS"},
+    {"FOR OVER %d SECONDS. THE LIMIT IS %d MS.", "PRZEZ PONAD {1} S. LIMIT TO {2} MS."},
+    {"YOUR PING TO THE HOST WAS TOO HIGH.", "TWÓJ PING DO HOSTA BYŁ ZA WYSOKI."},
 };
 #define LOC_PL_N ((int)(sizeof LOC_PL / sizeof LOC_PL[0]))   // (was a hand count, 1157, while 1192 rows were listed - every hand-added row past it was never looked up)
 static const loc_probe_t LOC_PL_PROBES[] = {
