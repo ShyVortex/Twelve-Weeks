@@ -1,0 +1,13 @@
+## Options menu rows added by the mod (text ids written into every language table)
+RETICLE => CELOWNIK
+GREY RETICLE => SZARY CELOWNIK
+MOVING RETICLE => RUCHOMY CELOWNIK
+NONE => BRAK
+CIRCLE => KÓŁKO
+SQUARE => KWADRAT
+RADAR STYLE => STYL RADARU
+LIMIT MENU TO 60 FPS => OGRANICZ MENU DO 60 KL./S
+MARKER WIDGET => WSKAŹNIK OZNACZENIA
+An unsupported language was detected, Project FEDRA currently only supports English. => Wykryto nieobsługiwany język. Project FEDRA obsługuje obecnie tylko język angielski.
+Generators cause a lot of noise and will attract nearby enemies when turned on. => Generatory robią dużo hałasu i po włączeniu przyciągają pobliskich wrogów.
+A bomb has been found and diffused by the scars. => Blizny znalazły bombę i ją rozbroiły.

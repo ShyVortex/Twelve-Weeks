@@ -1,0 +1,92 @@
+[
+ {
+  "pak": "jackson-male-torso-01",
+  "garment": "m-jacket-03",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-jacket-03:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-01",
+  "garment": "m-tee-10-nogore",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-tee-10-nogore:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-07",
+  "garment": "m-jacket-03-a",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-jacket-03-a:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-07",
+  "garment": "m-shirt-01-roll-tuck-notint",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-shirt-01-roll-tuck-notint:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-08",
+  "garment": "m-shirt-01-tuck",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-shirt-01-tuck:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-08",
+  "garment": "m-vest-03",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-vest-03:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-08",
+  "garment": "glove-01",
+  "material": "objects/characters/npc-normal/clothing/4accessory/glove-01:default",
+  "type": "glove"
+ },
+ {
+  "pak": "jackson-male-torso-04",
+  "garment": "m-sweater-6-b",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-sweater-6-b:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-male-torso-04",
+  "garment": "m-jacket-04-a",
+  "material": "objects/characters/npc-normal/clothing/1upper/m-jacket-04-a:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-female-torso-02",
+  "garment": "jackson-female-02-shirt",
+  "material": "objects/characters/npc-normal/jackson/jackson-female-02/jackson-female-02-shirt:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-female-torso-02",
+  "garment": "f-jacket-10",
+  "material": "objects/characters/npc-normal/clothing/1upper/f-jacket-10:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-female-torso-07",
+  "garment": "scarf-01",
+  "material": "objects/characters/npc-normal/clothing/4accessory/scarf-01:default",
+  "type": "beanie"
+ },
+ {
+  "pak": "jackson-female-torso-07",
+  "garment": "f-sweater-15",
+  "material": "objects/characters/npc-normal/clothing/1upper/f-sweater-15:default",
+  "type": "coat"
+ },
+ {
+  "pak": "jackson-female-torso-07",
+  "garment": "glove-08",
+  "material": "objects/characters/npc-normal/clothing/4accessory/glove-08:default",
+  "type": "glove"
+ },
+ {
+  "pak": "jackson-female-torso-07",
+  "garment": "f-vest-02-closed",
+  "material": "objects/characters/npc-normal/clothing/1upper/f-vest-02-closed:default",
+  "type": "coat"
+ }
+]

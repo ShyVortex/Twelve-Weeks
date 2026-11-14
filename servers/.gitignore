@@ -1,0 +1,43 @@
+# build output
+build/
+
+# databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# linux binaries (anchored: a bare name would also match the source directory)
+/matchmaker/matchmaker
+/matchmaker/matchmaker-server
+/relay/relay-server
+/relay/relay
+*.o
+*.out
+*.so
+
+# msvc intermediates
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.idb
+*.exe
+*.dll
+
+# editor state
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# vcpkg
+vcpkg/
+vcpkg_installed/
+
+# os
+.DS_Store
+desktop.ini
+Thumbs.db
+bin/

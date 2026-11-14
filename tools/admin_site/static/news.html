@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en" data-theme="wlf">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Patch notes</title>
+<!-- the launcher's NEWS tab, as it is: its own news.js (list rows, opened entry, EN/PL fallback) and styles are served from release/launcher/src (admin.py /launcher/...);
+     newsframe.js only makes the rendered text editable in place and loads / saves /api/news -->
+<link rel="stylesheet" href="/launcher/src/style.css">
+<link rel="stylesheet" href="/launcher/src/neat.css">
+<link rel="stylesheet" href="/launcher/src/news.css">
+<link rel="stylesheet" href="/launcher/src/motion.css">
+<style>
+  html, body { overflow: hidden; }
+  #app .view#v-news { left: 0; right: 0; top: 0; bottom: 0; transform: none; opacity: 1; visibility: visible; pointer-events: auto; display: flex; flex-direction: column; border: 0; }
+  #v-news > h2 { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  #v-news .tb { display: flex; align-items: center; gap: 12px; font-size: 11px; font-weight: 500; letter-spacing: .14em; }
+  #v-news .seg { display: flex; border: 1px solid var(--line2); }
+  #v-news .seg button { border: 0; background: none; padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: var(--dim); }
+  #v-news .seg button.on { background: rgba(255, 255, 255, .12); color: #fff; }
+  #v-news .tbtn { border: 1px solid var(--line2); background: transparent; padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: var(--text); }
+  #v-news .tbtn:hover:not(:disabled) { border-color: #fff; background: rgba(255, 255, 255, .06); }
+  #v-news .tbtn:disabled { opacity: .35; cursor: default; }
+  #v-news .tbtn.save { border-color: var(--accent); }
+  #v-news .tbtn.danger { border-color: rgba(196, 106, 94, .6); color: #e0a39a; }
+  #v-news .tbtn.danger:hover { border-color: var(--bad); background: rgba(196, 106, 94, .12); }
+  #dirty { color: var(--warn); } #dirty.clean { color: var(--faint); }
+  #news-list { flex: 1; min-height: 0; overflow-y: auto; }
+  #news-list.still .nitem { animation: none; }
+  .help { padding: 8px 8px 12px; font-size: 11.5px; line-height: 1.55; color: var(--faint); letter-spacing: .04em; }
+
+  /* in-place editing: the launcher's own look, plus editable text */
+  div.nrow { cursor: pointer; font: inherit; }
+  [contenteditable] { -webkit-user-select: text; user-select: text; outline: none; cursor: text; caret-color: #fff; }
+  .nitem.open .nhead[contenteditable]:focus, .nsec li[contenteditable]:focus { background: rgba(255, 255, 255, .06); box-shadow: 0 1px 0 var(--accent); }
+  .nhead:empty::before { content: 'Headline'; color: var(--faint); }
+  .nsec li:empty::after { content: 'Type here'; color: var(--faint); opacity: .55; }
+  .nsec li.fb, .nhead.fb { opacity: .5; font-style: italic; }
+  .nsec.empty h4 { opacity: .55; }
+  .nsec.extra h4 { color: var(--bad); }
+  .nadd { display: block; margin: 2px 0 0 16px; padding: 0 8px; border: 1px solid var(--line2); background: none; color: var(--dim); font-size: 14px; line-height: 18px; opacity: 0; transition: opacity .2s; }
+  .nsec:hover .nadd, .nadd:focus { opacity: 1; } .nadd:hover { color: #fff; border-color: #fff; }
+  .nsec.empty .nadd { opacity: .45; }
+  .medit { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; margin: 6px 0 10px; padding: 10px 12px; border: 1px solid var(--line); background: rgba(255, 255, 255, .03); }
+  .medit label { display: block; font-size: 9.5px; letter-spacing: .22em; color: var(--faint); }
+  .medit input, .medit select { display: block; margin-top: 3px; width: 110px; background: rgba(0, 0, 0, .35); border: 1px solid var(--line2); padding: 4px 7px; font-size: 13px; letter-spacing: .04em; color: var(--text); }
+  .medit input.m-build { width: 70px; } .medit input.m-stamp { width: 96px; } .medit .sp { flex: 1; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bgwrap"><div class="bgimg on" id="bg-a" style="background-image:url(/launcher/assets/bg/wlf-hq.jpg)"></div></div>
+  <div class="shade" id="shade"></div>
+  <div class="vignette"></div>
+  <section class="view active" id="v-news">
+    <h2><span>NEWS</span><span class="tb"><span id="dirty" class="clean"></span><span class="seg" id="lang"><button data-l="en" class="on">EN</button><button data-l="pl">PL</button></span><button class="tbtn" id="bnew">+ NEW ENTRY</button><button class="tbtn save" id="bsave">SAVE TO LIVE</button></span></h2>
+    <div class="news" id="news-list"><div class="empty">Loading...</div></div>
+  </section>
+</div>
+<script src="/launcher/src/i18n-core.js"></script>
+<script src="/launcher/src/i18n.js"></script>
+<script src="/launcher/src/app/core.js"></script>
+<script src="/launcher/src/app/news.js"></script>
+<script src="/newsframe.js"></script>
+</body>
+</html>

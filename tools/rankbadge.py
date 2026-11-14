@@ -1,0 +1,54 @@
+"""Player rank table for the rank badge in front of every player name (ranks show in front of the names in the Lobby and on
+every screen, consistently).
+
+Op 0xBF [64B token] -> reply 0xBF text "n=<count> <HHHHHHHH:r:w> ..." : one entry per known player, keyed by a hash of the player's SHOWN name
+(norm(): ASCII letters / digits only, lower case - the same on both sides, so "[TAG] Name", the vote page's "_TAG__Name" and a name cut by the
+game all reach the same key), r = the chalk rank symbol 0..9, w = weeks survived in total 0..999 (tools/clan.py rank_of). The client (t2r-ext
+rankbadge.c) looks every name it draws up in this table; its own rank comes from its clan state (0xE1 rk= / wk=).
+The table is the same for every asker (names are public), built at most every TABLE_TTL seconds."""
+import time
+
+LIMIT = 300                  # newest players kept
+TABLE_TTL = 3.0
+_ALNUM = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+
+def norm(name):
+    """The key text of a shown name: ASCII letters / digits, lower case."""
+    return "".join(ch for ch in (name or "") if ch in _ALNUM).lower()
+
+
+def key(name):
+    """32-bit FNV-1a of norm(name); 0 for a name with no letters / digits (never listed). rankbadge.c rkb_hash is the same function."""
+    s = norm(name)
+    if not s:
+        return 0
+    h = 2166136261
+    for b in s.encode("ascii"):
+        h = ((h ^ b) * 16777619) & 0xFFFFFFFF
+    return h
+
+
+def wire(rows):
+    """rows = [(shown name, symbol, weeks)] -> the reply text (first row wins for a duplicate key; unknown ranks (0, 0) are still listed so a
+    low rank draws as rank 0 / 0 weeks, the same as the player's own page)."""
+    seen, out = set(), []
+    for name, rk, wk in rows:
+        k = key(name)
+        if not k or k in seen:
+            continue
+        seen.add(k)
+        out.append("%08x:%d:%d" % (k, max(0, min(9, int(rk))), max(0, min(999, int(wk)))))
+    return ("n=%d " % len(out)) + " ".join(out)
+
+
+_cache = {"t": 0.0, "text": "n=0"}
+
+
+def table_text(fetch, now=None):
+    """fetch() -> [(shown name, symbol, weeks)]; cached TABLE_TTL s."""
+    now = time.monotonic() if now is None else now
+    if _cache["t"] and now - _cache["t"] < TABLE_TTL:
+        return _cache["text"]
+    _cache.update(t=now, text=wire(fetch()))
+    return _cache["text"]

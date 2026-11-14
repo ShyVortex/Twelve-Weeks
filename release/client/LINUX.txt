@@ -1,0 +1,65 @@
+TLOU2 TWELVE WEEKS - LINUX (Steam Deck / Steam + Proton / Wine)
+================================================================
+
+EASIEST: THE LINUX LAUNCHER (Factions2-Launcher-<version>.AppImage)
+-------------------------------------------------------------------
+Same launcher as on Windows: it downloads and updates the client, installs the mod into the game, runs the Steam
+helper and starts the game through Steam. You do NOT need the python script, the zip or a Steam launch option.
+  1. One time: start The Last of Us Part II from Steam until its menu, then close it. (That creates the game's Proton
+     prefix, where the launcher sets the winmm override that loads the mod.)
+  2. chmod +x Factions2-Launcher-*.AppImage   (or right-click -> Properties -> Allow executing)  and start it.
+     Steam Deck: Desktop mode, double-click it.
+  3. UPDATE (downloads the client), then PLAY. The launcher starts Steam if it is not running and opens the game.
+  - First PLAY: it also creates a small Proton prefix for the Steam helper (up to a minute or two) and, for the slim
+    client, rebuilds the mod from your game files under Proton (a few minutes once per update).
+  - Needs: Steam with Proton (Proton - Experimental or any Proton 9/10 installed through Steam). Flatpak Steam: the
+    helper cannot be started from outside the Flatpak (the game still starts; matches then use the server relay).
+  - Something wrong? REPORT A BUG in the launcher, or send t2r-steam.log and t2r-steam-proton.log from
+    ~/.config/Factions II Launcher/ (the launcher's data folder) and t2r-ext.log from the game folder.
+
+THE MANUAL WAY (python script, below) still works, but needs the FULL client download and does not update itself.
+
+Use the FULL download on Linux (the slim one needs Windows). You only play; the host runs the server.
+The server address is already in server.txt.
+
+You need: python3 (preinstalled on most distros and on Steam Deck desktop mode) and Steam running.
+
+ONE-TIME SETUP
+1. Unpack the zip anywhere, e.g. ~/Factions2  (you get a "client" folder).
+2. Tell Proton/Wine to load the mod's winmm.dll - ONE launch option:
+   - Steam (Proton): right-click The Last of Us Part II -> Properties -> General -> Launch Options:
+         WINEDLLOVERRIDES="winmm=n,b" %command%
+   - Lutris: right-click the game -> Configure -> System options -> Environment variables:
+         WINEDLLOVERRIDES = winmm=n,b
+   - Heroic / Bottles / plain Wine: add the environment variable  WINEDLLOVERRIDES=winmm=n,b
+     to the game's launch settings.
+
+EVERY TIME YOU PLAY (and after every new download from the host)
+3. With the HOST'S SERVER RUNNING, open a terminal in the client folder and run:
+       python3 t2r-linux.py --name YourName
+   Steam installs are found automatically. If it says the game folder was not found, add
+       --game "/path/to/The Last of Us Part II"
+   (the folder that contains tlou-ii.exe; for Lutris/Heroic/Bottles it is inside the Wine prefix,
+   e.g. ~/Games/<prefix>/drive_c/Games/The Last of Us Part II).
+   Next time  python3 t2r-linux.py  is enough (it remembers the name and folder).
+
+   It must end with:
+       Server check: same build, Linux player registered
+   - "VERSION MISMATCH" = your download is older/newer than the server: get the current one from the host.
+   - "cannot reach the server" = the host's server is not running (or server.txt is old): ask the host.
+   Without that line the server does not know you are on Linux and refuses FIND MATCH
+   ("Steam is not connected").
+4. Start the game the usual way -> TWELVE WEEKS -> FIND MATCH.
+
+NOTES
+- Steam must be running (Steam P2P like everyone else). Step 3 also starts the mod's Steam helper through
+  Proton in its own small prefix (client/t2r-steam-prefix; the first time takes up to a minute) - it must run
+  outside the game, or Steam treats it as TLOU2 instead of Spacewar and P2P never connects. Steam shows you as
+  "Playing Spacewar" - that is it. It waits up to 30 min for you to start the game and stops 1 min after you
+  quit, so run step 3 before EVERY session.
+  If it says "Proton exited at once", send the host t2r-steam-proton.log; if P2P still fails, send t2r-steam.log
+  (both in the client folder). You can still play meanwhile (through the host's server, slower).
+  The main menu does not show "STEAM CONNECTED" on Linux.
+- Your --name is your in-game name.
+- If the host restarted the server and FIND MATCH refuses you, just run step 3 again.
+- Uninstall: python3 t2r-linux.py --uninstall, then remove the launch option.

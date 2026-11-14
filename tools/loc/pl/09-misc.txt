@@ -1,0 +1,21 @@
+## Loading screen - tip category headings (the screen appends a colon) and mission progress
+WEAPONS: => BROŃ:
+SURVIVAL: => PRZETRWANIE:
+TEAMWORK: => WSPÓŁPRACA:
+STEALTH: => SKRADANIE SIĘ:
+COMBAT: => WALKA:
+CLAN: => KLAN:
+%d/%d %s => {1}/{2} {3}
+## More award names and prompt words (+upper)
+Craft => Wytwarzanie
+Bleed Started => Początek krwawienia
+Bled Out => Wykrwawienie
+## World prompt words
+Heal => Lecz
+## In-match pause menu (to1/pause-menu): buttons + scoreboard columns
+LEAVE GAME => WYJDŹ Z GRY
+PARTS => CZĘŚCI
+DOWNS => OBALENIA
+EXECUTIONS => EGZEKUCJE
+DEATHS => ŚMIERCI
+REVIVES => WSKRZESZENIA

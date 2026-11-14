@@ -1,0 +1,4938 @@
+{
+"fog:alpha-fog-compensate": [
+"f",
+0.0
+],
+"fog:alpha-fog-intensity-clamp": [
+"f",
+0.09
+],
+"fog:alpha-fog-multiplier": [
+"f",
+1.0
+],
+"fog:below-water-volume-depth": [
+"f",
+3.0
+],
+"fog:blur-below-water-volume-fog-radius": [
+"f",
+0.0
+],
+"fog:caustic-ambient-intensity": [
+"f",
+0.005
+],
+"fog:caustic-intensity-exponent": [
+"f",
+1.0
+],
+"fog:caustic-intensity-scale": [
+"f",
+15.582
+],
+"fog:caustic-mie-phase-func-g-w1": [
+"f",
+0.4
+],
+"fog:caustic-mie-phase-func-g-w2": [
+"f",
+0.2
+],
+"fog:caustic-mie-phase-func-g1": [
+"f",
+0.38
+],
+"fog:caustic-mie-phase-func-g2": [
+"f",
+0.8
+],
+"fog:caustic-move-vec-x": [
+"f",
+-0.929
+],
+"fog:caustic-move-vec-y": [
+"f",
+0.0
+],
+"fog:caustic-scale": [
+"f",
+4.5
+],
+"fog:color-b": [
+"f",
+1.0
+],
+"fog:color-g": [
+"f",
+1.0
+],
+"fog:color-i": [
+"f",
+1.0
+],
+"fog:color-r": [
+"f",
+1.0
+],
+"fog:contrast-end": [
+"f",
+100.0
+],
+"fog:contrast-max": [
+"f",
+1.0
+],
+"fog:contrast-min": [
+"f",
+0.0
+],
+"fog:contrast-start": [
+"f",
+0.0
+],
+"fog:create-below-water-vol-visi-buffer": [
+"f",
+0.0
+],
+"fog:distance-end": [
+"f",
+10000.0
+],
+"fog:distance-gamma": [
+"f",
+1.0
+],
+"fog:distance-start": [
+"f",
+0.0
+],
+"fog:enable-noise-for-vol-fog": [
+"f",
+0.0
+],
+"fog:enable-probe-color-on-fog": [
+"f",
+0.0
+],
+"fog:enable-under-water-fog": [
+"f",
+0.0
+],
+"fog:flash-vol-dir-fade-power-curve": [
+"f",
+1.0
+],
+"fog:flash-vol-dir-fade-scale": [
+"f",
+1.0
+],
+"fog:fog-affect-sky": [
+"f",
+0.0
+],
+"fog:fog-density": [
+"f",
+0.0
+],
+"fog:fog-density-as-blur-source": [
+"f",
+0.0
+],
+"fog:fog-density-blur-amount": [
+"f",
+0.0
+],
+"fog:fog-extinction-coeff": [
+"f",
+0.0
+],
+"fog:fog-intensity-for-cubemap": [
+"f",
+1.0
+],
+"fog:fog-max-noise-extinction-coeff": [
+"f",
+1.0
+],
+"fog:fog-occlusion": [
+"f",
+0.8
+],
+"fog:fog-opacity": [
+"f",
+1.0
+],
+"fog:fog-scale-on-sky": [
+"f",
+1.0
+],
+"fog:height-falloff": [
+"f",
+0.2
+],
+"fog:height-follow-camera": [
+"f",
+0.0
+],
+"fog:height-start": [
+"f",
+0.0
+],
+"fog:horizon-blend-2-color-b": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-color-g": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-color-i": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-color-r": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-hardness": [
+"f",
+0.0
+],
+"fog:horizon-blend-2-height": [
+"f",
+0.0
+],
+"fog:horizon-blend-2-intensity": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-sky-factor": [
+"f",
+1.0
+],
+"fog:horizon-blend-2-tightness": [
+"f",
+0.0
+],
+"fog:horizon-blend-2-tightness-range": [
+"f",
+500.0
+],
+"fog:horizon-blend-color-b": [
+"f",
+1.0
+],
+"fog:horizon-blend-color-g": [
+"f",
+1.0
+],
+"fog:horizon-blend-color-i": [
+"f",
+1.0
+],
+"fog:horizon-blend-color-r": [
+"f",
+1.0
+],
+"fog:horizon-blend-hardness": [
+"f",
+0.0
+],
+"fog:horizon-blend-height": [
+"f",
+0.0
+],
+"fog:horizon-blend-mip-fog-enable": [
+"i",
+1
+],
+"fog:horizon-blend-tightness": [
+"f",
+0.0
+],
+"fog:horizon-blend-tightness-range": [
+"f",
+500.0
+],
+"fog:light-absorption-coeff-b": [
+"f",
+0.02
+],
+"fog:light-absorption-coeff-g": [
+"f",
+0.061
+],
+"fog:light-absorption-coeff-i": [
+"f",
+1.0
+],
+"fog:light-absorption-coeff-r": [
+"f",
+0.3001
+],
+"fog:max-fog-blur-radius": [
+"f",
+2.0
+],
+"fog:mip-fade-distance": [
+"f",
+20.0
+],
+"fog:mip-fog-alpha-density": [
+"f",
+0.0
+],
+"fog:mip-fog-enable": [
+"i",
+1
+],
+"fog:move-vol-fog-after-alpha-blend": [
+"f",
+0.0
+],
+"fog:near-color-b": [
+"f",
+1.0
+],
+"fog:near-color-g": [
+"f",
+1.0
+],
+"fog:near-color-i": [
+"f",
+1.0
+],
+"fog:near-color-preservation": [
+"f",
+0.5
+],
+"fog:near-color-r": [
+"f",
+1.0
+],
+"fog:near-color-range": [
+"f",
+0.0
+],
+"fog:noise-strength-in-probe": [
+"f",
+0.0
+],
+"fog:npc-flash-light-intensity-multiplier": [
+"f",
+0.9
+],
+"fog:npc-flash-light-vol-ignore-start-range": [
+"f",
+0.0
+],
+"fog:split-vol-fog-and-lights": [
+"f",
+0.0
+],
+"fog:sun-angle-falloff": [
+"f",
+2.0
+],
+"fog:sun-brightness": [
+"f",
+0.0
+],
+"fog:sun-density": [
+"f",
+0.01
+],
+"fog:sun-tint-b": [
+"f",
+1.0
+],
+"fog:sun-tint-g": [
+"f",
+1.0
+],
+"fog:sun-tint-r": [
+"f",
+1.0
+],
+"fog:sun-volumetric-shadow-distance": [
+"f",
+200.0
+],
+"fog:sun-volumetric-shadow-samples": [
+"i",
+32
+],
+"fog:sun-volumetrics-affect-sky": [
+"f",
+0.0
+],
+"fog:sun-volumetrics-ignore-exposure": [
+"f",
+0.0
+],
+"fog:under-water-fog-color-shift": [
+"f",
+1.0
+],
+"fog:under-water-fog-fade-color-b": [
+"f",
+0.08
+],
+"fog:under-water-fog-fade-color-g": [
+"f",
+0.1
+],
+"fog:under-water-fog-fade-color-r": [
+"f",
+0.13
+],
+"fog:under-water-fog-intensity-in-shadow": [
+"f",
+0.1
+],
+"fog:under-water-vol-visi-power-curve": [
+"f",
+0.0
+],
+"fog:under-water-vol-visi-scale": [
+"f",
+1.0
+],
+"fog:vol-dir-fade-power-curve": [
+"f",
+1.0
+],
+"fog:vol-dir-fade-scale": [
+"f",
+1.0
+],
+"fog:vol-fog-buffer-blur-radius": [
+"f",
+3.0
+],
+"fog:vol-noise-scale": [
+"f",
+0.023
+],
+"fog:vol-noise-scroll-x": [
+"f",
+1.0
+],
+"fog:vol-noise-scroll-y": [
+"f",
+0.0
+],
+"fog:vol-noise-scroll-z": [
+"f",
+0.0
+],
+"fog:vol-noise-sharpness": [
+"f",
+0.0
+],
+"fog:water-plane-height": [
+"f",
+0.0
+],
+"lighting:ambient-background-scale": [
+"f",
+1.0
+],
+"lighting:ambient-character-contrast-dist-fade-end": [
+"f",
+42.0
+],
+"lighting:ambient-character-contrast-dist-fade-start": [
+"f",
+2.7
+],
+"lighting:ambient-character-contrast-high-intensity-mult": [
+"f",
+1.0
+],
+"lighting:ambient-character-contrast-low-intensity-blend": [
+"f",
+1.0
+],
+"lighting:ambient-character-contrast-low-intensity-end": [
+"f",
+1.0
+],
+"lighting:ambient-character-contrast-low-intensity-mult": [
+"f",
+1.3
+],
+"lighting:ambient-character-directionality": [
+"f",
+1.0
+],
+"lighting:ambient-character-scale": [
+"f",
+1.0
+],
+"lighting:ambient-character-scale-hair": [
+"f",
+1.0
+],
+"lighting:ambient-character-scale-teeth": [
+"f",
+1.0
+],
+"lighting:ambient-foreground-scale": [
+"f",
+1.0
+],
+"lighting:ambient-particle-scale": [
+"f",
+1.0
+],
+"lighting:ambient-probe-deringing-strength": [
+"f",
+0.0
+],
+"lighting:ambient-projection-specular": [
+"f",
+0.0
+],
+"lighting:ambient-tint-b": [
+"f",
+1.0
+],
+"lighting:ambient-tint-g": [
+"f",
+1.0
+],
+"lighting:ambient-tint-r": [
+"f",
+1.0
+],
+"lighting:basis3-eye-spec-scale": [
+"f",
+1.0
+],
+"lighting:basis3-spec-scale": [
+"f",
+1.0
+],
+"lighting:bg-dual-lightmap-blend": [
+"f",
+0.0
+],
+"lighting:buddy-flash-light-radius-multiplier": [
+"f",
+1.0
+],
+"lighting:character-cutscene-sun-multiplier": [
+"f",
+1.0
+],
+"lighting:character-fake-ambient-b": [
+"f",
+1.0
+],
+"lighting:character-fake-ambient-g": [
+"f",
+1.0
+],
+"lighting:character-fake-ambient-i": [
+"f",
+0.0
+],
+"lighting:character-fake-ambient-r": [
+"f",
+1.0
+],
+"lighting:character-reflection-tint-b": [
+"f",
+1.0
+],
+"lighting:character-reflection-tint-g": [
+"f",
+1.0
+],
+"lighting:character-reflection-tint-i": [
+"f",
+1.0
+],
+"lighting:character-reflection-tint-r": [
+"f",
+1.0
+],
+"lighting:cone-of-darkness-az": [
+"f",
+0.0
+],
+"lighting:cone-of-darkness-el": [
+"f",
+0.0
+],
+"lighting:cone-of-darkness-penumbra": [
+"f",
+0.0
+],
+"lighting:cone-of-darkness-tester": [
+"f",
+0.0
+],
+"lighting:cone-of-darkness-umbra": [
+"f",
+0.0
+],
+"lighting:cutscene-lights-multiplier": [
+"f",
+1.0
+],
+"lighting:cutscene-lights-multiplier-b": [
+"f",
+1.0
+],
+"lighting:cutscene-lights-multiplier-g": [
+"f",
+1.0
+],
+"lighting:cutscene-lights-multiplier-r": [
+"f",
+1.0
+],
+"lighting:cutscene-sun-multiplier": [
+"f",
+1.0
+],
+"lighting:death-light-area-spec-size": [
+"f",
+0.25
+],
+"lighting:death-light-b": [
+"f",
+1.0
+],
+"lighting:death-light-disable-when-flashlight-is-on": [
+"i",
+1
+],
+"lighting:death-light-enable-ambient-debug-draw": [
+"f",
+-1.59232e-23
+],
+"lighting:death-light-enable-ambient-mode": [
+"f",
+-2.64698e-23
+],
+"lighting:death-light-forward-offset": [
+"f",
+1.2
+],
+"lighting:death-light-g": [
+"f",
+1.0
+],
+"lighting:death-light-intensity": [
+"f",
+1.0
+],
+"lighting:death-light-min-roughness": [
+"f",
+0.0
+],
+"lighting:death-light-r": [
+"f",
+1.0
+],
+"lighting:death-light-radius": [
+"f",
+10.0
+],
+"lighting:death-light-shadow-blur-scale": [
+"f",
+1.0
+],
+"lighting:death-light-spec-scale": [
+"f",
+1.0
+],
+"lighting:death-light-use-rgb-tint": [
+"i",
+0
+],
+"lighting:death-light-vertical-offset": [
+"f",
+5.0
+],
+"lighting:disable-near-plane-culling": [
+"f",
+0.0
+],
+"lighting:enable-colorized-ao": [
+"i",
+1
+],
+"lighting:enable-half-res-ibl": [
+"i",
+0
+],
+"lighting:enable-volumetric-lights": [
+"i",
+1
+],
+"lighting:enemy-flash-light-enable-shadows": [
+"i",
+1
+],
+"lighting:enemy-flash-light-light-fade-end": [
+"f",
+0.0
+],
+"lighting:enemy-flash-light-light-fade-start": [
+"f",
+0.0
+],
+"lighting:enemy-flash-light-near-light-fade-end": [
+"f",
+0.0
+],
+"lighting:enemy-flash-light-near-light-fade-start": [
+"f",
+0.0
+],
+"lighting:enemy-flash-light-shadow-fade-end": [
+"f",
+0.0
+],
+"lighting:enemy-flash-light-shadow-fade-start": [
+"f",
+0.0
+],
+"lighting:exposure-bracketing-dark-clip": [
+"f",
+1.0
+],
+"lighting:exposure-bracketing-dark-exposure": [
+"f",
+0.0
+],
+"lighting:exposure-bracketing-end-distance": [
+"f",
+20.0
+],
+"lighting:exposure-bracketing-start-distance": [
+"f",
+10.0
+],
+"lighting:extra-light-color-b": [
+"f",
+1.0
+],
+"lighting:extra-light-color-g": [
+"f",
+0.88
+],
+"lighting:extra-light-color-r": [
+"f",
+0.66
+],
+"lighting:extra-light-cone-angle": [
+"f",
+130.0
+],
+"lighting:extra-light-dynamic-tint-enable": [
+"f",
+0.0
+],
+"lighting:extra-light-falloff-type": [
+"i",
+1
+],
+"lighting:extra-light-intensity": [
+"f",
+0.0
+],
+"lighting:extra-light-min-roughness": [
+"f",
+0.0
+],
+"lighting:extra-light-no-light-angle": [
+"f",
+0.0
+],
+"lighting:extra-light-offset-dist": [
+"f",
+-3.0
+],
+"lighting:extra-light-particle-intensity-multiplier": [
+"f",
+1.0
+],
+"lighting:extra-light-radius": [
+"f",
+15.0
+],
+"lighting:extra-light-spec-scale": [
+"f",
+1.0
+],
+"lighting:extra-light-start-dist": [
+"f",
+3.5
+],
+"lighting:extra-light-start-range": [
+"f",
+5.0
+],
+"lighting:extra-light-volume-cone-multiplier": [
+"f",
+0.0
+],
+"lighting:extra-light-volume-intensity-multiplier": [
+"f",
+0.0
+],
+"lighting:extra-light-volume-radius-multiplier": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-b": [
+"f",
+1.0
+],
+"lighting:fake-backscatter-light-cone-angle": [
+"f",
+40.0
+],
+"lighting:fake-backscatter-light-debug-draw": [
+"i",
+0
+],
+"lighting:fake-backscatter-light-enable-hero-only": [
+"i",
+1
+],
+"lighting:fake-backscatter-light-enable-shadows": [
+"i",
+1
+],
+"lighting:fake-backscatter-light-forward-offset": [
+"f",
+1.5
+],
+"lighting:fake-backscatter-light-g": [
+"f",
+1.0
+],
+"lighting:fake-backscatter-light-horizontal-angle-offset": [
+"f",
+15.0
+],
+"lighting:fake-backscatter-light-intensity": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-light-fade-end": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-light-fade-start": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-min-roughness": [
+"f",
+0.2
+],
+"lighting:fake-backscatter-light-near-light-fade-end": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-near-light-fade-start": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-r": [
+"f",
+1.0
+],
+"lighting:fake-backscatter-light-radius": [
+"f",
+25.0
+],
+"lighting:fake-backscatter-light-scale-with-camera-dir": [
+"i",
+0
+],
+"lighting:fake-backscatter-light-shadow-blur-scale": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-shadow-fade-end": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-shadow-fade-start": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-start-dist": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-start-range": [
+"f",
+0.0
+],
+"lighting:fake-backscatter-light-vertical-angle-offset": [
+"f",
+4.0
+],
+"lighting:flash-light-caustics-b": [
+"f",
+1.0
+],
+"lighting:flash-light-caustics-cone-angle-multiplier": [
+"f",
+1.0
+],
+"lighting:flash-light-caustics-enable-shadow": [
+"i",
+0
+],
+"lighting:flash-light-caustics-g": [
+"f",
+1.0
+],
+"lighting:flash-light-caustics-intensity": [
+"f",
+0.0
+],
+"lighting:flash-light-caustics-mirror-reflection": [
+"i",
+0
+],
+"lighting:flash-light-caustics-r": [
+"f",
+1.0
+],
+"lighting:flash-light-caustics-radius-multiplier": [
+"f",
+1.0
+],
+"lighting:flash-light-cone-angle-multiplier": [
+"f",
+1.0
+],
+"lighting:flash-light-constant-falloff-user-param": [
+"f",
+2.0
+],
+"lighting:flash-light-disable-frustum-plane-culling": [
+"f",
+0.0
+],
+"lighting:flash-light-disable-shadows": [
+"f",
+1.0
+],
+"lighting:flash-light-extra-light-particle-intensity": [
+"f",
+0.0
+],
+"lighting:flash-light-intensity-multiplier": [
+"f",
+10.0
+],
+"lighting:flash-light-investigate-intensity-multiplier": [
+"f",
+0.5
+],
+"lighting:flash-light-melee-intensity-multiplier": [
+"f",
+5.0
+],
+"lighting:flash-light-melee-override-params": [
+"i",
+1
+],
+"lighting:flash-light-melee-params-blend-in-seconds": [
+"f",
+0.375
+],
+"lighting:flash-light-melee-params-blend-out-seconds": [
+"f",
+0.25
+],
+"lighting:flash-light-melee-start-distance": [
+"f",
+1.25
+],
+"lighting:flash-light-melee-start-range": [
+"f",
+1.0
+],
+"lighting:flash-light-melee-vol-intensity-multiplier": [
+"f",
+0.001
+],
+"lighting:flash-light-particle-intensity": [
+"f",
+0.0
+],
+"lighting:flash-light-particle-intensity-multiplier": [
+"f",
+1.0
+],
+"lighting:flash-light-radius-multiplier": [
+"f",
+1.0
+],
+"lighting:flash-light-shadow-blur-scale-override": [
+"f",
+0.0
+],
+"lighting:flash-light-spore-particle-intensity": [
+"f",
+1.0
+],
+"lighting:flash-light-volumetric-particle-intensity": [
+"f",
+0.002
+],
+"lighting:hero-rim-light-aligned-with-camera-attenuation": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-ambient-mode-use-forward-offset": [
+"f",
+0.0
+],
+"lighting:hero-rim-light-area-spec-size": [
+"f",
+0.02
+],
+"lighting:hero-rim-light-b": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-buddy-aligned-with-camera-attenuation": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-debug-attenuation": [
+"f",
+0.0
+],
+"lighting:hero-rim-light-disable-when-flashlight-is-on": [
+"i",
+254
+],
+"lighting:hero-rim-light-enable-ambient-debug-draw": [
+"f",
+-1.59232e-23
+],
+"lighting:hero-rim-light-enable-ambient-mode": [
+"f",
+-2.64698e-23
+],
+"lighting:hero-rim-light-enable-characters-only": [
+"i",
+0
+],
+"lighting:hero-rim-light-enable-hero-only": [
+"i",
+1
+],
+"lighting:hero-rim-light-enable-shadows": [
+"i",
+1
+],
+"lighting:hero-rim-light-facing-player-attenuation": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-forward-offset": [
+"f",
+1.2
+],
+"lighting:hero-rim-light-g": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-intensity": [
+"f",
+0.0
+],
+"lighting:hero-rim-light-min-roughness": [
+"f",
+0.75
+],
+"lighting:hero-rim-light-near-clip-dist": [
+"f",
+0.5
+],
+"lighting:hero-rim-light-npc-intensity": [
+"f",
+0.0
+],
+"lighting:hero-rim-light-r": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-radius": [
+"f",
+10.0
+],
+"lighting:hero-rim-light-shadow-blur-scale": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-spec-scale": [
+"f",
+1.0
+],
+"lighting:hero-rim-light-use-rgb-tint": [
+"i",
+0
+],
+"lighting:hero-rim-light-vertical-offset": [
+"f",
+1.5
+],
+"lighting:hood-light-ambient-blend": [
+"f",
+1.0
+],
+"lighting:hood-light-area-spec-size": [
+"f",
+0.02
+],
+"lighting:hood-light-b": [
+"f",
+1.0
+],
+"lighting:hood-light-bg-only": [
+"f",
+0.0
+],
+"lighting:hood-light-characters-only": [
+"i",
+5
+],
+"lighting:hood-light-color-blend-speed": [
+"f",
+1.0
+],
+"lighting:hood-light-cone-angle": [
+"f",
+100.0
+],
+"lighting:hood-light-constant-falloff-user-param": [
+"f",
+1.0
+],
+"lighting:hood-light-cubic-falloff-user-param": [
+"f",
+1.0
+],
+"lighting:hood-light-debug-print": [
+"f",
+0.0
+],
+"lighting:hood-light-disable-when-flashlight-is-on": [
+"i",
+1
+],
+"lighting:hood-light-enable-clamped-value": [
+"f",
+0.0
+],
+"lighting:hood-light-falloff-type": [
+"i",
+1
+],
+"lighting:hood-light-fixed-intensity": [
+"f",
+0.0
+],
+"lighting:hood-light-flashlight-on-intensity-multiplier": [
+"f",
+1.0
+],
+"lighting:hood-light-g": [
+"f",
+1.0
+],
+"lighting:hood-light-hero-only": [
+"f",
+0.0
+],
+"lighting:hood-light-linear-falloff-user-param": [
+"f",
+1.0
+],
+"lighting:hood-light-max-ambient-range": [
+"f",
+0.01
+],
+"lighting:hood-light-max-intensity": [
+"f",
+0.0
+],
+"lighting:hood-light-min-ambient-range": [
+"f",
+0.001
+],
+"lighting:hood-light-min-intensity": [
+"f",
+0.0
+],
+"lighting:hood-light-min-roughness": [
+"f",
+0.5
+],
+"lighting:hood-light-particle-intensity-multiplier": [
+"f",
+0.0
+],
+"lighting:hood-light-quadratic-falloff-user-param": [
+"f",
+1.0
+],
+"lighting:hood-light-r": [
+"f",
+1.0
+],
+"lighting:hood-light-radius": [
+"f",
+25.0
+],
+"lighting:hood-light-scene-sample-brightness-multiplier": [
+"f",
+1.0
+],
+"lighting:hood-light-spec-scale": [
+"f",
+1.0
+],
+"lighting:hood-light-start-dist": [
+"f",
+1.0
+],
+"lighting:hood-light-start-range": [
+"f",
+5.0
+],
+"lighting:hood-light-volume-intensity-multiplier": [
+"f",
+0.0
+],
+"lighting:ibl-half-res-threshold": [
+"f",
+0.2
+],
+"lighting:ibl-on-water": [
+"i",
+1
+],
+"lighting:ibl-scale": [
+"f",
+1.0
+],
+"lighting:ibl-scale-background": [
+"f",
+1.0
+],
+"lighting:ibl-scale-character": [
+"f",
+1.0
+],
+"lighting:ibl-scale-foreground": [
+"f",
+1.0
+],
+"lighting:igc-lights-multiplier": [
+"f",
+1.0
+],
+"lighting:ingame-lights-multiplier": [
+"f",
+1.0
+],
+"lighting:ingame-lights-multiplier-b": [
+"f",
+1.0
+],
+"lighting:ingame-lights-multiplier-g": [
+"f",
+1.0
+],
+"lighting:ingame-lights-multiplier-r": [
+"f",
+1.0
+],
+"lighting:interactable-glow-range": [
+"f",
+4.0
+],
+"lighting:investigate-flashlight-threshold": [
+"f",
+0.5
+],
+"lighting:journal-ambient-probe-amount": [
+"f",
+1.0
+],
+"lighting:journal-b": [
+"f",
+1.0
+],
+"lighting:journal-exposure-bias": [
+"f",
+0.0
+],
+"lighting:journal-exposure-max-bias": [
+"f",
+0.0
+],
+"lighting:journal-exposure-min-bias": [
+"f",
+0.0
+],
+"lighting:journal-g": [
+"f",
+1.0
+],
+"lighting:journal-intensity": [
+"f",
+4.0
+],
+"lighting:journal-on-adjust-exposure": [
+"f",
+0.0
+],
+"lighting:journal-r": [
+"f",
+1.0
+],
+"lighting:lightning-lights-multiplier": [
+"f",
+1.0
+],
+"lighting:max-extent-for-single-probe": [
+"f",
+50.0
+],
+"lighting:nonshadow-flashlight-fake-occlusion": [
+"f",
+0.0
+],
+"lighting:nonshadow-omni-lights-fake-occlusion": [
+"f",
+1.0
+],
+"lighting:nonshadow-spot-lights-fake-occlusion": [
+"f",
+1.0
+],
+"lighting:npc-extra-light-affect-characters-only": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-color-b": [
+"f",
+1.0
+],
+"lighting:npc-extra-light-color-g": [
+"f",
+0.88
+],
+"lighting:npc-extra-light-color-r": [
+"f",
+0.66
+],
+"lighting:npc-extra-light-falloff-type": [
+"i",
+1
+],
+"lighting:npc-extra-light-intensity": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-min-roughness": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-near-light-fade-end": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-near-light-fade-start": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-offset-dist": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-particle-intensity-multiplier": [
+"f",
+1.0
+],
+"lighting:npc-extra-light-radius": [
+"f",
+5.0
+],
+"lighting:npc-extra-light-start-dist": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-start-range": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-volume-intensity-multiplier": [
+"f",
+0.0
+],
+"lighting:npc-extra-light-volume-radius-multiplier": [
+"f",
+0.0
+],
+"lighting:npc-flash-light-intensity-multiplier": [
+"f",
+1.0
+],
+"lighting:player-flash-light-vol-radius-multiplier": [
+"f",
+1.0
+],
+"lighting:probe-blend-dist": [
+"f",
+6.0
+],
+"lighting:probe-lighting-masking-mode": [
+"f",
+0.0
+],
+"lighting:probe-occlusion-depth-bias": [
+"f",
+-0.1
+],
+"lighting:probe-occlusion-enable": [
+"i",
+1
+],
+"lighting:probe-occlusion-smoothness": [
+"f",
+0.8
+],
+"lighting:probe-vol-cell-size-far": [
+"f",
+4.0
+],
+"lighting:probe-vol-cell-size-mid": [
+"f",
+1.0
+],
+"lighting:probe-vol-cell-size-near": [
+"f",
+0.4
+],
+"lighting:roaming-camera-spotlight": [
+"f",
+0.0
+],
+"lighting:rope-probe-blend-dist": [
+"f",
+3.0
+],
+"lighting:runtime-light-bounce-enable-randomness": [
+"i",
+1
+],
+"lighting:runtime-light-bounce-far-dist-scale": [
+"f",
+0.5
+],
+"lighting:runtime-light-bounce-max-metallic": [
+"f",
+0.5
+],
+"lighting:runtime-light-bounce-min-roughness": [
+"f",
+0.5
+],
+"lighting:runtime-light-bounce-neo-use-best-fit": [
+"i",
+1
+],
+"lighting:runtime-light-bounce-spec-scale": [
+"f",
+1.0
+],
+"lighting:runtime-light-bounce-use-gbuffer": [
+"f",
+0.0
+],
+"lighting:ssao-blur-depth-threshold": [
+"f",
+0.03
+],
+"lighting:ssao-blur-enable": [
+"i",
+254
+],
+"lighting:ssao-corner-tolerance": [
+"f",
+0.0
+],
+"lighting:ssao-fade-distance-scale": [
+"f",
+1.0
+],
+"lighting:ssao-height-map-enable": [
+"i",
+1
+],
+"lighting:ssao-intensity-exponent": [
+"f",
+2.0
+],
+"lighting:ssao-intensity-scale": [
+"f",
+1.0
+],
+"lighting:ssao-nonormal-on-compute": [
+"i",
+0
+],
+"lighting:ssao-on-fg-only": [
+"f",
+0.0
+],
+"lighting:ssao-sample-distance-scale": [
+"f",
+6.0
+],
+"lighting:ssao-smart-blur-enable": [
+"i",
+15
+],
+"lighting:ssao-ssct-cone-angle": [
+"f",
+60.0
+],
+"lighting:ssao-ssct-depth-bias": [
+"f",
+0.001
+],
+"lighting:ssao-ssct-enable": [
+"i",
+1
+],
+"lighting:ssao-ssct-intensity": [
+"f",
+1.0
+],
+"lighting:ssao-ssct-max-contact-distance": [
+"f",
+0.4
+],
+"lighting:ssao-ssct-sample-count": [
+"i",
+4
+],
+"lighting:ssao-ssct-slope-scaled-depth-bias": [
+"f",
+0.04
+],
+"lighting:ssao-ssct-start-trace-distance": [
+"f",
+0.1
+],
+"lighting:ssao-ssdo-dir-strength": [
+"f",
+0.5
+],
+"lighting:ssao-ssdo-enable": [
+"i",
+1
+],
+"lighting:sss-blur-depth-threshold": [
+"f",
+0.03
+],
+"lighting:sss-blur-enable": [
+"f",
+0.0
+],
+"lighting:sss-cone-angle": [
+"f",
+18.0
+],
+"lighting:sss-depth-bias": [
+"f",
+0.001
+],
+"lighting:sss-enable": [
+"f",
+-6.31089e-30
+],
+"lighting:sss-end-fade-distance": [
+"f",
+25.0
+],
+"lighting:sss-for-runtime-light": [
+"f",
+-71.5
+],
+"lighting:sss-height-map-enable": [
+"i",
+1
+],
+"lighting:sss-intensity": [
+"f",
+2.0
+],
+"lighting:sss-jitter-enable": [
+"i",
+1
+],
+"lighting:sss-max-contact-distance": [
+"f",
+0.18
+],
+"lighting:sss-sample-count": [
+"i",
+6
+],
+"lighting:sss-slope-scaled-depth-bias": [
+"f",
+0.04
+],
+"lighting:sss-start-fade-distance": [
+"f",
+15.0
+],
+"lighting:sss-start-trace-distance": [
+"f",
+5.0
+],
+"lighting:sss-temporal-enable": [
+"i",
+1
+],
+"lighting:sun-light:dir-x": [
+"f",
+0.0
+],
+"lighting:sun-light:dir-y": [
+"f",
+0.0
+],
+"lighting:sun-light:dir-z": [
+"f",
+0.0
+],
+"lighting:sun-light:radius": [
+"f",
+0.0
+],
+"lighting:sun-light:rgbi-b": [
+"f",
+0.0
+],
+"lighting:sun-light:rgbi-g": [
+"f",
+0.0
+],
+"lighting:sun-light:rgbi-i": [
+"f",
+0.0
+],
+"lighting:sun-light:rgbi-r": [
+"f",
+0.0
+],
+"lighting:sunlight-min-roughness": [
+"f",
+0.0
+],
+"lighting:sunlight-spec-scale": [
+"f",
+1.0
+],
+"lighting:sunlight-spec-scale-hair": [
+"f",
+1.0
+],
+"lighting:update-probe-on-rs-change": [
+"f",
+0.0
+],
+"lighting:use-deferred-bounce-shading": [
+"f",
+0.0
+],
+"lighting:use-light-fade-factor-for-volumetrics": [
+"f",
+0.0
+],
+"lighting:workbench-lights-multiplier": [
+"f",
+1.0
+],
+"lighting:workbench-lights-tint-b": [
+"f",
+1.0
+],
+"lighting:workbench-lights-tint-g": [
+"f",
+1.0
+],
+"lighting:workbench-lights-tint-r": [
+"f",
+1.0
+],
+"lut:lut-enable": [
+"f",
+0.0
+],
+"lut:lut-pre-tonemap": [
+"f",
+0.8
+],
+"lut:lut-texture-params:lut-should-override-blend": [
+"f",
+0.0
+],
+"misc:arrow-stick-vignette-density-bias": [
+"f",
+0.0
+],
+"misc:arrow-stick-vignette-scale-min": [
+"f",
+1.0
+],
+"misc:bg-fade-distance-multiplier": [
+"f",
+1.0
+],
+"misc:bg-lod-distance-scale": [
+"f",
+1.0
+],
+"misc:bonus-deferred-mode": [
+"f",
+0.0
+],
+"misc:bonus-distort-mode": [
+"f",
+0.0
+],
+"misc:bonus-distort-param-a": [
+"f",
+0.0
+],
+"misc:bonus-distort-param-b": [
+"f",
+0.0
+],
+"misc:bonus-distort-param-c": [
+"f",
+0.0
+],
+"misc:bonus-lut-blend": [
+"f",
+0.0
+],
+"misc:bonus-lut-texture-file": [
+"f",
+0.0
+],
+"misc:character-lod-distance-offset-shadow": [
+"f",
+0.0
+],
+"misc:character-lod-distance-scale": [
+"f",
+1.0
+],
+"misc:character-lod-distance-scale-shadow": [
+"f",
+1.0
+],
+"misc:character-wrinkles-multiplier": [
+"f",
+1.0
+],
+"misc:clear-color-b": [
+"f",
+0.1
+],
+"misc:clear-color-g": [
+"f",
+0.1
+],
+"misc:clear-color-r": [
+"f",
+0.1
+],
+"misc:disable-light-gobo": [
+"f",
+0.0
+],
+"misc:disable-near-camera-fading": [
+"f",
+0.0
+],
+"misc:disable-particle-draw": [
+"f",
+0.0
+],
+"misc:disable-sky": [
+"f",
+0.0
+],
+"misc:disable-vertex-deformation": [
+"f",
+0.0
+],
+"misc:display-subsurface-shader-mode": [
+"i",
+0
+],
+"misc:enable-cheap-forward-pass": [
+"i",
+5
+],
+"misc:enable-crash-bandicoot-resolution": [
+"i",
+256
+],
+"misc:enable-depth-prepass-reflection": [
+"i",
+1
+],
+"misc:enable-full-res-reflection": [
+"i",
+1
+],
+"misc:enable-high-quality-transmittance": [
+"f",
+0.0
+],
+"misc:enable-mesh-blending": [
+"i",
+1
+],
+"misc:enable-multiple-scattering": [
+"i",
+1
+],
+"misc:enable-runtime-reflection": [
+"i",
+1
+],
+"misc:enable-separable-subsurface": [
+"i",
+1
+],
+"misc:enable-subsurface": [
+"i",
+1
+],
+"misc:enable-subsurface-on-gfx": [
+"i",
+1
+],
+"misc:enable-texture-limiter-threshold": [
+"f",
+0.0
+],
+"misc:eye-ambient-lighting-multiplier": [
+"f",
+1.0
+],
+"misc:eye-light-wrap-bias": [
+"f",
+0.0
+],
+"misc:eye-lighting-multiplier": [
+"f",
+1.0
+],
+"misc:eye-pupil-size-bias": [
+"f",
+0.0
+],
+"misc:eye-screen-space-shadow-strength": [
+"f",
+1.0
+],
+"misc:eye-teeth-runtime-light-use-ssao-strength": [
+"f",
+0.0
+],
+"misc:eye-teeth-screen-space-shadow-for-non-shadow-light": [
+"f",
+0.0
+],
+"misc:eye-teeth-screen-space-shadow-min-depth-mult": [
+"f",
+1.0
+],
+"misc:fade-in-range": [
+"f",
+0.4
+],
+"misc:fade-in-start": [
+"f",
+0.6
+],
+"misc:far-cull-distance": [
+"f",
+5000.0
+],
+"misc:fg-lod-distance-offset-shadow": [
+"f",
+0.0
+],
+"misc:fg-lod-distance-scale": [
+"f",
+1.0
+],
+"misc:fg-lod-distance-scale-shadow": [
+"f",
+1.0
+],
+"misc:force-deferred-bg": [
+"f",
+0.0
+],
+"misc:force-deferred-fg": [
+"f",
+0.0
+],
+"misc:force-disable-bg-alpha": [
+"f",
+0.0
+],
+"misc:frame-enable-900p": [
+"i",
+0
+],
+"misc:frustum-expansion-subsurface-on-gfx": [
+"f",
+1.0
+],
+"misc:fur-specular-ior-multiplier": [
+"f",
+1.0
+],
+"misc:hair-alpha-blend-depth-cutoff": [
+"f",
+0.1
+],
+"misc:hybrid-alpha-blend-dither-affect-brow": [
+"i",
+1
+],
+"misc:hybrid-alpha-blend-dither-close-distance": [
+"f",
+0.5
+],
+"misc:hybrid-alpha-blend-dither-far-distance": [
+"f",
+4.0
+],
+"misc:lod-fov-threshold": [
+"f",
+25.0
+],
+"misc:lod-transition-duration": [
+"f",
+0.4
+],
+"misc:lod-transition-range": [
+"f",
+0.95
+],
+"misc:max-mesh-blend-distance": [
+"f",
+10.0
+],
+"misc:mesh-blend-fade-distance": [
+"f",
+1.0
+],
+"misc:optimize-force-disable-ssao-blur": [
+"i",
+1
+],
+"misc:optimized-fog-ambient-froxel-size": [
+"i",
+128
+],
+"misc:optimized-hero-sun-shadow-size-scalar": [
+"f",
+1.0
+],
+"misc:optimized-mblur-max-samples-scalar": [
+"f",
+1.0
+],
+"misc:optimized-mblur-vignette-max-samples-scalar": [
+"f",
+1.0
+],
+"misc:optimized-omni-shadow-size-scalar": [
+"f",
+1.0
+],
+"misc:optimized-spot-shadow-size-scalar": [
+"f",
+1.0
+],
+"misc:optimized-ssao-sample-radius-scalar": [
+"f",
+1.0
+],
+"misc:optimized-ssr-clip-border-scalar": [
+"f",
+1.0
+],
+"misc:optimized-ssr-max-num-steps-scalar": [
+"f",
+1.0
+],
+"misc:optimized-ssr-ray-length-scalar": [
+"f",
+1.0
+],
+"misc:optimized-ssss-radius-scalar": [
+"f",
+1.0
+],
+"misc:optimized-sun-shadow-size-scalar": [
+"f",
+1.0
+],
+"misc:override-reflection-plane": [
+"f",
+0.0
+],
+"misc:pain-effect-control": [
+"f",
+0.0
+],
+"misc:reflection-clip-offset": [
+"f",
+0.0
+],
+"misc:reflection-far-distance": [
+"f",
+1000.0
+],
+"misc:reflection-plane-w": [
+"f",
+0.0
+],
+"misc:reflection-plane-x": [
+"f",
+0.0
+],
+"misc:reflection-plane-y": [
+"f",
+1.0
+],
+"misc:reflection-plane-z": [
+"f",
+0.0
+],
+"misc:refraction-resolution-mode": [
+"i",
+2
+],
+"misc:refraction-use-opaque-alpha-depth": [
+"f",
+0.0
+],
+"misc:render-settings-blend-factor-1": [
+"f",
+0.0
+],
+"misc:render-settings-blend-factor-2": [
+"f",
+0.0
+],
+"misc:render-settings-blend-factor-3": [
+"f",
+0.0
+],
+"misc:render-settings-blend-factor-4": [
+"f",
+0.0
+],
+"misc:render-settings-flashlight-blend": [
+"f",
+1.0
+],
+"misc:silhouette-fur-disable-back-face-draw": [
+"i",
+0
+],
+"misc:silhouette-fur-disable-shadow-depth-bias": [
+"i",
+15
+],
+"misc:silhouette-fur-shadow-depth-bias": [
+"f",
+-3000.0
+],
+"misc:silhouette-fur-shadow-depth-bias-clamp": [
+"f",
+-0.002
+],
+"misc:silhouette-fur-shadow-slope-scaled-depth-bias": [
+"f",
+-200.0
+],
+"misc:sphere-expansion-subsurface-on-gfx": [
+"f",
+1.0
+],
+"misc:ssss-max-depth-diff-multiplier": [
+"f",
+1.0
+],
+"misc:ssss-radius-multiplier": [
+"f",
+1.0
+],
+"misc:teeth-ambient-lighting-multiplier": [
+"f",
+1.0
+],
+"misc:teeth-lighting-multiplier": [
+"f",
+1.0
+],
+"misc:teeth-screen-space-shadow-strength": [
+"f",
+0.5
+],
+"misc:texture-adjust-context0": [
+"f",
+0.0
+],
+"misc:texture-adjust-context1": [
+"f",
+0.0
+],
+"misc:texture-adjust-context2": [
+"f",
+0.0
+],
+"misc:texture-anisotropy-mode": [
+"i",
+1
+],
+"misc:texture-bias": [
+"f",
+0.0
+],
+"misc:texture-brilinear-size": [
+"i",
+15
+],
+"misc:texture-limiter-threshold": [
+"i",
+1700
+],
+"misc:transmittance-blocker-dist": [
+"f",
+0.05
+],
+"misc:use-opaque-water-depth-buffer": [
+"f",
+0.0
+],
+"misc:use-second-camera-for-reflection": [
+"f",
+0.0
+],
+"misc:use-water-depth-for-alpha-pass": [
+"f",
+0.0
+],
+"misc:vertex-deformation-distance-fade-max": [
+"f",
+25.0
+],
+"misc:vertex-deformation-distance-fade-min": [
+"f",
+15.0
+],
+"new-volumetrics:advanced:ambient-grid-resolution-index": [
+"i",
+2
+],
+"new-volumetrics:advanced:compute-all-froxels-behind-geo": [
+"i",
+0
+],
+"new-volumetrics:advanced:density-texture-format-16-bit": [
+"f",
+0.0
+],
+"new-volumetrics:advanced:exp-shadow-map-range": [
+"f",
+200.0
+],
+"new-volumetrics:advanced:scalar-ambient-grid-resolution-index": [
+"f",
+0.0
+],
+"new-volumetrics:advanced:use-scalar-version-ambient": [
+"i",
+5
+],
+"new-volumetrics:ambient-light:fog-ambient-light-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:fog-ambient-light-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:fog-ambient-light-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:separate-sky-fog-ambient-tint": [
+"f",
+0.0
+],
+"new-volumetrics:ambient-light:separate-thick-fog-ambient-contribution": [
+"f",
+0.0
+],
+"new-volumetrics:ambient-light:sky-fog-ambient-light-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:sky-fog-ambient-light-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:sky-fog-ambient-light-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:ambient-light:thick-fog-ambient-light-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:base-noise-end-dist": [
+"f",
+500.0
+],
+"new-volumetrics:base-noise-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:enable": [
+"i",
+1
+],
+"new-volumetrics:enable-thick-fog-check": [
+"f",
+0.0
+],
+"new-volumetrics:fog-accumulation-gamma": [
+"f",
+0.0
+],
+"new-volumetrics:fog-ambient-light-contribution": [
+"f",
+0.2
+],
+"new-volumetrics:fog-ambient-light-enabled": [
+"i",
+1
+],
+"new-volumetrics:fog-ambient-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-compositing-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:fog-height-fog-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:fog-initial-density": [
+"f",
+0.1
+],
+"new-volumetrics:fog-initial-density-limit-follow-camera": [
+"f",
+0.0
+],
+"new-volumetrics:fog-initial-density-limit-height": [
+"f",
+80.0
+],
+"new-volumetrics:fog-max-accum": [
+"f",
+1.0
+],
+"new-volumetrics:fog-max-brightness-exp": [
+"f",
+0.0
+],
+"new-volumetrics:fog-opacity-factor-over-sky": [
+"f",
+1.0
+],
+"new-volumetrics:fog-overall-density-multiplier": [
+"f",
+1.0
+],
+"new-volumetrics:fog-overall-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:fog-overall-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:fog-overall-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:fog-region:enable": [
+"i",
+1
+],
+"new-volumetrics:fog-region:fog-region-addl-density": [
+"f",
+0.0
+],
+"new-volumetrics:fog-region:fog-region-ambient-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:fog-region:fog-region-ambient-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:fog-region:fog-region-ambient-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:fog-region:fog-region-fade-in-dist": [
+"f",
+30.0
+],
+"new-volumetrics:fog-region:fog-region-fade-out-radius": [
+"f",
+5.0
+],
+"new-volumetrics:fog-rt-light-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-run-time-light-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:fog-run-time-light-enabled": [
+"i",
+1
+],
+"new-volumetrics:fog-run-time-light-version": [
+"i",
+1
+],
+"new-volumetrics:fog-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-sun-light-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:fog-sun-light-enabled": [
+"i",
+1
+],
+"new-volumetrics:fog-sun-light-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-thick-fog-ambient-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-under-water-sun-light-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:fog-underwater-ambient-start-distance": [
+"f",
+0.0
+],
+"new-volumetrics:height-falloff": [
+"f",
+0.2
+],
+"new-volumetrics:height-fog-enabled": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:addl-noise-wind-x": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:addl-noise-wind-y": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:addl-noise-wind-z": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:detail-enabled": [
+"i",
+1
+],
+"new-volumetrics:height-fog-noise:enabled": [
+"i",
+1
+],
+"new-volumetrics:height-fog-noise:noise-addl-wind-scale": [
+"f",
+1.0
+],
+"new-volumetrics:height-fog-noise:noise-blend-scale-min": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:noise-blend-scale-range-max": [
+"f",
+1.0
+],
+"new-volumetrics:height-fog-noise:noise-blend-scale-range-min": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:noise-detail-opacity-mult": [
+"f",
+1.75
+],
+"new-volumetrics:height-fog-noise:noise-detail-opacity-start": [
+"f",
+0.6
+],
+"new-volumetrics:height-fog-noise:noise-detail-rel-scale": [
+"f",
+6.0
+],
+"new-volumetrics:height-fog-noise:noise-mat-channel": [
+"f",
+0.0
+],
+"new-volumetrics:height-fog-noise:noise-scale": [
+"f",
+16.0
+],
+"new-volumetrics:height-fog-noise:noise-wind-scale": [
+"f",
+1.0
+],
+"new-volumetrics:height-follow-camera": [
+"f",
+0.0
+],
+"new-volumetrics:height-start": [
+"f",
+0.0
+],
+"new-volumetrics:initial-density-enabled": [
+"f",
+0.0
+],
+"new-volumetrics:layer-fog-0:enabled": [
+"i",
+1
+],
+"new-volumetrics:layer-fog-0:fog-addl-thickness": [
+"f",
+0.0
+],
+"new-volumetrics:layer-fog-0:fog-contribution": [
+"f",
+0.0
+],
+"new-volumetrics:layer-fog-0:fog-falloff": [
+"f",
+20.0
+],
+"new-volumetrics:layer-fog-0:fog-follow-camera": [
+"f",
+0.0
+],
+"new-volumetrics:layer-fog-0:fog-horizontal-end-dist": [
+"f",
+1000.0
+],
+"new-volumetrics:layer-fog-0:fog-horizontal-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:layer-fog-0:fog-start": [
+"f",
+0.0
+],
+"new-volumetrics:optimization-level": [
+"i",
+2
+],
+"new-volumetrics:particle-fog-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:particle-fog-enabled": [
+"i",
+1
+],
+"new-volumetrics:particle-height-map-fog-contribution": [
+"f",
+0.5
+],
+"new-volumetrics:particle-height-map-fog-enabled": [
+"i",
+1
+],
+"new-volumetrics:particle-height-map-fog-fresnel": [
+"f",
+0.0
+],
+"new-volumetrics:particle-height-map-fog-fresnel-dist-end": [
+"f",
+10.0
+],
+"new-volumetrics:particle-height-map-fog-offset": [
+"f",
+0.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-ambient-multiplier": [
+"f",
+1.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-rt-multiplier": [
+"f",
+1.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-rt-multiplier-player-extralight": [
+"f",
+0.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-rt-multiplier-player-flashlight": [
+"f",
+0.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-rt-multiplier-player-hoodlight": [
+"f",
+0.0
+],
+"new-volumetrics:particle-sampling:particle-fog-sample-sun-multiplier": [
+"f",
+1.0
+],
+"new-volumetrics:preset-interiors-0:enable": [
+"i",
+0
+],
+"new-volumetrics:preset-interiors-0:enable-dynamic-blur": [
+"i",
+1
+],
+"new-volumetrics:preset-interiors-0:override-enable-dynamic-blur": [
+"i",
+1
+],
+"new-volumetrics:preset-interiors-0:override-sun-light-shadow-angle-slices": [
+"i",
+1
+],
+"new-volumetrics:preset-interiors-0:override-use-detailed-sun": [
+"i",
+9
+],
+"new-volumetrics:preset-interiors-0:sun-light-shadow-angle-slices": [
+"i",
+0
+],
+"new-volumetrics:preset-interiors-0:use-detailed-sun": [
+"i",
+1
+],
+"new-volumetrics:resolution-index": [
+"i",
+1
+],
+"new-volumetrics:resolution-index-o1": [
+"i",
+2
+],
+"new-volumetrics:resolution-index-o2": [
+"i",
+2
+],
+"new-volumetrics:run-time-lights:enable-other-spot-light-expanded-froxel-sampling": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:enable-thick-fog-run-time-light-contribution": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:fog-run-time-max-brightness-exp": [
+"i",
+7
+],
+"new-volumetrics:run-time-lights:npc-extra-light-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:npc-extra-light-mult": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:npc-flashlight-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:npc-flashlight-mult": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:other-light-mult": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:other-ortho-light-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:other-point-light-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:other-spot-light-depth-offset": [
+"f",
+0.0
+],
+"new-volumetrics:run-time-lights:player-extra-light-mult": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:player-flashlight-mult": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:thick-fog-run-time-light-contribution": [
+"f",
+1.0
+],
+"new-volumetrics:run-time-lights:use-16-bit-precision": [
+"i",
+0
+],
+"new-volumetrics:separate-ambient-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:separate-rt-light-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:separate-sun-light-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:separate-thick-fog-ambient-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:separate-under-water-sun-light-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:separate-underwater-ambient-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-addl-thickness": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-ambient-light-contribution": [
+"f",
+0.2
+],
+"new-volumetrics:sky-fog-contribution": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-enabled": [
+"i",
+1
+],
+"new-volumetrics:sky-fog-falloff": [
+"f",
+20.0
+],
+"new-volumetrics:sky-fog-follow-camera": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-horizontal-end-dist": [
+"f",
+1000.0
+],
+"new-volumetrics:sky-fog-horizontal-start-dist": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:addl-noise-wind-x": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:addl-noise-wind-y": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:addl-noise-wind-z": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:enabled": [
+"i",
+1
+],
+"new-volumetrics:sky-fog-noise:noise-addl-wind-scale": [
+"f",
+1.0
+],
+"new-volumetrics:sky-fog-noise:noise-blend-scale-min": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:noise-blend-scale-range-max": [
+"f",
+1.0
+],
+"new-volumetrics:sky-fog-noise:noise-blend-scale-range-min": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:noise-influence-threshold": [
+"f",
+1.0
+],
+"new-volumetrics:sky-fog-noise:noise-mat-channel": [
+"f",
+0.0
+],
+"new-volumetrics:sky-fog-noise:noise-scale": [
+"f",
+16.0
+],
+"new-volumetrics:sky-fog-noise:noise-wind-scale": [
+"f",
+1.0
+],
+"new-volumetrics:sky-fog-start": [
+"f",
+0.0
+],
+"new-volumetrics:sky-mip-brightness": [
+"f",
+1.0
+],
+"new-volumetrics:sky-mip-texture-blend-in-dist": [
+"f",
+50.0
+],
+"new-volumetrics:sky-mip-texture-enabled": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:automatic-sun-shadow-snapshot-box-x": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:automatic-sun-shadow-snapshot-box-xz-width": [
+"f",
+50.0
+],
+"new-volumetrics:sun-light:automatic-sun-shadow-snapshot-box-y": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:automatic-sun-shadow-snapshot-box-y-height": [
+"f",
+50.0
+],
+"new-volumetrics:sun-light:automatic-sun-shadow-snapshot-box-z": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-automatic-sun-shadow-snapshot-box": [
+"i",
+0
+],
+"new-volumetrics:sun-light:enable-automatic-sun-shadow-snapshot-box-follow-camera": [
+"i",
+1
+],
+"new-volumetrics:sun-light:enable-fog-sun-intensity-override": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-fog-sun-light-shadow-offset": [
+"i",
+1
+],
+"new-volumetrics:sun-light:enable-fog-sun-light-smart-shadow-offset": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-fog-sun-shadow-snapshot": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-sun-angle-clamp": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-sun-cone-angle": [
+"i",
+1
+],
+"new-volumetrics:sun-light:enable-sun-end-dist": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-sun-height-gradation": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:enable-sun-near-brightness": [
+"i",
+1
+],
+"new-volumetrics:sun-light:fog-sun-intensity-override": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:fog-sun-light-shadow-offset": [
+"f",
+1.5
+],
+"new-volumetrics:sun-light:fog-sun-light-smart-shadow-offset-angle-end": [
+"f",
+90.0
+],
+"new-volumetrics:sun-light:fog-sun-light-smart-shadow-offset-angle-start": [
+"f",
+45.0
+],
+"new-volumetrics:sun-light:fog-sun-light-smart-shadow-offset-froxel-depth": [
+"f",
+2.0
+],
+"new-volumetrics:sun-light:fog-sun-light-smart-shadow-offset-static": [
+"f",
+1.5
+],
+"new-volumetrics:sun-light:fog-sun-light-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:fog-sun-light-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:fog-sun-light-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:fog-sun-near-brightness": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:fog-sun-near-brightness-dist": [
+"f",
+10.0
+],
+"new-volumetrics:sun-light:fog-sun-near-brightness-vertical-dist": [
+"f",
+100.0
+],
+"new-volumetrics:sun-light:sun-addl-density": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:sun-angle-clamp-power": [
+"f",
+1.0
+],
+"new-volumetrics:sun-light:sun-angle-clamp-start": [
+"f",
+-1.0
+],
+"new-volumetrics:sun-light:sun-beyond-evaluation": [
+"i",
+1
+],
+"new-volumetrics:sun-light:sun-cone-angle": [
+"f",
+90.0
+],
+"new-volumetrics:sun-light:sun-cone-depth": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:sun-end-dist": [
+"f",
+100.0
+],
+"new-volumetrics:sun-light:sun-evaluation-max-distance-override": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:sun-height-gradation-camera-relative": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:sun-height-gradation-height": [
+"f",
+0.0
+],
+"new-volumetrics:sun-light:sun-height-gradation-range": [
+"f",
+5.0
+],
+"new-volumetrics:thick-fog-check-end-dist": [
+"f",
+32.0
+],
+"new-volumetrics:thick-fog-check-range": [
+"f",
+0.01
+],
+"new-volumetrics:thick-fog-check-start": [
+"f",
+0.005
+],
+"new-volumetrics:toggle-contribution": [
+"i",
+5
+],
+"new-volumetrics:under-water:bg-absorb-b": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-distance-intensity": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-g": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-height-intensity": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-max-dist": [
+"f",
+100.0
+],
+"new-volumetrics:under-water:bg-absorb-max-height": [
+"f",
+100.0
+],
+"new-volumetrics:under-water:bg-absorb-override-automatic-height": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:bg-absorb-r": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-under-water-height": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:bg-absorb-under-water-height-offset": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:caustics-affect-rt-lights": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:caustics-scroll-dir-degrees": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:caustics-scroll-speed": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:enable": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:near-fog-curve": [
+"f",
+-2.5
+],
+"new-volumetrics:under-water:near-fog-scale": [
+"f",
+0.35
+],
+"new-volumetrics:under-water:override-automatic-height": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:separate-under-water-fog-sun-near-brightness": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:turn-off-ambient-light-sample-offset": [
+"i",
+1
+],
+"new-volumetrics:under-water:turn-off-sun-light-shadow-offset": [
+"i",
+1
+],
+"new-volumetrics:under-water:under-water-amb-max-intensity": [
+"f",
+5.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-b": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-distance-intensity": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-g": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-height-intensity": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-max-dist": [
+"f",
+100.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-max-height": [
+"f",
+100.0
+],
+"new-volumetrics:under-water:under-water-amb-sun-absorb-r": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-tint-i": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-amb-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-ambient-grid-resolution-index": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:under-water-caustics-enable": [
+"f",
+0.0
+],
+"new-volumetrics:under-water:under-water-caustics-light-mult": [
+"f",
+2.0
+],
+"new-volumetrics:under-water:under-water-caustics-range": [
+"f",
+30.0
+],
+"new-volumetrics:under-water:under-water-caustics-scale": [
+"f",
+2.0
+],
+"new-volumetrics:under-water:under-water-caustics-speed": [
+"f",
+0.4
+],
+"new-volumetrics:under-water:under-water-caustics-steps-per-m": [
+"f",
+10.0
+],
+"new-volumetrics:under-water:under-water-density": [
+"f",
+0.1
+],
+"new-volumetrics:under-water:under-water-fog-sun-near-brightness": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-height": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-rt-absorb-b": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-rt-absorb-g": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-rt-absorb-max-dist": [
+"f",
+100.0
+],
+"new-volumetrics:under-water:under-water-rt-absorb-r": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-sun-intensity": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-tint-b": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-tint-g": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-tint-i": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:under-water-tint-r": [
+"f",
+1.0
+],
+"new-volumetrics:under-water:water-density-blend-in-range": [
+"f",
+1.0
+],
+"particles:blood-healing-enabled": [
+"i",
+1
+],
+"particles:composite-distance-limit": [
+"f",
+0.0
+],
+"particles:composite-max-screens": [
+"f",
+0.0
+],
+"particles:default-probe-ambient-b": [
+"f",
+1.0
+],
+"particles:default-probe-ambient-g": [
+"f",
+1.0
+],
+"particles:default-probe-ambient-r": [
+"f",
+1.0
+],
+"particles:dynamic-particle-rt": [
+"f",
+0.0
+],
+"particles:dynamic-particle-rt-distance": [
+"f",
+30.0
+],
+"particles:particle-bloom-max-clamp": [
+"f",
+100.0
+],
+"particles:particle-emissive-scale": [
+"f",
+1.0
+],
+"particles:particle-probe-blend-dist": [
+"f",
+6.0
+],
+"particles:sort-using-root-distance": [
+"f",
+-1.70141e+38
+],
+"particles:spore-area": [
+"f",
+0.0
+],
+"particles:under-water-changes-draw-order": [
+"i",
+1
+],
+"particles:upscale-blend-ratio": [
+"f",
+1.0
+],
+"particles:world-influence-texture-scale": [
+"f",
+30.0
+],
+"post:bblur-f-stop": [
+"f",
+8.0
+],
+"post:bblur-focus-distance": [
+"f",
+45.0
+],
+"post:blend-bloom-layer1": [
+"f",
+0.2
+],
+"post:blend-bloom-layer2": [
+"f",
+0.2
+],
+"post:blend-bloom-layer3": [
+"f",
+0.5
+],
+"post:blend-bloom-layer4": [
+"f",
+0.7
+],
+"post:blend-bloom-layer5": [
+"f",
+0.9
+],
+"post:blend-bloom-layer6": [
+"f",
+1.0
+],
+"post:blend-dof-and-motion-blur-together": [
+"f",
+0.0
+],
+"post:bloom-enable-half-res": [
+"f",
+0.0
+],
+"post:bloom-intensity": [
+"f",
+0.1
+],
+"post:bloom-max-clamp": [
+"f",
+10.0
+],
+"post:bloom-screen-blend-threshold": [
+"f",
+10.0
+],
+"post:bloom-sky-scale": [
+"f",
+1.0
+],
+"post:bloom-threshold": [
+"f",
+1.0
+],
+"post:blur-motion-vector-in-dof": [
+"f",
+-1.5882e-23
+],
+"post:desaturate-darks-amount": [
+"f",
+1.0
+],
+"post:desaturate-darks-threshold": [
+"f",
+0.0
+],
+"post:dof-blur-pixel-to-lod-scale-convert": [
+"f",
+0.005
+],
+"post:dof-blur-radius": [
+"f",
+0.0
+],
+"post:dof-bokeh-before-taa": [
+"f",
+0.0
+],
+"post:dof-bokeh-better-fg-bg": [
+"i",
+0
+],
+"post:dof-bokeh-blur-point-sampler": [
+"f",
+0.0
+],
+"post:dof-bokeh-disable-simple-blur": [
+"i",
+1
+],
+"post:dof-bokeh-downsample-depth-info": [
+"f",
+0.0
+],
+"post:dof-bokeh-presort-min-max-depth": [
+"f",
+0.0
+],
+"post:dof-bokeh-separate-middle-layer": [
+"f",
+0.0
+],
+"post:dof-bokeh-taa-threshold": [
+"f",
+2.0
+],
+"post:dof-bokeh-use-multi-classification": [
+"f",
+0.0
+],
+"post:dof-bokeh-use-opaque-depth": [
+"i",
+0
+],
+"post:dof-bokeh-use-raw-fg-alpha-in-upres": [
+"f",
+0.0
+],
+"post:dof-enable-bokeh": [
+"i",
+1
+],
+"post:dof-enable-depth-warp": [
+"i",
+1
+],
+"post:dof-enable-high-sample-count": [
+"f",
+0.0
+],
+"post:dof-enable-wider-near-blur": [
+"f",
+0.0
+],
+"post:dof-far-end": [
+"f",
+0.0
+],
+"post:dof-far-end-intensity": [
+"f",
+0.0
+],
+"post:dof-far-start": [
+"f",
+0.0
+],
+"post:dof-far-start-intensity": [
+"f",
+0.0
+],
+"post:dof-foreground-distance": [
+"f",
+2.5
+],
+"post:dof-global-intensity-multiplier": [
+"f",
+0.35
+],
+"post:dof-motion-blur-blend-bias": [
+"f",
+0.0
+],
+"post:dof-near-end": [
+"f",
+0.0
+],
+"post:dof-near-end-intensity": [
+"f",
+0.0
+],
+"post:dof-near-start": [
+"f",
+0.0
+],
+"post:dof-near-start-intensity": [
+"f",
+0.0
+],
+"post:dof-outside-weapon-scope-coc": [
+"f",
+20.0
+],
+"post:enable-background-blur": [
+"i",
+1
+],
+"post:enable-depth-of-field": [
+"i",
+0
+],
+"post:enable-fxaa": [
+"f",
+0.0
+],
+"post:enable-temporal-depth-aware-clamping": [
+"f",
+-0.0
+],
+"post:enable-temporal-dither": [
+"i",
+1
+],
+"post:enable-temporal-jitter": [
+"i",
+1
+],
+"post:film-grain-brights": [
+"f",
+0.3
+],
+"post:film-grain-brights-hdr-multiplier": [
+"f",
+0.8
+],
+"post:film-grain-darks": [
+"f",
+1.0
+],
+"post:film-grain-mids": [
+"f",
+0.7
+],
+"post:fish-eye-distortion-strength": [
+"f",
+-0.035
+],
+"post:fish-eye-distortion-zoom": [
+"f",
+1.0
+],
+"post:graduated-filter-density": [
+"f",
+0.0
+],
+"post:graduated-filter-falloff": [
+"f",
+0.5
+],
+"post:graduated-filter-offset": [
+"f",
+0.0
+],
+"post:health-effect-control": [
+"f",
+0.0
+],
+"post:health-effect-control-desat": [
+"f",
+0.0
+],
+"post:health-effect-control-enemy": [
+"f",
+0.0
+],
+"post:high-contrast-mode-add-particle-outline": [
+"i",
+1
+],
+"post:high-contrast-mode-ao-depth-range": [
+"f",
+180.0
+],
+"post:high-contrast-mode-base-depth-range": [
+"f",
+50.0
+],
+"post:high-contrast-mode-basecolor-level": [
+"f",
+0.4
+],
+"post:high-contrast-mode-camera-far-plane": [
+"f",
+5000.0
+],
+"post:high-contrast-mode-camera-near-plane": [
+"f",
+0.24
+],
+"post:high-contrast-mode-debugging-types": [
+"f",
+0.0
+],
+"post:high-contrast-mode-disable-particle-white-list": [
+"f",
+0.0
+],
+"post:high-contrast-mode-enemy-boost": [
+"f",
+1.0
+],
+"post:high-contrast-mode-far-outline-brightness": [
+"f",
+0.2
+],
+"post:high-contrast-mode-far-outline-thickness": [
+"f",
+3.0
+],
+"post:high-contrast-mode-forward-mask": [
+"i",
+0
+],
+"post:high-contrast-mode-ground-brightness": [
+"f",
+0.4
+],
+"post:high-contrast-mode-ground-range": [
+"f",
+40.0
+],
+"post:high-contrast-mode-near-outline-brightness": [
+"f",
+3.0
+],
+"post:high-contrast-mode-near-outline-range": [
+"f",
+15.0
+],
+"post:high-contrast-mode-near-outline-thickness": [
+"f",
+4.0
+],
+"post:high-contrast-mode-no-lens-flare": [
+"i",
+1
+],
+"post:high-contrast-mode-particle-outline-threshold": [
+"f",
+0.01
+],
+"post:high-contrast-mode-total-outline-range": [
+"f",
+80.0
+],
+"post:high-contrast-mode-under-water": [
+"f",
+0.0
+],
+"post:high-contrast-mode-water-min-intensity": [
+"f",
+0.0
+],
+"post:lens-dirt-intensity": [
+"f",
+0.1
+],
+"post:lens-dirt-max-clamp": [
+"f",
+0.5
+],
+"post:mblur-blur-enable": [
+"i",
+1
+],
+"post:mblur-blur-scale": [
+"f",
+1.0
+],
+"post:mblur-fade-depth-range": [
+"f",
+0.3
+],
+"post:mblur-fade-offset": [
+"f",
+0.2
+],
+"post:mblur-half-res": [
+"i",
+1
+],
+"post:mblur-last-frame-blend-mode": [
+"f",
+0.0
+],
+"post:mblur-max-samples": [
+"i",
+8
+],
+"post:mblur-reverse-blur-direction": [
+"f",
+-2.64706e-23
+],
+"post:mblur-simple": [
+"i",
+0
+],
+"post:mblur-trigger-threshold": [
+"f",
+5.0
+],
+"post:mblur-upscale": [
+"f",
+-1.59232e-23
+],
+"post:mblur-vignette-scale": [
+"f",
+0.0
+],
+"post:mblur-wip-1080p-num-reconstruction-samples": [
+"i",
+8
+],
+"post:mblur-wip-1440p-num-reconstruction-samples": [
+"i",
+11
+],
+"post:mblur-wip-before-taa": [
+"f",
+0.0
+],
+"post:mblur-wip-blend-immediately": [
+"f",
+0.0
+],
+"post:mblur-wip-center-tap-weight-modifier-1080p": [
+"f",
+1.0
+],
+"post:mblur-wip-center-tap-weight-modifier-1440p": [
+"f",
+1.0
+],
+"post:mblur-wip-counting-sample-weight-threshold": [
+"f",
+0.0
+],
+"post:mblur-wip-discard-temporal-edge-samples": [
+"i",
+1
+],
+"post:mblur-wip-discard-temporal-edge-samples-cutoff-dist": [
+"f",
+-1.0
+],
+"post:mblur-wip-downsample-depth-info": [
+"f",
+0.0
+],
+"post:mblur-wip-enable": [
+"i",
+1
+],
+"post:mblur-wip-enable-curvy-blur": [
+"f",
+0.0
+],
+"post:mblur-wip-enable-directional-weighting": [
+"i",
+1
+],
+"post:mblur-wip-enable-dual-direction-sampling": [
+"i",
+1
+],
+"post:mblur-wip-enable-seperable-passes": [
+"f",
+0.0
+],
+"post:mblur-wip-enable-touchpad-motion-vectors": [
+"f",
+0.0
+],
+"post:mblur-wip-extra-blur-during-melee": [
+"f",
+0.0
+],
+"post:mblur-wip-extra-character-blur": [
+"i",
+0
+],
+"post:mblur-wip-fg-per-pixel-blend-weight-depth-threshold": [
+"f",
+0.075
+],
+"post:mblur-wip-frame-time-exposure-percent": [
+"f",
+0.625
+],
+"post:mblur-wip-half-res": [
+"f",
+1.65436e-24
+],
+"post:mblur-wip-luma-discard-threshold": [
+"f",
+2.0
+],
+"post:mblur-wip-max-camera-space-depth": [
+"f",
+100.0
+],
+"post:mblur-wip-per-pixel-num-samples-threshold": [
+"i",
+1
+],
+"post:mblur-wip-soft-z-extent": [
+"f",
+0.001
+],
+"post:mblur-wip-use-bilinear-reconstruction": [
+"i",
+0
+],
+"post:mblur-wip-use-per-pixel-sample-counting": [
+"i",
+1
+],
+"post:mblur-wip-use-temporal-depth": [
+"i",
+1
+],
+"post:mblur-wip-velocity-start-range": [
+"f",
+5.0
+],
+"post:mblur-wip-vignette-1080p-half-res-num-samples": [
+"i",
+8
+],
+"post:mblur-wip-vignette-1080p-num-samples": [
+"i",
+12
+],
+"post:mblur-wip-vignette-1440p-half-res-num-samples": [
+"i",
+10
+],
+"post:mblur-wip-vignette-1440p-num-samples": [
+"i",
+14
+],
+"post:mblur-wip-vignette-start-radius": [
+"f",
+0.1
+],
+"post:mblur-wip-vignette-start-range": [
+"f",
+0.2
+],
+"post:mblur-wip-vignette-vertical-scale": [
+"f",
+0.56
+],
+"post:non-bloom-intensity": [
+"f",
+0.0
+],
+"post:saturation": [
+"f",
+0.0
+],
+"post:scope-zoom-radial-multiplier": [
+"f",
+1.0
+],
+"post:scope-zoom-uniform-multiplier": [
+"f",
+1.0
+],
+"post:sharpen-threshold": [
+"f",
+0.2
+],
+"post:taa-variance-clamping-gamma": [
+"f",
+1.0
+],
+"post:tint-rgb-final-add-b": [
+"f",
+0.0
+],
+"post:tint-rgb-final-add-g": [
+"f",
+0.0
+],
+"post:tint-rgb-final-add-r": [
+"f",
+0.0
+],
+"post:tint-rgb-final-multiply-b": [
+"f",
+1.0
+],
+"post:tint-rgb-final-multiply-g": [
+"f",
+1.0
+],
+"post:tint-rgb-final-multiply-r": [
+"f",
+1.0
+],
+"post:tint-rgb-max-vector-b": [
+"f",
+1.0
+],
+"post:tint-rgb-max-vector-g": [
+"f",
+1.0
+],
+"post:tint-rgb-max-vector-r": [
+"f",
+1.0
+],
+"post:tint-rgb-min-vector-b": [
+"f",
+0.0
+],
+"post:tint-rgb-min-vector-g": [
+"f",
+0.0
+],
+"post:tint-rgb-min-vector-r": [
+"f",
+0.0
+],
+"post:tint-rgb-multiplier-b": [
+"f",
+1.0
+],
+"post:tint-rgb-multiplier-g": [
+"f",
+1.0
+],
+"post:tint-rgb-multiplier-r": [
+"f",
+1.0
+],
+"post:touchpad-zoom-custom-hold-speed": [
+"f",
+0.5
+],
+"post:touchpad-zoom-debug-render-enable": [
+"f",
+0.0
+],
+"post:touchpad-zoom-in-easing-power": [
+"i",
+2
+],
+"post:touchpad-zoom-in-transition-seconds": [
+"f",
+0.4
+],
+"post:touchpad-zoom-out-easing-power": [
+"i",
+4
+],
+"post:touchpad-zoom-out-transition-seconds": [
+"f",
+0.8
+],
+"post:touchpad-zoom-pause-game": [
+"f",
+0.0
+],
+"post:touchpad-zoom-position-epsilon": [
+"f",
+0.07
+],
+"post:touchpad-zoom-seconds-until-zoom": [
+"f",
+0.6
+],
+"post:use-transparent-motion-vector": [
+"f",
+0.0
+],
+"post:vignette-density": [
+"f",
+0.2
+],
+"post:vignette-scale": [
+"f",
+0.965
+],
+"post:vignette-softness": [
+"f",
+0.525
+],
+"post:vignette-tint-b": [
+"f",
+0.0
+],
+"post:vignette-tint-g": [
+"f",
+0.0
+],
+"post:vignette-tint-offset-b": [
+"f",
+0.0
+],
+"post:vignette-tint-offset-g": [
+"f",
+0.0
+],
+"post:vignette-tint-offset-r": [
+"f",
+0.0
+],
+"post:vignette-tint-r": [
+"f",
+0.0
+],
+"post:vignette-vertical-scale": [
+"f",
+1.0
+],
+"rain2:rain-alpha-variation-minimum": [
+"f",
+1.0
+],
+"rain2:rain-ambient-color": [
+"f",
+0.0
+],
+"rain2:rain-ambient-color-b": [
+"f",
+1.0
+],
+"rain2:rain-ambient-color-g": [
+"f",
+1.0
+],
+"rain2:rain-ambient-color-r": [
+"f",
+1.0
+],
+"rain2:rain-camera-motion-blur": [
+"f",
+1.0
+],
+"rain2:rain-cell-size": [
+"f",
+1.0
+],
+"rain2:rain-cell-spacing": [
+"f",
+1.0
+],
+"rain2:rain-curve-index": [
+"f",
+0.0
+],
+"rain2:rain-curve-spread-along": [
+"f",
+5.0
+],
+"rain2:rain-curve-spread-away": [
+"f",
+0.0
+],
+"rain2:rain-curve-traversal-speed": [
+"f",
+0.1
+],
+"rain2:rain-direction-mult": [
+"f",
+1.0
+],
+"rain2:rain-direction-x": [
+"f",
+0.0
+],
+"rain2:rain-direction-y": [
+"f",
+-1.0
+],
+"rain2:rain-direction-z": [
+"f",
+0.0
+],
+"rain2:rain-end-distance": [
+"f",
+5.0
+],
+"rain2:rain-fade-in-range": [
+"f",
+1.0
+],
+"rain2:rain-fade-out-range": [
+"f",
+1.0
+],
+"rain2:rain-material-id": [
+"f",
+0.0
+],
+"rain2:rain-motion-blur-alpha-value": [
+"f",
+0.0
+],
+"rain2:rain-num-quads": [
+"i",
+1
+],
+"rain2:rain-override-color-b": [
+"f",
+1.0
+],
+"rain2:rain-override-color-g": [
+"f",
+1.0
+],
+"rain2:rain-override-color-intensity": [
+"f",
+0.0
+],
+"rain2:rain-override-color-r": [
+"f",
+1.0
+],
+"rain2:rain-quad-height": [
+"f",
+0.02
+],
+"rain2:rain-quad-width": [
+"f",
+0.02
+],
+"rain2:rain-start-distance": [
+"f",
+-1.0
+],
+"rain2:rain-use-override-color": [
+"f",
+0.0
+],
+"rain:generate-rain-occluders": [
+"i",
+1
+],
+"rain:rain-alpha-variation-minimum": [
+"f",
+1.0
+],
+"rain:rain-ambient-color": [
+"f",
+0.0
+],
+"rain:rain-ambient-color-b": [
+"f",
+1.0
+],
+"rain:rain-ambient-color-g": [
+"f",
+1.0
+],
+"rain:rain-ambient-color-r": [
+"f",
+1.0
+],
+"rain:rain-camera-motion-blur": [
+"f",
+1.0
+],
+"rain:rain-cell-size": [
+"f",
+1.0
+],
+"rain:rain-cell-spacing": [
+"f",
+1.0
+],
+"rain:rain-curve-index": [
+"f",
+0.0
+],
+"rain:rain-curve-spread-along": [
+"f",
+5.0
+],
+"rain:rain-curve-spread-away": [
+"f",
+0.0
+],
+"rain:rain-curve-traversal-speed": [
+"f",
+0.1
+],
+"rain:rain-direction-mult": [
+"f",
+1.0
+],
+"rain:rain-direction-x": [
+"f",
+0.0
+],
+"rain:rain-direction-y": [
+"f",
+-1.0
+],
+"rain:rain-direction-z": [
+"f",
+0.0
+],
+"rain:rain-end-distance": [
+"f",
+5.0
+],
+"rain:rain-fade-in-range": [
+"f",
+1.0
+],
+"rain:rain-fade-out-range": [
+"f",
+1.0
+],
+"rain:rain-material-id": [
+"f",
+0.0
+],
+"rain:rain-motion-blur-alpha-value": [
+"f",
+0.0
+],
+"rain:rain-num-quads": [
+"i",
+1
+],
+"rain:rain-override-color-b": [
+"f",
+1.0
+],
+"rain:rain-override-color-g": [
+"f",
+1.0
+],
+"rain:rain-override-color-intensity": [
+"f",
+0.0
+],
+"rain:rain-override-color-r": [
+"f",
+1.0
+],
+"rain:rain-quad-height": [
+"f",
+0.02
+],
+"rain:rain-quad-width": [
+"f",
+0.02
+],
+"rain:rain-ripples-height-strength": [
+"f",
+1.0
+],
+"rain:rain-ripples-interval": [
+"f",
+0.2
+],
+"rain:rain-ripples-ka": [
+"f",
+0.94
+],
+"rain:rain-ripples-kc": [
+"f",
+0.6
+],
+"rain:rain-ripples-num": [
+"i",
+1
+],
+"rain:rain-ripples-strength": [
+"f",
+20.0
+],
+"rain:rain-start-distance": [
+"f",
+-1.0
+],
+"rain:rain-use-default-direction": [
+"i",
+0
+],
+"rain:rain-use-default-extent": [
+"i",
+1
+],
+"rain:rain-use-override-color": [
+"f",
+0.0
+],
+"shadow:add-main-camera-frustum-planes": [
+"i",
+1
+],
+"shadow:cascade-number": [
+"i",
+3
+],
+"shadow:cascaded-level-1-distance": [
+"f",
+12.0
+],
+"shadow:cascaded-level-1-zoffset": [
+"f",
+0.0
+],
+"shadow:cascaded-level-2-distance": [
+"f",
+24.0
+],
+"shadow:cascaded-level-2-zoffset": [
+"f",
+0.0
+],
+"shadow:cascaded-level-3-distance": [
+"f",
+48.0
+],
+"shadow:cascaded-level-3-zoffset": [
+"f",
+0.0
+],
+"shadow:cascaded-level-4-distance": [
+"f",
+80.0
+],
+"shadow:cascaded-level-4-zoffset": [
+"f",
+0.0
+],
+"shadow:custom-alpha-cutoff": [
+"f",
+0.0
+],
+"shadow:depth-offset-const": [
+"f",
+-0.0005
+],
+"shadow:depth-offset-slope": [
+"f",
+0.9995
+],
+"shadow:disable-shadow-visibility": [
+"f",
+0.0
+],
+"shadow:enable-local-shadow-adaptive-res": [
+"i",
+1
+],
+"shadow:flashlight-shadow-const": [
+"f",
+-1e-06
+],
+"shadow:flashlight-shadow-slope": [
+"f",
+0.9995
+],
+"shadow:focus-shadow-on-main-view": [
+"i",
+1
+],
+"shadow:focus-shadow-on-main-view-safe": [
+"i",
+0
+],
+"shadow:hero-sun-shadow-enable": [
+"i",
+1
+],
+"shadow:hero-sun-shadow-far-plane-bias": [
+"f",
+2.0
+],
+"shadow:hero-sun-shadow-resolution": [
+"i",
+1024
+],
+"shadow:hero-sun-shadow-use-32bit": [
+"f",
+0.0
+],
+"shadow:hero-sun-shadow-zoffset": [
+"f",
+0.0
+],
+"shadow:max-num-point-shadows": [
+"i",
+4
+],
+"shadow:max-num-spot-shadows": [
+"i",
+16
+],
+"shadow:max-point-spot-shadow-dist": [
+"f",
+40.0
+],
+"shadow:max-shadow-memory": [
+"i",
+120
+],
+"shadow:num-runtime-light-shadow-sample": [
+"i",
+4
+],
+"shadow:omni-light-fade-end": [
+"f",
+70.0
+],
+"shadow:omni-light-fade-start": [
+"f",
+65.0
+],
+"shadow:omni-light-shadow-fade-end": [
+"f",
+13.0
+],
+"shadow:omni-light-shadow-fade-start": [
+"f",
+10.0
+],
+"shadow:omni-shadow-size-scale": [
+"f",
+0.25
+],
+"shadow:omni-shadow-use-32bit": [
+"f",
+0.0
+],
+"shadow:override-point-shadow-max-size": [
+"f",
+0.0
+],
+"shadow:override-spot-shadow-max-size": [
+"f",
+0.0
+],
+"shadow:shadow-max-blur-radius": [
+"f",
+50.0
+],
+"shadow:shadow-max-blur-start": [
+"f",
+3.0
+],
+"shadow:shadow-min-blur-end": [
+"f",
+0.0
+],
+"shadow:shadow-min-blur-radius": [
+"f",
+0.5
+],
+"shadow:shadow-snapping-percentage": [
+"f",
+10.0
+],
+"shadow:spot-light-fade-end": [
+"f",
+70.0
+],
+"shadow:spot-light-fade-start": [
+"f",
+65.0
+],
+"shadow:spot-light-penumbra-ratio": [
+"f",
+0.9
+],
+"shadow:spot-light-shadow-fade-end": [
+"f",
+20.0
+],
+"shadow:spot-light-shadow-fade-start": [
+"f",
+15.0
+],
+"shadow:spot-shadow-size-scale": [
+"f",
+0.1
+],
+"shadow:spot-shadow-use-32bit": [
+"f",
+0.0
+],
+"shadow:sun-shadow-blur-alpha-blend": [
+"f",
+5.0
+],
+"shadow:sun-shadow-blur-depth-threshold": [
+"f",
+4.0
+],
+"shadow:sun-shadow-blur-max": [
+"f",
+10.0
+],
+"shadow:sun-shadow-blur-max-start": [
+"f",
+3.0
+],
+"shadow:sun-shadow-blur-min": [
+"f",
+0.5
+],
+"shadow:sun-shadow-blur-min-end": [
+"f",
+0.5
+],
+"shadow:sun-shadow-box-cascade-selection-enable": [
+"i",
+0
+],
+"shadow:sun-shadow-cast-distance": [
+"f",
+20.0
+],
+"shadow:sun-shadow-cast-height-scale": [
+"f",
+2.0
+],
+"shadow:sun-shadow-deflicker-method": [
+"f",
+0.0
+],
+"shadow:sun-shadow-disable-fg-object": [
+"i",
+0
+],
+"shadow:sun-shadow-far-fade": [
+"f",
+5.0
+],
+"shadow:sun-shadow-offset-by-normal": [
+"f",
+0.0
+],
+"shadow:sun-shadow-resolution": [
+"i",
+2048
+],
+"shadow:sun-shadow-t1-style-blur": [
+"i",
+5
+],
+"shadow:sun-shadow-use-32bit": [
+"f",
+0.0
+],
+"shadow:sun-shadow-vsm-leak-fix": [
+"f",
+0.3
+],
+"shadow:transparency-texture-shadow-bias": [
+"f",
+3.0
+],
+"sky:clouds-coverage": [
+"f",
+0.0
+],
+"sky:clouds-density": [
+"f",
+1.0
+],
+"sky:clouds-sky-brightness": [
+"f",
+1.0
+],
+"sky:clouds-speed": [
+"f",
+1.0
+],
+"sky:clouds-sun-brightness": [
+"f",
+1.0
+],
+"sky:gamma": [
+"f",
+1.0
+],
+"sky:height": [
+"f",
+0.0
+],
+"sky:intensity": [
+"f",
+1.0
+],
+"sky:intensity-for-cubemap": [
+"f",
+1.0
+],
+"sky:lightning-blend": [
+"f",
+0.0
+],
+"sky:multiply-b": [
+"f",
+1.0
+],
+"sky:multiply-g": [
+"f",
+1.0
+],
+"sky:multiply-r": [
+"f",
+1.0
+],
+"sky:reflection-intensity-a": [
+"f",
+1.0
+],
+"sky:reflection-intensity-b": [
+"f",
+1.0
+],
+"sky:reflection-intensity-g": [
+"f",
+1.0
+],
+"sky:reflection-intensity-r": [
+"f",
+1.0
+],
+"sky:rotation": [
+"f",
+0.0
+],
+"sky:sky-color-saturation": [
+"f",
+0.0
+],
+"sky:sky-ignore-exposure": [
+"f",
+0.0
+],
+"sky:sun-altitude": [
+"f",
+45.0
+],
+"sky:sun-flare-color-a": [
+"f",
+1.0
+],
+"sky:sun-flare-color-b": [
+"f",
+1.0
+],
+"sky:sun-flare-color-g": [
+"f",
+1.0
+],
+"sky:sun-flare-color-r": [
+"f",
+1.0
+],
+"sky:sun-flare-def-index": [
+"i",
+1
+],
+"sky:sun-flare-distance": [
+"f",
+200.0
+],
+"sky:sun-flare-enable": [
+"f",
+0.0
+],
+"sky:sun-flare-sample-scale": [
+"f",
+0.15
+],
+"sky:sun-flare-scale": [
+"f",
+1.0
+],
+"sky:sun-flare-threshold-bias": [
+"f",
+0.0
+],
+"sky:sun-flare-use-shadow": [
+"i",
+1
+],
+"sky:sun-longitude": [
+"f",
+0.0
+],
+"skydome:ambient-projection-bottom-fade-max": [
+"f",
+0.0
+],
+"skydome:ambient-projection-bottom-fade-min": [
+"f",
+0.0
+],
+"skydome:ambient-projection-distance-fade-max": [
+"f",
+0.0
+],
+"skydome:ambient-projection-distance-fade-min": [
+"f",
+0.0
+],
+"skydome:ambient-projection-multiplier": [
+"f",
+1.0
+],
+"skydome:ambient-projection-top-fade-max": [
+"f",
+0.0
+],
+"skydome:ambient-projection-top-fade-min": [
+"f",
+0.0
+],
+"skydome:cloud-shadow-caustics-ambient-intensity": [
+"f",
+0.5
+],
+"skydome:cloud-shadow-caustics-water-height": [
+"f",
+0.0
+],
+"skydome:cloud-shadow-include-alpha-blend": [
+"f",
+0.0
+],
+"skydome:cloud-shadow-opacity-multiplier": [
+"f",
+1.0
+],
+"skydome:cloud-shadow-projected-multiplier": [
+"f",
+1.0
+],
+"skydome:cloud-shadow-scale-multiplier": [
+"f",
+1.0
+],
+"skydome:cloud-shadow-speed-multiplier": [
+"f",
+1.0
+],
+"skydome:cloud-shadow-sun-latitude": [
+"f",
+45.0
+],
+"skydome:cloud-shadow-sun-longitude": [
+"f",
+0.0
+],
+"skydome:cloud-shadow-use-real-sun-dir": [
+"i",
+1
+],
+"skydome:cloud-shadow-use-sun-flare-dir": [
+"i",
+1
+],
+"skydome:enable-cloud-shadow": [
+"f",
+0.0
+],
+"skydome:enable-cloud-shadow-caustics": [
+"f",
+0.0
+],
+"skydome:enable-cloud-shadow-caustics-rain": [
+"f",
+0.0
+],
+"skydome:enable-reflection-cloud-shadow": [
+"f",
+0.0
+],
+"tonemap:fade-to-black-multiplier": [
+"f",
+1.0
+],
+"tonemap:final-exposure-bias": [
+"f",
+0.0
+],
+"tonemap:hdr-blend-amount": [
+"f",
+0.6
+],
+"tonemap:hdr-desaturate": [
+"f",
+0.0
+],
+"tonemap:hdr-exposure-bias": [
+"f",
+0.0
+],
+"tonemap:hdr-tint-b": [
+"f",
+1.0
+],
+"tonemap:hdr-tint-g": [
+"f",
+1.0
+],
+"tonemap:hdr-tint-r": [
+"f",
+1.0
+],
+"tonemap:tonemap-adaption-time": [
+"f",
+1.0
+],
+"tonemap:tonemap-bonus-feature-manual-exposure": [
+"f",
+0.0
+],
+"tonemap:tonemap-bonus-feature-manual-exposure-value": [
+"f",
+0.0
+],
+"tonemap:tonemap-curve-type": [
+"i",
+1
+],
+"tonemap:tonemap-exposure-method": [
+"f",
+0.0
+],
+"tonemap:tonemap-filmic-exposure-bias": [
+"f",
+0.0
+],
+"tonemap:tonemap-filmic-linear-angle": [
+"f",
+0.17
+],
+"tonemap:tonemap-filmic-linear-strength": [
+"f",
+0.2
+],
+"tonemap:tonemap-filmic-shoulder-strength": [
+"f",
+0.22
+],
+"tonemap:tonemap-filmic-toe-denominator": [
+"f",
+0.3
+],
+"tonemap:tonemap-filmic-toe-numerator": [
+"f",
+0.01
+],
+"tonemap:tonemap-filmic-toe-strength": [
+"f",
+0.1
+],
+"tonemap:tonemap-filmic-white-point": [
+"f",
+0.0
+],
+"tonemap:tonemap-histogram-edge-size": [
+"i",
+128
+],
+"tonemap:tonemap-histogram-sample-position": [
+"i",
+80
+],
+"tonemap:tonemap-histogram-sample-position-hdr-bias": [
+"f",
+0.0
+],
+"tonemap:tonemap-light-range-max": [
+"f",
+5.0
+],
+"tonemap:tonemap-light-range-min": [
+"f",
+-5.0
+],
+"tonemap:tonemap-manual-exposure-value": [
+"f",
+0.0
+],
+"tonemap:tonemap-set-point": [
+"f",
+0.0
+],
+"water:boat-cull-water-in-pixel-shader": [
+"i",
+0
+],
+"water:boat-interior-masking-aabb-debug-draw": [
+"f",
+-128.0
+],
+"water:boat-interior-masking-aabb-height": [
+"f",
+1.375
+],
+"water:boat-interior-masking-aabb-length": [
+"f",
+2.0
+],
+"water:boat-interior-masking-aabb-width": [
+"f",
+0.785
+],
+"water:disable-ambient-shadows-in-boat": [
+"i",
+254
+],
+"water:enable-all-dynamic-wetness": [
+"i",
+1
+],
+"water:enable-all-simple-npc-simple-wetness": [
+"i",
+0
+],
+"water:enable-auto-wetmask-drying": [
+"i",
+254
+],
+"water:enable-dynamic-wetness-auto-clear-bloodmask": [
+"i",
+1
+],
+"water:enable-dynamic-wetness-underwater": [
+"i",
+1
+],
+"water:enable-ocean": [
+"i",
+254
+],
+"water:enable-water-alpha-passes": [
+"i",
+5
+],
+"water:fix-ocean-normal-seams": [
+"f",
+0.0
+],
+"water:force-write-pre-water-alpha-depth": [
+"i",
+254
+],
+"water:override-semicircle-ripple-parameters": [
+"f",
+0.0
+],
+"water:semicircle-ripple-angle": [
+"f",
+90.0
+],
+"water:semicircle-ripple-force-multiplier": [
+"f",
+0.2
+],
+"water:semicircle-ripple-radius-max": [
+"f",
+0.5
+],
+"water:semicircle-ripple-radius-min": [
+"f",
+0.1
+],
+"water:semicircle-ripple-spawn-probability-multiplier": [
+"f",
+0.4
+],
+"water:stencil-test-flagged-material-in-boat": [
+"i",
+15
+],
+"water:wetmask-anim-lod-evict": [
+"i",
+2
+],
+"wind:cloth-wind-intensity-multiplier": [
+"f",
+1.0
+],
+"wind:joint-wind-direction-x": [
+"f",
+1.0
+],
+"wind:joint-wind-direction-z": [
+"f",
+1.0
+],
+"wind:joint-wind-flutter-intensity": [
+"f",
+1.0
+],
+"wind:joint-wind-flutter-speed": [
+"f",
+1.0
+],
+"wind:joint-wind-gust-coverage": [
+"f",
+0.5
+],
+"wind:joint-wind-gust-intensity": [
+"f",
+1.0
+],
+"wind:joint-wind-speed": [
+"f",
+2.5
+],
+"wind:joint-wind-turbulence": [
+"f",
+0.25
+],
+"wind:wind-intensity-multiplier": [
+"f",
+1.0
+]
+}

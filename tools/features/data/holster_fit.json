@@ -1,0 +1,96 @@
+{
+ "ref": "pistol-glock",
+ "ref_wo": {
+  "pos": [
+   0.016,
+   -0.043,
+   0.032
+  ],
+  "quat": [
+   -0.0241,
+   0.99927,
+   -0.02577,
+   -0.01493
+  ]
+ },
+ "t": {
+  "pistol-glock": [
+   0.0,
+   0.0,
+   -0.01
+  ],
+  "pistol-glock-supp": [
+   0.0,
+   0.0,
+   -0.01
+  ],
+  "pistol-beretta": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "pistol-beretta-supp": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "pistol-cz75-enforcer": [
+   0.0,
+   -0.03,
+   -0.01
+  ],
+  "pistol-cz75-enforcer-supp": [
+   0.0,
+   -0.03,
+   -0.01
+  ],
+  "pistol-revolver-taurus": [
+   0.0,
+   -0.01,
+   0.0
+  ],
+  "pistol-xcaliber": [
+   0.0,
+   -0.04,
+   -0.07
+  ],
+  "pistol-el-diablo": [
+   0.0,
+   -0.05,
+   -0.04
+  ],
+  "shotgun-shorty": [
+   0.0,
+   -0.01,
+   -0.09
+  ]
+ },
+ "waist_x": {
+  "scar-male-13": -0.2537,
+  "scar-male-01": -0.2537,
+  "scar-male-12": -0.2537,
+  "scar-male-06": -0.2537,
+  "scar-male-09": -0.2537,
+  "scar-male-02": -0.2537,
+  "militia-male-11-backpack": -0.2678,
+  "militia-male-08-backpack": -0.2548,
+  "militia-male-12-backpack": -0.2631,
+  "militia-male-05-backpack": -0.2528,
+  "militia-male-13-backpack": -0.2379,
+  "militia-male-14-backpack": -0.2583,
+  "scar-female-11": -0.2535,
+  "scar-female-09": -0.2538,
+  "militia-female-13-backpack": -0.2495,
+  "militia-female-12-backpack": -0.2813
+ },
+ "waist2_x": {
+  "scar-male-13": 0.257,
+  "scar-male-01": 0.257,
+  "scar-male-12": 0.257,
+  "scar-male-06": 0.257,
+  "scar-male-09": 0.257,
+  "scar-male-02": 0.257,
+  "scar-female-11": 0.2522,
+  "scar-female-09": 0.2522
+ }
+}

@@ -1,0 +1,70 @@
+{
+ "key": "chase",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "name": "lockbox-0-0",
+    "pos": [
+     -96.75,
+     2.07,
+     -58.039
+    ],
+    "yaw_deg": 133.6,
+    "traffic": 0.03,
+    "own_path": 15.9,
+    "enemy_path": 79.7
+   },
+   {
+    "name": "lockbox-0-1",
+    "pos": [
+     -87.138,
+     1.545,
+     -85.026
+    ],
+    "yaw_deg": 6.1,
+    "traffic": 0.0,
+    "own_path": 45.8,
+    "enemy_path": 72.6
+   }
+  ],
+  [
+   {
+    "name": "lockbox-1-0",
+    "pos": [
+     -32.432,
+     1.288,
+     -63.123
+    ],
+    "yaw_deg": 2.9,
+    "traffic": 0.18,
+    "own_path": 33.6,
+    "enemy_path": 105.0
+   },
+   {
+    "name": "lockbox-1-1",
+    "pos": [
+     -44.201,
+     1.098,
+     -59.703
+    ],
+    "yaw_deg": 46.7,
+    "traffic": 0.18,
+    "own_path": 33.3,
+    "enemy_path": 104.6
+   },
+   {
+    "name": "lockbox-1-2",
+    "pos": [
+     -33.203,
+     1.143,
+     -50.335
+    ],
+    "yaw_deg": 270.2,
+    "traffic": 0.18,
+    "own_path": 20.2,
+    "enemy_path": 91.5
+   }
+  ]
+ ]
+}

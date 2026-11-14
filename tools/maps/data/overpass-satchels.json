@@ -1,0 +1,76 @@
+{
+ "key": "overpass",
+ "map_index": 21,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 8,
+ "from": [
+  {
+   "traffic": 0.36,
+   "yaw_deg": 229.9,
+   "quality": 1.22
+  },
+  {
+   "traffic": 0.43,
+   "yaw_deg": 308.0,
+   "quality": 1.13
+  },
+  {
+   "traffic": 0.5,
+   "yaw_deg": 95.5,
+   "quality": 1.1
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    -313.235,
+    16.402,
+    -416.916
+   ],
+   "quat": [
+    0.0,
+    -0.906616,
+    0.0,
+    0.421956
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -269.714,
+    14.927,
+    -434.385
+   ],
+   "quat": [
+    0.0,
+    -0.438381,
+    0.0,
+    0.898789
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -349.748,
+    15.683,
+    -489.615
+   ],
+   "quat": [
+    0.0,
+    0.740272,
+    0.0,
+    0.672307
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

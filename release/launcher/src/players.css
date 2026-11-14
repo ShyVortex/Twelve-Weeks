@@ -1,0 +1,80 @@
+/* ONLINE PLAYERS panel (test feature, src/players.js). Rows reuse the FRIENDS look (friends.css). */
+#app {
+  transition: width 0.38s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+#app.pl-open {
+  width: calc(100vw - 320px);
+}
+#players {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel-bg, rgba(16, 18, 20, 0.86));
+  border-left: 1px solid var(--panel-line);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.38s cubic-bezier(0.3, 0.7, 0.2, 1),
+    visibility 0s 0.38s;
+}
+#app.pl-open ~ #players {
+  transform: none;
+  visibility: visible;
+  transition:
+    transform 0.38s cubic-bezier(0.3, 0.7, 0.2, 1),
+    visibility 0s;
+}
+body:not(.motion) #app,
+body:not(.motion) #players {
+  transition: none;
+}
+#players .ph {
+  padding-top: 14px;
+}
+.pp-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 10px 12px;
+}
+.pp-list > * + * {
+  margin-top: 4px;
+}
+.pp-list .empty {
+  padding: 26px 4px;
+}
+/* the indicator becomes a boxed button (same border / hover as .btn) */
+body.players-on #online {
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  padding: 7px 12px 6px;
+  background: var(--bar-bg);
+  border: 1px solid var(--panel-line);
+  transition:
+    border-color 0.3s,
+    background 0.3s,
+    color 0.3s;
+}
+body.players-on #online:hover,
+body.players-on #online.on {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+body.players-on #online:hover b,
+body.players-on #online:hover span,
+body.players-on #online.on b {
+  color: #fff;
+}
+body.players-on #online:focus-visible {
+  outline: 1px solid var(--line2);
+  outline-offset: 3px;
+}
+body.players-on #online {
+  right: 40px;
+  top: 36px;
+}

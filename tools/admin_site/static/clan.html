@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" data-theme="wlf">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Clan</title>
+<!-- the launcher's CLAN tab, as it is: its own scripts + styles are served from release/launcher/src (admin.py /launcher/...); data = /api/clanview (read-only) -->
+<link rel="stylesheet" href="/launcher/src/style.css">
+<link rel="stylesheet" href="/launcher/src/gear.css">
+<link rel="stylesheet" href="/launcher/src/neat.css">
+<link rel="stylesheet" href="/launcher/src/news.css">
+<link rel="stylesheet" href="/launcher/src/motion.css">
+<style>
+  html, body { overflow: hidden; }
+  #app .view#v-clan { left: 0; right: 0; top: 0; bottom: 0; transform: none; opacity: 1; visibility: visible; pointer-events: auto; display: flex; flex-direction: column; border: 0; }
+  #v-clan > h2 { display: flex; justify-content: space-between; align-items: center; }
+  #ctabs { display: flex; gap: 26px; padding: 10px 16px 0; border-bottom: 1px solid var(--bar-line); flex: none; align-items: baseline; }
+  #ctabs button { border: 0; background: none; padding: 0 0 8px; font-size: 14px; letter-spacing: .14em; color: var(--dim); border-bottom: 2px solid transparent; }
+  #ctabs button:hover { color: #fff; } #ctabs button.on { color: #fff; border-bottom-color: var(--accent); }
+  #ctabs .sp { flex: 1; } #ctabs .lg { font-size: 11px; padding-bottom: 8px; }
+  #clan-body { flex: 1; min-height: 0; overflow-y: auto; }
+  #clan-body [data-ct]:not(.ct-on) { display: none !important; }
+  #clan-body .camp { display: block; }
+  #clan-body .camp > h3 { display: none; }
+  #cerr { padding: 20px 16px; color: var(--dim); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="bgwrap"><div class="bgimg on" id="bg-a"></div></div>
+  <div class="shade" id="shade"></div>
+  <div class="vignette"></div>
+  <section class="view active" id="v-clan">
+    <h2><span id="c-name">CLAN</span><small id="c-read" style="letter-spacing:.14em;color:var(--dim);font-size:11px">READ-ONLY VIEW</small></h2>
+    <div id="ctabs"><button data-ct="overview" class="on">OVERVIEW</button><button data-ct="survivors">SURVIVORS</button><button data-ct="raids">RAIDS</button><button data-ct="journal">JOURNAL</button>
+      <span class="sp"></span><button class="lg" id="c-lang">PL</button></div>
+    <div class="clan" id="clan-body"><div class="empty">Loading clan...</div></div>
+  </section>
+</div>
+<div hidden><span id="t-fac"></span><span id="t-sub"></span><span id="t-main"></span><section id="clanbox"><b id="cb-n"></b><b id="cb-h"></b><b id="cb-u"></b><b id="cb-s"></b><b id="cb-need"></b><canvas id="cb-dial" width="10" height="10"></canvas></section></div>
+<script src="/launcher/src/i18n-core.js"></script>
+<script src="/launcher/src/i18n.js"></script>
+<script src="/launcher/src/clan-icons.js"></script>
+<script src="/launcher/src/clan-fx.js"></script>
+<script src="/launcher/src/clan-status.js"></script>
+<script src="/launcher/src/clan.js"></script>
+<script src="/clanframe.js"></script>
+</body>
+</html>

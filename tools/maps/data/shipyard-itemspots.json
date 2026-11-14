@@ -1,0 +1,198 @@
+{
+ "key": "shipyard",
+ "map_index": 3,
+ "hand_placed": true,
+ "rule": "item spawners of the SceneEditor (tools/maps/editor_import.py): ISP_FILL_PCT % filled, weighted pick of one item, back after ISP_RESPAWN_S",
+ "spots": [
+  {
+   "pos": [
+    380.727,
+    2.644,
+    214.276
+   ],
+   "quat": [
+    -0.0,
+    -0.24278,
+    -0.0,
+    0.970081
+   ],
+   "items": [
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "offset": [
+      0.269,
+      -0.054,
+      0.018
+     ],
+     "quat": [
+      0.0,
+      0.0,
+      -0.73903,
+      0.673673
+     ]
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    393.575,
+    2.723,
+    199.703
+   ],
+   "quat": [
+    0.0,
+    0.979682,
+    0.0,
+    0.200558
+   ],
+   "items": [
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "offset": [
+      0.0,
+      -0.042,
+      0.0
+     ],
+     "quat": [
+      -0.352794,
+      0.352794,
+      -0.61281,
+      0.61281
+     ]
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    418.185,
+    2.655,
+    223.061
+   ],
+   "quat": [
+    -0.0,
+    -0.933695,
+    -0.0,
+    0.35807
+   ],
+   "items": [
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "offset": [
+      0.0,
+      -0.025,
+      -0.0
+     ],
+     "quat": [
+      0.448513,
+      -0.443681,
+      -0.545648,
+      0.55159
+     ]
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    401.603,
+    2.811,
+    239.128
+   ],
+   "quat": [
+    0.0,
+    0.976611,
+    0.0,
+    0.215012
+   ],
+   "items": [
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "offset": [
+      -0.004,
+      -0.05,
+      0.0
+     ],
+     "quat": [
+      -0.316738,
+      0.318065,
+      -0.649632,
+      0.613588
+     ]
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    424.423,
+    2.845,
+    250.696
+   ],
+   "quat": [
+    -0.0,
+    -0.78596,
+    -0.0,
+    0.618277
+   ],
+   "items": [
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "offset": [
+      0.0,
+      -0.055,
+      0.0
+     ],
+     "quat": [
+      0.394241,
+      -0.394242,
+      -0.587004,
+      0.587004
+     ]
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  }
+ ]
+}

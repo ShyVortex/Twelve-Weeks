@@ -1,0 +1,359 @@
+{
+  "_comment": "Collision edits made in TLOUSceneEditor (Collision edit mode): verts = collision vertices moved (by WORLD POSITION, from -> to), delete = triangles removed, box / quad = solid shapes added. Applied by tools/maps/coll_edit.py (level_edit.py apply) to the level -phys.pak after the geometry edits. Do not hand-edit.",
+  "key": "p1-bookstore",
+  "version": 1,
+  "edits": [
+    {
+      "name": "front indoor stair: last step made like the rear stair's (riser 0.235 -> 0.200 onto a FLAT nose): the top tread's nose and the landing's front edge 4.4599 -> 4.425 (tread below 4.225); the step-up fails onto the 19 deg nose of 9caea0de, a small jump makes it; + the slanted stair-void wall's top edge 4.3911 -> 4.105 (it stood 0.166 m above the last tread, 1.5-6 cm in front of the riser = a fin the step-up hits; the user's rays at x 122.49 hit it at 4.33-4.39; the rear stair's same wall tops out at 4.105, under its tread)",
+      "level": "hun-checkpoint-bookstore",
+      "kind": "verts",
+      "active": true,
+      "moves": [
+        {
+          "from": [
+            122.4755,
+            4.4599,
+            305.5529
+          ],
+          "to": [
+            122.4755,
+            4.425,
+            305.5529
+          ]
+        },
+        {
+          "from": [
+            122.4755,
+            4.4599,
+            308.4511
+          ],
+          "to": [
+            122.4755,
+            4.425,
+            308.4511
+          ]
+        },
+        {
+          "from": [
+            122.3018,
+            4.4599,
+            305.5529
+          ],
+          "to": [
+            122.3018,
+            4.425,
+            305.5529
+          ]
+        },
+        {
+          "from": [
+            122.3018,
+            4.4599,
+            308.4511
+          ],
+          "to": [
+            122.3018,
+            4.425,
+            308.4511
+          ]
+        },
+        {
+          "from": [
+            122.3018,
+            4.4599,
+            305.5391
+          ],
+          "to": [
+            122.3018,
+            4.425,
+            305.5391
+          ]
+        },
+        {
+          "from": [
+            122.3018,
+            4.4599,
+            308.4843
+          ],
+          "to": [
+            122.3018,
+            4.425,
+            308.4843
+          ]
+        },
+        {
+          "from": [
+            122.4938,
+            4.3911,
+            305.4414
+          ],
+          "to": [
+            122.4938,
+            4.105,
+            305.4414
+          ]
+        },
+        {
+          "from": [
+            122.4902,
+            4.3911,
+            308.4904
+          ],
+          "to": [
+            122.4902,
+            4.105,
+            308.4904
+          ]
+        }
+      ]
+    },
+    {
+      "name": "south garage opening: ramp from the alley ground (y -1.203) up to the garage floor (y -0.995, a 0.21 m step); top surface x 96.0..98.15, z 258.95..264.42",
+      "level": "hun-alley-courtyard",
+      "kind": "quad",
+      "active": true,
+      "points": [
+        [
+          96.0,
+          -1.223,
+          258.95
+        ],
+        [
+          98.15,
+          -1.015,
+          258.95
+        ],
+        [
+          98.15,
+          -1.015,
+          264.42
+        ],
+        [
+          96.0,
+          -1.223,
+          264.42
+        ]
+      ],
+      "thickness": 0.04,
+      "like": [
+        97.0,
+        -1.203,
+        262.0
+      ]
+    },
+    {
+      "name": "2nd-floor atrium railing: the tall invisible collision panels (tag 129, 12 triangles, y 4.45..8.09, x 100.72..115.63, z 278.27..300.27) standing on the 1 m railing boxes all around the stairwell/atrium void; they stop every vault-over of the 2nd-floor railing edges and every drop to the 1st floor",
+      "level": "hun-checkpoint-bookstore",
+      "kind": "delete",
+      "active": true,
+      "tris": [
+        [
+          100.7198,
+          8.0869,
+          278.2895,
+          115.6275,
+          8.0869,
+          278.2715,
+          115.6275,
+          4.4503,
+          278.2715
+        ],
+        [
+          100.7198,
+          8.0869,
+          278.2895,
+          115.6275,
+          4.4503,
+          278.2715,
+          100.7198,
+          4.4503,
+          278.2895
+        ],
+        [
+          100.8095,
+          8.0869,
+          300.2691,
+          100.8095,
+          4.4503,
+          300.2691,
+          109.4611,
+          4.4503,
+          300.2509
+        ],
+        [
+          100.8095,
+          8.0869,
+          300.2691,
+          109.4611,
+          4.4503,
+          300.2509,
+          109.4611,
+          8.0869,
+          300.2509
+        ],
+        [
+          115.4868,
+          4.4503,
+          294.2456,
+          115.4868,
+          8.0869,
+          294.2456,
+          109.4611,
+          8.0869,
+          300.2509
+        ],
+        [
+          115.4868,
+          4.4503,
+          294.2456,
+          109.4611,
+          8.0869,
+          300.2509,
+          109.4611,
+          4.4503,
+          300.2509
+        ],
+        [
+          100.8095,
+          8.0869,
+          300.2691,
+          100.7198,
+          8.0869,
+          278.2895,
+          100.7198,
+          4.4503,
+          278.2895
+        ],
+        [
+          100.8095,
+          8.0869,
+          300.2691,
+          100.7198,
+          4.4503,
+          278.2895,
+          100.8095,
+          4.4503,
+          300.2691
+        ],
+        [
+          115.5794,
+          8.0869,
+          294.0142,
+          115.5794,
+          4.4503,
+          294.0142,
+          115.6275,
+          4.4503,
+          278.2715
+        ],
+        [
+          115.5794,
+          8.0869,
+          294.0142,
+          115.6275,
+          4.4503,
+          278.2715,
+          115.6275,
+          8.0869,
+          278.2715
+        ],
+        [
+          115.4868,
+          8.0869,
+          294.2456,
+          115.4868,
+          4.4503,
+          294.2456,
+          115.5794,
+          4.4503,
+          294.0142
+        ],
+        [
+          115.4868,
+          8.0869,
+          294.2456,
+          115.5794,
+          4.4503,
+          294.0142,
+          115.5794,
+          8.0869,
+          294.0142
+        ]
+      ]
+    },
+    {
+      "name": "outdoor metal stair: the 3 invisible side panels along the flights (tag 129, 6 triangles, item 2 of hun-alley-courtyard-phys, x 106.64..110.81 z 251.72..256.96 y -1.38..4.42) so the player can drop off the stair sides",
+      "level": "hun-alley-courtyard",
+      "kind": "delete",
+      "active": false,
+      "tris": [
+        [
+          110.8118,
+          0.232,
+          255.5271,
+          110.8118,
+          2.4264,
+          251.8742,
+          109.4529,
+          2.4264,
+          251.8742
+        ],
+        [
+          110.8118,
+          0.232,
+          255.5271,
+          109.4529,
+          2.4264,
+          251.8742,
+          109.4529,
+          0.232,
+          255.5271
+        ],
+        [
+          107.8246,
+          2.4199,
+          251.7218,
+          107.8246,
+          4.4199,
+          255.0153,
+          109.3256,
+          4.4199,
+          255.0153
+        ],
+        [
+          107.8246,
+          2.4199,
+          251.7218,
+          109.3256,
+          4.4199,
+          255.0153,
+          109.3256,
+          2.4199,
+          251.7218
+        ],
+        [
+          106.6352,
+          -1.3751,
+          256.9555,
+          109.2693,
+          0.2249,
+          256.9555,
+          109.2693,
+          0.2249,
+          255.3764
+        ],
+        [
+          106.6352,
+          -1.3751,
+          256.9555,
+          109.2693,
+          0.2249,
+          255.3764,
+          106.6352,
+          -1.3751,
+          255.3764
+        ]
+      ]
+    }
+  ]
+}

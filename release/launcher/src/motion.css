@@ -1,0 +1,175 @@
+/* ONE motion system for the whole launcher.
+   Loaded last, so it unifies the durations of everything in style.css / gear.css / neat.css.
+   Rules: three durations (short = hover / press / pills, medium = state changes, long = content changes), one easing curve (the one of the page
+   transitions), opacity + transform + colour only (no layout properties), small distances. Reduced motion (the Windows setting): the fades
+   stay, the slides and scale go (--dist 0). Scroll positions are never touched by an animation (columns that keep their content do not animate). */
+:root {
+  --m1: 150ms;
+  --m2: 250ms;
+  --m3: 400ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dist: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dist: 0px;
+  }
+}
+
+/* content entering: tab panes, loadout edit enter / leave, picker + details swaps, clan blocks, journal lines, status rows */
+@keyframes fadeup {
+  from {
+    opacity: 0;
+    transform: translate3d(0, var(--dist), 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes m-in {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--dist), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes m-in-back {
+  from {
+    opacity: 0;
+    transform: translate3d(calc(var(--dist) * -1), 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes m-sel {
+  from {
+    background-color: rgba(255, 255, 255, 0);
+    border-color: transparent;
+  }
+}
+.m-in {
+  animation: m-in var(--m3) var(--ease) both;
+}
+.m-in-back {
+  animation: m-in-back var(--m3) var(--ease) both;
+}
+.pane.active,
+.note,
+.jrn,
+.st,
+.rowbar {
+  animation-duration: var(--m3);
+  animation-timing-function: var(--ease);
+}
+.view {
+  transition-timing-function: var(--ease);
+}
+@media (prefers-reduced-motion: reduce) {
+  .view {
+    transform: none !important;
+  }
+}
+
+/* a freshly highlighted row / pill fades its highlight in (the rows are rebuilt on every click, so a CSS transition has no old state to start from) */
+.lrow.m-new,
+.erow.m-new,
+.orow.m-new,
+.lv.m-new {
+  animation: m-sel var(--m2) var(--ease) both;
+}
+
+/* hover / focus / press: one duration and curve for every clickable */
+.lrow,
+.erow,
+.orow,
+.btn,
+.mi,
+.slot,
+.sub,
+.fopt,
+.pick,
+.skill,
+.th,
+.lv,
+.tb-btn,
+.tg,
+.tg i,
+.tg i::after,
+input,
+select,
+textarea {
+  transition-duration: var(--m2);
+  transition-timing-function: var(--ease);
+}
+.lv,
+.btn,
+.lrow,
+.erow,
+.orow,
+.tb-btn {
+  transition-duration: var(--m1);
+}
+.mi i,
+.slot::before,
+.sub::after,
+.fopt::after,
+.pick::after,
+.skill::after,
+.th::after {
+  transition-duration: var(--m3);
+  transition-timing-function: var(--ease);
+}
+.btn,
+.lrow,
+.erow,
+.orow,
+.lv,
+.fopt,
+.mi {
+  transition-property: color, background-color, border-color, opacity, transform;
+}
+.btn:active:not(:disabled),
+.lrow:active,
+.erow:active,
+.orow:active,
+.lv:active,
+.fopt:active {
+  transform: scale(0.985);
+  transition-duration: 80ms;
+}
+.lv:active {
+  transform: scale(0.94);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn:active:not(:disabled),
+  .lrow:active,
+  .erow:active,
+  .orow:active,
+  .lv:active,
+  .fopt:active {
+    transform: none;
+  }
+}
+:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 2px;
+  transition: outline-color var(--m2) var(--ease);
+}
+input[type='range']::-webkit-slider-thumb {
+  transition:
+    transform var(--m1) var(--ease),
+    background-color var(--m2) var(--ease);
+}
+input[type='range']:hover::-webkit-slider-thumb {
+  transform: scale(1.15);
+}
+.lv:not(.no):hover,
+.lv.on {
+  transition-duration: var(--m1);
+}

@@ -1,0 +1,212 @@
+"""Clan feed lines, part 1: the hopeful / quiet / arrival / recovery side (see tools/clan_story.py for placeholders).
+
+Scope of a line: "*" both factions, "W" only the Wolves (WLF), "S" only the Seraphites. Placeholders: {A} {B} {C} {D} names, {A_he} {A_him}
+{A_his} {A_hes} {A_is} {A_has} {A_was} {A_himself} {A_title} (+ capitalised {A_He}), {enemy} {enemies} {inf} {infs} {place} {day} {week} {ago}
+{ill} {ill_a} {cure} {gain} {lost} {n}.
+"""
+
+
+def X(t): return ("*", t)
+def W(t): return ("W", t)
+def S(t): return ("S", t)
+
+
+LINES = {}
+
+LINES["hope"] = [
+    X("{A} found a stack of old paperbacks in a collapsed house. Tonight there's a line to hear the first chapter read out loud."),
+    X("{A} taught {B} how to whistle with two fingers. Now the whole camp is suffering for it."),
+    X("There was a rainbow after the storm. {A} dragged everyone out to look at it. Even {B} looked up."),
+    X("{A} mended everybody's boots this week. Dry feet. You don't know how much you miss them until you have them back."),
+    X("Somebody left a flower on every bedroll this morning. Nobody's admitting to it. Everybody's smiling."),
+    X("{A} and {B} got into an argument about the best way to season rabbit, and honestly it's the best argument we've had in months."),
+    X("{A} found a board game missing half its pieces. We made up new rules. {B} lost badly and has sworn revenge."),
+    X("Two {infs} wandered past the wall last night and kept going. Quiet. {A} said it was a good sign. {A_He} said it twice."),
+    W("{A} and {B} dragged a couch out to the yard and got a fire going. Half the camp stayed up past midnight just talking. Felt like a regular night, for once."),
+    W("Somebody found a guitar in the {place} and {A} actually knows three chords. It's terrible. Nobody wants {A_him} to stop."),
+    W("{A} got the old radio working again. Static, and one hour of music from God knows where, and we all just stood there like idiots. Beautiful."),
+    W("The kids were chasing each other around the {place} today, laughing, and nobody told them to keep it down. I forgot that sound."),
+    W("{A} has tomatoes coming in. Actual tomatoes. {A_He} won't let anyone near them, but we're all pretty damn proud."),
+    W("A dog wandered in this morning, skinny but friendly as hell. {A} named it Biscuit before anyone could vote. We're keeping it."),
+    W("It's {B}'s birthday. Nobody remembers how old {B_he} is, so we said thirty. {A} baked something out of cornmeal and it was almost cake."),
+    W("Full bellies, quiet night, and not a single {inf} at the fence. I'll take it. Day {day} and we're still here."),
+    W("{A} and {B} are teaching the kids to play cards by the stove. {B} is cheating. The kids know. Nobody cares."),
+    W("Nice enough evening that we ate outside. {A} traded a pocketknife for a jar of honey and it went around the whole table."),
+    W("{A} strung lights from old car batteries along the {place}. Half of them flicker, but the whole place looks like something worth defending."),
+    W("I caught {A} humming while cleaning rifles this morning. Hadn't heard that in weeks. Maybe things are looking up."),
+    W("{B} finished the roof on the east side. First night without a bucket under the leak. Small things, Jesus, small things."),
+    W("We watched the sunrise from the {place} today. Nobody said much. {A} just said 'we made it another one' and that was enough."),
+    S("{A} sang by the fire tonight, an old hymn from before. The whole camp went quiet, then joined in on the second verse. Her Light was with us."),
+    S("The children played on the shore until the light faded and no one called them in. The Prophet would smile."),
+    S("{A} planted the first row of beans in the new garden. The soil here is kind. We have hope for the season."),
+    S("{B} carved a small bird for each of the little ones. {A} says the pecking order is already being negotiated."),
+    S("We shared bread and honey at the long table tonight. {A} said the blessing and {B} laughed all the way through it."),
+    S("A stray dog followed {A} back from the shore. The Elders say we cannot feed one more mouth. {A} fed it anyway."),
+    S("{A} and {B} mended the old loom and now the weaving house is full of sound again. It feels like before."),
+    S("{A_title} {A} caught more fish than the nets could hold. We smoked half of it. Tonight we feast, tomorrow we rest."),
+    S("{A} lit the evening lamps with oil pressed from sunflowers. The whole camp glowed. Her Light, even in the small things."),
+    S("For the first time in weeks no one prayed for food tonight. We prayed in thanks."),
+    S("{A} taught the youngest the old counting songs. The whole {place} echoes with them. It is the best sound we have."),
+    S("{B} finished the new roof on the long house. The rain came and not one drop got in. We gave thanks, and {B} took a bow."),
+]
+
+LINES["plenty"] = [
+    X("{A} counted the stores twice. We have more than we need. Twice."),
+    X("Full pots tonight. Nobody finished their bowl and nobody wasted a bite. Hope that feels as good as it tastes."),
+    X("The supply run came back heavy. Canned beans, flour, even some sugar. {B} did a little dance and nobody will ever speak of it."),
+    X("We ate until we couldn't. First time in a long time. {A} fell asleep at the table."),
+    X("There's a surplus, a real one. {B} is already working out how to stretch it into the winter."),
+    X("{A} baked actual bread. With a crust and everything. I almost cried."),
+    X("The pantry shelves have gaps again, because the stacks moved to the front. Gaps between stacks, not where food used to be."),
+    X("Seconds were offered tonight. Seconds. {A} had two."),
+    W("Fucking feast tonight. {A} traded rifle cleaning kits for a whole ham. Isaac can keep his rations."),
+    W("Supplies are up, the {place} is quiet and everyone's belly is full. For once the only complaints are about snoring."),
+    W("We've got more food than we need. {B} says it's a good problem to have. I say it's a miracle."),
+    W("{A} hit the jackpot on the supply run: sealed boxes, dry goods, spices. Spices! We seasoned everything."),
+    W("The kitchen at the {place} is overflowing. {B} handed out second helpings and the guard shift is in a good mood for once."),
+    W("Full stomachs, full magazines and a clear night. Not bad for the end of the world."),
+    W("Look at this. A whole shelf of cans, all ours. {A} keeps touching them like they might vanish. Hell, they might."),
+    S("The granary is full. The Elders have declared a day of thanks. {A} led the blessing and {B} led the dancing."),
+    S("The sea was generous. The nets came back heavy and the fires burned all evening. The Prophet provides."),
+    S("We have enough, and more. The little ones ate until their faces were shiny and nobody scolded them."),
+    S("{A} baked sweet bread with honey. The smell drifted all across the island and people came from everywhere."),
+    S("The harvest is in. We have plenty, and the Elders ask us to remember how it felt when we did not."),
+    S("Bellies full, hearts light. It is a rare thing. {A} sang until the stars came out."),
+    S("{B} opened the last barrel of dried apples and we shared them out. Sweet and chewy and no one wanted to be first to finish."),
+]
+
+LINES["calm"] = [
+    X("Nothing happened today. Best news we've had in a while."),
+    X("A quiet day. {A} swept the floor, {B} patched a wall. That's the entire report."),
+    X("Rain on the roof all afternoon. {A} says it's good for the garden. {B} says it's good for sleeping."),
+    X("{A} and {B} traded stories about what they did before. Mostly lies, probably. Good lies."),
+    X("We counted the stores, checked the watch rota, patched what needed patching. Day {day}. Same as yesterday, and I mean that as praise."),
+    X("{A} is trying to teach the new people to whittle. The new people are terrible. {A} is patient."),
+    X("The wind turned and the smoke went the other way. Nobody coughed for an hour. We call that a good day."),
+    X("The night watch was boring. I loved every minute of it."),
+    W("Quiet at the {place} today. No Scars, no infected, no alarms. I'll take boring."),
+    W("{A} cleaned the weapons, {B} inventoried the ammo and I took a nap. Nothing to report. Day {day}."),
+    W("The radio was silent. That's either very good or very bad. I'm choosing good."),
+    W("Another day, another patrol. {A} says we've walked every inch of this district. I say we walk it again tomorrow."),
+    W("The lights flickered, then held. {B} says the generator is good for another week. Another week is a lot, these days."),
+    W("Gray skies, cold wind, nothing happening. Isaac would call it discipline. I call it a Tuesday."),
+    W("Standing watch with {A}, trading jokes about the Scars' taste in clothes. Not nice, but it helps."),
+    S("Another day on the island. The tide went out, the tide came in. {A} mended nets, {B} gathered kelp."),
+    S("A still morning. The Elders led the dawn prayer and the children sat with their hands folded, almost still."),
+    S("The Prophet's grace is in the small things: a dry blanket, a warm cup, {A}'s quiet humming."),
+    S("We carved, we wove, we ate. Nothing to report but breath, and for that we are thankful."),
+    S("The wind was light today. {A} says it is a sign. {B} says it is only wind."),
+    S("The island is quiet. The watch is awake. We sleep a little easier."),
+    S("{A} and {B} sat at the dock and watched the fog roll in. There was nothing to say, and nothing needed to be."),
+]
+
+LINES["join"] = [
+    X("{A} wandered in this morning, half-starved and covered in dust. {B} gave {A_him} a bowl of soup and a blanket."),
+    X("Someone new showed up at the gate. {A}. Says {A_he} heard we had food. We do, barely. {A_He}'s staying."),
+    X("{A} joined us. A decent shot, a better cook. {B} says {A_he}'ll fit right in."),
+    X("We found {A} sleeping in a doorway on the road. {B} carried {A_him} the rest of the way. {A_He}'s awake now, eating, and asking questions."),
+    X("A new face. {A}. Pretty quiet. {B} showed {A_him} the bunks. We'll see if {A_he} sticks."),
+    X("{A} says {A_he}'s been alone for months. Tonight {A_he} has a bed, a bowl and a sort-of family."),
+    X("{A} walked into camp with a dog and a limp. We kept the dog. We kept {A_him}, too."),
+    W("New recruit at the {place}. {A}. Sharp, scared and good with a rifle. Welcome to the shitshow."),
+    W("{A} came in off the road begging for work. {B} put {A_him} on the watch rota before {A_he} could say no."),
+    W("{A} wasn't with either side, just wanted a roof. We gave {A_him} one. Isaac will complain, but he complains about everything."),
+    W("{A} turned up at the checkpoint with nothing but a canteen and a name. {B} vouched for {A_him}. That's good enough for me."),
+    S("{A} came across the water tonight and asked for sanctuary. The Elders have granted it."),
+    S("A stranger arrived at the dock and {B} welcomed {A_him}. {A} says {A_he} heard of our island from a traveler."),
+    S("{A} asked to join us at the gate. We washed {A_him} and gave {A_him} a bed. The Prophet's family grows."),
+    S("{A} is new to our shore. Quiet, hungry, but willing to work. {B} has put {A_him} to the nets."),
+    S("Another soul has found us. {A} has the hands of a carpenter, the Elders say. We shall see."),
+]
+
+LINES["recovery"] = [
+    X("{A}'s fever broke this morning. {A_He} asked for toast. We don't have toast, but the fact that {A_he} asked is something."),
+    X("{A} is on {A_his} feet again. {B} says {A_he} was lucky. {A} says {B} was good."),
+    X("{A} sat up and said 'I'm hungry'. Best words I've heard all week."),
+    X("The cough is gone. {A} finished the medicine {B} found, and now {A_he}'s walking around telling everyone how brave {A_he} was."),
+    X("{A} is going to be fine. It was close, but {A} is going to be fine. We needed that."),
+    X("{B} sat up all night with {A}, and by dawn {A}'s color was back. Nobody's saying miracle, but nobody's saying it isn't."),
+    X("{A} walked the perimeter today for the first time since {A_he} fell ill. Slow, but steady."),
+    X("{A} got better. Nobody knows exactly why and nobody's going to ask too many questions."),
+    W("{A} pulled through, thank Christ. {ill} didn't get {A_him} after all. {B} says it was the medicine we scavenged."),
+    W("{A} is back on the watch rota, still pale. {A_He} says it's good to be needed. I say it's good to be alive."),
+    W("The medicine worked. {A} is up and cursing at the stove, which means {A_he}'s back to normal."),
+    W("{A} came out of it. Fuck, that was close. Don't scare us like that again."),
+    W("The medic says {A} will be fine. Lungs clear, fever gone. Good news, for once, at the {place}."),
+    W("{A} kept down a full meal today. Sounds like nothing. It's everything."),
+    W("No more coughing from {A}'s bunk. We all slept better."),
+    S("{A} has risen from {A_his} bed. The healer says the worst has passed. We give thanks to the Prophet, and to the herbs."),
+    S("The fever broke at dawn. {A} sat up, smiled, and asked for water. We wept openly."),
+    S("{A} is mending. The healer's remedies, the prayers, the care of {B}. Somehow they were enough."),
+    S("Her Light has been kind. {A} has recovered and walks the shore again."),
+    S("{B} sat with {A} through the long night and at last {A}'s breathing eased. We sing today."),
+    S("{A} is well. The little ones brought {A_him} a crown of seaweed and {A} wore it with great dignity."),
+    S("We feared for {A}, but {A_he} has returned to us. The healer says it is a gift, and we are grateful."),
+]
+
+LINES["event_hold"] = [
+    X("We held. We actually held. {lost} gone is too many, but the camp is standing and so are most of us."),
+    X("{A} says our training made the difference. We lost {lost}, but it could have been everyone."),
+    X("The {enemy} broke on the barricade and ran. It cost us {lost}. We'll take it, I guess."),
+    X("When the shooting stopped and the smoke cleared, {B} was still standing at the gate. So was most of the camp."),
+    X("{A} and {B} took the first wave and held the line. {lost} lost, but the rest of us are alive to talk about it."),
+    X("We drilled for days and it worked. The {enemy} left with their tails between their legs."),
+    W("The Scars hit us with everything and we held. {lost} lost, but they lost more. Isaac will want to hear about that."),
+    W("{A} taught half the camp how to fall back in order. Saved a dozen lives at least. Lost {lost}, but that's a win."),
+    W("Held the line at the {place}. Fucking held it. The Scars are limping off and we're still standing."),
+    W("We bloodied the Scars today. {lost} of ours down, but I don't think they'll try that again for a while."),
+    W("Training paid off. The Scars came in hot and left in pieces. Cost us {lost}, and I'll mourn them tomorrow. Tonight we eat."),
+    W("The Scars broke on our guns. {B} says it's the best defense {B_he}'s ever seen. {lost} lost, but we held."),
+    S("The Wolves broke against our walls. {lost} fell, but the island stands. The Prophet watched over us."),
+    S("We held the shore. {lost} of the faithful are gone, but the Wolves are gone too. Her Light, and our thanks."),
+    S("{A} led the archers from the roof and {B} held the gate. {lost} lost, a mercy compared to what might have been."),
+    S("The Wolves were beaten back. {lost} lost, and the little ones are safe in the cellar. That is the only victory that counts."),
+    S("Our training held and the Wolves fled. We lost {lost}, and we will carry them in our songs."),
+    S("The Prophet smiled on us today. The Wolves fled, we lost {lost}, and the walls are still standing."),
+]
+
+LINES["event_growth"] = [
+    X("{gain} new people joined us today. {A} is already telling stories and {B} is already making room."),
+    X("A group showed up at the gate, hungry and tired but willing to work. {gain} new mouths and {gain} new pairs of hands."),
+    X("We protected them, and now they're ours. {gain} new faces, {A} among them. It's good to see this place get fuller."),
+    X("{A} joined us with a whole family's worth of stubbornness. {gain} newcomers in all, and the camp feels bigger."),
+    X("The friendlies stayed. {gain} of them, with {A} leading the way. {B} is already showing them the ropes."),
+    X("{gain} survivors came in from the cold. {A} cried when {A_he} saw the fire. We all pretended not to notice."),
+    W("{gain} new people signed on at the {place} today, {A} first in line. Isaac says it's a win. I say it's a lot of beds to find."),
+    W("We got {gain} new people out of that deal. {A} used to be a medic, thank God. {B} is thrilled."),
+    W("Rescued {gain}. {A} was one of them. This isn't a safe place, but it's safer than wherever they were."),
+    W("New blood. {gain} of them. {A} already knows how to shoot and has opinions about our rations."),
+    W("Christ, {gain} new faces. {B} is giving the tour. {A} keeps asking about the showers. We don't have any."),
+    S("{gain} new brothers and sisters have come to us, and {A} was the first to kneel by the fire."),
+    S("The Prophet has sent us {gain} souls. {A} says {A_he} followed our smoke for days. Welcome, welcome."),
+    S("{gain} strangers came to our shore. {A} spoke first, thanking us for the boat. We shared bread."),
+    S("We brought {gain} out of the Wolves' hands, {A} among them. The island has more voices tonight."),
+    S("{A} brought {gain} others across the water. They are thin, but willing. The Elders have given them blankets."),
+    S("The community grows by {gain}. {A} will join the weaving house, {B} will take the others in hand. May Her Light shelter them."),
+]
+
+LINES["founding"] = [
+    X("Five of us made it to the {place}: {A}, {B}, {C}, and two more. We have food for a few days and a lot of hope."),
+    X("Twelve weeks. That's the plan. {A} wrote the number on the wall so we wouldn't forget."),
+    X("{A} lit the first fire at the {place} tonight. {B} said it was a bad idea. {B} stayed anyway."),
+    W("Day one at the {place}. Five of us, some beans, and a rifle that mostly works. Isaac says hold. We'll hold."),
+    W("Fresh start, fresh bunks, fresh problems. {A}, {B}, {C}. If we're careful, we might even last the winter."),
+    S("We arrived on the island at dusk: {A}, {B}, {C}, and two others. The Prophet's Light was there to meet us."),
+    S("A new beginning at the {place}. The Elders blessed the five of us and gave us bread. We will be worthy."),
+    S("Five of us stand on the shore: {A}, {B}, {C}. We built this fire together. May it burn twelve weeks."),
+]
+
+LINES["clan_won"] = [
+    X("Twelve weeks. We did it. We actually did it. {A} cried, {B} cheered, and I stood there with my mouth open."),
+    X("The last day passed like any other, and then it was over. We're alive. A lot of us, anyway."),
+    X("We survived. It doesn't feel real. {A} keeps pinching {A_himself}."),
+    X("We lost people, and I'll carry that. But the ones who are left are the strongest I've ever known."),
+    W("Twelve weeks and the clan still stands. Isaac can say what he wants about us. We outlasted the Scars, the hunger, all of it."),
+    W("Day eighty-three. We lit every lamp at the {place} and sang something stupid. Best night of my life."),
+    W("We made it. Fuck, we made it. {A} is drunk, {B} is dancing, and I'm too tired to stop either of them."),
+    W("Survived. That's the word. Not 'won', not 'beat'. Survived. And that's enough."),
+    S("Twelve weeks have passed and we are still here. The Prophet has walked with us the whole way."),
+    S("The Elders say we are blessed. I say we are stubborn. Perhaps it is the same thing."),
+    S("We have lived. The island is ours for another season, and Her Light is warm."),
+    S("We sang through the night. {A} led the hymns, {B} drummed on a bucket, and the Wolves could have come and we would not have noticed."),
+]

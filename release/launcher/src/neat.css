@@ -1,0 +1,272 @@
+/* The in-game MP menu look (moved.png): faction label + big title with a thin rule, plain left text menu, bordered translucent panels with a header
+   row + separator + row bars, a full-width rule above the bottom bar, key hints bottom-right, version bottom-left. Loaded last: overrides style.css. */
+:root { --panel-bg: rgba(16, 18, 20, .78); --panel-line: rgba(205, 205, 200, .42); --bar-bg: rgba(8, 9, 10, .6); --bar-line: rgba(205, 205, 200, .2); --blue: #7fc4e6; }
+[data-theme="sera"] { --blue: #7fc4e6; }
+.vignette { background: radial-gradient(ellipse at 60% 45%, transparent 45%, rgba(0, 0, 0, .55) 100%), linear-gradient(to right, rgba(3, 4, 4, .55), transparent 55%); }
+#app.has-view .shade { background: rgba(5, 6, 7, .5); }
+#brand, #toast, .home::before { display: none; }
+
+/* title block + online */
+#title { position: absolute; left: 48px; top: 36px; width: max-content; min-width: 260px; z-index: 5; }
+#title label[hidden] { display: none; }
+#title label { display: block; margin: 0; font-size: 14px; font-weight: 500; letter-spacing: .1em; color: var(--text); }
+#title h1 { margin: 0; font-size: 44px; font-weight: 700; letter-spacing: .03em; line-height: 1.05; white-space: nowrap; }
+#t-sub { margin-top: 10px; font-size: 22px; font-weight: 600; letter-spacing: .32em; color: var(--text); white-space: nowrap; }
+#t-sub[hidden] { display: none; }
+.t-rule { margin-top: 12px; width: 200px; border-top: 1px solid rgba(230, 223, 207, .55); }
+#online { position: absolute; right: 48px; top: 44px; text-align: right; z-index: 5; font-weight: 500; line-height: 1; }
+#online b { display: block; font-size: 15px; font-weight: 600; } #online span { font-size: 11px; letter-spacing: .06em; color: var(--dim); } #online i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #555; margin-right: 3px; vertical-align: 1px; }
+#online.up i { background: #5bd05b; }
+
+/* menu: plain text list under the title */
+#menu { left: 48px; top: 150px; bottom: auto; width: 240px; justify-content: flex-start; gap: 0; padding-top: 0; }
+.mi { font-size: 17px; font-weight: 500; letter-spacing: .05em; padding: 5px 0; color: var(--dim); }
+.mi.active, .mi:hover:not(:disabled) { color: #fff; }
+#menu .mi:last-child { margin-top: 0; font-size: 17px; }
+.mi i { left: -16px; width: 6px; }
+
+/* panels */
+.panel, .view { background: var(--panel-bg); border: 1px solid var(--panel-line); }
+.ph { display: flex; justify-content: space-between; align-items: center; padding: 9px 14px; font-size: 14px; font-weight: 500; letter-spacing: .14em; color: var(--text); border-bottom: 1px solid var(--panel-line); background: rgba(255, 255, 255, .035); }
+.ph b { font-weight: 600; letter-spacing: .06em; }
+.rows { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 6px; }
+.rowbar { display: grid; grid-template-columns: 96px 1fr; grid-template-rows: auto auto; column-gap: 12px; background: var(--bar-bg); border: 1px solid var(--bar-line); border-top-color: rgba(205, 205, 200, .3); padding: 7px 12px; min-height: 52px; animation: fadeup .7s both; }
+.rowbar:nth-child(2) { animation-delay: .08s; } .rowbar:nth-child(3) { animation-delay: .16s; } .rowbar:nth-child(4) { animation-delay: .24s; }
+.rowbar label { grid-row: 1 / 3; align-self: center; margin: 0; font-size: 10.5px; letter-spacing: .18em; color: var(--dim); }
+.rowbar b { font-size: 15px; font-weight: 600; letter-spacing: .05em; margin: 0; display: block; } .rowbar span { font-size: 11.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0; }
+.home { right: 48px; bottom: auto; top: 112px; width: 330px; padding: 0; } .home::before { display: none; }
+#app.has-view .home { opacity: 0; }
+.st { border-top: 0; padding: 7px 12px; }
+
+/* clan box (bottom-left, like the in-game survivors box) */
+.clanbox { position: absolute; left: 48px; bottom: 74px; width: 232px; padding: 10px 14px 10px; background: rgba(8, 9, 10, .55); border: 1px solid var(--bar-line); border-right-color: var(--panel-line); z-index: 4; transition: opacity .6s; }
+#app.has-view .clanbox { opacity: 0; pointer-events: none; }
+.cb-h { font-size: 15px; font-weight: 500; letter-spacing: .04em; margin-bottom: 6px; }
+.cb-body { display: flex; justify-content: space-between; align-items: center; }
+.cb-l { font-size: 12.5px; font-weight: 500; line-height: 1.55; } .c-h { color: var(--blue); } .c-u { color: var(--text); } .c-s { color: #e0584a; } .cb-l b { font-weight: 600; }
+.cb-dial { width: 64px; height: 64px; } .cb-need { margin-top: 4px; font-size: 12px; font-weight: 500; text-align: center; } .cb-need b { color: var(--blue); }
+
+/* views = bordered panels with a header row */
+.view { left: 330px; right: 48px; top: 112px; bottom: 76px; padding: 0; transform: translateX(14px); }
+.view.active { transform: none; }
+.view > h2 { margin: 0; padding: 9px 16px; font-size: 14px; font-weight: 500; letter-spacing: .18em; border-bottom: 1px solid var(--panel-line); background: rgba(255, 255, 255, .035); }
+.view > .clan, .view > .news, .view > .subpanes, .view > #lo-body { padding: 14px 16px; }
+.view > .subtabs { margin: 0; padding: 10px 16px 0; border-bottom: 1px solid var(--bar-line); gap: 26px; }
+.sub { font-size: 13px; font-weight: 500; }
+.view > .subpanes { padding-top: 18px; }
+.lo-head { padding-bottom: 8px; border-bottom: 1px solid var(--panel-line); }
+.lo-head h2 { font-size: 15px; font-weight: 500; letter-spacing: .16em; }
+.lo-sub, .lo-lp { font-size: 14px; }
+#v-loadout #lo-body { padding-top: 10px; }
+.lo-cols > * + * { border-left: 1px solid var(--bar-line); }
+.lo-foot { border-top: 1px solid var(--bar-line); }
+.lrow, .erow, .orow { background: var(--bar-bg); border: 1px solid var(--bar-line); margin-bottom: 4px; font-size: 15px; font-weight: 500; }
+.lrow.sel, .erow.sel, .orow.cur { border-color: rgba(230, 223, 207, .85); background: rgba(255, 255, 255, .07); }
+.lrow:hover, .erow:hover, .orow:hover, .orow.hi { background: rgba(255, 255, 255, .08); }
+.lo-prev h3, .lo-det h3, .lo-pick h4 { font-size: 18px; font-weight: 600; letter-spacing: .08em; }
+.clan-top { border-bottom: 1px solid var(--panel-line); }
+.big { font-size: 32px; }
+.blk { border-bottom: 1px solid var(--bar-line); } .clan-surv { border-right: 1px solid var(--bar-line); }
+.note { border: 1px solid var(--bar-line); border-top-color: var(--panel-line); background: var(--bar-bg); padding: 12px 16px; margin-bottom: 6px; }
+.lrows > div { background: var(--bar-bg); border: 1px solid var(--bar-line); padding: 4px 10px; }
+.field input, input[type=text], input:not([type]), select { background: var(--bar-bg); border: 1px solid var(--bar-line); padding: 8px 10px; }
+.btn { background: var(--bar-bg); border: 1px solid var(--panel-line); font-weight: 500; letter-spacing: .12em; }
+.facts > div, .kvs > div { }
+.facts { border-top: 0; padding-top: 0; }
+.kvs > div { background: var(--bar-bg); border: 1px solid var(--bar-line); padding: 8px 12px; margin-bottom: 4px; }
+.tg i { border-radius: 0; } .tg i::after { border-radius: 0; }
+.th { border: 1px solid var(--bar-line); }
+
+/* bottom: rule, version, log line, key hints */
+.bottom-rule { position: absolute; left: 48px; right: 48px; bottom: 44px; border-top: 1px solid rgba(205, 205, 200, .4); z-index: 4; }
+#botbar { position: absolute; left: 48px; right: 48px; bottom: 14px; height: 22px; display: flex; align-items: center; gap: 22px; z-index: 5; font-size: 12px; font-weight: 500; }
+#ver { position: static; color: var(--faint); letter-spacing: .06em; }
+#logline { position: static; flex: 1; max-width: none; color: var(--dim); font-size: 12px; }
+#logline::before { content: ""; }
+.keys { display: flex; gap: 18px; letter-spacing: .08em; color: var(--dim); } .keys > span { display: flex; align-items: center; gap: 8px; }
+kbd { font: 700 8px var(--sans); letter-spacing: 0; color: #111; background: var(--dim); border-radius: 2px; padding: 3px 4px; line-height: 1; }
+#prog { bottom: 51px; left: 48px; right: 48px; } .prog-line { height: 2px; position: relative; overflow: hidden; }   /* on the bottom rule (bottom: 52px), same x span */ .prog-text { right: 0; bottom: 10px; }
+
+/* notice lane = the bottom bar, right next to the version text. One line (2 at most), the dark gradient is exactly as long as the sentence,
+   text and gradient fade together; the lane keeps its height so nothing jumps. */
+#botbar { height: 34px; bottom: 6px; gap: 16px; }
+#notice { flex: 1; min-width: 0; height: 34px; display: flex; align-items: center; position: static; pointer-events: none; }
+#notice .n { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-width: min(100%, 640px); padding: 6px 14px; font-size: 12.5px; line-height: 1.3; font-weight: 500; letter-spacing: .02em; color: var(--text);
+  background: linear-gradient(to right, rgba(0, 0, 0, .8), rgba(0, 0, 0, .55)); opacity: 0; transition: opacity .6s ease; }
+#notice .n.on { opacity: 1; } #notice .n.bad { border-left: 2px solid var(--bad); } #notice .n.good { border-left: 2px solid var(--ok); } #notice .n.warn { border-left: 2px solid var(--warn); }
+.keys { margin-left: auto; }
+
+/* clan dial canvases (the in-game dial) */
+.cb-dial { width: 64px; height: 64px; flex: none; } .circ { width: 170px; height: 170px; display: block; margin: 8px auto 12px; }
+
+/* CAMP journal in the panel look */
+.camp { border-top: 1px solid var(--panel-line); }
+.jrn { background: var(--bar-bg); border: 1px solid var(--bar-line); border-left-width: 2px; margin-bottom: 4px; padding: 7px 12px; }
+.jrn.tick { border-left-color: var(--bar-line); }
+.morbar { background: rgba(255, 255, 255, .1); } .whos span { background: var(--bar-bg); border: 1px solid var(--bar-line); padding: 2px 8px; }
+
+/* REPORT A BUG */
+.rep { flex: 1; display: grid; grid-template-columns: 1fr 300px; gap: 0; padding: 14px 0 14px 16px; overflow: hidden; min-height: 0; }
+.rep-main { overflow-y: auto; padding-right: 18px; } .rep-side { border-left: 1px solid var(--bar-line); padding: 0 16px 0 18px; overflow-y: auto; }
+.rep-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+textarea { width: 100%; resize: vertical; background: var(--bar-bg); border: 1px solid var(--bar-line); color: var(--text); padding: 9px 10px; font: 500 14px var(--sans); outline: none; -webkit-user-select: text; user-select: text; }
+textarea:focus { border-color: var(--accent); }
+.rep-files { max-height: 436px; overflow-y: auto; margin: 6px 0 10px; display: flex; flex-direction: column; gap: 4px; } .rep-files .rowbar { grid-template-columns: 1fr; min-height: 0; padding: 6px 10px; flex-shrink: 0; row-gap: 2px; } .rep-files .rowbar b { font-size: 13px; }
+.rep[hidden], .field small[hidden] { display: none; }
+.pr-list { display: flex; flex-direction: column; gap: 4px; } .pr-h { font-size: 10.5px; letter-spacing: .18em; color: var(--dim); margin: 12px 0 2px; } .pr-h:first-child { margin-top: 0; }
+.pr-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--bar-bg); border: 1px solid var(--bar-line); color: inherit; padding: 8px 12px; cursor: pointer; text-align: left; font: inherit; }
+.pr-row:hover { border-color: var(--dim); } .pr-row.sel { border-color: var(--accent); } .pr-row.sel b { color: var(--accent); }
+.pr-row b { font-size: 14px; font-weight: 600; letter-spacing: .05em; } .pr-row span { font-size: 11px; color: var(--dim); }
+.rep-act { margin: 14px 0 8px; display: flex; align-items: center; gap: 12px; } .rep-bar { margin-top: 6px; }
+/* SEND REPORT sat below a long file list (scroll the right column to find it) - the column no longer scrolls: the list shrinks and scrolls inside, the note + SEND REPORT + progress + code always sit right under it */
+.rep-side { display: flex; flex-direction: column; overflow-y: hidden; } .rep-side > * { flex-shrink: 0; } .rep-side .rep-files { flex: 0 1 auto; min-height: 60px; max-height: none; }
+.rep-code { margin-top: 16px; padding: 12px 14px; background: var(--bar-bg); border: 1px solid var(--panel-line); } .rep-code b { font-size: 34px; letter-spacing: .12em; display: block; margin: 2px 0 4px; }
+
+/* GEAR UP edit page: room for LOUD / QUIET */
+.lo-cols.edit { grid-template-columns: 215px 1fr 165px; }
+.orow .lv { font-size: 10.5px; padding: 1px 6px 2px; letter-spacing: .04em; } .orow .lv small { margin-left: 4px; }
+.orow.wrow b, .orow b { font-size: 13px; letter-spacing: .04em; }
+.lo-cols.edit .li { width: 44px; }
+
+/* notification lane v2: 46 px reserved (2 lines), toasts stacked in it, no display toggling */
+#botbar { height: 46px; bottom: 2px; } #notice { position: relative; height: 46px; display: block; flex: 1; min-width: 0; }
+.bottom-rule { bottom: 52px; } .clanbox { bottom: 84px; }
+#notice .n { position: absolute; left: 0; top: 50%; margin-top: -17px; opacity: 0; transform: translateY(6px); transition: opacity 1.2s ease-out, transform 1.2s ease-out; }
+#notice .n.on { opacity: 1; transform: none; }
+
+.rep-files .rowbar.warn { border-color: var(--warn); } .rep-files .rowbar.warn b { color: var(--warn); } .rep-files .rowbar span { white-space: normal; }
+
+/* GEAR UP details: stat bars (10 segments, as the in-game details tab) */
+.lo-det { overflow-y: auto; } .lo-cols.edit { grid-template-columns: 215px 1fr 200px; }
+.stat { margin: 6px 0 8px; } .stat label { font-size: 10px; letter-spacing: .14em; margin: 0 0 3px; color: var(--text); }
+.segs { display: grid; grid-template-columns: repeat(10, 1fr); gap: 2px; } .segs i { height: 7px; background: rgba(255, 255, 255, .16); } .segs i.f { background: var(--text); }
+.cdesc.eff b { color: var(--accent); }
+
+/* GEAR UP: 'hi' = the row whose details are shown (viewed), 'cur' = equipped */
+.orow.hi { background: rgba(255, 255, 255, .09); } .orow.hi:not(.cur) { border-color: rgba(230, 223, 207, .4); border-style: dashed; }
+.orow:focus-visible { outline: 1px solid var(--accent); }
+.orow.no:hover, .orow.no.hi { cursor: pointer; }
+
+/* startup overlay: darkish veil over the whole launcher, LOADING + Please wait., fades out once the startup data is in (or after the cap) */
+#loading { position: absolute; inset: 0; z-index: 60; background: rgba(5, 6, 7, .84); display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 1; transition: opacity .6s ease; }
+#loading.gone { opacity: 0; pointer-events: none; } .ld-title.ld-lup { font-size: 34px; letter-spacing: .12em; padding-left: .12em; }
+.ld-title { font-size: 56px; font-weight: 700; letter-spacing: .24em; padding-left: .24em; color: #fff; }
+.ld-sub { margin-top: 12px; font-size: 15px; font-weight: 500; letter-spacing: .14em; color: var(--dim); animation: ldp 1.8s ease-in-out infinite; } @keyframes ldp { 50% { opacity: .45; } }
+
+/* ALERT panel: warnings / errors / denials. Bottom-left above the bottom rule, TLOU2 menu panel look + faction accent bar + icon + title + description.
+   Real opacity transitions (0 -> 1 in .4 s, 1 -> 0 in .6 s) plus a small slide; transitions, not animations, so reduced-motion settings do not remove them. */
+.alert { position: absolute; left: 48px; bottom: 64px; width: 270px; z-index: 55; display: flex; gap: 14px; align-items: flex-start; padding: 14px 16px 14px 18px; pointer-events: none;
+  background: rgba(14, 16, 18, .94); border: 1px solid var(--panel-line); border-left: 4px solid var(--accent); opacity: 0; transform: translateY(10px); transition: opacity .6s ease, transform .6s ease; }
+.alert.on { opacity: 1; transform: none; transition: opacity .4s ease, transform .4s ease; }
+.alert i { flex: none; width: 40px; height: 40px; background-size: contain; background-repeat: no-repeat; background-position: center; opacity: .95; }
+.alert b { display: block; font-size: 14px; font-weight: 700; letter-spacing: .06em; color: #fff; margin-bottom: 4px; }
+.alert span { display: block; font-size: 13px; line-height: 1.4; font-weight: 500; color: var(--text); }
+.alert.denied, .alert.error { border-left-color: var(--bad); } .alert.warning { border-left-color: var(--warn); }
+.clanbox { transition: opacity .6s, transform .4s ease; } #app.alert-on .clanbox { transform: translateY(-130px); }
+
+/* GEAR UP edit page: picker and details grow together, the details never scroll sideways */
+.lo-cols.edit { grid-template-columns: 215px minmax(300px, 1fr) minmax(380px, 1fr); }
+.lo-cols > * { min-width: 0; } .lo-det, .lo-pick, .lo-listcol { overflow-x: hidden; }
+.dicon.wide img { max-width: 100%; height: auto; max-height: 64px; } .lo-det .stat, .lo-det .segs, .lo-det p { max-width: 100%; }
+.subpanes, .clan, .news, .rep-main, .rep-side, .lo-main { overflow-x: hidden; }
+
+/* backgrounds section: blocked while a clan faction decides the set */
+.bg-field { position: relative; } .bg-block { display: none; position: absolute; inset: -8px -10px; z-index: 5; align-items: center; justify-content: center; text-align: center; background: rgba(6, 7, 8, .76); border: 1px solid var(--bar-line);
+  color: #fff; font-size: 15px; font-weight: 700; letter-spacing: .16em; cursor: not-allowed; }
+.bg-field.locked .bg-block { display: flex; } .bg-field.locked > *:not(.bg-block) { pointer-events: none; }
+
+/* GEAR UP edit: the slot column grows with the window too and wraps long names (2 lines) instead of cutting them */
+/* slot column: never truncates 'No Large Firearm' / 'SUPPRESSED BURST PISTOL' at the default or remembered size */
+.lo-cols.edit { grid-template-columns: minmax(290px, .85fr) minmax(250px, 1fr) minmax(320px, 1fr); }
+.erow b { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; font-size: 14px; }
+.erow { min-height: 46px; }
+
+/* language buttons with flags */
+.flagbtn { display: inline-flex; align-items: center; gap: 10px; } .flag { width: 30px; height: 15px; border: 1px solid rgba(255, 255, 255, .35); flex: none; }
+.orow b, .lrow b { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.15; font-size: 14px; } .orow, .lrow { min-height: 46px; }
+/* no ellipsis in GEAR UP: long Polish names wrap, rows grow */
+#lo-body .orow, #lo-body .lrow, #lo-body .erow { height: auto; align-items: center; }
+#lo-body .orow b, #lo-body .lrow b, #lo-body .erow b, #lo-body .pv b { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; min-width: 0; }
+#lo-body .orow .lvs { flex: none; }
+.st span { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; }
+
+.alert span { overflow-wrap: anywhere; }   /* a long folder path in the SWITCH TO SP message */
+/* SWITCH TO SP / MP: a menu button (same .mi look as CLAN / LOADOUT) in the bottom bar, left of the ENTER - SELECT hints */
+#botbar .mi-sw { flex: none; align-items: center; font-size: 14px; padding: 4px 0 4px 16px; margin-right: 6px; pointer-events: auto; }
+#botbar .mi-sw i { left: 0; }
+/* single-player mode: the clan / server side of the launcher is out of the way (app.js picks the neutral backgrounds and music) */
+body.sp-mode #menu .mi[data-view=clan], body.sp-mode #menu .mi[data-view=loadout], body.sp-mode #online, body.sp-mode #clanbox, body.sp-mode #t-fac,
+body.sp-mode .rowbar.st:has(#srv-state) { display: none !important; }
+
+.att-bar { display: flex; align-items: center; gap: 12px; margin: 6px 0; } .att-bar .msub { margin: 0; flex: 1; }
+.att-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.att-item { position: relative; width: 132px; background: var(--bar-bg); border: 1px solid var(--panel-line); padding: 4px; display: flex; flex-direction: column; gap: 2px; }
+.att-item img, .att-ph { width: 100%; height: 76px; object-fit: cover; display: block; background: #000; }
+.att-ph { display: flex; align-items: center; justify-content: center; font-size: 12px; letter-spacing: .2em; color: var(--dim); }
+.att-n { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .att-s { font-size: 10px; color: var(--dim); letter-spacing: .06em; }
+.att-x { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; padding: 0; line-height: 18px; background: rgba(0,0,0,.7); border: 1px solid var(--panel-line); color: var(--text); cursor: pointer; border-radius: 0; font-size: 14px; }
+.att-x:hover { border-color: var(--text); }
+#v-report.dragging .att { outline: 1px dashed var(--text); outline-offset: 4px; }
+
+/* clan status notes (src/clan-status.js): bottom left, right of the survivors box (x 48..280) and clear of the alert panel (x 48..318): plain dark rows
+   in the alert-lane style, journal icon, two lines, "(more in JOURNAL)". Nothing moves for them. In game status updates are only in the ESC menu list (clancard.c). */
+.stnote { position: absolute; left: 340px; bottom: 74px; width: 390px; z-index: 54; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.stn { display: flex; gap: 12px; align-items: flex-start; padding: 10px 14px 10px 12px; background: rgba(14, 16, 18, .94); border: 1px solid var(--panel-line); border-left: 4px solid var(--sc); cursor: pointer; pointer-events: auto;
+  opacity: 0; transform: translateY(8px); transition: opacity .5s ease, transform .5s ease; }
+.stn.on { opacity: 1; transform: none; } .stn:hover { background: rgba(26, 29, 32, .96); }
+.stn .ic { color: var(--sc); margin-top: 1px; filter: brightness(1.25); }
+.stt { font-size: 12.5px; line-height: 1.38; font-weight: 500; color: var(--text); } .stt u { text-decoration: none; font-size: 10.5px; letter-spacing: .12em; font-weight: 700; color: var(--dim); white-space: nowrap; } .stn:hover .stt u { color: #fff; }
+
+/* SETTINGS > MAPS: left = scrolling lists in bordered boxes (3 image tiles per row, bright border on the selected one), right = big preview + name + lines */
+#s-maps.active { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 22px; height: 100%; min-height: 330px; }
+.mp-left { overflow-y: auto; overflow-x: hidden; padding-right: 10px; margin-right: -4px; min-height: 0; max-height: 520px; }
+.mp-sec { margin-bottom: 18px; } .mp-sec h3 { margin: 0 0 8px; font-size: 13px; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.mp-box { border: 1px solid var(--bar-line); background: var(--bar-bg); padding: 10px; } .mp-sec:first-child .mp-box { max-height: 214px; overflow-y: auto; }
+.mp-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; }
+.mp { background: none; border: 0; padding: 0; color: inherit; font: inherit; cursor: pointer; text-align: center; min-width: 0; }
+.mp i { display: block; aspect-ratio: 16 / 9; background-size: cover; background-position: center; border: 2px solid var(--bar-line); filter: saturate(.5) brightness(.65); transition: filter .3s, border-color .3s; }
+.mp em { display: block; margin-top: 5px; font-style: normal; font-size: 10px; letter-spacing: .08em; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .3s; }
+.mp:hover i { filter: saturate(.7) brightness(.95); border-color: var(--dim); } .mp.active i { filter: saturate(.85) brightness(1.1); border-color: #fff; } .mp.active em, .mp:hover em { color: #fff; }
+.mp-p1 { position: relative; } .mp-lock { display: none; position: absolute; inset: 0; z-index: 5; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 0 12px; text-align: center; background: rgba(6, 7, 8, .8); border: 1px solid var(--bar-line); }
+.mp-lock small { font-size: 11px; letter-spacing: .04em; color: var(--dim); } .mp-lock .btn { font-size: 12px; max-width: 100%; }
+.mp-p1.locked .mp-lock { display: flex; } .mp-p1.locked .mp-box { min-height: 120px; } .mp-p1.locked .mp-box * { pointer-events: none; }
+.mp-loc { margin-top: 12px; } .mp-loc[hidden] { display: none; } .mp-left .btnrow { margin-top: 10px; }
+.mp-right { min-width: 0; } .mp-tools[hidden] { display: none; }
+.mp-prev { aspect-ratio: 16 / 9; border: 1px solid var(--bar-line); background: var(--bar-bg) center / cover no-repeat; }
+.mp-name { margin: 14px 0 10px; font-size: 22px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.mp-lines > div { display: flex; gap: 12px; padding: 4px 0; font-size: 12.5px; } .mp-lines label { flex: 0 0 76px; font-size: 10.5px; letter-spacing: .18em; color: var(--dim); padding-top: 2px; } .mp-lines b { font-weight: 500; letter-spacing: .03em; min-width: 0; }
+.mp-cap { display: block; margin-top: 10px; color: var(--dim); line-height: 1.45; }
+.mp-loc input { font-size: 11px; min-width: 0; } .mp-loc .btn { padding-left: 14px; padding-right: 14px; }
+.mp-tools { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--bar-line); } .mp-tools .mp-loc { margin: 0 0 10px; } .mp-tools .btnrow { margin: 0; }
+.mp-tools { margin-top: 10px; padding-top: 10px; } .mp-tools .btnrow { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } .mp-tools .btn { padding-left: 12px; padding-right: 12px; } .mp-loc input { width: 100%; box-sizing: border-box; }
+.mp-name { margin: 10px 0 6px; } .mp-lines > div { padding: 2px 0; } .mp-cap { margin-top: 6px; min-height: 0; } .mp-cap:empty { display: none; }
+.mp-tools { margin-top: 8px; padding-top: 0; border-top: 0; } .mp-tools .btn { font-size: 11px; padding-top: 7px; padding-bottom: 7px; } .mp-tools .btnrow { gap: 6px; } .mp-loc { margin-bottom: 6px !important; } .mp-loc input { padding-top: 6px; padding-bottom: 6px; } .mp-name { font-size: 20px; margin: 8px 0 4px; }
+.mp-lock { background: #0a0b0c; padding: 10px; gap: 8px; } .mp-p1.locked .mp-box { min-height: 156px; }
+.mp-lock .btn { width: 100%; max-width: 340px; box-sizing: border-box; font-size: 11px; letter-spacing: .05em; white-space: nowrap; padding-left: 8px; padding-right: 8px; }
+/* testing-server tag (title block) and the confirmation dialog (veil like the startup overlay, panel like the alert) */
+#test-tag { margin-top: 8px; white-space: nowrap; display: inline-block; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: .22em; color: #fff; background: rgba(14, 16, 18, .94); border: 1px solid var(--panel-line); border-left: 4px solid var(--accent); }
+#test-tag[hidden] { display: none; }
+/* the tag below FACTIONS II grows the title block: the menu moves down by the tag's height so it never clips into the first button */
+#title:has(#test-tag:not([hidden])) ~ #menu { top: 160px; }
+#title:has(#test-tag:not([hidden])):has(#t-sub:not([hidden])) ~ #menu { top: 172px; }
+#confirm { position: absolute; inset: 0; z-index: 70; background: rgba(5, 6, 7, .84); display: flex; align-items: center; justify-content: center; }
+#confirm[hidden] { display: none; }
+#confirm .cfm-box { width: 460px; max-width: 80%; padding: 22px 26px; background: rgba(14, 16, 18, .96); border: 1px solid var(--panel-line); border-left: 4px solid var(--accent); }
+#confirm b { display: block; font-size: 16px; font-weight: 700; letter-spacing: .1em; color: #fff; margin-bottom: 10px; }
+#confirm p { margin: 0 0 18px; font-size: 14px; line-height: 1.5; color: var(--text); }
+#confirm .btn:focus-visible { border-color: #fff; background: rgba(255, 255, 255, .08); color: #fff; outline: none; }
+
+/* STATUS panel: collapsed shows STEAM / CLIENT / PLAYING AS; SERVER and GAME join when they are in a problem state, LATEST NEWS only when expanded */
+.ph { gap: 10px; }
+.ph #ph-count { margin-left: auto; font-weight: 500; color: var(--dim); }
+.stmore { display: inline-flex; align-items: center; gap: 7px; background: none; border: 1px solid var(--line2); color: var(--dim); font-family: var(--sans); font-size: 10.5px; font-weight: 600; letter-spacing: .18em; padding: 3px 8px 3px 10px; transition: color .25s, border-color .25s, background .25s; }
+.stmore:hover { color: #fff; border-color: rgba(255, 255, 255, .55); background: rgba(255, 255, 255, .05); }
+.stmore i { width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: translateY(-2px) rotate(45deg); transition: transform .3s; }
+.stmore[aria-expanded='true'] i { transform: translateY(1px) rotate(-135deg); }
+.rowbar.x { animation: none; overflow: hidden; max-height: 0; min-height: 0; margin-top: -6px; padding-top: 0; padding-bottom: 0; border-width: 0; opacity: 0; visibility: hidden; transition: max-height .35s var(--ease), margin-top .35s var(--ease), padding .35s var(--ease), border-width .35s var(--ease), opacity .3s var(--ease), visibility 0s linear .35s; }
+.rows.open .rowbar.x, .rowbar.x.prob { max-height: 64px; min-height: 52px; margin-top: 0; padding-top: 7px; padding-bottom: 7px; border-width: 1px; opacity: 1; visibility: visible; transition-delay: 0s; }
+.rowbar.nwrow { text-align: left; width: 100%; font: inherit; color: inherit; cursor: pointer; }
+.rowbar.nwrow:hover { background: rgba(255, 255, 255, .07); border-color: var(--line2); }
+.rowbar.nwrow:hover b { color: #fff; }
+
+.rowbar.nwrow b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

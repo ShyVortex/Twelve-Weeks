@@ -1,0 +1,76 @@
+{
+ "key": "wilds-houses",
+ "map_index": 18,
+ "area_m2": 5155,
+ "count_wanted": 6,
+ "hand_placed": true,
+ "rule": "hand placed in the SceneEditor (tools/maps/editor_import.py); `medkits.py gen` keeps it",
+ "kits": [
+  {
+   "pos": [
+    -56.25,
+    39.26,
+    -130.75
+   ],
+   "half": "mid",
+   "indoor": true,
+   "wall_dirs": 6,
+   "above_floor": 1.01
+  },
+  {
+   "pos": [
+    -75.552,
+    40.678,
+    -139.229
+   ],
+   "half": "mid",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -93.928,
+    44.023,
+    -159.885
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -89.986,
+    41.066,
+    -144.0
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -78.526,
+    39.084,
+    -105.278
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -77.8,
+    39.587,
+    -131.005
+   ],
+   "half": "mid",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  }
+ ]
+}

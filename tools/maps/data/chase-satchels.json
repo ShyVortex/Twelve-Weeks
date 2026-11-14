@@ -1,0 +1,76 @@
+{
+ "key": "chase",
+ "map_index": 22,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 5,
+ "from": [
+  {
+   "traffic": 0.28,
+   "yaw_deg": 315.2,
+   "quality": 1.15
+  },
+  {
+   "traffic": 0.64,
+   "yaw_deg": 269.4,
+   "quality": 1.13
+  },
+  {
+   "traffic": 0.5,
+   "yaw_deg": 44.6,
+   "quality": 1.05
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    -33.887,
+    1.089,
+    -39.235
+   ],
+   "quat": [
+    0.0,
+    -0.381224,
+    0.0,
+    0.924483
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -90.238,
+    2.031,
+    -70.569
+   ],
+   "quat": [
+    0.0,
+    -0.711055,
+    0.0,
+    0.703137
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -36.217,
+    8.069,
+    -88.104
+   ],
+   "quat": [
+    0.0,
+    0.379817,
+    0.0,
+    0.925062
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

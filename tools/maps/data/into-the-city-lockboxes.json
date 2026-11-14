@@ -1,0 +1,68 @@
+{
+ "key": "into-the-city",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "name": "lockbox-0-0",
+    "pos": [
+     256.584,
+     27.0,
+     564.724
+    ],
+    "yaw_deg": 0.0,
+    "traffic": 0.0,
+    "own_path": 31.6,
+    "enemy_path": 144.5
+   },
+   {
+    "pos": [
+     269.405,
+     26.946,
+     560.226
+    ],
+    "yaw_deg": 324.9,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     300.198,
+     26.969,
+     534.957
+    ],
+    "yaw_deg": 6.9,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     320.024,
+     27.112,
+     504.271
+    ],
+    "yaw_deg": 135.9,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     348.332,
+     26.829,
+     504.702
+    ],
+    "yaw_deg": 150.9,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     324.025,
+     27.012,
+     478.85
+    ],
+    "yaw_deg": 277.1,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

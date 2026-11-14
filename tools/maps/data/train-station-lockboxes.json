@@ -1,0 +1,65 @@
+{
+ "key": "train-station",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "pos": [
+     -113.102,
+     4.338,
+     212.943
+    ],
+    "yaw_deg": 340.6,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     -88.751,
+     5.325,
+     232.699
+    ],
+    "yaw_deg": 250.3,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     -102.227,
+     4.341,
+     216.78
+    ],
+    "yaw_deg": 340.6,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     -82.535,
+     4.0,
+     142.739
+    ],
+    "yaw_deg": 180.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     -43.408,
+     2.7,
+     161.304
+    ],
+    "yaw_deg": 155.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     -64.091,
+     4.008,
+     134.403
+    ],
+    "yaw_deg": 69.1,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

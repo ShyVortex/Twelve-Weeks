@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en" data-theme="wlf">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twelve Weeks Admin</title>
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+<div id="app">
+  <div id="bgwrap"><div class="bgimg" id="bg"></div></div>
+  <div class="shade"></div>
+  <div class="vignette"></div>
+
+  <div id="title"><label>TLOU2 FACTIONS</label><h1>ADMIN</h1><div class="t-rule"></div></div>
+  <div id="online"><b id="on-n">-</b><span><i id="on-dot"></i><em id="on-txt">ONLINE</em></span></div>
+
+  <nav id="menu">
+    <button class="mi" data-tab="overview"><i></i><span>OVERVIEW</span></button>
+    <button class="mi" data-tab="players"><i></i><span>PLAYERS</span></button>
+    <button class="mi" data-tab="matches"><i></i><span>MATCHES</span></button>
+    <button class="mi" data-tab="teams"><i></i><span>TEAMS</span></button>
+    <button class="mi" data-tab="clans"><i></i><span>CLANS</span></button>
+    <button class="mi" data-tab="reports"><i></i><span>REPORTS</span><u id="rep-pip" hidden></u></button>
+    <button class="mi" data-tab="logs"><i></i><span>LOGS</span></button>
+    <button class="mi" data-tab="notes"><i></i><span>PATCH NOTES</span></button>
+  </nav>
+
+  <section class="view panel" id="view">
+    <div class="ph"><span id="ph-title">OVERVIEW</span><b id="ph-right"></b></div>
+    <div id="toolbar"></div>
+    <div id="body"></div>
+  </section>
+
+  <div id="footline"></div>
+  <div id="ver"><span id="ver-txt"></span></div>
+  <div id="hints"><span><b>1-8</b> TABS</span><span><b>/</b> SEARCH</span><span><b>ESC</b> BACK</span><span><b>P</b> PAUSE</span></div>
+</div>
+<div id="modal" hidden><div class="mbox"><div class="ph"><span id="m-title"></span></div><div class="mbody" id="m-body"></div><div class="mfoot" id="m-foot"></div></div></div>
+<script src="admin.js"></script>
+</body>
+</html>

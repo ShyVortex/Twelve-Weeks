@@ -1,0 +1,65 @@
+{
+ "key": "seraphite-camp",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     298.167,
+     15.733,
+     -85.333
+    ],
+    "yaw_deg": 346.1,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     308.605,
+     14.209,
+     -95.099
+    ],
+    "yaw_deg": 34.6,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     278.15,
+     14.076,
+     -97.102
+    ],
+    "yaw_deg": 255.0,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     286.283,
+     20.519,
+     -123.611
+    ],
+    "yaw_deg": 125.8,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     311.605,
+     17.496,
+     -141.284
+    ],
+    "yaw_deg": 125.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     286.11,
+     16.531,
+     -130.944
+    ],
+    "yaw_deg": 216.8,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

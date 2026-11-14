@@ -1,0 +1,77 @@
+[
+ {
+  "pak": "jordan-t2r-winter-01",
+  "material": "objects/characters/jordan/jordan-shoes:default",
+  "param": "g_snowStrength07"
+ },
+ {
+  "pak": "jordan-t2r-winter-01",
+  "material": "objects/characters/jordan/tracking/jordan-tracking-jacket-fur:default",
+  "param": "g_snowStrength04"
+ },
+ {
+  "pak": "jordan-t2r-winter-01",
+  "material": "objects/characters/jordan/tracking/jordan-tracking-jacket:default",
+  "param": "g_snowStrength06"
+ },
+ {
+  "pak": "jordan-t2r-winter-01",
+  "material": "objects/characters/jordan/tracking/jordan-tracking-pants:default",
+  "param": "g_snowStrength06"
+ },
+ {
+  "pak": "manny-t2r-winter-01",
+  "material": "objects/characters/manny/manny-boots:default",
+  "param": "g_snowStrength07"
+ },
+ {
+  "pak": "manny-t2r-winter-01",
+  "material": "objects/characters/manny/manny-pants:default",
+  "param": "g_snowStrength04"
+ },
+ {
+  "pak": "manny-t2r-winter-01",
+  "material": "objects/characters/manny/tracking/manny-tracking-gloves:default",
+  "param": "g_snowStrength05"
+ },
+ {
+  "pak": "manny-t2r-winter-01",
+  "material": "objects/characters/manny/tracking/manny-tracking-jacket:default",
+  "param": "g_snowStrength06"
+ },
+ {
+  "pak": "manny-t2r-winter-01",
+  "material": "objects/characters/manny/tracking/manny-tracking-jacket:default",
+  "param": "g_snowStrength07"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/npc-normal/clothing/1upper/wlf-patch:default",
+  "param": "g_snowStrength04"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/owen/boots-black:default",
+  "param": "g_snowStrength06"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/owen/pants-02:default",
+  "param": "g_snowStrength06"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/owen/tracking/glove:default",
+  "param": "g_snowStrength04"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/owen/tracking/jacket:default",
+  "param": "g_snowStrength07"
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "material": "objects/characters/owen/tracking/jacket:default",
+  "param": "g_snowStrength08"
+ }
+]

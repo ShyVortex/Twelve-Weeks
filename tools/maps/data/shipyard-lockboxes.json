@@ -1,0 +1,65 @@
+{
+ "key": "shipyard",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     407.183,
+     1.946,
+     245.868
+    ],
+    "yaw_deg": 334.9,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     399.912,
+     1.748,
+     240.059
+    ],
+    "yaw_deg": 332.9,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     425.306,
+     1.946,
+     245.125
+    ],
+    "yaw_deg": 329.6,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     378.365,
+     1.795,
+     222.392
+    ],
+    "yaw_deg": 159.1,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     384.755,
+     1.742,
+     200.102
+    ],
+    "yaw_deg": 160.6,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     419.41,
+     1.747,
+     196.112
+    ],
+    "yaw_deg": 128.6,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

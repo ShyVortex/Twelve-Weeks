@@ -1,0 +1,141 @@
+{
+ "key": "downtown",
+ "map_index": 13,
+ "area_m2": 29619,
+ "count_wanted": 12,
+ "rule": "round(6 * area / 7900) clamped 4..12 (re/maps/medkits-2013.md)",
+ "kits": [
+  {
+   "pos": [
+    -298.75,
+    23.19,
+    -809.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 4,
+   "above_floor": 0.94
+  },
+  {
+   "pos": [
+    -297.75,
+    22.919,
+    -748.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 0.97
+  },
+  {
+   "pos": [
+    -380.75,
+    17.665,
+    -795.75
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 1.0
+  },
+  {
+   "pos": [
+    -394.75,
+    17.864,
+    -725.75
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 8,
+   "above_floor": 1.0
+  },
+  {
+   "pos": [
+    -380.75,
+    17.665,
+    -814.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 1.0
+  },
+  {
+   "pos": [
+    -300.75,
+    20.596,
+    -783.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 1.33
+  },
+  {
+   "pos": [
+    -306.75,
+    26.337,
+    -909.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 0.9
+  },
+  {
+   "pos": [
+    -366.75,
+    17.656,
+    -881.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 0.89
+  },
+  {
+   "pos": [
+    -357.25,
+    19.331,
+    -1003.75
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 7,
+   "above_floor": 0.97
+  },
+  {
+   "pos": [
+    -306.75,
+    26.5,
+    -987.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 2,
+   "above_floor": 1.04
+  },
+  {
+   "pos": [
+    -282.75,
+    22.133,
+    -878.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 1.12
+  },
+  {
+   "pos": [
+    -391.75,
+    22.003,
+    -866.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 4,
+   "above_floor": 0.82
+  }
+ ]
+}

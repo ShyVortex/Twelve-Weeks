@@ -1,0 +1,65 @@
+{
+ "key": "outpost",
+ "method": "respawn points of the layout",
+ "teams": [
+  [
+   {
+    "name": "lockbox-0-0",
+    "pos": [
+     3.25,
+     0.406,
+     33.25
+    ],
+    "yaw_deg": 178.0
+   },
+   {
+    "name": "lockbox-0-1",
+    "pos": [
+     6.25,
+     0.213,
+     15.25
+    ],
+    "yaw_deg": 180.0
+   },
+   {
+    "name": "lockbox-0-2",
+    "pos": [
+     0.25,
+     0.316,
+     3.25
+    ],
+    "yaw_deg": 173.7
+   }
+  ],
+  [
+   {
+    "name": "lockbox-1-0",
+    "pos": [
+     6.25,
+     0.546,
+     -50.75
+    ],
+    "yaw_deg": 358.0
+   },
+   {
+    "name": "lockbox-1-1",
+    "pos": [
+     0.25,
+     0.328,
+     -77.75
+    ],
+    "yaw_deg": 1.5
+   },
+   {
+    "name": "lockbox-1-2",
+    "pos": [
+     -14.75,
+     0.339,
+     -53.75
+    ],
+    "yaw_deg": 11.7
+   }
+  ]
+ ],
+ "hand_placed": true
+}

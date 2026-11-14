@@ -1,0 +1,43 @@
+{
+ "key": "jackson-market",
+ "map_index": 23,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 8,
+ "spots": [
+  {
+   "pos": [
+    -482.551,
+    17.958,
+    302.414
+   ],
+   "quat": [
+    0.0,
+    0.387127,
+    0.0,
+    0.922026
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -470.3,
+    18.522,
+    258.797
+   ],
+   "quat": [
+    0.0,
+    -0.325493,
+    0.0,
+    0.945545
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ],
+ "hand_placed": true
+}

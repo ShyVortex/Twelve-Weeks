@@ -1,0 +1,71 @@
+{
+ "key": "jackson-market",
+ "method": "tools/maps/loot_place.py safes: indoors, back flush to a wall, own half, >= 6 m from boxes, >= 4 m from respawns, no line of sight to any enemy candidate (collision rays 0.5/1.0/1.6 m)",
+ "teams": [
+  [
+   {
+    "name": "lockbox-0-0",
+    "pos": [
+     -528.653,
+     17.963,
+     308.602
+    ],
+    "yaw_deg": 0.0,
+    "room": "hunting store",
+    "own_start_m": 23.9,
+    "enemy_start_m": 64.9
+   },
+   {
+    "pos": [
+     -523.384,
+     17.967,
+     294.506
+    ],
+    "yaw_deg": 12.5,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     -519.597,
+     17.926,
+     307.82
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "name": "lockbox-1-0",
+    "pos": [
+     -507.75,
+     17.878,
+     249.947
+    ],
+    "yaw_deg": 180.0,
+    "room": "store hall east",
+    "own_start_m": 18.9,
+    "enemy_start_m": 41.4
+   },
+   {
+    "pos": [
+     -495.706,
+     17.926,
+     281.274
+    ],
+    "yaw_deg": 180.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     -526.159,
+     17.878,
+     256.2
+    ],
+    "yaw_deg": 180.0,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

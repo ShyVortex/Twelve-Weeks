@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en" data-theme="wlf">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; media-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Twelve Weeks</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="gear.css">
+<link rel="stylesheet" href="neat.css">
+<link rel="stylesheet" href="friends.css">
+<link rel="stylesheet" href="news.css">
+<link rel="stylesheet" href="motion.css">
+<link rel="stylesheet" href="players.css">
+<link rel="stylesheet" href="kofi.css">
+<link rel="stylesheet" href="ban.css">
+</head>
+<body>
+<div id="app">
+  <header id="titlebar">
+    <div class="tb-drag"></div>
+    <button class="tb-btn" id="tb-min" data-snd="back" title="Minimize"><svg viewBox="0 0 12 12"><path d="M2 6h8"/></svg></button>
+    <button class="tb-btn tb-close" id="tb-close" data-snd="back" title="Close"><svg viewBox="0 0 12 12"><path d="M2.5 2.5l7 7M9.5 2.5l-7 7"/></svg></button>
+  </header>
+
+  <div id="bgwrap"><div class="bgimg" id="bg-a"></div><div class="bgimg" id="bg-b"></div></div>
+  <div class="shade" id="shade"></div>
+  <div class="vignette"></div>
+  <canvas id="grain"></canvas>
+
+  <div id="title"><label id="t-fac" hidden></label><h1 id="t-main">THE LAST OF US</h1><div class="t-rule"></div><div id="t-sub">TWELVE WEEKS</div><div id="test-tag" hidden>TESTING SERVER</div></div>
+  <div id="online" role="button" tabindex="0" title="Players online"><b id="on-n">-</b><span><i id="on-dot"></i>ONLINE</span></div>
+
+  <nav id="menu">
+    <button class="mi" data-act="play" data-snd="confirm"><i></i><span id="mi-play">PLAY</span></button>
+    <button class="mi" data-act="update" id="mi-update" data-snd="click" hidden><i></i><span>UPDATE</span><small id="mi-update-sz"></small></button>
+    <button class="mi" data-view="clan" data-snd="tab"><i></i><span>CLAN</span></button>
+    <button class="mi" data-view="friends" data-snd="tab"><i></i><span>FRIENDS</span><u id="fr-pip" hidden></u></button>
+    <button class="mi" data-view="loadout" data-snd="tab"><i></i><span>LOADOUT</span></button>
+    <button class="mi" data-view="news" data-snd="tab"><i></i><span>NEWS</span><u id="news-pip" hidden></u></button>
+    <button class="mi" data-view="report" data-snd="tab"><i></i><span>REPORT A BUG</span></button>
+    <button class="mi" data-view="settings" data-snd="tab"><i></i><span>SETTINGS</span></button>
+    <button class="mi" data-act="quit" data-snd="back"><i></i><span>QUIT</span></button>
+  </nav>
+
+  <!-- home status: bordered panel like the in-game LOBBY panel -->
+  <section class="home panel" id="home">
+    <div class="ph"><span>STATUS</span><b id="ph-count"></b><button class="stmore" id="st-more" type="button" aria-expanded="false" aria-controls="st-rows" data-snd="click"><span id="st-more-t">MORE</span><i></i></button></div>
+    <div class="rows" id="st-rows">
+      <div class="rowbar st x" id="row-srv"><label>SERVER</label><b id="srv-state">...</b><span id="srv-line"></span></div>
+      <div class="rowbar st"><label>STEAM</label><b id="st-state">...</b><span id="st-line"></span></div>
+      <div class="rowbar st"><label>CLIENT</label><b id="cl-state">...</b><span id="cl-line"></span></div>
+      <div class="rowbar st"><label>PLAYING AS</label><b id="pl-name">--</b><span id="pl-line"></span></div>
+      <div class="rowbar st x" id="row-gm"><label>GAME</label><b id="gm-state">--</b><span id="gm-line"></span></div>
+      <button type="button" class="rowbar st x nwrow" id="row-nw" data-snd="click"><label>LATEST NEWS</label><b id="nw-title">--</b><span id="nw-line"></span></button>
+    </div>
+  </section>
+  <section class="clanbox" id="clanbox" hidden>
+    <div class="cb-h" id="cb-n">5 SURVIVORS</div>
+    <div class="cb-body"><div class="cb-l"><div class="c-h">HEALTHY: <b id="cb-h">0</b></div><div class="c-u">HUNGRY: <b id="cb-u">0</b></div><div class="c-s">SICK: <b id="cb-s">0</b></div></div><canvas class="cb-dial" id="cb-dial" width="128" height="128"></canvas></div>
+    <div class="cb-need">NEEDED PER DAY: <b id="cb-need">0</b></div>
+  </section>
+
+  <!-- progress: hairline across the bottom + small spinner text -->
+  <div id="prog" hidden>
+    <div class="prog-line"><i id="dl-fill"></i></div>
+    <div class="prog-text"><div class="spin"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><span id="dl-label"></span><em id="dl-stats"></em></div>
+  </div>
+  <button id="discord" type="button" title="Join the Twelve Weeks Discord" aria-label="Join the Discord" data-snd="click"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z"/></svg></button>
+  <button id="steamadd" type="button" title="Add Twelve Weeks to your Steam library" data-snd="click"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-9.96 9.1l5.35 2.2a2.8 2.8 0 0 1 1.6-.5h.15l2.38-3.45v-.05a3.75 3.75 0 1 1 3.75 3.75h-.09l-3.4 2.43v.12a2.8 2.8 0 0 1-5.53.6L2.4 14.5A10 10 0 1 0 12 2zM7.6 17.4l-1.23-.5a2.1 2.1 0 0 0 4 .1l.07-.1a2.1 2.1 0 0 0-1.1-2.7 2.1 2.1 0 0 0-1.6 0l1.27.52a1.55 1.55 0 1 1-1.2 2.87zm8.2-5.1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0-.65a1.85 1.85 0 1 1 0-3.7 1.85 1.85 0 0 1 0 3.7z"/></svg><span id="steamadd-t">ADD TO STEAM</span><svg class="sa-ck" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="6"/><path d="M3.2 6.2l1.8 1.8 3.8-3.9"/></svg></button>
+  <div class="bottom-rule"></div>
+  <div id="alert" class="alert"></div>
+  <div id="confirm" hidden role="alertdialog" aria-modal="true"><div class="cfm-box"><b id="cfm-t"></b><p id="cfm-d"></p><div class="btnrow"><button class="btn" id="cfm-yes" data-snd="confirm">SWITCH</button><button class="btn quiet" id="cfm-no" data-snd="back">CANCEL</button></div></div></div>
+  <div id="loading"><div class="ld-title">LOADING</div><div class="ld-sub">Please wait.</div></div>
+  <div id="botbar"><span id="ver"></span><span id="notice"></span><button class="mi mi-sw" id="mi-switch" data-act="switch" data-snd="click"><i></i><span id="mi-switch-t">SWITCH TO SP</span></button><span class="keys"><span><kbd>ENTER</kbd>SELECT</span><span><kbd>ESC</kbd>BACK</span></span></div>
+
+  <!-- CLAN -->
+  <section class="view" id="v-clan">
+    <h2>CLAN</h2>
+    <div class="clan" id="clan-body"><div class="empty">Loading clan...</div></div>
+  </section>
+
+  <!-- FRIENDS + PARTY -->
+  <section class="view" id="v-friends">
+    <h2>FRIENDS</h2>
+    <div class="subtabs" id="fr-tabs"></div>
+    <div class="fr" id="fr-body"><div class="empty">Loading friends...</div></div>
+  </section>
+
+  <!-- LOADOUT (GEAR UP) -->
+  <section class="view" id="v-loadout">
+    <div id="lo-body"></div>
+  </section>
+
+  <!-- NEWS -->
+  <section class="view" id="v-news">
+    <h2>NEWS</h2>
+    <div class="news" id="news-list"></div>
+  </section>
+
+  <!-- REPORT A BUG -->
+  <section class="view" id="v-report">
+    <h2>REPORT A BUG</h2>
+    <div class="subtabs" id="rp-modes"><button class="sub active" data-rmode="bug" data-snd="tab">BUG REPORT</button><button class="sub" data-rmode="player" data-snd="tab">PLAYER REPORT</button></div>
+    <div class="rep" id="rep-body">
+      <div class="rep-main">
+        <label class="field"><span>WHAT HAPPENED <b>REQUIRED</b></span><textarea id="rp-text" rows="6" maxlength="4000" placeholder="Describe the bug: what you did, what you expected, what happened instead."></textarea></label>
+        <div class="rep-row">
+          <label class="field"><span>WHEN</span><select id="rp-when"><option>Just now</option><option>Last match</option><option>Earlier today</option><option>Another day</option></select></label>
+        </div>
+        <label class="field"><span>TIME DETAILS (OPTIONAL)</span><input id="rp-whent" placeholder="for example 21:40, in the second round" spellcheck="false"></label>
+        <div class="field att" id="rp-drop">
+          <span>SCREENSHOTS AND CLIPS (OPTIONAL)</span>
+          <div class="att-bar"><button class="btn" id="rp-attach" data-snd="click">ATTACH SCREENSHOTS / CLIPS</button><span class="msub">Paste an image with Ctrl+V or drop files here. Up to 5 screenshots (8 MB each) and 2 clips (200 MB each, 250 MB together).</span></div>
+          <div class="att-list" id="rp-att"></div>
+        </div>
+        <label class="tg"><input type="checkbox" id="rp-dumps"><i></i><span>Include older crash dumps too (the newest dump from the last 7 days is always sent)</span></label>
+      </div>
+      <div class="rep-side">
+        <label>FILES THAT WILL BE SENT</label>
+        <div id="rp-files" class="rep-files"></div>
+        <div class="msub">Your token and other secrets are never sent. Logs have token-like strings removed. The report goes to the Twelve Weeks update server.</div>
+        <div class="rep-act"><button class="btn" id="rp-send" data-snd="confirm">SEND REPORT</button><span id="rp-state" class="muted"></span></div>
+        <div class="bar rep-bar" id="rp-bar" hidden><i id="rp-fill"></i></div>
+        <div class="rep-code" id="rp-code" hidden><label>REPORT CODE</label><b id="rp-codev"></b><div class="msub">Quote this code when you talk to the dev.</div></div>
+      </div>
+    </div>
+    <div class="rep" id="rep-player" hidden>
+      <div class="rep-main">
+        <div class="field"><span>WHO <b>REQUIRED</b></span>
+          <div class="pr-list" id="pr-list"></div>
+          <small id="pr-none" hidden>No players found. Play a match first; the players of your last 3 matches show up here.</small>
+        </div>
+        <div class="field"><span>WHAT DID THEY DO</span>
+          <label class="tg"><input type="checkbox" data-reason="1"><i></i><span>Aimbot (the aim snaps onto people)</span></label>
+          <label class="tg"><input type="checkbox" data-reason="2"><i></i><span>Wallhack (sees or shoots through walls)</span></label>
+          <label class="tg"><input type="checkbox" data-reason="4"><i></i><span>Speed or teleport hack</span></label>
+          <label class="tg"><input type="checkbox" data-reason="8"><i></i><span>Griefing (on purpose to spoil the match)</span></label>
+          <label class="tg"><input type="checkbox" data-reason="16"><i></i><span>Something else</span></label>
+        </div>
+        <label class="field"><span>DETAILS (OPTIONAL)</span><textarea id="pr-text" rows="4" maxlength="500" placeholder="What did you see, and when in the match?"></textarea></label>
+      </div>
+      <div class="rep-side">
+        <label>HOW THIS WORKS</label>
+        <div class="msub">Pick one player from your last 3 matches. The game server keeps a short recording of that match (positions, shots and hits only, no personal data) for a person to look at. Nobody is banned automatically. Reports that turn out false make your future reports count less.</div>
+        <div class="rep-act"><button class="btn" id="pr-send" data-snd="confirm">SEND REPORT</button><span id="pr-state" class="muted"></span></div>
+        <div class="rep-code" id="pr-code" hidden><label>REPORT CODE</label><b id="pr-codev"></b><div class="msub">Quote this code when you talk to the dev.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section class="view" id="v-settings">
+    <h2>SETTINGS</h2>
+    <div class="subtabs" id="subtabs">
+      <button class="sub active" data-sub="game" data-snd="tab">GAME</button>
+      <button class="sub" data-sub="look" data-snd="tab">DISPLAY</button>
+      <button class="sub" data-sub="maps" data-snd="tab">MAPS</button>
+      <button class="sub" data-sub="files" data-snd="tab">FILES</button>
+      <button class="sub" data-sub="about" data-snd="tab">ABOUT</button>
+    </div>
+    <div class="subpanes">
+      <div class="pane active" id="s-game">
+        <label class="field"><span>GAME FOLDER</span>
+          <div class="inl"><input id="in-gamedir" readonly><button class="btn" id="b-detect" data-snd="click">DETECT</button><button class="btn" id="b-pickgame" data-snd="click">BROWSE</button></div>
+          <small id="gamedir-msg">The folder that contains tlou-ii.exe.</small></label>
+        <label class="field"><span>PLAYER NAME</span><input id="in-name" maxlength="15" placeholder="empty = in-game name, then Steam name, then Windows user" spellcheck="false"></label>
+        <label class="tg"><input type="checkbox" id="in-debug"><i></i><span>DEBUG MODE: full logs of every call + a black box of all players (send a report after the bug; bigger logs, slightly lower fps)</span></label>
+        <label class="tg"><input type="checkbox" id="in-discord"><i></i><span>Discord Rich Presence: show what you are doing in the launcher and the game on your Discord profile</span></label>
+        <div class="field"><span>SERVER</span>
+          <div class="inl"><button class="btn" id="b-server" data-snd="click">SWITCH TO TESTING SERVER</button></div>
+          <small id="server-msg">You are on the live server.</small></div>
+        <label class="tg"><input type="checkbox" id="in-skipcheck"><i></i><span>Skip the server and version check before starting (emergencies only)</span></label>
+      </div>
+      <div class="pane" id="s-look">
+        <div class="field"><span>LANGUAGE</span>
+          <div class="faction" id="lang-pick">
+            <button class="fopt flagbtn" data-lang="en" data-snd="click"><svg class="flag" viewBox="0 0 60 30"><clipPath id="ukc"><path d="M0 0h60v30H0z"/></clipPath><g clip-path="url(#ukc)"><path d="M0 0h60v30H0z" fill="#012169"/><path d="M0 0l60 30M60 0L0 30" stroke="#fff" stroke-width="6"/><path d="M0 0l60 30M60 0L0 30" stroke="#C8102E" stroke-width="2.4"/><path d="M30 0v30M0 15h60" stroke="#fff" stroke-width="10"/><path d="M30 0v30M0 15h60" stroke="#C8102E" stroke-width="6"/></g></svg>ENGLISH</button>
+            <button class="fopt flagbtn" data-lang="pl" data-snd="click"><svg class="flag" viewBox="0 0 60 30"><rect width="60" height="15" fill="#fff"/><rect y="15" width="60" height="15" fill="#DC143C"/></svg>POLSKI</button>
+            <button class="fopt flagbtn" data-lang="es" data-snd="click"><svg class="flag" viewBox="0 0 60 30"><rect width="60" height="30" fill="#AA151B"/><rect y="7.5" width="60" height="15" fill="#F1BF00"/></svg>ESPAÑOL</button>
+          </div></div>
+        <div class="field bg-field" id="bg-field"><div class="bg-block" id="bg-block">OVERRIDDEN BY FACTION'S CHOICE</div><span>BACKGROUNDS</span><div class="faction" id="bg-mode"><button class="fopt" data-mode="rotate" data-snd="click">ROTATE</button><button class="fopt" data-mode="pick" data-snd="click">PICK ONE</button></div><small id="bg-set"></small><div class="thumbs" id="thumbs"></div></div>
+        <label class="tg"><input type="checkbox" id="fx-motion"><i></i><span>Background motion (very slow, subtle)</span></label>
+        <label class="tg"><input type="checkbox" id="fx-grain"><i></i><span>Film grain</span></label>
+        <label class="tg"><input type="checkbox" id="in-sounds"><i></i><span>Menu sounds</span></label>
+        <label class="field"><span>SOUND VOLUME <b id="vol-v"></b></span><input type="range" id="in-vol" min="0" max="100"></label>
+        <label class="tg"><input type="checkbox" id="in-music"><i></i><span>Menu music</span></label>
+        <label class="field"><span>MUSIC VOLUME <b id="mvol-v"></b></span><input type="range" id="in-mvol" min="0" max="100"></label>
+      </div>
+      <div class="pane" id="s-maps">
+        <div class="mp-left" id="mp-left">
+          <div class="mp-sec"><h3>The Last of Us Part II</h3>
+            <div class="mp-box"><div class="mp-grid" id="mp-list2"></div></div>
+          </div>
+          <div class="mp-sec"><h3>The Last of Us Part I</h3>
+            <div class="mp-p1" id="mp-p1"><div class="mp-box"><div class="mp-grid" id="mp-list1"></div></div>
+              <div class="mp-lock" id="mp-lock"><button class="btn" id="mp-get" data-snd="click">DOWNLOAD MAPS FROM SERVER (TEMPORARY)</button><button class="btn" id="mp-set" data-snd="click">SET THE LAST OF US PART I LOCATION</button><small>Part I maps need your own copy of the game.</small></div>
+            </div>
+          </div>
+        </div>
+        <div class="mp-right">
+          <div class="mp-prev" id="mp-prev"></div>
+          <div class="mp-name" id="mp-dn">--</div>
+          <div class="mp-lines"><div><label>LOCATION</label><b id="mp-dl">--</b></div><div><label>FROM</label><b id="mp-ds">--</b></div><div><label>STATUS</label><b id="mp-dst">--</b></div></div>
+          <small class="mp-cap" id="mp-cap"></small>
+          <div class="mp-tools" id="mp-tools">
+            <div class="mp-loc" id="mp-loc"><input id="mp-dir" readonly></div>
+            <div class="btnrow"><button class="btn" id="mp-change" data-snd="click">CHANGE</button><button class="btn quiet" id="mp-clear" data-snd="back">REMOVE</button><button class="btn quiet" id="mp-import" data-snd="click">IMPORT MAP FILES</button><button class="btn" id="mp-conv" data-snd="click" hidden>INSTALL FROM MY PART I</button><button class="btn" id="mp-get2" data-snd="click">DOWNLOAD MAPS FROM SERVER (TEMPORARY)</button><button class="btn quiet" id="mp-cancel" data-snd="back" hidden>CANCEL DOWNLOAD</button><span id="mp-msg" class="muted"></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="pane" id="s-files">
+        <div class="facts"><div><label>TO DOWNLOAD</label><b id="f-todl">--</b></div><div><label>INSTALLED</label><b id="f-local">--</b></div><div><label>LATEST</label><b id="f-latest">--</b></div></div>
+        <div class="btnrow">
+          <button class="btn" id="f-update" data-snd="click">UPDATE CLIENT</button>
+          <button class="btn" id="f-verify" data-snd="click">VERIFY FILES</button>
+          <button class="btn" id="f-repair" data-snd="click">REPAIR INSTALL</button>
+          <button class="btn" id="f-cancel" data-snd="back">CANCEL</button>
+        </div>
+        <div class="btnrow">
+          <button class="btn quiet" data-open="game" data-snd="click">OPEN GAME FOLDER</button>
+          <button class="btn quiet" data-open="client" data-snd="click">OPEN CLIENT FILES</button>
+          <button class="btn quiet" data-open="logs" data-snd="click">OPEN LOGS</button>
+        </div>
+        <label class="field"><span>CLIENT FILES FOLDER</span><div class="inl"><input id="in-clientdir" spellcheck="false"><button class="btn" id="b-pickclient" data-snd="click">BROWSE</button></div><small>Where the downloaded mod files live. Empty = default.</small></label>
+      </div>
+      <div class="pane" id="s-about">
+        <div class="kvs">
+          <div><label>LAUNCHER</label><b id="ab-ver"></b></div>
+          <div><label>BUILD DATE</label><b id="ab-date"></b></div>
+          <div><label>ELECTRON</label><b id="ab-el"></b></div>
+          <div><label>SYSTEM</label><b id="ab-os"></b></div>
+          <div><label>CPU</label><b id="ab-cpu"></b></div>
+          <div><label>MEMORY</label><b id="ab-ram"></b></div>
+          <div><label>LAUNCHER DATA</label><b id="ab-data"></b></div>
+        </div>
+        <div class="btnrow"><button class="btn" id="b-launcher-update" data-snd="click">UPDATE LAUNCHER</button><span id="launcher-msg" class="muted"></span></div>
+        <p class="muted fine">Twelve Weeks is a fan project, not affiliated with or endorsed by Sony Interactive Entertainment or Naughty Dog.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+<script src="i18n-core.js"></script>
+<script src="i18n.js"></script>
+<script src="playstate.js"></script>
+<script src="audio.js"></script>
+<script src="scenes.js"></script>
+<script src="gamedata.js"></script>
+<script src="loadout-model.js"></script>
+<script src="loadout-view.js"></script>
+<script src="loadout.js"></script>
+<script src="ticker.js"></script>
+<script src="feed.js"></script>
+<script src="clan-icons.js"></script>
+<script src="clan-fx.js"></script>
+<script src="clan-status.js"></script>
+<script src="clan.js"></script>
+<script src="social.js"></script>
+<script src="app/core.js"></script>
+<script src="app/ui.js"></script>
+<script src="app/data.js"></script>
+<script src="app/play.js"></script>
+<script src="app/settings.js"></script>
+<script src="app/maps.js"></script>
+<script src="app/news.js"></script>
+<script src="app/report.js"></script>
+<script src="app/ban.js"></script>
+<script src="players.js"></script>
+<script src="app.js"></script>
+<!-- players panel (test feature, src/players.js; flag PLAYERS_PANEL) -->
+<aside id="players" aria-hidden="true"><div class="ph"><span>PLAYERS ONLINE</span><b id="pp-n"></b></div><div class="pp-list" id="pp-list"></div></aside>
+</body>
+</html>

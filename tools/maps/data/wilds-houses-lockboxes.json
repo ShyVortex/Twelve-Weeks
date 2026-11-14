@@ -1,0 +1,56 @@
+{
+ "key": "wilds-houses",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "pos": [
+     -83.065,
+     37.789,
+     -108.934
+    ],
+    "yaw_deg": 181.1,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     -56.174,
+     38.245,
+     -127.48
+    ],
+    "yaw_deg": 269.4,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     -87.752,
+     38.152,
+     -121.301
+    ],
+    "yaw_deg": 40.6,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     -93.347,
+     45.334,
+     -168.335
+    ],
+    "yaw_deg": 181.3,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     -76.586,
+     40.264,
+     -160.407
+    ],
+    "yaw_deg": 198.9,
+    "name": "lockbox-1-1"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

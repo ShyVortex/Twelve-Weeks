@@ -1,0 +1,88 @@
+{
+  "name": "factions2-launcher",
+  "productName": "Twelve Weeks Launcher",
+  "version": "0.1.39",
+  "description": "Launcher, updater and loadout viewer for TLOU2 Twelve Weeks",
+  "main": "main.js",
+  "author": "Twelve Weeks",
+  "license": "GPL-3.0-only",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "test": "node test/selftest.js && node test/linux-test.js && node test/robust-test.js && node test/steam-gate-test.js && node test/sp-switch-test.js && node test/attach-test.js && node test/clientupdate-test.js && node test/sticky-test.js && node test/playerreport-test.js && node test/social-test.js && node test/install-test.js && node test/players-test.js && node test/maps-test.js && node test/maps-convert-test.js && node test/server-target-test.js && node test/steam-shortcut-test.js && node test/steam-helper-test.js && node test/ban-test.js && node test/rpc-ingame-test.js",
+    "dist": "electron-builder --win portable",
+    "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
+    "dist:linux:deb": "electron-builder --linux deb --x64",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "prettier": "3.9.10"
+  },
+  "build": {
+    "appId": "org.factions2.launcher",
+    "productName": "Twelve Weeks Launcher",
+    "compression": "maximum",
+    "files": [
+      "main.js",
+      "preload.js",
+      "defaults.js",
+      "main/**",
+      "lib/**",
+      "src/**",
+      "assets/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false
+    },
+    "portable": {
+      "artifactName": "TwelveWeeks-Launcher-${version}.exe"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "tar.gz"
+      ],
+      "icon": "assets/icon.png",
+      "category": "Game",
+      "executableName": "factions2-launcher",
+      "artifactName": "TwelveWeeks-Launcher-${version}-linux-${arch}.${ext}",
+      "synopsis": "Launcher for TLOU2 Twelve Weeks",
+      "maintainer": "Twelve Weeks <noreply@twelve-weeks.invalid>"
+    },
+    "appImage": {
+      "artifactName": "TwelveWeeks-Launcher-${version}.AppImage"
+    },
+    "deb": {
+      "artifactName": "TwelveWeeks-Launcher-${version}-linux-${arch}.deb",
+      "depends": [
+        "libgtk-3-0",
+        "libnotify4",
+        "libnss3",
+        "libxss1",
+        "libxtst6",
+        "xdg-utils",
+        "libatspi2.0-0",
+        "libuuid1",
+        "libsecret-1-0"
+      ]
+    },
+    "electronLanguages": [
+      "en-US"
+    ]
+  },
+  "dependencies": {
+    "@xhayper/discord-rpc": "^1.5.1",
+    "adm-zip": "^0.6.1"
+  }
+}

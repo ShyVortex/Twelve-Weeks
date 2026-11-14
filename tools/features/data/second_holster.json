@@ -1,0 +1,1255 @@
+{
+ "slot_two_t": {
+  "pistol-glock": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "pistol-glock-supp": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "pistol-beretta": [
+   0.0,
+   -0.0012,
+   0.0
+  ],
+  "pistol-beretta-supp": [
+   0.0,
+   -0.0012,
+   0.0
+  ],
+  "pistol-cz75-enforcer": [
+   -0.0,
+   -0.0037,
+   0.0
+  ],
+  "pistol-cz75-enforcer-supp": [
+   -0.0,
+   -0.0037,
+   0.0
+  ],
+  "pistol-revolver-taurus": [
+   -0.0,
+   -0.0129,
+   0.0
+  ],
+  "pistol-xcaliber": [
+   0.0001,
+   -0.0075,
+   0.0
+  ],
+  "pistol-el-diablo": [
+   -0.0,
+   -0.0056,
+   0.0
+  ],
+  "shotgun-shorty": [
+   -0.0,
+   0.0176,
+   0.0
+  ]
+ },
+ "ref_gun": "pistol-glock",
+ "clear_m": 0.006,
+ "wlf_source": {
+  "pak": "abby-pelvis-holster",
+  "vs_leather_holster_back_m": {
+   "max": 0.00012,
+   "mean": 7e-05
+  }
+ },
+ "wlf": {
+  "m11": {
+   "actor": "wlf-t2r-bkkydex-m11",
+   "rows": [
+    6,
+    8
+   ],
+   "looks": [
+    "militia-male-11-backpack",
+    "militia-male-12-backpack"
+   ],
+   "offset": [
+    -0.0197,
+    -0.11,
+    -0.0409
+   ],
+   "point": {
+    "name": "t2r_bw_m11",
+    "joint": "pelvis",
+    "pos": [
+     -0.0823,
+     0.18385,
+     -0.1163,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-male-11-backpack": {
+     "clothes_gap_m": 0.0132,
+     "bag_min_m": 0.0128,
+     "holster_y": [
+      0.841,
+      0.953
+     ]
+    },
+    "militia-male-12-backpack": {
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.015,
+     "holster_y": [
+      0.841,
+      0.953
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0099,
+     "bag_min_m": 0.0128
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0099,
+     "bag_min_m": 0.0128
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0117,
+     "bag_min_m": 0.0091
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0117,
+     "bag_min_m": 0.0091
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0047
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0047
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.0063,
+     "bag_min_m": 0.0128
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": -0.0021,
+     "bag_min_m": 0.0008
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": -0.0134,
+     "bag_min_m": 0.0002
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": -0.0042,
+     "bag_min_m": 0.0001
+    }
+   }
+  },
+  "m08": {
+   "actor": "wlf-t2r-bkkydex-m08",
+   "rows": [
+    7,
+    9
+   ],
+   "looks": [
+    "militia-male-08-backpack",
+    "militia-male-05-backpack"
+   ],
+   "offset": [
+    -0.0197,
+    -0.03,
+    -0.0755
+   ],
+   "point": {
+    "name": "t2r_bw_m08",
+    "joint": "pelvis",
+    "pos": [
+     -0.0823,
+     0.21845,
+     -0.0363,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-male-08-backpack": {
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.0851,
+     "holster_y": [
+      0.921,
+      1.033
+     ]
+    },
+    "militia-male-05-backpack": {
+     "clothes_gap_m": 0.0144,
+     "bag_min_m": 0.047,
+     "holster_y": [
+      0.921,
+      1.033
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0097,
+     "bag_min_m": 0.054
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0097,
+     "bag_min_m": 0.054
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0118,
+     "bag_min_m": 0.0539
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0118,
+     "bag_min_m": 0.0539
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0483
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0483
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.0066,
+     "bag_min_m": 0.0532
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": 0.008,
+     "bag_min_m": 0.0169
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": -0.002,
+     "bag_min_m": 0.007
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": 0.0058,
+     "bag_min_m": 0.0059
+    }
+   }
+  },
+  "m13": {
+   "actor": "wlf-t2r-bkkydex-m13",
+   "rows": [
+    10
+   ],
+   "looks": [
+    "militia-male-13-backpack"
+   ],
+   "offset": [
+    -0.0197,
+    -0.07,
+    -0.036
+   ],
+   "point": {
+    "name": "t2r_bw_m13",
+    "joint": "pelvis",
+    "pos": [
+     -0.0823,
+     0.17895,
+     -0.0763,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-male-13-backpack": {
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.0155,
+     "holster_y": [
+      0.881,
+      0.993
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0118,
+     "bag_min_m": 0.0155
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0118,
+     "bag_min_m": 0.0155
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0104,
+     "bag_min_m": 0.0149
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0104,
+     "bag_min_m": 0.0149
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0075,
+     "bag_min_m": 0.0107
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0075,
+     "bag_min_m": 0.0107
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.0086,
+     "bag_min_m": 0.0269
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": 0.0091,
+     "bag_min_m": 0.0032
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": 0.0002,
+     "bag_min_m": 0.0003
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": 0.0049,
+     "bag_min_m": 0.0003
+    }
+   }
+  },
+  "m14": {
+   "actor": "wlf-t2r-bkkydex-m14",
+   "rows": [
+    11
+   ],
+   "looks": [
+    "militia-male-14-backpack"
+   ],
+   "offset": [
+    -0.0197,
+    -0.1,
+    -0.0639
+   ],
+   "point": {
+    "name": "t2r_bw_m14",
+    "joint": "pelvis",
+    "pos": [
+     -0.0823,
+     0.20685,
+     -0.1063,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-male-14-backpack": {
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.013,
+     "holster_y": [
+      0.851,
+      0.963
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.008,
+     "bag_min_m": 0.0212
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.008,
+     "bag_min_m": 0.0212
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0089,
+     "bag_min_m": 0.0208
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0089,
+     "bag_min_m": 0.0208
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0066,
+     "bag_min_m": 0.0153
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0066,
+     "bag_min_m": 0.0153
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.0087,
+     "bag_min_m": 0.0195
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": 0.0001,
+     "bag_min_m": 0.0021
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": -0.0139,
+     "bag_min_m": 0.0002
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": -0.0032,
+     "bag_min_m": 0.0002
+    }
+   }
+  },
+  "f13": {
+   "actor": "wlf-t2r-bkkydex-f13",
+   "rows": [
+    14
+   ],
+   "looks": [
+    "militia-female-13-backpack"
+   ],
+   "offset": [
+    -0.0094,
+    -0.05,
+    -0.0647
+   ],
+   "point": {
+    "name": "t2r_bw_f13",
+    "joint": "pelvis",
+    "pos": [
+     -0.072,
+     0.20765,
+     -0.0563,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-female-13-backpack": {
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0068,
+     "holster_y": [
+      0.901,
+      1.013
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0114,
+     "bag_min_m": 0.0068
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0114,
+     "bag_min_m": 0.0068
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0123,
+     "bag_min_m": 0.0083
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0123,
+     "bag_min_m": 0.0083
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0076,
+     "bag_min_m": 0.0023
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0076,
+     "bag_min_m": 0.0023
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.0133,
+     "bag_min_m": 0.0211
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": 0.0097,
+     "bag_min_m": 0.0012
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": -0.0075,
+     "bag_min_m": 0.0003
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": 0.0057,
+     "bag_min_m": 0.0002
+    }
+   }
+  },
+  "f12": {
+   "actor": "wlf-t2r-bkkydex-f12",
+   "rows": [
+    15
+   ],
+   "looks": [
+    "militia-female-12-backpack"
+   ],
+   "offset": [
+    -0.0094,
+    -0.09,
+    -0.0446
+   ],
+   "point": {
+    "name": "t2r_bw_f12",
+    "joint": "pelvis",
+    "pos": [
+     -0.072,
+     0.18755,
+     -0.0963,
+     1.0
+    ],
+    "quat": [
+     -0.49892,
+     0.43939,
+     0.56969,
+     -0.48319
+    ]
+   },
+   "report": {
+    "militia-female-12-backpack": {
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.0105,
+     "holster_y": [
+      0.861,
+      0.973
+     ]
+    }
+   },
+   "guns": {
+    "pistol-glock": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0096,
+     "bag_min_m": 0.0105
+    },
+    "pistol-glock-supp": {
+     "in_holster_x": 0.63,
+     "near_plastic_3mm": 4062,
+     "seat_vs_glock_cm": [
+      0.0,
+      0.0
+     ],
+     "clothes_gap_m": 0.0096,
+     "bag_min_m": 0.0105
+    },
+    "pistol-beretta": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0106,
+     "bag_min_m": 0.0103
+    },
+    "pistol-beretta-supp": {
+     "in_holster_x": 0.71,
+     "near_plastic_3mm": 3985,
+     "seat_vs_glock_cm": [
+      0.31,
+      0.06
+     ],
+     "clothes_gap_m": 0.0106,
+     "bag_min_m": 0.0103
+    },
+    "pistol-cz75-enforcer": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0037
+    },
+    "pistol-cz75-enforcer-supp": {
+     "in_holster_x": 0.65,
+     "near_plastic_3mm": 5741,
+     "seat_vs_glock_cm": [
+      0.06,
+      -0.1
+     ],
+     "clothes_gap_m": 0.0059,
+     "bag_min_m": 0.0037
+    },
+    "pistol-revolver-taurus": {
+     "in_holster_x": 0.75,
+     "near_plastic_3mm": 3376,
+     "seat_vs_glock_cm": [
+      0.27,
+      0.06
+     ],
+     "clothes_gap_m": 0.006,
+     "bag_min_m": 0.021
+    },
+    "pistol-xcaliber": {
+     "in_holster_x": 0.67,
+     "near_plastic_3mm": 5349,
+     "seat_vs_glock_cm": [
+      0.49,
+      0.08
+     ],
+     "clothes_gap_m": 0.0043,
+     "bag_min_m": 0.0015
+    },
+    "pistol-el-diablo": {
+     "in_holster_x": 0.72,
+     "near_plastic_3mm": 2434,
+     "seat_vs_glock_cm": [
+      1.63,
+      0.3
+     ],
+     "clothes_gap_m": -0.009,
+     "bag_min_m": 0.0002
+    },
+    "shotgun-shorty": {
+     "in_holster_x": 0.64,
+     "near_plastic_3mm": 3667,
+     "seat_vs_glock_cm": [
+      1.59,
+      0.23
+     ],
+     "clothes_gap_m": 0.0007,
+     "bag_min_m": 0.0002
+    }
+   }
+  }
+ },
+ "scar": {
+  "points": {
+   "m": {
+    "name": "t2r_cr_m",
+    "joint": "m_twist_03",
+    "pos": [
+     0.0322,
+     -0.17076,
+     0.0345,
+     1.0
+    ],
+    "quat": [
+     0.23391,
+     -0.26116,
+     -0.67963,
+     0.64435
+    ],
+    "tube_shift_m": [
+     0.007,
+     0.0,
+     0.0116
+    ],
+    "sights": -1
+   },
+   "f": {
+    "name": "t2r_cr_f",
+    "joint": "m_twist_03",
+    "pos": [
+     0.02971,
+     -0.17507,
+     0.02354,
+     1.0
+    ],
+    "quat": [
+     0.27804,
+     -0.2266,
+     -0.67815,
+     0.64145
+    ],
+    "tube_shift_m": [
+     0.0041,
+     0.0,
+     0.0066
+    ],
+    "sights": -1
+   }
+  },
+  "variants": {
+   "ma": {
+    "actor": "scar-t2r-chestrig-ma-01",
+    "rows": [
+     0,
+     2,
+     5
+    ],
+    "looks": [
+     "scar-male-13",
+     "scar-male-12",
+     "scar-male-02"
+    ],
+    "report": {
+     "scar-male-13": {
+      "holster_before": {
+       "buried_3mm_pct": 6.9,
+       "buried_10mm_pct": 1.3,
+       "max_cm": 1.6
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "straps_before": {
+       "buried_3mm_pct": 31.7,
+       "buried_10mm_pct": 12.7,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.6
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -0.4
+      }
+     },
+     "scar-male-12": {
+      "holster_before": {
+       "buried_3mm_pct": 6.9,
+       "buried_10mm_pct": 1.3,
+       "max_cm": 1.6
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "straps_before": {
+       "buried_3mm_pct": 31.7,
+       "buried_10mm_pct": 12.7,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.6
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -0.4
+      }
+     },
+     "scar-male-02": {
+      "holster_before": {
+       "buried_3mm_pct": 6.9,
+       "buried_10mm_pct": 1.3,
+       "max_cm": 1.6
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "straps_before": {
+       "buried_3mm_pct": 31.7,
+       "buried_10mm_pct": 12.7,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.6
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -0.4
+      }
+     }
+    }
+   },
+   "mb": {
+    "actor": "scar-t2r-chestrig-mb-01",
+    "rows": [
+     1,
+     4
+    ],
+    "looks": [
+     "scar-male-01",
+     "scar-male-09"
+    ],
+    "report": {
+     "scar-male-01": {
+      "holster_before": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.2
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -1.0
+      },
+      "straps_before": {
+       "buried_3mm_pct": 10.3,
+       "buried_10mm_pct": 4.9,
+       "max_cm": 3.6
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.7
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -1.0
+      }
+     },
+     "scar-male-09": {
+      "holster_before": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.2
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -1.0
+      },
+      "straps_before": {
+       "buried_3mm_pct": 10.3,
+       "buried_10mm_pct": 4.9,
+       "max_cm": 3.6
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.7
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -1.0
+      }
+     }
+    }
+   },
+   "mc": {
+    "actor": "scar-t2r-chestrig-mc-01",
+    "rows": [
+     3
+    ],
+    "looks": [
+     "scar-male-06"
+    ],
+    "report": {
+     "scar-male-06": {
+      "holster_before": {
+       "buried_3mm_pct": 0.3,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.5
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -0.6
+      },
+      "straps_before": {
+       "buried_3mm_pct": 13.9,
+       "buried_10mm_pct": 4.4,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": -1.1
+      }
+     }
+    }
+   },
+   "fa": {
+    "actor": "scar-t2r-chestrig-fem-a01",
+    "rows": [
+     12,
+     13
+    ],
+    "looks": [
+     "scar-female-11",
+     "scar-female-09"
+    ],
+    "report": {
+     "scar-female-11": {
+      "holster_before": {
+       "buried_3mm_pct": 1.5,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 1.0
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "straps_before": {
+       "buried_3mm_pct": 9.9,
+       "buried_10mm_pct": 4.0,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.6
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.0
+      }
+     },
+     "scar-female-09": {
+      "holster_before": {
+       "buried_3mm_pct": 1.5,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 1.0
+      },
+      "holster_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.3
+      },
+      "straps_before": {
+       "buried_3mm_pct": 9.9,
+       "buried_10mm_pct": 4.0,
+       "max_cm": 3.7
+      },
+      "straps_after": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.6
+      },
+      "gun": {
+       "buried_3mm_pct": 0.0,
+       "buried_10mm_pct": 0.0,
+       "max_cm": 0.0
+      }
+     }
+    }
+   }
+  }
+ }
+}

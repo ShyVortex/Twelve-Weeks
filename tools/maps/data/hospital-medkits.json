@@ -1,0 +1,65 @@
+{
+ "key": "hospital",
+ "map_index": 7,
+ "area_m2": 5129,
+ "count_wanted": 5,
+ "hand_placed": true,
+ "rule": "hand placed in the SceneEditor (tools/maps/editor_import.py); `medkits.py gen` keeps it",
+ "kits": [
+  {
+   "pos": [
+    244.439,
+    13.804,
+    -54.172
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    228.741,
+    18.093,
+    -96.388
+   ],
+   "half": "mid",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    274.364,
+    13.749,
+    -73.031
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    263.541,
+    14.897,
+    -92.617
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 1.14
+  },
+  {
+   "pos": [
+    223.112,
+    14.632,
+    -65.688
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  }
+ ]
+}

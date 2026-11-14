@@ -1,0 +1,7 @@
+{
+ "_note": "Hospital (to1-custom-map-1) props, built into tools/features/levels/to1-pvp-hospital-ingame.pak by: pwsh tools/maps/make_map_pak.ps1 -Template <that pak> -Spec tools/maps/data/hospital-props.json -Out <that pak> (props only: every spawner of the template is kept). Their actor lines go into pak68.txt via dc_data_patches.patch_hospital_map (HOSPITAL_PROPS_JSON). User 10-28: the stairwell doorway to the upper floor (EXIT sign, opening x 287.5..290.6 at z -113.25, 2.45 m high, measured in t2r-nor-hosp-infiltrate-interior-phys) had no doors - a closed double exit door, not interactable, plus an invisible 3 x 3 m panel so the scaled door's collision cannot leave side gaps.",
+ "props": [
+  {"art": "med-hos-exit-door-double-a", "pos": [289.05, 13.76, -113.25], "quat": [0.0, 0.0, 0.0, 1.0], "scale": [1.22, 1.02, 1.0]},
+  {"art": "invis-collision", "pos": [289.05, 15.26, -113.25], "quat": [0.0, 0.0, 0.0, 1.0]}
+ ]
+}

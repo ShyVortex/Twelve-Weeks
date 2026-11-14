@@ -1,0 +1,1136 @@
+[
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrma-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrma-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrma-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrma-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrma-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrma-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrma-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrma-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrma-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrma-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrma-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrma-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrmb-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrmb-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrmb-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrmb-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrmb-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrmb-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrmb-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrmb-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrmb-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrmb-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrmb-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrmb-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrmc-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrmc-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrmc-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrmc-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrmc-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrmc-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrmc-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrmc-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrmc-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrmc-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrmc-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrmc-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrmd-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrmd-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrmd-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrmd-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrmd-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrmd-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrmd-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrmd-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrmd-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrmd-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrmd-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrmd-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrfa-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrfa-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrfa-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrfa-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrfa-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrfa-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrfa-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrfa-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrfa-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrfa-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrfa-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrfa-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 4,
+  "speech": "scrfa-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-scrfa-slow-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 5,
+  "speech": "scrfa-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-scrfa-slow-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 6,
+  "speech": "scrfa-eff-gen-death-fire-slow-006",
+  "id": "t2r-vox-burn-scrfa-slow-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 7,
+  "speech": "scrfa-eff-gen-death-fire-slow-007",
+  "id": "t2r-vox-burn-scrfa-slow-07"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrfb-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrfb-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrfb-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrfb-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrfb-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrfb-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrfb-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrfb-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrfb-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrfb-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrfb-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrfb-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 4,
+  "speech": "scrfb-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-scrfb-slow-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 5,
+  "speech": "scrfb-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-scrfb-slow-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrfc-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrfc-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrfc-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrfc-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrfc-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrfc-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrfc-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrfc-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrfc-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrfc-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrfc-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrfc-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 4,
+  "speech": "scrfc-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-scrfc-slow-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 5,
+  "speech": "scrfc-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-scrfc-slow-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 6,
+  "speech": "scrfc-eff-gen-death-fire-slow-006",
+  "id": "t2r-vox-burn-scrfc-slow-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 1,
+  "speech": "scrfd-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-scrfd-fast-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 2,
+  "speech": "scrfd-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-scrfd-fast-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 3,
+  "speech": "scrfd-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-scrfd-fast-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 1,
+  "speech": "scrfd-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-scrfd-slow-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 2,
+  "speech": "scrfd-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-scrfd-slow-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 3,
+  "speech": "scrfd-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-scrfd-slow-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 4,
+  "speech": "scrfd-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-scrfd-slow-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 5,
+  "speech": "scrfd-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-scrfd-slow-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 6,
+  "speech": "scrfd-eff-gen-death-fire-slow-006",
+  "id": "t2r-vox-burn-scrfd-slow-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltma-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltma-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltma-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltma-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltma-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltma-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltma-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltma-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltma-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltma-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltma-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltma-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltma-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltma-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltma-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltma-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltmb-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltmb-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltmb-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltmb-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltmb-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltmb-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltmb-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltmb-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltmb-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltmb-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltmb-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltmb-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltmb-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltmb-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltmb-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltmb-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltmc-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltmc-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltmc-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltmc-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltmc-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltmc-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltmc-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltmc-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltmc-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltmc-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltmc-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltmc-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltmc-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltmc-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltmc-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltmc-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "speed": "slow",
+  "n": 6,
+  "speech": "mltmc-eff-gen-death-fire-slow-006",
+  "id": "t2r-vox-burn-mltmc-slow-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltmd-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltmd-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltmd-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltmd-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltmd-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltmd-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "fast",
+  "n": 4,
+  "speech": "mltmd-eff-gen-death-fire-fast-004",
+  "id": "t2r-vox-burn-mltmd-fast-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltmd-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltmd-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltmd-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltmd-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltmd-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltmd-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltmd-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltmd-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltmd-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltmd-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltfa-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltfa-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltfa-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltfa-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltfa-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltfa-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltfa-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltfa-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltfa-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltfa-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltfa-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltfa-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltfa-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltfa-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltfa-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltfa-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltfb-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltfb-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltfb-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltfb-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltfb-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltfb-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltfb-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltfb-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltfb-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltfb-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltfb-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltfb-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltfb-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltfb-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltfb-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltfb-slow-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "speed": "slow",
+  "n": 6,
+  "speech": "mltfb-eff-gen-death-fire-slow-006",
+  "id": "t2r-vox-burn-mltfb-slow-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltfc-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltfc-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltfc-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltfc-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltfc-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltfc-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltfc-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltfc-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltfc-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltfc-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltfc-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltfc-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 1,
+  "speech": "mltfd-eff-gen-death-fire-fast-001",
+  "id": "t2r-vox-burn-mltfd-fast-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 2,
+  "speech": "mltfd-eff-gen-death-fire-fast-002",
+  "id": "t2r-vox-burn-mltfd-fast-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 3,
+  "speech": "mltfd-eff-gen-death-fire-fast-003",
+  "id": "t2r-vox-burn-mltfd-fast-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "fast",
+  "n": 4,
+  "speech": "mltfd-eff-gen-death-fire-fast-004",
+  "id": "t2r-vox-burn-mltfd-fast-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 1,
+  "speech": "mltfd-eff-gen-death-fire-slow-001",
+  "id": "t2r-vox-burn-mltfd-slow-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 2,
+  "speech": "mltfd-eff-gen-death-fire-slow-002",
+  "id": "t2r-vox-burn-mltfd-slow-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 3,
+  "speech": "mltfd-eff-gen-death-fire-slow-003",
+  "id": "t2r-vox-burn-mltfd-slow-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 4,
+  "speech": "mltfd-eff-gen-death-fire-slow-004",
+  "id": "t2r-vox-burn-mltfd-slow-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "speed": "slow",
+  "n": 5,
+  "speech": "mltfd-eff-gen-death-fire-slow-005",
+  "id": "t2r-vox-burn-mltfd-slow-05"
+ }
+]

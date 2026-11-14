@@ -1,0 +1,244 @@
+{
+ "cats": [
+  "Ammo",
+  "Crafting ingredients",
+  "Throwables and utility",
+  "Health",
+  "Melee: 1h blunt",
+  "Melee: 1h blade",
+  "Melee: 2h blunt"
+ ],
+ "items": [
+  {
+   "id": "ammo-pistol",
+   "cat": 0,
+   "label": "9mm / pistol ammo (tray)",
+   "art": "gun-ammo-tray-pistol-look",
+   "count": 6
+  },
+  {
+   "id": "ammo-revolver",
+   "cat": 0,
+   "label": "Revolver ammo (tray)",
+   "art": "gun-ammo-tray-revolver-look",
+   "count": 5
+  },
+  {
+   "id": "ammo-revolver-joel",
+   "cat": 0,
+   "label": "Revolver ammo (Joel, tray)",
+   "art": "gun-ammo-tray-revolver-look",
+   "count": 5
+  },
+  {
+   "id": "ammo-rifle",
+   "cat": 0,
+   "label": "Rifle ammo (hunting / M14, boxed)",
+   "art": "rifle-ammo-box",
+   "count": 4
+  },
+  {
+   "id": "ammo-rifle-vepr",
+   "cat": 0,
+   "label": "Rifle ammo (Vepr, boxed)",
+   "art": "rifle-ammo-box",
+   "count": 5
+  },
+  {
+   "id": "ammo-rifle-mpx5",
+   "cat": 0,
+   "label": "Rifle ammo (MPX5 / burst, boxed)",
+   "art": "rifle-ammo-box",
+   "count": 8
+  },
+  {
+   "id": "ammo-shotgun",
+   "cat": 0,
+   "label": "Shotgun shells (boxed)",
+   "art": "shotgun-ammo-box",
+   "count": 4
+  },
+  {
+   "id": "ammo-shotgun-baserri",
+   "cat": 0,
+   "label": "Shotgun shells (over-under, boxed)",
+   "art": "shotgun-ammo-box",
+   "count": 4
+  },
+  {
+   "id": "ammo-arrow",
+   "cat": 0,
+   "label": "Arrows",
+   "art": "arrow-ammo-arrow",
+   "count": 3
+  },
+  {
+   "id": "ammo-crossbow",
+   "cat": 0,
+   "label": "Crossbow bolts",
+   "art": "arrow-ammo-crossbow",
+   "count": 3
+  },
+  {
+   "id": "alcohol",
+   "cat": 1,
+   "label": "Alcohol",
+   "art": "alcohol-booze",
+   "count": 2
+  },
+  {
+   "id": "rag",
+   "cat": 1,
+   "label": "Rag",
+   "art": "rag-cloth",
+   "count": 2
+  },
+  {
+   "id": "canister",
+   "cat": 1,
+   "label": "Canister",
+   "art": "canister-metal",
+   "count": 2
+  },
+  {
+   "id": "explosive",
+   "cat": 1,
+   "label": "Explosive",
+   "art": "explosive-gunpowder-med",
+   "count": 2
+  },
+  {
+   "id": "binding",
+   "cat": 1,
+   "label": "Binding",
+   "art": "binding-duct",
+   "count": 2
+  },
+  {
+   "id": "blade",
+   "cat": 1,
+   "label": "Blade",
+   "art": "blade-simple",
+   "count": 2
+  },
+  {
+   "id": "molotov",
+   "cat": 2,
+   "label": "Molotov",
+   "art": "molotov",
+   "count": 1
+  },
+  {
+   "id": "pipe-bomb",
+   "cat": 2,
+   "label": "Pipe bomb",
+   "art": "pipe-bomb",
+   "count": 1
+  },
+  {
+   "id": "smoke-bomb",
+   "cat": 2,
+   "label": "Smoke bomb",
+   "art": "stun-bomb",
+   "count": 1
+  },
+  {
+   "id": "shiv",
+   "cat": 2,
+   "label": "Shiv",
+   "art": "knife-shiv",
+   "count": 1
+  },
+  {
+   "id": "health-kit",
+   "cat": 3,
+   "label": "Health kit",
+   "art": "medkit",
+   "count": 1
+  },
+  {
+   "id": "health-small",
+   "cat": 3,
+   "label": "Snack bar",
+   "art": "health-pickup-granolabar",
+   "count": 1
+  },
+  {
+   "id": "crowbar",
+   "cat": 4,
+   "label": "Crowbar",
+   "art": "knife-crowbar-one-hand",
+   "count": 0
+  },
+  {
+   "id": "pipe-wrench",
+   "cat": 4,
+   "label": "Pipe wrench",
+   "art": "knife-pipe-wrench",
+   "count": 0
+  },
+  {
+   "id": "hammer-modern",
+   "cat": 4,
+   "label": "Hammer",
+   "art": "knife-hammer-modern",
+   "count": 0
+  },
+  {
+   "id": "hammer-scar",
+   "cat": 4,
+   "label": "Hammer (Scar)",
+   "art": "knife-hammer-scar",
+   "count": 0
+  },
+  {
+   "id": "club-1h-police",
+   "cat": 4,
+   "label": "Police baton",
+   "art": "knife-club-1h-police",
+   "count": 0
+  },
+  {
+   "id": "club-1h-scar",
+   "cat": 4,
+   "label": "Club (Scar)",
+   "art": "knife-club-1h-scar",
+   "count": 0
+  },
+  {
+   "id": "tomahawk",
+   "cat": 5,
+   "label": "Tomahawk",
+   "art": "knife-hatchet",
+   "count": 0
+  },
+  {
+   "id": "hatchet",
+   "cat": 5,
+   "label": "Hatchet",
+   "art": "knife-hatchet-modern",
+   "count": 0
+  },
+  {
+   "id": "two-by-four",
+   "cat": 6,
+   "label": "2x4",
+   "art": "two-hand-melee-two-by-four",
+   "count": 0
+  },
+  {
+   "id": "baseball-bat",
+   "cat": 6,
+   "label": "Baseball bat",
+   "art": "two-hand-melee-baseball-bat",
+   "count": 0
+  },
+  {
+   "id": "lead-pipe",
+   "cat": 6,
+   "label": "Lead pipe",
+   "art": "two-hand-melee-lead-pipe",
+   "count": 0
+  }
+ ]
+}

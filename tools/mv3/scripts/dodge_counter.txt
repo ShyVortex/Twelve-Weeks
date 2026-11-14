@@ -1,0 +1,8 @@
+# A swings, B dodges back in the windup, A misses, B counters. simtest run scripts/dodge_counter.txt [-v]
+seed 1
+fighter 1 0 0 0 0
+fighter 2 1 0 1000 18000
+tap 1 0 atk
+tap 5 1 dodge
+tap 14 1 atk
+run 90

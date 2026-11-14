@@ -1,0 +1,374 @@
+{
+ "capitol-shops": {
+  "collectible_spawners": {
+   "wat-accessibility": 1,
+   "wat-capitol-hill-int-bank": 1,
+   "wat-capitol-hill-int-grocery": 7,
+   "wat-capitol-hill-int-sandwich": 3
+  },
+  "other_parked_spawners": {
+   "wat-capitol-hill-main-olive-st-b": 1,
+   "wat-explore-checkpoint": 5
+  },
+  "workbench": []
+ },
+ "into-the-city": {
+  "collectible_spawners": {},
+  "other_parked_spawners": {
+   "flo-convention-center-low": 1,
+   "flo-convention-center-tunnel-low": 30,
+   "flo-into-the-city-low": 5
+  },
+  "workbench": [
+   {
+    "kind": "bench",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.41,
+     27.02,
+     589.76
+    ],
+    "proto": "flo-cc-workbench-a.ma"
+   },
+   {
+    "kind": "bench",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.39,
+     28.03,
+     589.57
+    ],
+    "proto": "pat-workbench-parts-bin.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.33,
+     28.65,
+     590.49
+    ],
+    "proto": "flo-bs-condiment-bin-b.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.26,
+     28.4,
+     589.16
+    ],
+    "proto": "fob-tool-screwdrivers-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     240.72,
+     28.03,
+     588.96
+    ],
+    "proto": "pat-computer-parts-a-mod.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.23,
+     28.65,
+     589.98
+    ],
+    "proto": "pat-computer-parts-a-mod.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.23,
+     28.65,
+     590.11
+    ],
+    "proto": "pat-computer-parts-a-mod.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.23,
+     28.03,
+     590.36
+    ],
+    "proto": "pat-current-tester.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     240.73,
+     28.03,
+     589.79
+    ],
+    "proto": "pat-electricians-tools-mod.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.35,
+     28.65,
+     588.77
+    ],
+    "proto": "plastic-crate-set-a-rounded.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "flo-into-the-city",
+    "pos": [
+     241.19,
+     28.39,
+     589.22
+    ],
+    "proto": "tool-bike-hex-a.ma"
+   }
+  ]
+ },
+ "overpass": {
+  "collectible_spawners": {},
+  "other_parked_spawners": {},
+  "workbench": [
+   {
+    "kind": "bench",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -220.94,
+     22.54,
+     -378.1
+    ],
+    "proto": "afm-radiotower-workbench.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.77,
+     23.54,
+     -378.71
+    ],
+    "proto": "ham-radio.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.82,
+     23.5,
+     -380.23
+    ],
+    "proto": "power-tools-a-drill.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.67,
+     24.07,
+     -379.64
+    ],
+    "proto": "power-tools-a-drill.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.77,
+     24.1,
+     -379.44
+    ],
+    "proto": "power-tools-a-jigsaw.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.64,
+     23.55,
+     -378.35
+    ],
+    "proto": "radio-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.76,
+     23.7,
+     -378.06
+    ],
+    "proto": "san-outpost-radio-clipboard.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.74,
+     23.71,
+     -378.1
+    ],
+    "proto": "san-outpost-radio-clipboard.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.64,
+     24.06,
+     -378.34
+    ],
+    "proto": "tool-bike-brush-set-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.14,
+     23.58,
+     -378.21
+    ],
+    "proto": "tool-bike-fold-up-hex-set.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.68,
+     24.01,
+     -378.96
+    ],
+    "proto": "tool-bike-lube-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.73,
+     24.01,
+     -378.9
+    ],
+    "proto": "tool-bike-oil-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.83,
+     24.01,
+     -378.96
+    ],
+    "proto": "tool-bike-oil-b.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.64,
+     24.27,
+     -379.82
+    ],
+    "proto": "tool-hammer-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.59,
+     23.57,
+     -379.46
+    ],
+    "proto": "tool-screwdriver-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "afm-scar-island-radiotower",
+    "pos": [
+     -221.52,
+     23.55,
+     -378.49
+    ],
+    "proto": "tool-wrench-variable-a.ma"
+   }
+  ]
+ },
+ "train-station": {
+  "collectible_spawners": {
+   "san-resort-fence": 1
+  },
+  "other_parked_spawners": {},
+  "workbench": []
+ },
+ "wilds-houses": {
+  "collectible_spawners": {},
+  "other_parked_spawners": {},
+  "workbench": [
+   {
+    "kind": "bench",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -96.96,
+     46.34,
+     -183.91
+    ],
+    "proto": "san-mansion-kitchen-workbench.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -97.48,
+     46.59,
+     -183.24
+    ],
+    "proto": "san-baking-set.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -96.84,
+     46.59,
+     -183.74
+    ],
+    "proto": "san-baking-set.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -97.04,
+     47.89,
+     -182.82
+    ],
+    "proto": "san-mansion-cook-book-set.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -97.64,
+     47.89,
+     -182.35
+    ],
+    "proto": "san-mansion-metal-canister-set-a.ma"
+   },
+   {
+    "kind": "dressing",
+    "level": "san-infected-wilds-mansion-detail",
+    "pos": [
+     -97.1,
+     47.13,
+     -183.76
+    ],
+    "proto": "san-mansion-mitts-set.ma"
+   }
+  ]
+ }
+}

@@ -1,0 +1,14 @@
+## Game text table strings our build REWRITES (backpack recipe cards, item descriptions, impaled prompt) - Polish table gets the same multiplayer meaning
+Grants the ability to craft <font face="default" color="t2-menu-description-bold">Molotovs</font>. Bursts on impact: kills within 1.6 m, then burns. => Pozwala tworzyć <font face="default" color="t2-menu-description-bold">koktajle Mołotowa</font>. Pęka przy uderzeniu: zabija w promieniu 1,6 m, a następnie wywołuje pożar.
+Grants the ability to craft <font face="default" color="t2-menu-description-bold">Shivs</font>. A shiv kills an unaware enemy from behind, or a stunned one. Used up on the kill. => Pozwala tworzyć <font face="default" color="t2-menu-description-bold">ostrza</font>. Ostrze zabija nieświadomego wroga od tyłu albo ogłuszonego. Zużywa się przy zabójstwie.
+Grants the ability to craft <font face="default" color="t2-menu-description-bold">Nail Bombs</font>. Explodes 1.5 s after landing. Lethal within 2 m. => Pozwala tworzyć <font face="default" color="t2-menu-description-bold">bomby gwoździowe</font>. Wybucha 1,5 s po upadku. Zabójcza w promieniu 2 m.
+Grants the ability to craft <font face="default" color="t2-menu-description-bold">Stun Bombs</font>. Stuns all within 5.5 m after 1.5 s. No damage. => Pozwala tworzyć <font face="default" color="t2-menu-description-bold">bomby ogłuszające</font>. Po 1,5 s ogłusza wszystkich w promieniu 5,5 m. Bez obrażeń.
+Grants the ability to craft <font face="default" color="t2-menu-description-bold">Melee Upgrades</font>. Full durability. The next blow downs a target at once, free of wear. => Pozwala tworzyć <font face="default" color="t2-menu-description-bold">ulepszenia broni białej</font>. Pełna wytrzymałość. Następny cios od razu powala cel, bez zużycia.
+Kills an unaware enemy from behind, or a stunned one. Crafts 1 shiv, used up on the kill. => Zabija nieświadomego wroga od tyłu albo ogłuszonego. Tworzy 1 ostrze, zużywane przy zabójstwie.
+Explodes 1.5 s after it lands. Lethal within 2 m. Crafts 1 bomb. => Wybucha 1,5 s po upadku. Zabójcza w promieniu 2 m. Tworzy 1 bombę.
+Stuns all nearby 1.5 s after landing. => Po 1,5 s od upadku ogłusza wszystkich w pobliżu.
+Full durability, and the next blow downs at once. => Pełna wytrzymałość, a następny cios od razu powala.
+Upgrade your melee weapon: full durability, and the next blow downs your target at once. => Ulepsz swoją broń białą: pełna wytrzymałość, a następny cios od razu powala cel.
+Impaled by a crossbow bolt. Hold |gen:listen| to remove it => Trafił cię bełt z kuszy. Przytrzymaj |gen:listen|, by go wyjąć
+Impaled by a crossbow bolt. Hold  => Trafił cię bełt z kuszy. Przytrzymaj
+Impaled by a crossbow bolt => Trafił cię bełt z kuszy

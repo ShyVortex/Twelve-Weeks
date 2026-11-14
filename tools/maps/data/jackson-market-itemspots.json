@@ -1,0 +1,2364 @@
+{
+ "key": "jackson-market",
+ "map_index": 23,
+ "hand_placed": true,
+ "rule": "item spawners of the SceneEditor (tools/maps/editor_import.py): ISP_FILL_PCT % filled, weighted pick of one item, back after ISP_RESPAWN_S",
+ "spots": [
+  {
+   "pos": [
+    -529.625,
+    18.826,
+    299.625
+   ],
+   "quat": [
+    0.0,
+    0.381836,
+    0.0,
+    0.92423
+   ],
+   "items": [
+    {
+     "item": "health-kit",
+     "weight": 2
+    },
+    {
+     "item": "health-small",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 45,
+   "resp": 120,
+   "surface": "shelf +0.88 m"
+  },
+  {
+   "pos": [
+    -523.875,
+    18.832,
+    301.375
+   ],
+   "quat": [
+    0.0,
+    0.7384,
+    0.0,
+    0.674363
+   ],
+   "items": [
+    {
+     "item": "molotov",
+     "weight": 2
+    },
+    {
+     "item": "smoke-bomb",
+     "weight": 2
+    },
+    {
+     "item": "shiv",
+     "weight": 2
+    },
+    {
+     "item": "pipe-bomb"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 25,
+   "resp": 150,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -522.625,
+    18.836,
+    307.375
+   ],
+   "quat": [
+    0.0,
+    0.886683,
+    0.0,
+    0.462378
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.002,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -512.375,
+    18.501,
+    299.375
+   ],
+   "quat": [
+    0.0,
+    0.98264,
+    0.0,
+    0.18552
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +0.58 m"
+  },
+  {
+   "pos": [
+    -517.875,
+    18.836,
+    303.375
+   ],
+   "quat": [
+    -0.000827,
+    0.410671,
+    0.000571,
+    0.911783
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.009,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -514.125,
+    18.834,
+    307.875
+   ],
+   "quat": [
+    -0.007414,
+    0.903708,
+    -0.008528,
+    0.428
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.003,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -519.125,
+    18.836,
+    307.375
+   ],
+   "quat": [
+    -0.00101,
+    -0.00723,
+    0.002087,
+    0.999971
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.01,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -521.625,
+    19.278,
+    303.875
+   ],
+   "quat": [
+    0.0,
+    -0.743087,
+    0.0,
+    0.669195
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.002,
+   "surface": "shelf +1.35 m"
+  },
+  {
+   "pos": [
+    -524.875,
+    18.833,
+    298.625
+   ],
+   "quat": [
+    0.0,
+    -0.876219,
+    0.0,
+    0.481913
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.002,
+   "surface": "shelf +0.89 m"
+  },
+  {
+   "pos": [
+    -523.625,
+    18.834,
+    309.375
+   ],
+   "quat": [
+    -0.000826,
+    -0.006668,
+    -0.005395,
+    0.999963
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.007,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -514.875,
+    18.834,
+    306.125
+   ],
+   "quat": [
+    -0.005671,
+    0.696682,
+    0.006808,
+    0.717325
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.016,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -520.875,
+    18.836,
+    306.875
+   ],
+   "quat": [
+    0.0,
+    -0.158472,
+    0.0,
+    0.987363
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "hunting store",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.002,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -505.625,
+    18.907,
+    292.625
+   ],
+   "quat": [
+    0.0,
+    0.539211,
+    0.0,
+    0.842171
+   ],
+   "items": [
+    {
+     "item": "health-kit",
+     "weight": 2
+    },
+    {
+     "item": "health-small",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "fill": 45,
+   "resp": 120,
+   "dy": 0.017,
+   "surface": "shelf +0.98 m"
+  },
+  {
+   "pos": [
+    -505.625,
+    18.408,
+    299.125
+   ],
+   "quat": [
+    0.0,
+    -0.9235,
+    0.0,
+    0.383599
+   ],
+   "items": [
+    {
+     "item": "molotov",
+     "weight": 2
+    },
+    {
+     "item": "smoke-bomb",
+     "weight": 2
+    },
+    {
+     "item": "shiv",
+     "weight": 2
+    },
+    {
+     "item": "pipe-bomb"
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "fill": 25,
+   "resp": 150,
+   "surface": "shelf +0.48 m"
+  },
+  {
+   "pos": [
+    -496.625,
+    18.799,
+    289.625
+   ],
+   "quat": [
+    0.0,
+    0.996054,
+    0.0,
+    0.088755
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +0.87 m"
+  },
+  {
+   "pos": [
+    -504.375,
+    18.544,
+    290.125
+   ],
+   "quat": [
+    0.0,
+    0.85564,
+    0.0,
+    0.517571
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.003,
+   "surface": "shelf +0.62 m"
+  },
+  {
+   "pos": [
+    -494.625,
+    18.777,
+    287.875
+   ],
+   "quat": [
+    0.0,
+    0.658776,
+    0.0,
+    0.752339
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.013,
+   "surface": "shelf +0.79 m"
+  },
+  {
+   "pos": [
+    -494.875,
+    18.799,
+    289.625
+   ],
+   "quat": [
+    0.0,
+    0.77188,
+    0.0,
+    0.635768
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +0.87 m"
+  },
+  {
+   "pos": [
+    -524.125,
+    18.884,
+    292.375
+   ],
+   "quat": [
+    -0.000492,
+    -0.940241,
+    0.001008,
+    0.340509
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "courtyard",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.006,
+   "surface": "shelf +0.82 m"
+  },
+  {
+   "pos": [
+    -520.375,
+    18.85,
+    286.125
+   ],
+   "quat": [
+    -0.003697,
+    -0.139921,
+    0.000497,
+    0.990156
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "courtyard",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.003,
+   "surface": "shelf +0.81 m"
+  },
+  {
+   "pos": [
+    -523.625,
+    18.858,
+    294.125
+   ],
+   "quat": [
+    0.011728,
+    -0.505487,
+    -0.00766,
+    0.862721
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "courtyard",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.011,
+   "surface": "shelf +0.87 m"
+  },
+  {
+   "pos": [
+    -521.625,
+    18.477,
+    272.875
+   ],
+   "quat": [
+    0.0,
+    0.999718,
+    0.0,
+    0.023731
+   ],
+   "items": [
+    {
+     "item": "health-kit",
+     "weight": 2
+    },
+    {
+     "item": "health-small",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "fill": 45,
+   "resp": 120,
+   "dy": -0.026,
+   "surface": "shelf +0.60 m"
+  },
+  {
+   "pos": [
+    -514.125,
+    19.156,
+    272.625
+   ],
+   "quat": [
+    0.0,
+    -0.564608,
+    0.0,
+    0.825359
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +1.28 m"
+  },
+  {
+   "pos": [
+    -512.875,
+    18.778,
+    278.625
+   ],
+   "quat": [
+    0.0,
+    0.775517,
+    0.0,
+    0.631327
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +0.90 m"
+  },
+  {
+   "pos": [
+    -511.125,
+    18.982,
+    268.875
+   ],
+   "quat": [
+    0.025741,
+    -0.866135,
+    0.013778,
+    0.498956
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.014,
+   "surface": "shelf +0.71 m"
+  },
+  {
+   "pos": [
+    -512.125,
+    18.778,
+    277.125
+   ],
+   "quat": [
+    0.0,
+    0.290104,
+    0.0,
+    0.956995
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +0.90 m"
+  },
+  {
+   "pos": [
+    -531.264,
+    19.092,
+    268.912
+   ],
+   "quat": [
+    0.022981,
+    -0.462607,
+    0.043973,
+    0.885174
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "ammo-rifle"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.013,
+   "surface": "low +0.30 m"
+  },
+  {
+   "pos": [
+    -531.323,
+    18.897,
+    266.831
+   ],
+   "quat": [
+    0.016421,
+    -0.330554,
+    0.04682,
+    0.942482
+   ],
+   "items": [
+    {
+     "item": "molotov",
+     "weight": 2
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "shiv",
+     "weight": 2
+    },
+    {
+     "item": "smoke-bomb",
+     "weight": 2
+    }
+   ],
+   "group": "loot",
+   "room": "store hall west",
+   "fill": 25,
+   "resp": 150,
+   "surface": "low +0.30 m"
+  },
+  {
+   "pos": [
+    -515.625,
+    18.64,
+    239.625
+   ],
+   "quat": [
+    0.0,
+    0.243694,
+    0.0,
+    0.969852
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.014,
+   "surface": "shelf +0.76 m"
+  },
+  {
+   "pos": [
+    -511.625,
+    18.856,
+    255.625
+   ],
+   "quat": [
+    0.000319,
+    0.057068,
+    1.8e-05,
+    0.99837
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": -0.01,
+   "surface": "shelf +0.98 m"
+  },
+  {
+   "pos": [
+    -515.875,
+    18.856,
+    261.125
+   ],
+   "quat": [
+    -0.00799,
+    0.815535,
+    0.010377,
+    0.578559
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.025,
+   "surface": "shelf +0.86 m"
+  },
+  {
+   "pos": [
+    -515.875,
+    18.856,
+    265.875
+   ],
+   "quat": [
+    0.000782,
+    0.011639,
+    0.014482,
+    0.999827
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.024,
+   "surface": "shelf +0.91 m"
+  },
+  {
+   "pos": [
+    -510.125,
+    18.856,
+    257.125
+   ],
+   "quat": [
+    0.006295,
+    -0.937538,
+    0.032655,
+    0.346289
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.047,
+   "surface": "shelf +0.98 m"
+  },
+  {
+   "pos": [
+    -512.125,
+    18.856,
+    257.375
+   ],
+   "quat": [
+    -0.011058,
+    -0.915825,
+    0.031201,
+    0.400212
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.042,
+   "surface": "shelf +0.98 m"
+  },
+  {
+   "pos": [
+    -508.823,
+    18.917,
+    261.298
+   ],
+   "quat": [
+    -0.034021,
+    0.632961,
+    -0.031929,
+    0.772777
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "ammo-rifle"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "surface": "low +0.34 m"
+  },
+  {
+   "pos": [
+    -476.125,
+    19.103,
+    266.875
+   ],
+   "quat": [
+    -0.005963,
+    0.994575,
+    0.001482,
+    0.103837
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.007,
+   "surface": "shelf +1.26 m"
+  },
+  {
+   "pos": [
+    -492.875,
+    18.744,
+    267.875
+   ],
+   "quat": [
+    0.037116,
+    -0.658549,
+    0.066702,
+    0.748657
+   ],
+   "items": [
+    {
+     "item": "rag",
+     "weight": 4
+    },
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "ammo-pistol"
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.027,
+   "surface": "shelf +0.35 m"
+  },
+  {
+   "pos": [
+    -476.53,
+    19.114,
+    266.993
+   ],
+   "quat": [
+    -0.050357,
+    0.773438,
+    -0.064461,
+    0.628572
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "surface": "shelf +1.36 m"
+  },
+  {
+   "pos": [
+    -497.074,
+    18.904,
+    282.697
+   ],
+   "quat": [
+    -0.002282,
+    -0.081899,
+    -0.01488,
+    0.996527
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 4
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "health-small"
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -511.015,
+    19.191,
+    272.784
+   ],
+   "quat": [
+    0.0,
+    -0.358575,
+    0.0,
+    0.933501
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "store back rooms",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -519.753,
+    18.8,
+    279.741
+   ],
+   "quat": [
+    0.0,
+    -0.72383,
+    0.0,
+    0.689978
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "courtyard",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -531.394,
+    19.115,
+    255.496
+   ],
+   "quat": [
+    0.0,
+    0.978793,
+    0.0,
+    0.204854
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "store hall west",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -513.246,
+    18.681,
+    243.789
+   ],
+   "quat": [
+    0.0,
+    -0.104145,
+    0.0,
+    0.994562
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "ammo-rifle"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -523.059,
+    19.155,
+    244.238
+   ],
+   "quat": [
+    -0.0,
+    -0.707107,
+    -0.0,
+    0.707107
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "store hall east",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -502.262,
+    19.173,
+    278.734
+   ],
+   "quat": [
+    0.028408,
+    0.698082,
+    -0.02053,
+    0.715159
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "ammo-rifle"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "post office",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -494.201,
+    18.853,
+    262.553
+   ],
+   "quat": [
+    0.021831,
+    0.085892,
+    -0.056129,
+    0.994483
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "offset": [
+      0.015,
+      -0.003,
+      -0.088
+     ],
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol"
+    },
+    {
+     "item": "ammo-rifle"
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "offset": [
+      0.033,
+      -0.006,
+      -0.189
+     ],
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "offset": [
+      -0.018,
+      0.003,
+      0.1
+     ],
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 4
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -494.065,
+    18.822,
+    262.968
+   ],
+   "quat": [
+    -0.044545,
+    0.618884,
+    0.036767,
+    0.783356
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "shared": true,
+   "fill": 30,
+   "resp": 90
+  },
+  {
+   "pos": [
+    -492.746,
+    18.756,
+    267.453
+   ],
+   "quat": [
+    -0.036973,
+    -0.606474,
+    -0.056451,
+    0.792234
+   ],
+   "items": [
+    {
+     "item": "alcohol",
+     "weight": 3
+    },
+    {
+     "item": "ammo-pistol",
+     "weight": 2
+    },
+    {
+     "item": "ammo-rifle",
+     "weight": 2
+    },
+    {
+     "item": "binding",
+     "weight": 3
+    },
+    {
+     "item": "blade",
+     "weight": 3
+    },
+    {
+     "item": "canister",
+     "weight": 2
+    },
+    {
+     "item": "explosive",
+     "weight": 2
+    },
+    {
+     "item": "rag",
+     "weight": 3
+    }
+   ],
+   "group": "loot",
+   "room": "lot south",
+   "shared": true,
+   "fill": 30,
+   "resp": 90,
+   "dy": 0.018
+  }
+ ]
+}

@@ -1,0 +1,5307 @@
+{
+ "_doc": [
+  "Door / garage-door objects per MP map: what the editor draws (baked leaves of the SP render paks) vs what the game has.",
+  "kind baked = prop instance in <level>.pak (matrix at pak offset; world center/size in m); process = spawner of <level>-ingame.pak (AnalogDoor / DoorwayProcess / SimpleObject door actor), NOT drawn by the editor.",
+  "in_game: removed (a level edit hid it; the editor geometry already applies it), closed (baked leaf with solid collision), no-collision (baked leaf is drawn but nothing blocks: passable), present (process door spawns in the match, initial state closed/idle), parked (spawner parked below the map), unknown.",
+  "editor_action: none everywhere - no door pose could be extracted and nothing proves a baked leaf is hidden/posed in game (re/door-states-1102.md). 'verify' = a baked leaf and a process door sit in the same doorway: check in game which one the player sees.",
+  "p1-bookstore: Part I conversion, no TLOU2 door props / spawners (empty list).",
+  "Generated 11-02 by an offline scan (level_edit.find_instances + Havok collision inside the leaf box + spawner dumps of the -ingame paks)."
+ ],
+ "maps": {
+  "train-station": [
+   {
+    "name": "rolling-garage-door-a",
+    "pak": "san-resort-fence",
+    "offset": "0x235930",
+    "kind": "baked",
+    "center": [
+     -39.44,
+     6.0,
+     64.13
+    ],
+    "size": [
+     2.2,
+     3.45,
+     4.94
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 531 solid collision triangles inside its box (tags ['1025', '1217', '129', '1345'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-right",
+    "pak": "san-resort-fence",
+    "offset": "0x2362c0",
+    "kind": "baked",
+    "center": [
+     -33.7,
+     3.86,
+     120.65
+    ],
+    "size": [
+     0.66,
+     2.4,
+     1.31
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 53 solid collision triangles inside its box (tags ['1665', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-g-left",
+    "pak": "san-resort-fence",
+    "offset": "0x2363d0",
+    "kind": "baked",
+    "center": [
+     -50.25,
+     5.45,
+     97.34
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-train-station-door-a-left",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d4610",
+    "kind": "baked",
+    "center": [
+     -98.65,
+     5.53,
+     207.04
+    ],
+    "size": [
+     0.53,
+     2.39,
+     1.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 37 solid collision triangles inside its box (tags ['1', '321', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-train-station-door-a-right",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d4a50",
+    "kind": "baked",
+    "center": [
+     -105.48,
+     4.37,
+     228.08
+    ],
+    "size": [
+     2.37,
+     0.15,
+     2.7
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 77 solid collision triangles inside its box (tags ['129', '1409', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-train-station-door-a-right",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d4b60",
+    "kind": "baked",
+    "center": [
+     -109.39,
+     4.37,
+     212.48
+    ],
+    "size": [
+     2.37,
+     0.11,
+     2.69
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 50 solid collision triangles inside its box (tags ['1', '129', '1345', '1729'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-train-station-door-a-right",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d4c70",
+    "kind": "baked",
+    "center": [
+     -98.63,
+     4.36,
+     210.98
+    ],
+    "size": [
+     1.76,
+     0.13,
+     2.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 35 solid collision triangles inside its box (tags ['1', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-parking-booth-gate-a",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d63d0",
+    "kind": "baked",
+    "center": [
+     -134.28,
+     6.09,
+     229.31
+    ],
+    "size": [
+     1.36,
+     3.44,
+     0.88
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 182 solid collision triangles inside its box (tags ['449', '513', '577', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-parking-booth-gate-a",
+    "pak": "san-streets-train-station",
+    "offset": "0x5d64e0",
+    "kind": "baked",
+    "center": [
+     -130.18,
+     4.78,
+     228.04
+    ],
+    "size": [
+     4.64,
+     1.41,
+     3.71
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 194 solid collision triangles inside its box (tags ['1', '257', '513', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-right",
+    "pak": "san-streets-train-station",
+    "offset": "0x5ed150",
+    "kind": "baked",
+    "center": [
+     -64.94,
+     5.2,
+     135.51
+    ],
+    "size": [
+     0.71,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 30 solid collision triangles inside its box (tags ['129', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-right",
+    "pak": "san-streets-train-station",
+    "offset": "0x5ed260",
+    "kind": "baked",
+    "center": [
+     -72.69,
+     5.2,
+     144.84
+    ],
+    "size": [
+     1.17,
+     2.37,
+     1.01
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 33 solid collision triangles inside its box (tags ['321', '65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-g-left",
+    "pak": "san-streets-train-station",
+    "offset": "0x5ed370",
+    "kind": "baked",
+    "center": [
+     -47.32,
+     4.42,
+     191.87
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 28 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-wood-set-a-mens",
+    "pak": "san-streets-train-station",
+    "offset": "0x5ed480",
+    "kind": "baked",
+    "center": [
+     -111.64,
+     5.53,
+     227.49
+    ],
+    "size": [
+     1.42,
+     2.4,
+     1.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 34 solid collision triangles inside its box (tags ['1', '449', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-wood-set-a-womens",
+    "pak": "san-streets-train-station",
+    "offset": "0x5ed590",
+    "kind": "baked",
+    "center": [
+     -114.43,
+     5.53,
+     226.18
+    ],
+    "size": [
+     0.62,
+     2.37,
+     1.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 30 solid collision triangles inside its box (tags ['1', '449', '705'])",
+    "editor_action": "none"
+   }
+  ],
+  "hospital-ellie": [
+   {
+    "name": "nor-hosp-approach-pharmacy-door",
+    "pak": "nor-hosp-infiltrate-buildings",
+    "offset": "0x147da0",
+    "kind": "baked",
+    "center": [
+     148.09,
+     16.01,
+     -68.66
+    ],
+    "size": [
+     1.25,
+     2.4,
+     0.05
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 26 solid collision triangles inside its box (tags ['129', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-approach-pharmacy-door",
+    "pak": "nor-hosp-infiltrate-buildings",
+    "offset": "0x147eb0",
+    "kind": "baked",
+    "center": [
+     145.31,
+     16.01,
+     -68.66
+    ],
+    "size": [
+     1.25,
+     2.4,
+     0.05
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 26 solid collision triangles inside its box (tags ['129', '193', '385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3370",
+    "kind": "baked",
+    "center": [
+     284.37,
+     14.96,
+     -92.44
+    ],
+    "size": [
+     4.94,
+     2.41,
+     0.29
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 27 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3480",
+    "kind": "baked",
+    "center": [
+     258.48,
+     14.96,
+     -104.04
+    ],
+    "size": [
+     4.77,
+     2.41,
+     0.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 6 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3590",
+    "kind": "baked",
+    "center": [
+     281.81,
+     14.96,
+     -87.41
+    ],
+    "size": [
+     0.29,
+     2.41,
+     4.94
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 32 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e36a0",
+    "kind": "baked",
+    "center": [
+     227.75,
+     14.96,
+     -110.85
+    ],
+    "size": [
+     4.31,
+     2.41,
+     0.95
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 28 solid collision triangles inside its box (tags ['1', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e37b0",
+    "kind": "baked",
+    "center": [
+     231.17,
+     14.96,
+     -112.11
+    ],
+    "size": [
+     0.77,
+     2.41,
+     2.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 13 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e38c0",
+    "kind": "baked",
+    "center": [
+     231.62,
+     14.96,
+     -105.67
+    ],
+    "size": [
+     2.01,
+     2.41,
+     2.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 32 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e39d0",
+    "kind": "baked",
+    "center": [
+     227.73,
+     14.96,
+     -116.85
+    ],
+    "size": [
+     2.52,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 26 solid collision triangles inside its box (tags ['1', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3ae0",
+    "kind": "baked",
+    "center": [
+     246.93,
+     14.96,
+     -115.5
+    ],
+    "size": [
+     2.52,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3bf0",
+    "kind": "baked",
+    "center": [
+     279.05,
+     13.93,
+     -70.04
+    ],
+    "size": [
+     0.23,
+     2.41,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-i",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e3d00",
+    "kind": "baked",
+    "center": [
+     279.05,
+     13.93,
+     -58.87
+    ],
+    "size": [
+     0.23,
+     2.41,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 106 solid collision triangles inside its box (tags ['1', '1729'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e4be0",
+    "kind": "baked",
+    "center": [
+     263.73,
+     14.95,
+     -113.34
+    ],
+    "size": [
+     1.26,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['1', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e4cf0",
+    "kind": "baked",
+    "center": [
+     288.3,
+     14.95,
+     -99.18
+    ],
+    "size": [
+     0.23,
+     2.41,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['129', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e4e00",
+    "kind": "baked",
+    "center": [
+     292.98,
+     14.95,
+     -105.54
+    ],
+    "size": [
+     0.23,
+     2.41,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['65', '961'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e4f10",
+    "kind": "baked",
+    "center": [
+     292.98,
+     14.95,
+     -111.12
+    ],
+    "size": [
+     0.23,
+     2.41,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5020",
+    "kind": "baked",
+    "center": [
+     288.59,
+     14.95,
+     -89.36
+    ],
+    "size": [
+     0.23,
+     2.41,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5130",
+    "kind": "baked",
+    "center": [
+     278.31,
+     14.96,
+     -108.07
+    ],
+    "size": [
+     1.28,
+     2.41,
+     0.39
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 99 solid collision triangles inside its box (tags ['129', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5240",
+    "kind": "baked",
+    "center": [
+     281.04,
+     14.96,
+     -96.91
+    ],
+    "size": [
+     1.16,
+     2.41,
+     0.92
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 125 solid collision triangles inside its box (tags ['129', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5350",
+    "kind": "baked",
+    "center": [
+     264.95,
+     14.96,
+     -108.09
+    ],
+    "size": [
+     1.28,
+     2.41,
+     0.34
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 99 solid collision triangles inside its box (tags ['1', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5460",
+    "kind": "baked",
+    "center": [
+     263.4,
+     20.02,
+     -82.87
+    ],
+    "size": [
+     1.26,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5570",
+    "kind": "baked",
+    "center": [
+     277.28,
+     14.96,
+     -80.43
+    ],
+    "size": [
+     0.23,
+     2.41,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['1', '129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-infiltrate-interior",
+    "offset": "0x3e5680",
+    "kind": "baked",
+    "center": [
+     251.27,
+     20.02,
+     -98.29
+    ],
+    "size": [
+     1.05,
+     2.41,
+     1.06
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 20 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-infiltrate-swim-gate-approach",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5a9a70",
+    "kind": "baked",
+    "center": [
+     197.1,
+     11.61,
+     -101.45
+    ],
+    "size": [
+     33.61,
+     4.91,
+     48.02
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 30525 solid collision triangles inside its box (tags ['1', '1025', '1089', '1153'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-infiltrate-wire-gate-door-a",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5af900",
+    "kind": "baked",
+    "center": [
+     213.91,
+     14.18,
+     -84.8
+    ],
+    "size": [
+     0.11,
+     2.84,
+     3.5
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 70 solid collision triangles inside its box (tags ['1857', '193', '1985'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-infiltrate-wire-gate-single-door-a",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5b0180",
+    "kind": "baked",
+    "center": [
+     213.88,
+     14.15,
+     -103.1
+    ],
+    "size": [
+     0.18,
+     2.35,
+     1.29
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['1921', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-main-lobby-single-door-l",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5b9db0",
+    "kind": "baked",
+    "center": [
+     253.35,
+     14.97,
+     -86.4
+    ],
+    "size": [
+     0.22,
+     2.41,
+     1.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-main-lobby-single-door-l",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5b9ec0",
+    "kind": "baked",
+    "center": [
+     227.47,
+     14.98,
+     -102.87
+    ],
+    "size": [
+     1.25,
+     2.41,
+     0.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 38 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-main-lobby-single-door-r",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5b9fd0",
+    "kind": "baked",
+    "center": [
+     253.89,
+     14.96,
+     -83.1
+    ],
+    "size": [
+     0.56,
+     2.41,
+     1.18
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 84 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-main-lobby-single-door-r",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5ba0e0",
+    "kind": "baked",
+    "center": [
+     228.76,
+     14.97,
+     -102.86
+    ],
+    "size": [
+     1.25,
+     2.41,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 32 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-slide-glass-door-b",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5ba410",
+    "kind": "baked",
+    "center": [
+     251.62,
+     14.95,
+     -42.14
+    ],
+    "size": [
+     0.18,
+     2.38,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 110 solid collision triangles inside its box (tags ['1665', '1985', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-slide-glass-door-b",
+    "pak": "nor-hosp-infiltrate-street",
+    "offset": "0x5ba520",
+    "kind": "baked",
+    "center": [
+     251.62,
+     14.95,
+     -43.37
+    ],
+    "size": [
+     0.18,
+     2.38,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 102 solid collision triangles inside its box (tags ['1985', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-crawl-vent-door-a",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x11fcd0",
+    "kind": "baked",
+    "center": [
+     309.68,
+     21.52,
+     -103.14
+    ],
+    "size": [
+     0.11,
+     1.39,
+     1.21
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "nor-hosp-crawl-vent-door-a",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x11fde0",
+    "kind": "baked",
+    "center": [
+     304.49,
+     22.4,
+     -101.5
+    ],
+    "size": [
+     0.05,
+     0.5,
+     0.81
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-c",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x122750",
+    "kind": "baked",
+    "center": [
+     281.87,
+     19.97,
+     -108.53
+    ],
+    "size": [
+     2.52,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 34 solid collision triangles inside its box (tags ['1537', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-toilet-door-female",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x122db0",
+    "kind": "baked",
+    "center": [
+     290.07,
+     19.97,
+     -100.79
+    ],
+    "size": [
+     0.08,
+     2.41,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['1153', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-toilet-door-male",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x122ec0",
+    "kind": "baked",
+    "center": [
+     291.54,
+     19.97,
+     -99.27
+    ],
+    "size": [
+     1.27,
+     2.41,
+     0.09
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-single-plain-door-a",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x123300",
+    "kind": "baked",
+    "center": [
+     282.4,
+     19.97,
+     -113.87
+    ],
+    "size": [
+     1.27,
+     2.41,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-slide-glass-door-b",
+    "pak": "nor-hosp-traverse-to-nora",
+    "offset": "0x123630",
+    "kind": "baked",
+    "center": [
+     307.05,
+     20.81,
+     -99.27
+    ],
+    "size": [
+     0.32,
+     1.9,
+     1.17
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 112 solid collision triangles inside its box (tags ['1345', '257', '769', '833'])",
+    "editor_action": "none"
+   }
+  ],
+  "wilds-houses": [
+   {
+    "name": "san-mansion-door-b-a",
+    "pak": "san-infected-wilds-mansion-detail",
+    "offset": "0x1d9a90",
+    "kind": "baked",
+    "center": [
+     -105.76,
+     47.5,
+     -196.85
+    ],
+    "size": [
+     0.28,
+     2.32,
+     0.71
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 1 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-door-b-b",
+    "pak": "san-infected-wilds-mansion-detail",
+    "offset": "0x1d9ba0",
+    "kind": "baked",
+    "center": [
+     -105.88,
+     47.5,
+     -196.17
+    ],
+    "size": [
+     0.28,
+     2.32,
+     0.71
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "sea-hub-hotel-hallway-door-a",
+    "pak": "san-infected-wilds-mansion-detail",
+    "offset": "0x1e46b0",
+    "kind": "baked",
+    "center": [
+     -96.62,
+     51.4,
+     -185.57
+    ],
+    "size": [
+     1.14,
+     2.4,
+     0.99
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-wrought-iron-gate-a",
+    "pak": "san-infected-wilds-mansion",
+    "offset": "0x25b1f0",
+    "kind": "baked",
+    "center": [
+     -108.21,
+     -952.09,
+     -167.77
+    ],
+    "size": [
+     6.49,
+     4.39,
+     0.2
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -952) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-door-b",
+    "pak": "san-infected-wilds-mansion",
+    "offset": "0x25e0b0",
+    "kind": "baked",
+    "center": [
+     -116.97,
+     47.52,
+     -199.52
+    ],
+    "size": [
+     1.31,
+     2.47,
+     0.44
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 52 solid collision triangles inside its box (tags ['1', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-door-b",
+    "pak": "san-infected-wilds-mansion",
+    "offset": "0x25e1c0",
+    "kind": "baked",
+    "center": [
+     -95.37,
+     47.56,
+     -183.66
+    ],
+    "size": [
+     1.12,
+     2.47,
+     1.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 52 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-front-door-a",
+    "pak": "san-infected-wilds-mansion",
+    "offset": "0x25e3e0",
+    "kind": "baked",
+    "center": [
+     -82.21,
+     47.52,
+     -197.46
+    ],
+    "size": [
+     0.41,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-patio-door-a",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51af40",
+    "kind": "baked",
+    "center": [
+     -44.12,
+     43.14,
+     -158.08
+    ],
+    "size": [
+     0.14,
+     2.4,
+     2.51
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-patio-door-a",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51b050",
+    "kind": "baked",
+    "center": [
+     -140.67,
+     42.38,
+     -127.15
+    ],
+    "size": [
+     2.51,
+     2.4,
+     0.37
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-mansion-patio-door-a",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51b160",
+    "kind": "baked",
+    "center": [
+     -134.24,
+     42.29,
+     -89.34
+    ],
+    "size": [
+     0.37,
+     2.4,
+     2.51
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-wilds-suburbs-house-mod-garage-b",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51d250",
+    "kind": "baked",
+    "center": [
+     -47.94,
+     44.09,
+     -165.69
+    ],
+    "size": [
+     7.85,
+     4.27,
+     1.2
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-wilds-suburbs-house-mod-garage-b",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51d360",
+    "kind": "baked",
+    "center": [
+     -147.9,
+     43.33,
+     -122.64
+    ],
+    "size": [
+     1.93,
+     4.27,
+     7.92
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "san-wilds-suburbs-house-mod-garage-b",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x51d470",
+    "kind": "baked",
+    "center": [
+     -138.73,
+     43.24,
+     -96.57
+    ],
+    "size": [
+     7.92,
+     4.27,
+     1.9
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-interior-d",
+    "pak": "san-infected-wilds-upper",
+    "offset": "0x53b3a0",
+    "kind": "baked",
+    "center": [
+     -55.08,
+     39.45,
+     -127.27
+    ],
+    "size": [
+     0.25,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 18 solid collision triangles inside its box (tags ['257', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-1819",
+    "pak": "san-infected-wilds-lower-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "knob-door-r",
+    "center": [
+     -63.65,
+     36.5,
+     -74.04
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-1820",
+    "pak": "san-infected-wilds-lower-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "knob-door-r",
+    "center": [
+     -59.08,
+     36.5,
+     -78.49
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   }
+  ],
+  "capitol-shops": [
+   {
+    "name": "bank-door-vault-a",
+    "pak": "wat-capitol-hill-int-bank",
+    "offset": "0xbef60",
+    "kind": "baked",
+    "center": [
+     -108.0,
+     -7.39,
+     -239.3
+    ],
+    "size": [
+     1.84,
+     3.01,
+     0.34
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 40 solid collision triangles inside its box (tags ['641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-c-right",
+    "pak": "wat-capitol-hill-int-bank",
+    "offset": "0xc4bd0",
+    "kind": "baked",
+    "center": [
+     -100.19,
+     -8.85,
+     -265.08
+    ],
+    "size": [
+     2.64,
+     0.23,
+     2.5
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "grocery-storage-door-set",
+    "pak": "wat-capitol-hill-int-grocery",
+    "offset": "0x1d0390",
+    "kind": "baked",
+    "center": [
+     -58.01,
+     -6.47,
+     -281.17
+    ],
+    "size": [
+     3.27,
+     2.62,
+     3.35
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 77 solid collision triangles inside its box (tags ['129', '65', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left-keypad",
+    "pak": "wat-capitol-hill-int-grocery",
+    "offset": "0x1d6110",
+    "kind": "baked",
+    "center": [
+     -46.55,
+     -6.46,
+     -288.45
+    ],
+    "size": [
+     1.29,
+     2.4,
+     0.73
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['193', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-right-keypad",
+    "pak": "wat-capitol-hill-int-grocery",
+    "offset": "0x1d6220",
+    "kind": "baked",
+    "center": [
+     -50.13,
+     -6.46,
+     -280.42
+    ],
+    "size": [
+     1.31,
+     2.4,
+     0.36
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 28 solid collision triangles inside its box (tags ['193', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "freezer-door-a-mirrored",
+    "pak": "wat-capitol-hill-int-grocery",
+    "offset": "0x1d90e0",
+    "kind": "baked",
+    "center": [
+     -44.32,
+     -6.4,
+     -288.64
+    ],
+    "size": [
+     2.69,
+     2.53,
+     0.81
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 50 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-cabinet-wall-a-door-r-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x123170",
+    "kind": "baked",
+    "center": [
+     -54.72,
+     -1.65,
+     -245.26
+    ],
+    "size": [
+     0.65,
+     1.0,
+     0.28
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 18 solid collision triangles inside its box (tags ['257', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-counter-a-door-l-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x1236c0",
+    "kind": "baked",
+    "center": [
+     -69.18,
+     -3.28,
+     -228.24
+    ],
+    "size": [
+     0.66,
+     0.76,
+     0.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['1', '1153'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-counter-a-door-l-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x1237d0",
+    "kind": "baked",
+    "center": [
+     -57.95,
+     -3.71,
+     -235.56
+    ],
+    "size": [
+     0.97,
+     0.1,
+     1.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-counter-a-door-r-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x1239f0",
+    "kind": "baked",
+    "center": [
+     -69.96,
+     -3.75,
+     -228.57
+    ],
+    "size": [
+     0.84,
+     0.1,
+     0.91
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['1153'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-counter-a-door-r-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x123b00",
+    "kind": "baked",
+    "center": [
+     -54.73,
+     -1.34,
+     -235.29
+    ],
+    "size": [
+     0.75,
+     0.86,
+     0.39
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['257', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "wat-cap-sandwich-security-gate-a",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x12c1f0",
+    "kind": "baked",
+    "center": [
+     -62.8,
+     -5.98,
+     -232.99
+    ],
+    "size": [
+     3.9,
+     3.54,
+     0.43
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 42 solid collision triangles inside its box (tags ['65', '833', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "wat-cap-sandwich-security-gate-b",
+    "pak": "wat-capitol-hill-int-sandwich",
+    "offset": "0x12c300",
+    "kind": "baked",
+    "center": [
+     -65.38,
+     -5.98,
+     -222.17
+    ],
+    "size": [
+     5.4,
+     3.54,
+     0.43
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 42 solid collision triangles inside its box (tags ['2113', '2241', '321', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "wat-cap-bld-grocery-garage-door-b",
+    "pak": "wat-capitol-hill-main-olive-st-b",
+    "offset": "0x39bb40",
+    "kind": "baked",
+    "center": [
+     -57.75,
+     -4.69,
+     -272.58
+    ],
+    "size": [
+     3.72,
+     1.4,
+     0.62
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "grocery-entrance-door-r",
+    "pak": "wat-capitol-hill-main-olive-st-b",
+    "offset": "0x39c1a0",
+    "kind": "baked",
+    "center": [
+     -74.76,
+     -6.47,
+     -292.63
+    ],
+    "size": [
+     0.98,
+     2.4,
+     1.11
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 48 solid collision triangles inside its box (tags ['1', '257', '513', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left-keypad",
+    "pak": "wat-capitol-hill-main-olive-st-b",
+    "offset": "0x3a4230",
+    "kind": "baked",
+    "center": [
+     -60.72,
+     -6.05,
+     -271.52
+    ],
+    "size": [
+     0.9,
+     2.4,
+     1.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['257', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-right",
+    "pak": "wat-capitol-hill-main-olive-st-c",
+    "offset": "0x1fcf90",
+    "kind": "baked",
+    "center": [
+     -75.53,
+     -6.52,
+     -244.24
+    ],
+    "size": [
+     0.51,
+     2.47,
+     1.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 55 solid collision triangles inside its box (tags ['1', '1025', '1153'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-g-left",
+    "pak": "wat-capitol-hill-main-olive-st-c",
+    "offset": "0x1fd0a0",
+    "kind": "baked",
+    "center": [
+     -65.48,
+     -2.54,
+     -238.32
+    ],
+    "size": [
+     1.25,
+     2.4,
+     0.67
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['1', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "wat-cap-bld-generic-bar-a-doors-a",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x327e50",
+    "kind": "baked",
+    "center": [
+     -52.65,
+     -3.82,
+     -320.55
+    ],
+    "size": [
+     2.92,
+     2.61,
+     4.08
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 553 solid collision triangles inside its box (tags ['1', '1025', '129', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-exterior-c",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x330980",
+    "kind": "baked",
+    "center": [
+     -23.22,
+     1.55,
+     -362.2
+    ],
+    "size": [
+     0.29,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-left",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x3310f0",
+    "kind": "baked",
+    "center": [
+     -99.47,
+     -6.22,
+     -339.18
+    ],
+    "size": [
+     0.26,
+     2.45,
+     1.28
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 92 solid collision triangles inside its box (tags ['129', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-left",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x331200",
+    "kind": "baked",
+    "center": [
+     -99.47,
+     -6.22,
+     -333.09
+    ],
+    "size": [
+     0.26,
+     2.45,
+     1.28
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 92 solid collision triangles inside its box (tags ['129', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-left",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x331310",
+    "kind": "baked",
+    "center": [
+     -99.74,
+     -6.22,
+     -344.38
+    ],
+    "size": [
+     0.26,
+     2.45,
+     1.28
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 92 solid collision triangles inside its box (tags ['129', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-right",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x331420",
+    "kind": "baked",
+    "center": [
+     -16.81,
+     1.63,
+     -325.5
+    ],
+    "size": [
+     1.24,
+     2.45,
+     0.87
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['1857'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-f-right",
+    "pak": "wat-capitol-hill-main-olive-st",
+    "offset": "0x331530",
+    "kind": "baked",
+    "center": [
+     -35.23,
+     -1.54,
+     -354.96
+    ],
+    "size": [
+     0.22,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 26 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "aqu-outdoor-electrical-boxset-a",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2c2630",
+    "kind": "baked",
+    "center": [
+     -68.62,
+     -6.29,
+     -195.27
+    ],
+    "size": [
+     3.22,
+     1.9,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 3 solid collision triangles inside its box (tags ['1089', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "mil-checkpoint-booth-a-door",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2d2ca0",
+    "kind": "baked",
+    "center": [
+     -90.69,
+     -6.47,
+     -210.88
+    ],
+    "size": [
+     0.2,
+     2.38,
+     2.14
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['129', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "mil-checkpoint-booth-b-door",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2d2db0",
+    "kind": "baked",
+    "center": [
+     -54.03,
+     1.86,
+     -198.58
+    ],
+    "size": [
+     1.24,
+     2.38,
+     0.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 8 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "mil-checkpoint-booth-b-door",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2d2ec0",
+    "kind": "baked",
+    "center": [
+     -90.77,
+     0.53,
+     -213.25
+    ],
+    "size": [
+     1.24,
+     2.38,
+     0.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 8 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "mil-checkpoint-booth-b-door",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2d2fd0",
+    "kind": "baked",
+    "center": [
+     -77.8,
+     0.53,
+     -213.25
+    ],
+    "size": [
+     1.24,
+     2.38,
+     0.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 8 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-d-left",
+    "pak": "wat-explore-checkpoint",
+    "offset": "0x2d5940",
+    "kind": "baked",
+    "center": [
+     -75.71,
+     -6.76,
+     -188.69
+    ],
+    "size": [
+     1.28,
+     2.45,
+     0.75
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 140 solid collision triangles inside its box (tags ['1665', '1729', '65', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-l-wc5-bz689-1",
+    "pak": "wat-capitol-hill-main-olive-st-b-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-single-metal-b-l",
+    "center": [
+     -54.69,
+     -7.24,
+     -272.31
+    ],
+    "in_game": "parked",
+    "how": "spawner parked by sp_maps.json park_spawners",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-1357",
+    "pak": "wat-capitol-hill-main-olive-st-c-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-office-a-l",
+    "center": [
+     -110.96,
+     -8.88,
+     -258.98
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-1376",
+    "pak": "wat-capitol-hill-main-olive-st-c-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-office-a-l",
+    "center": [
+     -114.65,
+     -8.89,
+     -245.11
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   }
+  ],
+  "into-the-city": [
+   {
+    "name": "flc-concent-ext-a-wall-door-double-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1150c0",
+    "kind": "baked",
+    "center": [
+     263.39,
+     30.0,
+     586.37
+    ],
+    "size": [
+     0.66,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 146 solid collision triangles inside its box (tags ['1', '129', '65', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-single-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1151d0",
+    "kind": "baked",
+    "center": [
+     263.56,
+     30.0,
+     612.38
+    ],
+    "size": [
+     0.32,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 203 solid collision triangles inside its box (tags ['129', '257', '65', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-single-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1152e0",
+    "kind": "baked",
+    "center": [
+     263.56,
+     30.0,
+     573.38
+    ],
+    "size": [
+     0.32,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 144 solid collision triangles inside its box (tags ['129', '65', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-left-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x118090",
+    "kind": "baked",
+    "center": [
+     285.81,
+     28.2,
+     600.51
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 54 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-left-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1181a0",
+    "kind": "baked",
+    "center": [
+     285.81,
+     28.2,
+     624.51
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 52 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1182b0",
+    "kind": "baked",
+    "center": [
+     263.65,
+     28.2,
+     612.37
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 58 solid collision triangles inside its box (tags ['257', '65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1183c0",
+    "kind": "baked",
+    "center": [
+     285.82,
+     28.2,
+     599.25
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 72 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x1184d0",
+    "kind": "baked",
+    "center": [
+     285.82,
+     28.2,
+     623.25
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 70 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-wall-glass-door-1stfl-a",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x11b4a0",
+    "kind": "baked",
+    "center": [
+     285.9,
+     29.64,
+     599.88
+    ],
+    "size": [
+     0.3,
+     5.29,
+     12.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 438 solid collision triangles inside its box (tags ['129', '321', '65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-wall-glass-door-1stfl-b",
+    "pak": "flo-convention-center-tunnel-low",
+    "offset": "0x11b5b0",
+    "kind": "baked",
+    "center": [
+     285.9,
+     29.64,
+     623.88
+    ],
+    "size": [
+     0.3,
+     5.29,
+     10.51
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 542 solid collision triangles inside its box (tags ['257', '321', '385', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-double-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2615a0",
+    "kind": "baked",
+    "center": [
+     263.39,
+     30.0,
+     586.37
+    ],
+    "size": [
+     0.66,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 146 solid collision triangles inside its box (tags ['1', '1921', '2049', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-single-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2616b0",
+    "kind": "baked",
+    "center": [
+     263.56,
+     30.0,
+     612.38
+    ],
+    "size": [
+     0.32,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 238 solid collision triangles inside its box (tags ['1', '1921', '2113', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-single-1stfl-4x-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2617c0",
+    "kind": "baked",
+    "center": [
+     263.56,
+     30.0,
+     573.38
+    ],
+    "size": [
+     0.32,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 144 solid collision triangles inside its box (tags ['1', '1921', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-left-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x264680",
+    "kind": "baked",
+    "center": [
+     285.81,
+     28.2,
+     600.51
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 54 solid collision triangles inside its box (tags ['1921', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-left-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x264790",
+    "kind": "baked",
+    "center": [
+     285.81,
+     28.2,
+     624.51
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 52 solid collision triangles inside its box (tags ['1025', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2648a0",
+    "kind": "baked",
+    "center": [
+     263.65,
+     28.2,
+     612.37
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 60 solid collision triangles inside its box (tags ['1921', '2113', '385', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2649b0",
+    "kind": "baked",
+    "center": [
+     285.82,
+     28.2,
+     599.25
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 72 solid collision triangles inside its box (tags ['1921', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-door-right-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x264ac0",
+    "kind": "baked",
+    "center": [
+     285.82,
+     28.2,
+     623.25
+    ],
+    "size": [
+     0.2,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 70 solid collision triangles inside its box (tags ['1025', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-wall-glass-door-1stfl-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x267ba0",
+    "kind": "baked",
+    "center": [
+     285.9,
+     29.64,
+     599.88
+    ],
+    "size": [
+     0.3,
+     5.29,
+     12.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 456 solid collision triangles inside its box (tags ['1025', '1793', '1857', '1921'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-tunnel-ext-wall-glass-door-1stfl-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x267cb0",
+    "kind": "baked",
+    "center": [
+     285.9,
+     29.64,
+     623.88
+    ],
+    "size": [
+     0.3,
+     5.29,
+     10.51
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 555 solid collision triangles inside its box (tags ['1', '1025', '257', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-concent-bank-int-a-elavator-doors-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x26df80",
+    "kind": "baked",
+    "center": [
+     291.8,
+     28.52,
+     594.24
+    ],
+    "size": [
+     3.09,
+     3.04,
+     0.43
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 164 solid collision triangles inside its box (tags ['1921'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-double-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2739d0",
+    "kind": "baked",
+    "center": [
+     258.43,
+     27.01,
+     610.31
+    ],
+    "size": [
+     2.52,
+     0.02,
+     0.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-double-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x273ae0",
+    "kind": "baked",
+    "center": [
+     285.9,
+     27.02,
+     623.9
+    ],
+    "size": [
+     0.33,
+     0.02,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 20 solid collision triangles inside its box (tags ['257', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-single-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x273d00",
+    "kind": "baked",
+    "center": [
+     263.56,
+     27.01,
+     612.38
+    ],
+    "size": [
+     0.33,
+     0.02,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 17 solid collision triangles inside its box (tags ['2113', '385', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-l-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x274360",
+    "kind": "baked",
+    "center": [
+     292.42,
+     28.2,
+     605.69
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.2
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 66 solid collision triangles inside its box (tags ['1921', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-l-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x274470",
+    "kind": "baked",
+    "center": [
+     297.77,
+     28.2,
+     611.62
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1793', '1921'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-a",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x274580",
+    "kind": "baked",
+    "center": [
+     291.17,
+     28.2,
+     605.7
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.2
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 66 solid collision triangles inside its box (tags ['1921', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x274690",
+    "kind": "baked",
+    "center": [
+     297.77,
+     28.2,
+     612.85
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1025', '1793', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2747a0",
+    "kind": "baked",
+    "center": [
+     301.78,
+     35.69,
+     633.8
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 36 solid collision triangles inside its box (tags ['1025', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2748b0",
+    "kind": "baked",
+    "center": [
+     301.78,
+     35.69,
+     639.34
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 36 solid collision triangles inside its box (tags ['1025', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-b",
+    "pak": "flo-convention-center-tunnel",
+    "offset": "0x2749c0",
+    "kind": "baked",
+    "center": [
+     299.64,
+     28.2,
+     628.98
+    ],
+    "size": [
+     1.3,
+     2.4,
+     0.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 36 solid collision triangles inside its box (tags ['1025', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574110",
+    "kind": "baked",
+    "center": [
+     223.36,
+     28.2,
+     645.9
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1985', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574220",
+    "kind": "baked",
+    "center": [
+     260.52,
+     28.2,
+     641.28
+    ],
+    "size": [
+     0.21,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1281', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574330",
+    "kind": "baked",
+    "center": [
+     244.2,
+     28.2,
+     645.9
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574440",
+    "kind": "baked",
+    "center": [
+     224.62,
+     28.2,
+     645.9
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1985', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574550",
+    "kind": "baked",
+    "center": [
+     260.52,
+     28.2,
+     640.02
+    ],
+    "size": [
+     0.21,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1281', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-convention-center",
+    "offset": "0x574660",
+    "kind": "baked",
+    "center": [
+     245.47,
+     28.2,
+     645.9
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['65', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-arch-sf-doors-a",
+    "pak": "flo-convention-center",
+    "offset": "0x5782f0",
+    "kind": "baked",
+    "center": [
+     223.98,
+     29.0,
+     646.13
+    ],
+    "size": [
+     8.98,
+     4.01,
+     0.66
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 144 solid collision triangles inside its box (tags ['1', '129', '1473', '1985'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-arch-sf-doors-a",
+    "pak": "flo-convention-center",
+    "offset": "0x578400",
+    "kind": "baked",
+    "center": [
+     260.74,
+     29.0,
+     640.65
+    ],
+    "size": [
+     0.66,
+     4.01,
+     8.98
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 122 solid collision triangles inside its box (tags ['1', '1281', '193', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-arch-sf-doors-a",
+    "pak": "flo-convention-center",
+    "offset": "0x578510",
+    "kind": "baked",
+    "center": [
+     244.83,
+     29.0,
+     646.13
+    ],
+    "size": [
+     8.98,
+     4.01,
+     0.66
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 122 solid collision triangles inside its box (tags ['1', '129', '257', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-concent-brutalist-wall-door-btm-4x-a",
+    "pak": "flo-convention-center",
+    "offset": "0x584de0",
+    "kind": "baked",
+    "center": [
+     209.98,
+     29.2,
+     689.98
+    ],
+    "size": [
+     4.02,
+     4.6,
+     0.75
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 58 solid collision triangles inside its box (tags ['1', '257', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-l-b",
+    "pak": "flo-convention-center",
+    "offset": "0x58eb20",
+    "kind": "baked",
+    "center": [
+     209.38,
+     28.2,
+     689.62
+    ],
+    "size": [
+     1.3,
+     2.4,
+     0.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-bank-cc-int-single-r-b",
+    "pak": "flo-convention-center",
+    "offset": "0x58ec30",
+    "kind": "baked",
+    "center": [
+     210.6,
+     28.2,
+     689.62
+    ],
+    "size": [
+     1.3,
+     2.4,
+     0.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-theatre-ext-single-l-a",
+    "pak": "flo-convention-center",
+    "offset": "0x58ed40",
+    "kind": "baked",
+    "center": [
+     158.54,
+     28.2,
+     644.58
+    ],
+    "size": [
+     1.27,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-theatre-ext-single-r-a",
+    "pak": "flo-convention-center",
+    "offset": "0x58ee50",
+    "kind": "baked",
+    "center": [
+     157.28,
+     28.2,
+     644.58
+    ],
+    "size": [
+     1.27,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "aqu-outdoor-electrical-boxset-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x182270",
+    "kind": "baked",
+    "center": [
+     247.15,
+     27.95,
+     587.38
+    ],
+    "size": [
+     0.23,
+     1.9,
+     3.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 2 solid collision triangles inside its box (tags ['449'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "flo-into-the-city",
+      "flo-door-75890147"
+     ]
+    ]
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x1828d0",
+    "kind": "baked",
+    "center": [
+     308.96,
+     28.2,
+     487.91
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['193', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x1829e0",
+    "kind": "baked",
+    "center": [
+     310.22,
+     28.2,
+     487.91
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['193', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-storefront-door-double-6x-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x1836a0",
+    "kind": "baked",
+    "center": [
+     309.59,
+     29.0,
+     487.84
+    ],
+    "size": [
+     5.07,
+     4.0,
+     0.29
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 176 solid collision triangles inside its box (tags ['193', '385', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-door-double-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x189200",
+    "kind": "baked",
+    "center": [
+     262.76,
+     28.2,
+     547.87
+    ],
+    "size": [
+     0.15,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-door-double-a",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x189310",
+    "kind": "baked",
+    "center": [
+     262.76,
+     28.2,
+     543.87
+    ],
+    "size": [
+     0.15,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-left",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x18b1e0",
+    "kind": "baked",
+    "center": [
+     246.72,
+     28.2,
+     583.35
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['321', '513'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "flo-into-the-city",
+      "flo-door-53096205"
+     ],
+     [
+      "flo-into-the-city",
+      "flo-door-75890147"
+     ]
+    ]
+   },
+   {
+    "name": "flc-door-industrial-single-a-left",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x18b2f0",
+    "kind": "baked",
+    "center": [
+     262.98,
+     28.2,
+     585.76
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['321', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x18b400",
+    "kind": "baked",
+    "center": [
+     246.71,
+     28.2,
+     584.58
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['321', '513'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "flo-into-the-city",
+      "flo-door-53096205"
+     ],
+     [
+      "flo-into-the-city",
+      "flo-door-75890147"
+     ]
+    ]
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city-low",
+    "offset": "0x18b510",
+    "kind": "baked",
+    "center": [
+     262.98,
+     28.2,
+     586.99
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['321', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "aqu-outdoor-electrical-boxset-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f31e0",
+    "kind": "baked",
+    "center": [
+     247.15,
+     27.95,
+     587.38
+    ],
+    "size": [
+     0.23,
+     1.9,
+     3.22
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 2 solid collision triangles inside its box (tags ['385'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "flo-into-the-city",
+      "flo-door-75890147"
+     ]
+    ]
+   },
+   {
+    "name": "flc-bldg-a-door-single-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f3d90",
+    "kind": "baked",
+    "center": [
+     325.4,
+     28.21,
+     477.95
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 36 solid collision triangles inside its box (tags ['1409', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-door-single-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f3ea0",
+    "kind": "baked",
+    "center": [
+     314.92,
+     28.21,
+     480.56
+    ],
+    "size": [
+     1.02,
+     2.4,
+     1.12
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 46 solid collision triangles inside its box (tags ['1', '1985', '513', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-door-single-glass-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f3fb0",
+    "kind": "baked",
+    "center": [
+     324.42,
+     28.2,
+     488.23
+    ],
+    "size": [
+     1.28,
+     2.41,
+     0.7
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 60 solid collision triangles inside its box (tags ['1409', '449', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-door-single-glass-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f40c0",
+    "kind": "baked",
+    "center": [
+     303.82,
+     28.2,
+     553.35
+    ],
+    "size": [
+     0.97,
+     2.4,
+     1.1
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 64 solid collision triangles inside its box (tags ['2305', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-door-single-glass-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f41d0",
+    "kind": "baked",
+    "center": [
+     320.73,
+     28.2,
+     488.21
+    ],
+    "size": [
+     1.32,
+     2.41,
+     0.67
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 65 solid collision triangles inside its box (tags ['1345', '1409', '1473', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-door-single-glass-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f42e0",
+    "kind": "baked",
+    "center": [
+     303.01,
+     28.2,
+     554.32
+    ],
+    "size": [
+     0.98,
+     2.4,
+     1.11
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 70 solid collision triangles inside its box (tags ['1857', '2305', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-a-wall-btm-door-4x-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f4d80",
+    "kind": "baked",
+    "center": [
+     322.59,
+     29.0,
+     487.81
+    ],
+    "size": [
+     4.02,
+     4.01,
+     0.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 270 solid collision triangles inside its box (tags ['1281', '1409', '1473', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f6700",
+    "kind": "baked",
+    "center": [
+     315.88,
+     28.2,
+     528.86
+    ],
+    "size": [
+     0.21,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1153', '1793'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-l-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f6810",
+    "kind": "baked",
+    "center": [
+     308.96,
+     28.2,
+     487.91
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1985', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f6920",
+    "kind": "baked",
+    "center": [
+     315.88,
+     28.2,
+     530.13
+    ],
+    "size": [
+     0.21,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1153', '1793'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-door-single-r-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f6a30",
+    "kind": "baked",
+    "center": [
+     310.22,
+     28.2,
+     487.91
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.21
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['1985', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-bldg-b-storefront-door-double-6x-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4f76f0",
+    "kind": "baked",
+    "center": [
+     309.59,
+     29.0,
+     487.84
+    ],
+    "size": [
+     5.07,
+     4.0,
+     0.29
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 181 solid collision triangles inside its box (tags ['1985', '257', '321', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-door-double-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4fdf10",
+    "kind": "baked",
+    "center": [
+     262.76,
+     28.2,
+     547.87
+    ],
+    "size": [
+     0.15,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-door-double-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4fe020",
+    "kind": "baked",
+    "center": [
+     262.76,
+     28.2,
+     543.87
+    ],
+    "size": [
+     0.15,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-door-double-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x4fe130",
+    "kind": "baked",
+    "center": [
+     262.76,
+     28.2,
+     535.87
+    ],
+    "size": [
+     0.15,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089', '193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-concent-ext-a-wall-door-double-1stfl-4x-b",
+    "pak": "flo-into-the-city",
+    "offset": "0x4febd0",
+    "kind": "baked",
+    "center": [
+     263.11,
+     30.0,
+     535.87
+    ],
+    "size": [
+     1.22,
+     6.0,
+     4.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 160 solid collision triangles inside its box (tags ['1089', '1537', '193', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-pgarage-shelf-wall-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x50bc10",
+    "kind": "baked",
+    "center": [
+     236.64,
+     28.51,
+     589.38
+    ],
+    "size": [
+     0.39,
+     0.3,
+     2.0
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 49 solid collision triangles inside its box (tags ['129', '385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-double-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x50fbd0",
+    "kind": "baked",
+    "center": [
+     322.59,
+     27.02,
+     487.81
+    ],
+    "size": [
+     2.52,
+     0.02,
+     0.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-double-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x50fce0",
+    "kind": "baked",
+    "center": [
+     263.64,
+     27.0,
+     586.37
+    ],
+    "size": [
+     0.33,
+     0.02,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['961'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-single-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x50ff00",
+    "kind": "baked",
+    "center": [
+     315.92,
+     27.02,
+     481.08
+    ],
+    "size": [
+     1.26,
+     0.02,
+     0.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['2433'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-floor-stripplate-single-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x510010",
+    "kind": "baked",
+    "center": [
+     246.91,
+     27.01,
+     573.47
+    ],
+    "size": [
+     0.33,
+     0.02,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['2305'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "flo-into-the-city",
+      "flo-door-34282191"
+     ]
+    ]
+   },
+   {
+    "name": "flc-door-industrial-single-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x510780",
+    "kind": "baked",
+    "center": [
+     244.69,
+     28.2,
+     593.98
+    ],
+    "size": [
+     1.3,
+     2.41,
+     0.49
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 60 solid collision triangles inside its box (tags ['1217', '129', '321', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x510890",
+    "kind": "baked",
+    "center": [
+     255.49,
+     28.2,
+     559.97
+    ],
+    "size": [
+     1.3,
+     2.41,
+     0.49
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 70 solid collision triangles inside its box (tags ['1089', '1153', '129', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-left",
+    "pak": "flo-into-the-city",
+    "offset": "0x5109a0",
+    "kind": "baked",
+    "center": [
+     263.09,
+     28.2,
+     585.76
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['257', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x510ab0",
+    "kind": "baked",
+    "center": [
+     243.47,
+     28.2,
+     593.98
+    ],
+    "size": [
+     1.3,
+     2.41,
+     0.49
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 98 solid collision triangles inside its box (tags ['1217', '129', '449', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x510bc0",
+    "kind": "baked",
+    "center": [
+     242.32,
+     28.2,
+     585.34
+    ],
+    "size": [
+     1.37,
+     2.41,
+     1.07
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 32 solid collision triangles inside its box (tags ['1985', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x510cd0",
+    "kind": "baked",
+    "center": [
+     263.1,
+     28.2,
+     586.99
+    ],
+    "size": [
+     0.49,
+     2.41,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 15 solid collision triangles inside its box (tags ['257', '449', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-door-industrial-single-a-right",
+    "pak": "flo-into-the-city",
+    "offset": "0x510de0",
+    "kind": "baked",
+    "center": [
+     263.0,
+     28.16,
+     572.15
+    ],
+    "size": [
+     1.02,
+     2.51,
+     1.56
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 42 solid collision triangles inside its box (tags ['1729', '257', '385', '449'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-furniture-office-counter-a-door-r-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x511ff0",
+    "kind": "baked",
+    "center": [
+     261.59,
+     27.42,
+     560.86
+    ],
+    "size": [
+     0.75,
+     0.84,
+     0.12
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 17 solid collision triangles inside its box (tags ['193', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flc-printship-store-rolling-worktable-door-r-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x513750",
+    "kind": "baked",
+    "center": [
+     247.93,
+     27.42,
+     570.72
+    ],
+    "size": [
+     0.14,
+     0.61,
+     0.62
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-cc-ship-gate-a",
+    "pak": "flo-into-the-city",
+    "offset": "0x5162e0",
+    "kind": "baked",
+    "center": [
+     256.48,
+     28.8,
+     593.72
+    ],
+    "size": [
+     3.44,
+     3.59,
+     0.41
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 20 solid collision triangles inside its box (tags ['833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "dow-door-single-glass-a",
+    "pak": "the-auditorium-flo-ext",
+    "offset": "0x2f5c90",
+    "kind": "baked",
+    "center": [
+     405.77,
+     28.35,
+     513.76
+    ],
+    "size": [
+     1.27,
+     2.4,
+     0.15
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "dow-door-single-glass-a",
+    "pak": "the-auditorium-flo-ext",
+    "offset": "0x2f5da0",
+    "kind": "baked",
+    "center": [
+     416.24,
+     28.35,
+     513.76
+    ],
+    "size": [
+     1.27,
+     2.4,
+     0.15
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "the-door-single-b",
+    "pak": "the-auditorium-flo-ext",
+    "offset": "0x2fbc30",
+    "kind": "baked",
+    "center": [
+     386.0,
+     28.4,
+     515.46
+    ],
+    "size": [
+     0.31,
+     2.42,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 206 solid collision triangles inside its box (tags ['1', '257', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "wat-tunnels-westlake-exit-door-closed-a",
+    "pak": "the-auditorium-flo-ext",
+    "offset": "0x3060e0",
+    "kind": "baked",
+    "center": [
+     405.33,
+     29.47,
+     477.6
+    ],
+    "size": [
+     13.68,
+     5.23,
+     13.76
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 540 solid collision triangles inside its box (tags ['1', '1153', '1537', '1601'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-flo-backroom-restroom-r-ew5-hv811-1",
+    "pak": "flo-into-the-city-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-backroom-restroom-r",
+    "center": [
+     241.53,
+     27.0,
+     578.09
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-34282191",
+    "pak": "flo-into-the-city-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-industrial-a-r",
+    "center": [
+     246.86,
+     27.0,
+     574.1
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none",
+    "co_located_baked": [
+     [
+      "flc-door-floor-stripplate-single-a",
+      "0x510010"
+     ]
+    ]
+   },
+   {
+    "name": "flo-door-53096205",
+    "pak": "flo-into-the-city-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-industrial-a-l",
+    "center": [
+     246.82,
+     27.0,
+     582.72
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none",
+    "co_located_baked": [
+     [
+      "flc-door-industrial-single-a-left",
+      "0x18b1e0"
+     ],
+     [
+      "flc-door-industrial-single-a-right",
+      "0x18b400"
+     ]
+    ]
+   },
+   {
+    "name": "flo-door-75890147",
+    "pak": "flo-into-the-city-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-industrial-a-r",
+    "center": [
+     246.88,
+     27.0,
+     585.22
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none",
+    "co_located_baked": [
+     [
+      "aqu-outdoor-electrical-boxset-a",
+      "0x182270"
+     ],
+     [
+      "flc-door-industrial-single-a-left",
+      "0x18b1e0"
+     ],
+     [
+      "flc-door-industrial-single-a-right",
+      "0x18b400"
+     ],
+     [
+      "aqu-outdoor-electrical-boxset-a",
+      "0x4f31e0"
+     ]
+    ]
+   },
+   {
+    "name": "obj-flo-theater-front-door-1",
+    "pak": "the-auditorium-flo-ext-ingame",
+    "kind": "process",
+    "type": "SimpleObject",
+    "art": "door-cs-theater-dbl",
+    "center": [
+     389.87,
+     27.18,
+     519.06
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   }
+  ],
+  "overpass": [
+   {
+    "name": "sle-door-single-metal-d-left",
+    "pak": "afm-scar-island-highway-wide",
+    "offset": "0x202870",
+    "kind": "baked",
+    "center": [
+     -298.59,
+     18.45,
+     -488.88
+    ],
+    "size": [
+     1.3,
+     2.45,
+     0.34
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 17 solid collision triangles inside its box (tags ['1', '257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-c-right",
+    "pak": "afm-scar-island-highway-wide",
+    "offset": "0x203860",
+    "kind": "baked",
+    "center": [
+     -261.67,
+     15.6,
+     -443.7
+    ],
+    "size": [
+     1.25,
+     2.4,
+     0.23
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 36 solid collision triangles inside its box (tags ['1', '1153', '705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "flo-door-mall-a-right",
+    "pak": "afm-scar-island-highway",
+    "offset": "0x2a2c80",
+    "kind": "baked",
+    "center": [
+     -248.68,
+     18.22,
+     -392.5
+    ],
+    "size": [
+     1.29,
+     2.41,
+     0.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['257'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-garage-shelf-set-a",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2f4510",
+    "kind": "baked",
+    "center": [
+     -221.68,
+     23.91,
+     -382.18
+    ],
+    "size": [
+     0.66,
+     2.78,
+     4.12
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 395 solid collision triangles inside its box (tags ['1217', '1281', '1345', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-office-door-a-r",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2f6b50",
+    "kind": "baked",
+    "center": [
+     -224.14,
+     23.75,
+     -388.28
+    ],
+    "size": [
+     1.42,
+     2.48,
+     0.16
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-office-door-a-r",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2f6c60",
+    "kind": "baked",
+    "center": [
+     -226.87,
+     23.76,
+     -383.27
+    ],
+    "size": [
+     1.42,
+     2.48,
+     0.16
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-radiotower-door-metal-right-a",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2f6d70",
+    "kind": "baked",
+    "center": [
+     -218.76,
+     23.74,
+     -384.84
+    ],
+    "size": [
+     1.21,
+     2.41,
+     1.01
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 16 solid collision triangles inside its box (tags ['129', '833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-a-right",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2fbe30",
+    "kind": "baked",
+    "center": [
+     -236.06,
+     19.56,
+     -383.62
+    ],
+    "size": [
+     0.27,
+     2.41,
+     1.29
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 14 solid collision triangles inside its box (tags ['193', '321'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hos-exit-door-double-a",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x2fbf40",
+    "kind": "baked",
+    "center": [
+     -216.02,
+     19.6,
+     -390.3
+    ],
+    "size": [
+     0.27,
+     2.41,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 30 solid collision triangles inside its box (tags ['449', '513'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "security-door-home-b",
+    "pak": "afm-scar-island-radiotower",
+    "offset": "0x303ec0",
+    "kind": "baked",
+    "center": [
+     -236.24,
+     19.55,
+     -383.62
+    ],
+    "size": [
+     0.04,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-int-metal-door-ext-02-r",
+    "pak": "afm-scar-island-taco",
+    "offset": "0x3f9e00",
+    "kind": "baked",
+    "center": [
+     -319.51,
+     17.49,
+     -442.97
+    ],
+    "size": [
+     1.41,
+     2.58,
+     0.43
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-int-metal-door-ext-02",
+    "pak": "afm-scar-island-taco",
+    "offset": "0x3f9f10",
+    "kind": "baked",
+    "center": [
+     -319.6,
+     17.49,
+     -445.58
+    ],
+    "size": [
+     1.39,
+     2.58,
+     0.33
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 84 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "afm-taco-exit-door-a",
+    "pak": "afm-scar-island-taco",
+    "offset": "0x3fa350",
+    "kind": "baked",
+    "center": [
+     -343.25,
+     17.46,
+     -451.02
+    ],
+    "size": [
+     0.25,
+     2.58,
+     1.4
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "med-hosp-decontamination-room-door-a-broken-b",
+    "pak": "afm-scar-island-taco",
+    "offset": "0x404910",
+    "kind": "baked",
+    "center": [
+     -338.45,
+     17.23,
+     -448.55
+    ],
+    "size": [
+     2.83,
+     2.99,
+     2.76
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 457 solid collision triangles inside its box (tags ['1089', '257', '641', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "security-door-home-b",
+    "pak": "afm-scar-island-taco",
+    "offset": "0x40eba0",
+    "kind": "baked",
+    "center": [
+     -336.45,
+     17.45,
+     -484.47
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.15
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 240 solid collision triangles inside its box (tags ['1025', '1217', '961'])",
+    "editor_action": "none"
+   }
+  ],
+  "p1-bookstore": [],
+  "chase": [
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x175cf0",
+    "kind": "baked",
+    "center": [
+     -26.82,
+     1.2,
+     -116.97
+    ],
+    "size": [
+     0.29,
+     2.4,
+     2.52
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x175e00",
+    "kind": "baked",
+    "center": [
+     -26.82,
+     1.2,
+     -133.73
+    ],
+    "size": [
+     0.29,
+     2.4,
+     2.52
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x175f10",
+    "kind": "baked",
+    "center": [
+     -26.82,
+     1.2,
+     -150.49
+    ],
+    "size": [
+     0.29,
+     2.4,
+     2.52
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x176020",
+    "kind": "baked",
+    "center": [
+     -26.82,
+     1.2,
+     -173.27
+    ],
+    "size": [
+     1.99,
+     2.4,
+     1.99
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x176130",
+    "kind": "baked",
+    "center": [
+     -23.7,
+     1.18,
+     -61.22
+    ],
+    "size": [
+     2.52,
+     2.4,
+     0.29
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal-exterior",
+    "offset": "0x176240",
+    "kind": "baked",
+    "center": [
+     -31.18,
+     8.2,
+     -66.99
+    ],
+    "size": [
+     0.29,
+     2.4,
+     2.51
+    ],
+    "in_game": "no-collision",
+    "how": "baked leaf drawn, no collision triangle inside its box (passable / decorative)",
+    "editor_action": "none"
+   },
+   {
+    "name": "sle-garage-rolle-up-gate-b",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2b35e0",
+    "kind": "baked",
+    "center": [
+     -35.5,
+     9.67,
+     -69.36
+    ],
+    "size": [
+     5.01,
+     5.34,
+     0.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 60 solid collision triangles inside its box (tags ['193', '641', '769'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "sle-garage-rolle-up-gate-b",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2b36f0",
+    "kind": "baked",
+    "center": [
+     -48.41,
+     9.8,
+     -71.68
+    ],
+    "size": [
+     4.61,
+     5.59,
+     4.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 157 solid collision triangles inside its box (tags ['193', '449', '577', '641'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "sle-door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2c5e50",
+    "kind": "baked",
+    "center": [
+     -68.99,
+     2.79,
+     -93.65
+    ],
+    "size": [
+     2.85,
+     2.58,
+     0.38
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "sle-door-double-boarded-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2c5f60",
+    "kind": "baked",
+    "center": [
+     -35.78,
+     2.81,
+     -69.67
+    ],
+    "size": [
+     2.85,
+     2.58,
+     0.38
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1520",
+    "kind": "baked",
+    "center": [
+     -53.81,
+     4.93,
+     -41.57
+    ],
+    "size": [
+     0.61,
+     0.57,
+     0.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1630",
+    "kind": "baked",
+    "center": [
+     -58.74,
+     4.93,
+     -46.5
+    ],
+    "size": [
+     0.61,
+     0.57,
+     0.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['961'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1740",
+    "kind": "baked",
+    "center": [
+     -51.67,
+     4.93,
+     -32.7
+    ],
+    "size": [
+     0.61,
+     0.57,
+     0.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1850",
+    "kind": "baked",
+    "center": [
+     -36.82,
+     10.98,
+     -81.16
+    ],
+    "size": [
+     0.62,
+     0.57,
+     0.59
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['961'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1960",
+    "kind": "baked",
+    "center": [
+     -80.73,
+     5.33,
+     -61.65
+    ],
+    "size": [
+     0.55,
+     0.57,
+     0.31
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['129'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "speaker-outdoor-a",
+    "pak": "sle-pier-cruise-terminal",
+    "offset": "0x2e1a70",
+    "kind": "baked",
+    "center": [
+     -36.32,
+     4.93,
+     -34.3
+    ],
+    "size": [
+     0.61,
+     0.57,
+     0.61
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1089'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-double-boarded-a",
+    "pak": "sle-pier-footbridge",
+    "offset": "0x2a5de0",
+    "kind": "baked",
+    "center": [
+     59.39,
+     10.2,
+     -100.05
+    ],
+    "size": [
+     0.29,
+     2.4,
+     2.52
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 4 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   }
+  ],
+  "jackson-market": [
+   {
+    "name": "med-hos-toilet-door-female",
+    "pak": "pat-jackson-alley",
+    "offset": "0x469020",
+    "kind": "baked",
+    "center": [
+     -547.42,
+     23.64,
+     254.02
+    ],
+    "size": [
+     0.92,
+     2.41,
+     0.98
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 13 solid collision triangles inside its box (tags ['513', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-hunting-store-door-rails",
+    "pak": "pat-jackson-alley",
+    "offset": "0x47a570",
+    "kind": "baked",
+    "center": [
+     -527.22,
+     20.42,
+     304.89
+    ],
+    "size": [
+     0.12,
+     0.29,
+     6.47
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 8 solid collision triangles inside its box (tags ['1', '1345', '257', '577'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-metal-e-r",
+    "pak": "pat-jackson-alley",
+    "offset": "0x47d650",
+    "kind": "baked",
+    "center": [
+     -547.61,
+     23.65,
+     264.58
+    ],
+    "size": [
+     0.21,
+     2.4,
+     1.26
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 2 solid collision triangles inside its box (tags ['65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-metal-push-l",
+    "pak": "pat-jackson-alley",
+    "offset": "0x47d760",
+    "kind": "baked",
+    "center": [
+     -542.38,
+     -979.58,
+     278.77
+    ],
+    "size": [
+     1.2,
+     2.4,
+     0.86
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -980) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-metal-push-l",
+    "pak": "pat-jackson-alley",
+    "offset": "0x47d870",
+    "kind": "baked",
+    "center": [
+     -552.13,
+     23.64,
+     262.62
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 16 solid collision triangles inside its box (tags ['385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-rolling-garage-door-a-mod",
+    "pak": "pat-jackson-alley",
+    "offset": "0x486d30",
+    "kind": "baked",
+    "center": [
+     -539.08,
+     -978.83,
+     282.34
+    ],
+    "size": [
+     3.48,
+     3.99,
+     0.53
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -979) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-rolling-garage-door-a-mod",
+    "pak": "pat-jackson-alley",
+    "offset": "0x486e40",
+    "kind": "baked",
+    "center": [
+     -531.63,
+     -978.83,
+     280.35
+    ],
+    "size": [
+     0.53,
+     3.99,
+     3.48
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -979) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-rolling-garage-door-a-mod",
+    "pak": "pat-jackson-alley",
+    "offset": "0x486f50",
+    "kind": "baked",
+    "center": [
+     -534.17,
+     -978.83,
+     282.34
+    ],
+    "size": [
+     3.48,
+     3.99,
+     0.53
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -979) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-pharmacy",
+    "pak": "pat-jackson-alley",
+    "offset": "0x488f30",
+    "kind": "baked",
+    "center": [
+     -541.4,
+     19.05,
+     252.65
+    ],
+    "size": [
+     1.23,
+     2.39,
+     0.17
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 4 solid collision triangles inside its box (tags ['833'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-metal-push-l",
+    "pak": "pat-jackson-supermarket-int",
+    "offset": "0x164070",
+    "kind": "baked",
+    "center": [
+     -516.19,
+     19.09,
+     275.66
+    ],
+    "size": [
+     0.75,
+     2.4,
+     1.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 12 solid collision triangles inside its box (tags ['705'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "pat-jackson-supermarket-int",
+      "doorway-254"
+     ]
+    ]
+   },
+   {
+    "name": "pat-rolling-garage-door-a-mod",
+    "pak": "pat-jackson-supermarket-int",
+    "offset": "0x16b550",
+    "kind": "baked",
+    "center": [
+     -529.03,
+     19.83,
+     280.35
+    ],
+    "size": [
+     0.53,
+     4.0,
+     3.48
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 48 solid collision triangles inside its box (tags ['705'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-swinging-door-a",
+    "pak": "pat-jackson-supermarket-int",
+    "offset": "0x176d20",
+    "kind": "baked",
+    "center": [
+     -512.45,
+     19.08,
+     273.21
+    ],
+    "size": [
+     1.38,
+     2.41,
+     0.62
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 24 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "verify",
+    "co_located_process": [
+     [
+      "pat-jackson-supermarket-int",
+      "doorway-255"
+     ]
+    ]
+   },
+   {
+    "name": "freezer-door-a",
+    "pak": "pat-jackson-supermarket-int",
+    "offset": "0x180c80",
+    "kind": "baked",
+    "center": [
+     -509.39,
+     19.14,
+     276.47
+    ],
+    "size": [
+     0.41,
+     2.53,
+     1.58
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 50 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "brg-int-metal-door-arm-ext-01-r",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4d5e10",
+    "kind": "baked",
+    "center": [
+     -521.92,
+     -979.64,
+     298.06
+    ],
+    "size": [
+     0.38,
+     0.18,
+     0.37
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -980) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "lak-fac-lodge-lobby-door-entrance-a",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4dd1e0",
+    "kind": "baked",
+    "center": [
+     -453.54,
+     20.45,
+     270.78
+    ],
+    "size": [
+     2.1,
+     2.66,
+     2.1
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 26 solid collision triangles inside its box (tags ['1'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "lak-fac-lodge-lobby-door-entrance-a",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4dd2f0",
+    "kind": "baked",
+    "center": [
+     -455.28,
+     20.56,
+     295.51
+    ],
+    "size": [
+     2.1,
+     2.66,
+     2.1
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 40 solid collision triangles inside its box (tags ['193'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-hunting-store-glass-door-a",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4ef940",
+    "kind": "baked",
+    "center": [
+     -528.22,
+     19.13,
+     315.9
+    ],
+    "size": [
+     1.25,
+     2.38,
+     0.12
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 106 solid collision triangles inside its box (tags ['257', '321', '385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-hunting-store-glass-door-a",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4efa50",
+    "kind": "baked",
+    "center": [
+     -514.28,
+     19.13,
+     315.9
+    ],
+    "size": [
+     1.25,
+     2.38,
+     0.12
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 106 solid collision triangles inside its box (tags ['257', '321', '385'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-door-metal-push-l",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f00b0",
+    "kind": "baked",
+    "center": [
+     -517.76,
+     -980.91,
+     282.52
+    ],
+    "size": [
+     1.26,
+     2.4,
+     0.22
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-b",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f01c0",
+    "kind": "baked",
+    "center": [
+     -501.21,
+     -980.91,
+     256.38
+    ],
+    "size": [
+     0.07,
+     2.38,
+     1.25
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-b",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f02d0",
+    "kind": "baked",
+    "center": [
+     -501.21,
+     -980.91,
+     260.02
+    ],
+    "size": [
+     0.07,
+     2.38,
+     1.25
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-b",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f03e0",
+    "kind": "baked",
+    "center": [
+     -501.21,
+     19.09,
+     225.69
+    ],
+    "size": [
+     0.07,
+     2.38,
+     1.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 92 solid collision triangles inside its box (tags ['2753', '2817'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-b",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f04f0",
+    "kind": "baked",
+    "center": [
+     -501.21,
+     19.09,
+     229.33
+    ],
+    "size": [
+     0.07,
+     2.38,
+     1.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 102 solid collision triangles inside its box (tags ['2753', '2817'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-c",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f0600",
+    "kind": "baked",
+    "center": [
+     -501.29,
+     -980.91,
+     259.27
+    ],
+    "size": [
+     0.12,
+     2.38,
+     1.25
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-c",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f0710",
+    "kind": "baked",
+    "center": [
+     -501.29,
+     19.09,
+     228.18
+    ],
+    "size": [
+     0.12,
+     2.38,
+     1.25
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 104 solid collision triangles inside its box (tags ['2753', '2817', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-d",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f0820",
+    "kind": "baked",
+    "center": [
+     -501.3,
+     -980.91,
+     256.74
+    ],
+    "size": [
+     0.12,
+     2.38,
+     1.27
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-slide-glass-door-d",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x4f0930",
+    "kind": "baked",
+    "center": [
+     -501.3,
+     19.09,
+     226.94
+    ],
+    "size": [
+     0.12,
+     2.38,
+     1.27
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 22 solid collision triangles inside its box (tags ['2753', '65'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x50eca0",
+    "kind": "baked",
+    "center": [
+     -521.46,
+     -980.86,
+     297.82
+    ],
+    "size": [
+     1.3,
+     2.4,
+     0.22
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x50edb0",
+    "kind": "baked",
+    "center": [
+     -494.11,
+     -980.86,
+     297.46
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x50eec0",
+    "kind": "baked",
+    "center": [
+     -496.51,
+     19.14,
+     282.76
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 16 solid collision triangles inside its box (tags ['257', '2881'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x50efd0",
+    "kind": "baked",
+    "center": [
+     -505.96,
+     -980.88,
+     295.41
+    ],
+    "size": [
+     0.24,
+     2.4,
+     1.3
+    ],
+    "in_game": "removed",
+    "how": "instance matrix hidden (y -981) by a level edit of sp_maps.json",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-single-metal-b-left",
+    "pak": "pat-jackson-supermarket",
+    "offset": "0x50f0e0",
+    "kind": "baked",
+    "center": [
+     -454.88,
+     20.32,
+     280.62
+    ],
+    "size": [
+     1.3,
+     2.4,
+     0.24
+    ],
+    "in_game": "closed",
+    "how": "baked leaf with 16 solid collision triangles inside its box (tags ['833', '897'])",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-supermarket-bathroom-1",
+    "pak": "pat-jackson-supermarket-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-flo-industrial-a-l",
+    "center": [
+     -505.3,
+     17.94,
+     281.14
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-247",
+    "pak": "pat-jackson-supermarket-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -504.67,
+     17.91,
+     281.19
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "pat-rolling-garage-door-b-gl6-de331-1",
+    "pak": "pat-jackson-supermarket-ingame",
+    "kind": "process",
+    "type": "SimpleObject",
+    "art": "pat-rolling-garage-door-b",
+    "center": [
+     -500.97,
+     17.88,
+     255.39
+    ],
+    "in_game": "parked",
+    "how": "spawner parked by sp_maps.json park_spawners",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-254",
+    "pak": "pat-jackson-supermarket-int-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -515.83,
+     17.89,
+     276.83
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none",
+    "co_located_baked": [
+     [
+      "pat-door-metal-push-l",
+      "0x164070"
+     ]
+    ]
+   },
+   {
+    "name": "doorway-255",
+    "pak": "pat-jackson-supermarket-int-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -512.42,
+     17.89,
+     273.57
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none",
+    "co_located_baked": [
+     [
+      "pat-swinging-door-a",
+      "0x176d20"
+     ]
+    ]
+   },
+   {
+    "name": "door-2350",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-pat-wood-latch-a-l",
+    "center": [
+     -539.46,
+     17.87,
+     275.75
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "door-2353",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "AnalogDoor",
+    "art": "door-pat-wood-latch-a-l",
+    "center": [
+     -537.63,
+     22.41,
+     264.5
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-248",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -521.47,
+     18.03,
+     297.9
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-249",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -541.67,
+     19.21,
+     279.68
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-250",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -542.98,
+     22.44,
+     271.01
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-251",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -545.33,
+     22.44,
+     272.33
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-252",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -537.73,
+     22.44,
+     263.9
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-253",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -539.43,
+     17.86,
+     276.37
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-256",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -525.97,
+     17.92,
+     301.61
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   },
+   {
+    "name": "doorway-257",
+    "pak": "pat-jackson-alley-ingame",
+    "kind": "process",
+    "type": "DoorwayProcess",
+    "art": "script-doorway",
+    "center": [
+     -511.77,
+     17.92,
+     306.12
+    ],
+    "in_game": "present",
+    "how": "spawner of the -ingame pak, loaded in the match; initial state closed/idle (no script runs)",
+    "editor_action": "none"
+   }
+  ]
+ }
+}

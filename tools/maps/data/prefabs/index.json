@@ -1,0 +1,742 @@
+{
+ "prefabs": [
+  {
+   "name": "humvee-modern",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.9359,
+    2.3498,
+    5.6061
+   ],
+   "edges": 121,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 3853,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "military-truck-modern",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    3.2885,
+    3.0184,
+    7.0387
+   ],
+   "edges": 30,
+   "posts": 2,
+   "outlines": 0,
+   "tris": 3451,
+   "markers": [
+    "cover-ap-529",
+    "cover-ap-531",
+    "cover-ap-532",
+    "cover-ap-533",
+    "tap-jump-up-down-25298",
+    "tap-vault-7222"
+   ],
+   "instances": 3
+  },
+  {
+   "name": "military-truck-modern-v2",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    3.1787,
+    2.4457,
+    7.0353
+   ],
+   "edges": 42,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2639,
+   "markers": [
+    "tap-jump-up-down-25282",
+    "tap-jump-up-down-25285",
+    "tap-jump-up-down-25294",
+    "tap-jump-up-down-25295",
+    "tap-jump-up-down-25296",
+    "tap-jump-up-down-35324",
+    "tap-jump-up-down-35325",
+    "tap-jump-up-down-35326",
+    "tap-jump-up-down-35327",
+    "tap-jump-up-down-35328"
+   ],
+   "instances": 2
+  },
+  {
+   "name": "pickup-big-a",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.5414,
+    1.6461,
+    5.6054
+   ],
+   "edges": 28,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 1348,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "suv-small-b",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.2656,
+    2.2622,
+    3.9513
+   ],
+   "edges": 49,
+   "posts": 1,
+   "outlines": 0,
+   "tris": 2734,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-small-b-v2",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.2979,
+    1.5815,
+    3.905
+   ],
+   "edges": 49,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 3139,
+   "markers": [],
+   "instances": 3
+  },
+  {
+   "name": "suv-small-b-v3",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    1.9895,
+    1.7228,
+    3.6722
+   ],
+   "edges": 46,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2661,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "truck-ambulance-a",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.7562,
+    3.2626,
+    6.992
+   ],
+   "edges": 26,
+   "posts": 0,
+   "outlines": 2,
+   "tris": 1900,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "truck-ambulance-a-v2",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.587,
+    2.8899,
+    7.0281
+   ],
+   "edges": 57,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2450,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "truck-cab-a",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.7671,
+    2.093,
+    2.6785
+   ],
+   "edges": 16,
+   "posts": 1,
+   "outlines": 0,
+   "tris": 1737,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "truck-delivery-a",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.5675,
+    3.4273,
+    5.2808
+   ],
+   "edges": 22,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 717,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "van-a",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    2.5143,
+    2.7144,
+    5.9261
+   ],
+   "edges": 28,
+   "posts": 13,
+   "outlines": 6,
+   "tris": 2467,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "van-a-v2",
+   "level": "nor-hosp-infiltrate-street",
+   "size": [
+    1.1661,
+    1.5765,
+    4.5676
+   ],
+   "edges": 0,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 30,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "military-truck-modern-v3",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    3.1789,
+    3.193,
+    7.0413
+   ],
+   "edges": 80,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 7979,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "pickup-big-a-v2",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.5443,
+    1.7891,
+    5.6331
+   ],
+   "edges": 42,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 1688,
+   "markers": [],
+   "instances": 3
+  },
+  {
+   "name": "compact-sedan-a",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2682,
+    1.6405,
+    4.9042
+   ],
+   "edges": 9,
+   "posts": 6,
+   "outlines": 4,
+   "tris": 2026,
+   "markers": [],
+   "instances": 9
+  },
+  {
+   "name": "compact-sedan-b",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2245,
+    1.4344,
+    4.4626
+   ],
+   "edges": 17,
+   "posts": 4,
+   "outlines": 9,
+   "tris": 2074,
+   "markers": [],
+   "instances": 3
+  },
+  {
+   "name": "sedan-big-a",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2582,
+    1.4461,
+    5.2763
+   ],
+   "edges": 36,
+   "posts": 2,
+   "outlines": 0,
+   "tris": 2086,
+   "markers": [],
+   "instances": 7
+  },
+  {
+   "name": "sedan-big-a-v2",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2262,
+    1.6668,
+    5.2754
+   ],
+   "edges": 24,
+   "posts": 3,
+   "outlines": 0,
+   "tris": 2008,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "station-wagon-a",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.1545,
+    1.7146,
+    5.2965
+   ],
+   "edges": 16,
+   "posts": 10,
+   "outlines": 1,
+   "tris": 3390,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "station-wagon-a-v2",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.1197,
+    1.8434,
+    5.3272
+   ],
+   "edges": 19,
+   "posts": 6,
+   "outlines": 1,
+   "tris": 3390,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-big-b",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.4702,
+    1.7299,
+    5.2933
+   ],
+   "edges": 18,
+   "posts": 0,
+   "outlines": 6,
+   "tris": 2242,
+   "markers": [],
+   "instances": 4
+  },
+  {
+   "name": "suv-big-b-v2",
+   "level": "afm-scar-island-highway",
+   "size": [
+    2.6241,
+    2.1919,
+    5.37
+   ],
+   "edges": 29,
+   "posts": 4,
+   "outlines": 0,
+   "tris": 2738,
+   "markers": [],
+   "instances": 5
+  },
+  {
+   "name": "suv-big-c",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2424,
+    1.7604,
+    4.8544
+   ],
+   "edges": 35,
+   "posts": 10,
+   "outlines": 4,
+   "tris": 2123,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "suv-big-c-v2",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.2424,
+    1.6894,
+    4.8246
+   ],
+   "edges": 18,
+   "posts": 10,
+   "outlines": 3,
+   "tris": 2123,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "truck-delivery-b",
+   "level": "flo-into-the-city",
+   "size": [
+    3.0811,
+    3.9038,
+    9.9482
+   ],
+   "edges": 23,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2015,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "van-a-v3",
+   "level": "wat-capitol-hill-main-vehicles",
+   "size": [
+    2.5616,
+    2.103,
+    5.9239
+   ],
+   "edges": 24,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2079,
+   "markers": [],
+   "instances": 7
+  },
+  {
+   "name": "humvee-modern-v2",
+   "level": "wat-capitol-hill-main-olive-st-c",
+   "size": [
+    2.9456,
+    2.2426,
+    5.4795
+   ],
+   "edges": 150,
+   "posts": 1,
+   "outlines": 0,
+   "tris": 4487,
+   "markers": [],
+   "instances": 6
+  },
+  {
+   "name": "hatchback-a",
+   "level": "flo-into-the-city",
+   "size": [
+    2.1862,
+    2.6311,
+    4.5354
+   ],
+   "edges": 30,
+   "posts": 5,
+   "outlines": 0,
+   "tris": 2280,
+   "markers": [
+    "tap-jump-up-down-17666",
+    "tap-jump-up-down-32371"
+   ],
+   "instances": 1
+  },
+  {
+   "name": "hatchback-a-v2",
+   "level": "flo-into-the-city",
+   "size": [
+    2.1725,
+    1.5814,
+    4.2431
+   ],
+   "edges": 18,
+   "posts": 6,
+   "outlines": 5,
+   "tris": 1832,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "compact-sedan-a-v2",
+   "level": "flo-into-the-city",
+   "size": [
+    2.543,
+    1.9496,
+    5.0296
+   ],
+   "edges": 79,
+   "posts": 2,
+   "outlines": 2,
+   "tris": 2158,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-big-b-v3",
+   "level": "flo-into-the-city",
+   "size": [
+    2.7796,
+    2.1896,
+    5.3595
+   ],
+   "edges": 49,
+   "posts": 2,
+   "outlines": 0,
+   "tris": 2386,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-big-b-v4",
+   "level": "flo-into-the-city",
+   "size": [
+    3.9709,
+    3.4409,
+    5.5271
+   ],
+   "edges": 29,
+   "posts": 0,
+   "outlines": 1,
+   "tris": 2660,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-big-b-v5",
+   "level": "flo-into-the-city",
+   "size": [
+    2.7179,
+    2.9744,
+    5.5448
+   ],
+   "edges": 42,
+   "posts": 2,
+   "outlines": 3,
+   "tris": 2701,
+   "markers": [],
+   "instances": 2
+  },
+  {
+   "name": "truck-fire-engine-a",
+   "level": "flo-into-the-city",
+   "size": [
+    4.0032,
+    5.0911,
+    10.5284
+   ],
+   "edges": 0,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 3918,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "truck-postal-a",
+   "level": "flo-into-the-city",
+   "size": [
+    2.6628,
+    2.2311,
+    4.5061
+   ],
+   "edges": 0,
+   "posts": 4,
+   "outlines": 3,
+   "tris": 1913,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "van-a-v4",
+   "level": "flo-into-the-city",
+   "size": [
+    2.7748,
+    3.0131,
+    6.0605
+   ],
+   "edges": 1,
+   "posts": 0,
+   "outlines": 3,
+   "tris": 2589,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "van-delivery-a",
+   "level": "flo-into-the-city",
+   "size": [
+    3.1349,
+    4.1754,
+    6.6381
+   ],
+   "edges": 0,
+   "posts": 5,
+   "outlines": 4,
+   "tris": 1237,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "metro-bus-a",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    3.232,
+    3.2436,
+    12.0929
+   ],
+   "edges": 8,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 2122,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "hatchback-b",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    2.1752,
+    1.7685,
+    4.6201
+   ],
+   "edges": 14,
+   "posts": 1,
+   "outlines": 0,
+   "tris": 2010,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "truck-delivery-b-v2",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    3.0722,
+    3.4888,
+    9.8357
+   ],
+   "edges": 0,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 1821,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "van-a-v5",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    6.0189,
+    2.6265,
+    2.8112
+   ],
+   "edges": 7,
+   "posts": 2,
+   "outlines": 1,
+   "tris": 2071,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "van-delivery-a-v2",
+   "level": "the-auditorium-flo-ext",
+   "size": [
+    2.8255,
+    2.9093,
+    6.3174
+   ],
+   "edges": 0,
+   "posts": 3,
+   "outlines": 4,
+   "tris": 1528,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "metro-bus-a-exterior",
+   "level": "afm-scar-island-highway",
+   "size": [
+    3.2267,
+    3.3272,
+    12.1699
+   ],
+   "edges": 22,
+   "posts": 1,
+   "outlines": 0,
+   "tris": 1759,
+   "markers": [
+    "tap-jump-up-down-33941",
+    "tap-jump-up-down-33942"
+   ],
+   "instances": 1
+  },
+  {
+   "name": "compact-sedan-a-v3",
+   "level": "afm-scar-island-highway",
+   "size": [
+    2.044,
+    2.0095,
+    4.755
+   ],
+   "edges": 0,
+   "posts": 0,
+   "outlines": 0,
+   "tris": 594,
+   "markers": [],
+   "instances": 1
+  },
+  {
+   "name": "suv-big-c-v3",
+   "level": "afm-scar-island-highway",
+   "size": [
+    2.4061,
+    2.0165,
+    4.928
+   ],
+   "edges": 22,
+   "posts": 8,
+   "outlines": 2,
+   "tris": 2105,
+   "markers": [
+    "tap-jump-up-down-36079"
+   ],
+   "instances": 2
+  },
+  {
+   "name": "truck-delivery-b-v3",
+   "level": "afm-scar-island-highway",
+   "size": [
+    3.2839,
+    3.9461,
+    9.7733
+   ],
+   "edges": 30,
+   "posts": 4,
+   "outlines": 0,
+   "tris": 1797,
+   "markers": [
+    "tap-accessibility-jump-1096",
+    "tap-accessibility-jump-1097",
+    "tap-accessibility-jump-1098",
+    "tap-jump-up-down-36078",
+    "tap-jump-up-down-36079",
+    "tap-jump-up-down-36080"
+   ],
+   "instances": 1
+  }
+ ]
+}

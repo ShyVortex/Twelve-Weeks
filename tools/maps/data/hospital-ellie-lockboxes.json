@@ -1,0 +1,113 @@
+{
+ "key": "hospital-ellie",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "pos": [
+     258.343,
+     12.736,
+     -56.002
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     266.481,
+     12.736,
+     -56.064
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     268.146,
+     12.736,
+     -64.757
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-2"
+   },
+   {
+    "pos": [
+     222.563,
+     13.559,
+     -66.445
+    ],
+    "yaw_deg": 270.6,
+    "name": "lockbox-0-3"
+   },
+   {
+    "pos": [
+     237.459,
+     12.677,
+     -69.731
+    ],
+    "yaw_deg": 1.8,
+    "name": "lockbox-0-4"
+   },
+   {
+    "pos": [
+     216.431,
+     13.362,
+     -68.022
+    ],
+    "yaw_deg": 270.0,
+    "name": "lockbox-0-5"
+   }
+  ],
+  [
+   {
+    "pos": [
+     284.524,
+     13.761,
+     -112.603
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "name": "lockbox-1-1",
+    "pos": [
+     262.9,
+     13.855,
+     -97.789
+    ],
+    "yaw_deg": 116.2,
+    "traffic": 0.0,
+    "own_path": 28.2,
+    "enemy_path": 79.4
+   },
+   {
+    "pos": [
+     288.49,
+     13.761,
+     -104.372
+    ],
+    "yaw_deg": 180.0,
+    "name": "lockbox-1-2"
+   },
+   {
+    "pos": [
+     230.112,
+     13.771,
+     -114.843
+    ],
+    "yaw_deg": 270.0,
+    "name": "lockbox-1-3"
+   },
+   {
+    "pos": [
+     243.852,
+     13.761,
+     -106.307
+    ],
+    "yaw_deg": 179.9,
+    "name": "lockbox-1-4"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

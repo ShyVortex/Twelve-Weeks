@@ -1,0 +1,170 @@
+{
+ "key": "capitol-shops",
+ "map_index": 19,
+ "hand_placed": true,
+ "rule": "item spawners of the SceneEditor (tools/maps/editor_import.py): ISP_FILL_PCT % filled, weighted pick of one item, back after ISP_RESPAWN_S",
+ "spots": [
+  {
+   "pos": [
+    -67.562,
+    -6.856,
+    -228.627
+   ],
+   "quat": [
+    0.0,
+    0.391053,
+    0.0,
+    0.920368
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    -105.786,
+    -7.92,
+    -246.283
+   ],
+   "quat": [
+    0.276517,
+    0.276516,
+    0.650798,
+    0.650799
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    -101.471,
+    -7.868,
+    -258.872
+   ],
+   "quat": [
+    0.276516,
+    0.276516,
+    0.650799,
+    0.650798
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    -74.683,
+    -6.593,
+    -272.895
+   ],
+   "quat": [
+    -0.127787,
+    0.127787,
+    -0.695464,
+    0.695464
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    -69.279,
+    -6.77,
+    -285.45
+   ],
+   "quat": [
+    -0.313916,
+    0.238179,
+    -0.633606,
+    0.665786
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  },
+  {
+   "pos": [
+    -64.161,
+    -2.933,
+    -232.607
+   ],
+   "quat": [
+    0.276517,
+    0.276516,
+    0.650798,
+    0.650798
+   ],
+   "items": [
+    {
+     "item": "shiv"
+    },
+    {
+     "item": "molotov"
+    },
+    {
+     "item": "pipe-bomb"
+    },
+    {
+     "item": "smoke-bomb"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,4224 @@
+{
+ "humvee-modern": {
+  "size": [
+   2.9359,
+   2.3498,
+   5.6061
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-modern-f-wlf",
+    "theta_deg": 0,
+    "max_scale_dev": 0.119,
+    "chamfer_m": 0.112,
+    "chamfer85_m": 0.206,
+    "scale_actor_to_car": [
+     0.9846,
+     1.1189,
+     1.0188
+    ],
+    "actor_size": [
+     2.926,
+     2.092,
+     5.492
+    ],
+    "car_anchor": [
+     -0.0122,
+     0.0008,
+     -0.0035
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0369,
+     0.0798
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.123,
+    "chamfer_m": 0.111,
+    "chamfer85_m": 0.206,
+    "scale_actor_to_car": [
+     0.9894,
+     1.1232,
+     1.0264
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     -0.0122,
+     0.0008,
+     -0.0035
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.124,
+    "chamfer_m": 0.112,
+    "chamfer85_m": 0.206,
+    "scale_actor_to_car": [
+     0.9847,
+     1.1237,
+     1.0262
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     -0.0122,
+     0.0008,
+     -0.0035
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "military-truck-modern": {
+  "size": [
+   3.2885,
+   3.0184,
+   7.0387
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.057,
+    "chamfer_m": 0.123,
+    "chamfer85_m": 0.202,
+    "scale_actor_to_car": [
+     0.9946,
+     0.9457,
+     0.9976
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0237,
+     0.0441,
+     -0.0005
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.118,
+    "chamfer_m": 0.12,
+    "chamfer85_m": 0.204,
+    "scale_actor_to_car": [
+     1.0028,
+     0.8942,
+     0.9974
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0237,
+     0.0441,
+     -0.0005
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.051,
+    "chamfer_m": 0.14,
+    "chamfer85_m": 0.251,
+    "scale_actor_to_car": [
+     1.0332,
+     1.0509,
+     1.0295
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     0.0237,
+     0.0441,
+     -0.0005
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "military-truck-modern-v2": {
+  "size": [
+   3.1787,
+   2.4457,
+   7.0353
+  ],
+  "candidates": [
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.128,
+    "chamfer_m": 0.133,
+    "chamfer85_m": 0.245,
+    "scale_actor_to_car": [
+     1.029,
+     0.8868,
+     1.0237
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.0056,
+     0.0143
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.253,
+    "chamfer_m": 0.119,
+    "chamfer85_m": 0.242,
+    "scale_actor_to_car": [
+     0.9906,
+     0.798,
+     0.9919
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.0056,
+     0.0143
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.325,
+    "chamfer_m": 0.12,
+    "chamfer85_m": 0.24,
+    "scale_actor_to_car": [
+     0.9988,
+     0.7545,
+     0.9918
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.0056,
+     0.0143
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "pickup-big-a": {
+  "size": [
+   2.5414,
+   1.6461,
+   5.6054
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-sedan-big-a-police",
+    "theta_deg": 180,
+    "max_scale_dev": 0.128,
+    "chamfer_m": 0.102,
+    "chamfer85_m": 0.182,
+    "scale_actor_to_car": [
+     1.0961,
+     1.1285,
+     1.0347
+    ],
+    "actor_size": [
+     2.319,
+     1.42,
+     5.412
+    ],
+    "car_anchor": [
+     0.0,
+     0.0434,
+     0.003
+    ],
+    "actor_anchor": [
+     -0.0039,
+     -0.0068,
+     0.0564
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-sedan-big-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.144,
+    "chamfer_m": 0.101,
+    "chamfer85_m": 0.188,
+    "scale_actor_to_car": [
+     1.1342,
+     1.1441,
+     1.065
+    ],
+    "actor_size": [
+     2.241,
+     1.401,
+     5.258
+    ],
+    "car_anchor": [
+     0.0,
+     0.0434,
+     0.003
+    ],
+    "actor_anchor": [
+     0.0036,
+     -0.0006,
+     0.1333
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.151,
+    "chamfer_m": 0.108,
+    "chamfer85_m": 0.21,
+    "scale_actor_to_car": [
+     1.1188,
+     1.0209,
+     1.1506
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0,
+     0.0434,
+     0.003
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "suv-small-b": {
+  "size": [
+   2.2656,
+   2.2622,
+   3.9513
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 180,
+    "max_scale_dev": 0.307,
+    "chamfer_m": 0.11,
+    "chamfer85_m": 0.306,
+    "scale_actor_to_car": [
+     0.7653,
+     1.0727,
+     0.8024
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0021,
+     0.0039
+    ],
+    "actor_anchor": [
+     -0.0039,
+     -0.0341,
+     -0.4462
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.368,
+    "chamfer_m": 0.11,
+    "chamfer85_m": 0.363,
+    "scale_actor_to_car": [
+     1.0074,
+     1.368,
+     0.8322
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0021,
+     0.0039
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "miltruck1-open-bed-fob",
+    "theta_deg": 180,
+    "max_scale_dev": 0.394,
+    "chamfer_m": 0.11,
+    "chamfer85_m": 0.296,
+    "scale_actor_to_car": [
+     0.7633,
+     1.0812,
+     0.7173
+    ],
+    "actor_size": [
+     2.922,
+     2.087,
+     5.494
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0021,
+     0.0039
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0386,
+     -0.0788
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "suv-small-b-v2": {
+  "size": [
+   2.2979,
+   1.5815,
+   3.905
+  ],
+  "candidates": [
+   {
+    "actor": "res-jesse-suv",
+    "theta_deg": 0,
+    "max_scale_dev": 0.051,
+    "chamfer_m": 0.083,
+    "chamfer85_m": 0.146,
+    "scale_actor_to_car": [
+     1.0515,
+     0.9591,
+     0.9962
+    ],
+    "actor_size": [
+     2.171,
+     1.597,
+     3.882
+    ],
+    "car_anchor": [
+     -0.0037,
+     0.0457,
+     -0.0182
+    ],
+    "actor_anchor": [
+     -0.0035,
+     0.0054,
+     0.0405
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.224,
+    "chamfer_m": 0.089,
+    "chamfer85_m": 0.153,
+    "scale_actor_to_car": [
+     1.0314,
+     0.9285,
+     0.8167
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     -0.0037,
+     0.0457,
+     -0.0182
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.256,
+    "chamfer_m": 0.095,
+    "chamfer85_m": 0.17,
+    "scale_actor_to_car": [
+     1.0058,
+     0.9994,
+     0.7959
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     -0.0037,
+     0.0457,
+     -0.0182
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "suv-small-b-v3": {
+  "size": [
+   1.9895,
+   1.7228,
+   3.6722
+  ],
+  "candidates": [
+   {
+    "actor": "res-jesse-suv",
+    "theta_deg": 0,
+    "max_scale_dev": 0.1,
+    "chamfer_m": 0.083,
+    "chamfer85_m": 0.138,
+    "scale_actor_to_car": [
+     0.9091,
+     1.0765,
+     0.9396
+    ],
+    "actor_size": [
+     2.171,
+     1.597,
+     3.882
+    ],
+    "car_anchor": [
+     0.0033,
+     0.0019,
+     0.0045
+    ],
+    "actor_anchor": [
+     -0.0035,
+     0.0054,
+     0.0405
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.298,
+    "chamfer_m": 0.092,
+    "chamfer85_m": 0.159,
+    "scale_actor_to_car": [
+     0.8917,
+     1.0421,
+     0.7703
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0033,
+     0.0019,
+     0.0045
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.334,
+    "chamfer_m": 0.094,
+    "chamfer85_m": 0.173,
+    "scale_actor_to_car": [
+     0.869,
+     1.0947,
+     0.7495
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0033,
+     0.0019,
+     0.0045
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "truck-ambulance-a": {
+  "size": [
+   2.7562,
+   3.2626,
+   6.992
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.181,
+    "chamfer_m": 0.149,
+    "chamfer85_m": 0.331,
+    "scale_actor_to_car": [
+     0.8468,
+     1.0145,
+     0.9795
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0133,
+     -0.039
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.191,
+    "chamfer_m": 0.163,
+    "chamfer85_m": 0.398,
+    "scale_actor_to_car": [
+     0.8398,
+     1.073,
+     0.9797
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0133,
+     -0.039
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.192,
+    "chamfer_m": 0.164,
+    "chamfer85_m": 0.389,
+    "scale_actor_to_car": [
+     0.8724,
+     1.1924,
+     1.0111
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0133,
+     -0.039
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "truck-ambulance-a-v2": {
+  "size": [
+   2.587,
+   2.8899,
+   7.0281
+  ],
+  "candidates": [
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.216,
+    "chamfer_m": 0.162,
+    "chamfer85_m": 0.394,
+    "scale_actor_to_car": [
+     0.8221,
+     1.0578,
+     1.0276
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     0.0054,
+     0.0069,
+     -0.0014
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.253,
+    "chamfer_m": 0.162,
+    "chamfer85_m": 0.353,
+    "scale_actor_to_car": [
+     0.798,
+     0.9,
+     0.9955
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0054,
+     0.0069,
+     -0.0014
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-modern-f-wlf",
+    "theta_deg": 0,
+    "max_scale_dev": 0.371,
+    "chamfer_m": 0.156,
+    "chamfer85_m": 0.359,
+    "scale_actor_to_car": [
+     0.8585,
+     1.3711,
+     1.2791
+    ],
+    "actor_size": [
+     2.926,
+     2.092,
+     5.492
+    ],
+    "car_anchor": [
+     0.0054,
+     0.0069,
+     -0.0014
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0369,
+     0.0798
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "truck-cab-a": {
+  "size": [
+   2.7671,
+   2.093,
+   2.6785
+  ],
+  "candidates": [
+   {
+    "actor": "res-jesse-suv",
+    "theta_deg": 0,
+    "max_scale_dev": 0.458,
+    "chamfer_m": 0.105,
+    "chamfer85_m": 0.192,
+    "scale_actor_to_car": [
+     1.2652,
+     1.3108,
+     0.6856
+    ],
+    "actor_size": [
+     2.171,
+     1.597,
+     3.882
+    ],
+    "car_anchor": [
+     -0.0051,
+     0.0001,
+     0.0029
+    ],
+    "actor_anchor": [
+     -0.0035,
+     0.0054,
+     0.0405
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "truck-delivery-a": {
+  "size": [
+   2.5675,
+   3.4273,
+   5.2808
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.346,
+    "chamfer_m": 0.175,
+    "chamfer85_m": 0.387,
+    "scale_actor_to_car": [
+     0.8158,
+     1.0748,
+     0.743
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0,
+     0.0011,
+     -0.0066
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 180,
+    "max_scale_dev": 0.304,
+    "chamfer_m": 0.197,
+    "chamfer85_m": 0.471,
+    "scale_actor_to_car": [
+     0.8405,
+     1.2632,
+     0.767
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     0.0,
+     0.0011,
+     -0.0066
+    ],
+    "actor_anchor": [
+     0.0095,
+     0.0018,
+     1.3796
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.346,
+    "chamfer_m": 0.198,
+    "chamfer85_m": 0.493,
+    "scale_actor_to_car": [
+     0.8091,
+     1.1367,
+     0.7431
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0,
+     0.0011,
+     -0.0066
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "van-a": {
+  "size": [
+   2.5143,
+   2.7144,
+   5.9261
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.231,
+    "chamfer_m": 0.134,
+    "chamfer85_m": 0.243,
+    "scale_actor_to_car": [
+     0.9944,
+     0.8122,
+     0.9684
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0032,
+     -0.0005
+    ],
+    "actor_anchor": [
+     0.0004,
+     -0.0122,
+     -0.2047
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.27,
+    "chamfer_m": 0.139,
+    "chamfer85_m": 0.269,
+    "scale_actor_to_car": [
+     0.7877,
+     0.8467,
+     0.837
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0032,
+     -0.0005
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.28,
+    "chamfer_m": 0.145,
+    "chamfer85_m": 0.346,
+    "scale_actor_to_car": [
+     0.7813,
+     0.8955,
+     0.8371
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0032,
+     -0.0005
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "military-truck-modern-v3": {
+  "size": [
+   3.1789,
+   3.193,
+   7.0413
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.028,
+    "chamfer_m": 0.13,
+    "chamfer85_m": 0.212,
+    "scale_actor_to_car": [
+     0.9724,
+     0.99,
+     0.9971
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0577,
+     0.0279,
+     -0.0028
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.047,
+    "chamfer_m": 0.141,
+    "chamfer85_m": 0.254,
+    "scale_actor_to_car": [
+     0.9645,
+     1.047,
+     0.9972
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0577,
+     0.0279,
+     -0.0028
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.164,
+    "chamfer_m": 0.152,
+    "chamfer85_m": 0.316,
+    "scale_actor_to_car": [
+     1.0019,
+     1.1635,
+     1.0292
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     -0.0577,
+     0.0279,
+     -0.0028
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "pickup-big-a-v2": {
+  "size": [
+   2.5443,
+   1.7891,
+   5.6331
+  ],
+  "candidates": [
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.153,
+    "chamfer_m": 0.1,
+    "chamfer85_m": 0.184,
+    "scale_actor_to_car": [
+     1.0828,
+     1.1345,
+     1.1529
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     -0.0232,
+     0.0038,
+     -0.0057
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.163,
+    "chamfer_m": 0.105,
+    "chamfer85_m": 0.202,
+    "scale_actor_to_car": [
+     1.0836,
+     1.1625,
+     1.1548
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     -0.0232,
+     0.0038,
+     -0.0057
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.146,
+    "chamfer_m": 0.112,
+    "chamfer85_m": 0.229,
+    "scale_actor_to_car": [
+     1.1464,
+     1.1385,
+     1.0689
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     -0.0232,
+     0.0038,
+     -0.0057
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "compact-sedan-a": {
+  "size": [
+   2.2682,
+   1.6405,
+   4.9042
+  ],
+  "candidates": [
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.041,
+    "chamfer_m": 0.092,
+    "chamfer85_m": 0.159,
+    "scale_actor_to_car": [
+     0.9652,
+     1.0414,
+     1.0073
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0032,
+     0.0005,
+     0.0005
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.067,
+    "chamfer_m": 0.089,
+    "chamfer85_m": 0.153,
+    "scale_actor_to_car": [
+     0.9659,
+     1.0672,
+     1.0089
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     0.0032,
+     0.0005,
+     0.0005
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.035,
+    "chamfer_m": 0.099,
+    "chamfer85_m": 0.169,
+    "scale_actor_to_car": [
+     0.9905,
+     0.9914,
+     1.0353
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0032,
+     0.0005,
+     0.0005
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "compact-sedan-b": {
+  "size": [
+   2.2245,
+   1.4344,
+   4.4626
+  ],
+  "candidates": [
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.091,
+    "chamfer_m": 0.082,
+    "chamfer85_m": 0.144,
+    "scale_actor_to_car": [
+     0.9576,
+     0.9348,
+     0.9166
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     -0.0049,
+     0.001,
+     0.0042
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.096,
+    "chamfer_m": 0.084,
+    "chamfer85_m": 0.155,
+    "scale_actor_to_car": [
+     0.9569,
+     0.9123,
+     0.9152
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     -0.0049,
+     0.001,
+     0.0042
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.152,
+    "chamfer_m": 0.088,
+    "chamfer85_m": 0.151,
+    "scale_actor_to_car": [
+     0.9819,
+     0.8684,
+     0.9406
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     -0.0049,
+     0.001,
+     0.0042
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "sedan-big-a": {
+  "size": [
+   2.2582,
+   1.4461,
+   5.2763
+  ],
+  "candidates": [
+   {
+    "actor": "sle-sedan-big-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.059,
+    "chamfer_m": 0.075,
+    "chamfer85_m": 0.138,
+    "scale_actor_to_car": [
+     0.9444,
+     1.0251,
+     1.0022
+    ],
+    "actor_size": [
+     2.241,
+     1.401,
+     5.258
+    ],
+    "car_anchor": [
+     0.0134,
+     0.0077,
+     0.0024
+    ],
+    "actor_anchor": [
+     -0.0036,
+     -0.0006,
+     -0.1333
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-sedan-big-taxi-smallboard",
+    "theta_deg": 0,
+    "max_scale_dev": 0.069,
+    "chamfer_m": 0.082,
+    "chamfer85_m": 0.141,
+    "scale_actor_to_car": [
+     1.0333,
+     0.9351,
+     1.0017
+    ],
+    "actor_size": [
+     2.048,
+     1.536,
+     5.26
+    ],
+    "car_anchor": [
+     0.0134,
+     0.0077,
+     0.0024
+    ],
+    "actor_anchor": [
+     0.0034,
+     0.0001,
+     -0.1411
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.084,
+    "chamfer_m": 0.081,
+    "chamfer85_m": 0.143,
+    "scale_actor_to_car": [
+     0.9323,
+     0.9373,
+     1.0843
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     0.0134,
+     0.0077,
+     0.0024
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "sedan-big-a-v2": {
+  "size": [
+   2.2262,
+   1.6668,
+   5.2754
+  ],
+  "candidates": [
+   {
+    "actor": "sle-sedan-big-taxi-smallboard",
+    "theta_deg": 0,
+    "max_scale_dev": 0.06,
+    "chamfer_m": 0.086,
+    "chamfer85_m": 0.152,
+    "scale_actor_to_car": [
+     1.0604,
+     1.0438,
+     0.9983
+    ],
+    "actor_size": [
+     2.048,
+     1.536,
+     5.26
+    ],
+    "car_anchor": [
+     0.0095,
+     0.0115,
+     -0.0098
+    ],
+    "actor_anchor": [
+     0.0034,
+     0.0001,
+     -0.1411
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.025,
+    "chamfer_m": 0.097,
+    "chamfer85_m": 0.178,
+    "scale_actor_to_car": [
+     1.0123,
+     1.0247,
+     1.0004
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0095,
+     0.0115,
+     -0.0098
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.026,
+    "chamfer_m": 0.1,
+    "chamfer85_m": 0.18,
+    "scale_actor_to_car": [
+     1.0248,
+     1.0261,
+     0.9961
+    ],
+    "actor_size": [
+     2.119,
+     1.562,
+     5.272
+    ],
+    "car_anchor": [
+     0.0095,
+     0.0115,
+     -0.0098
+    ],
+    "actor_anchor": [
+     -0.0669,
+     -0.0055,
+     -0.8177
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "station-wagon-a": {
+  "size": [
+   2.1545,
+   1.7146,
+   5.2965
+  ],
+  "candidates": [
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.091,
+    "chamfer_m": 0.088,
+    "chamfer85_m": 0.157,
+    "scale_actor_to_car": [
+     0.9991,
+     1.0912,
+     1.0085
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0038,
+     0.0042,
+     0.001
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.093,
+    "chamfer_m": 0.091,
+    "chamfer85_m": 0.16,
+    "scale_actor_to_car": [
+     1.0115,
+     1.0927,
+     1.0042
+    ],
+    "actor_size": [
+     2.119,
+     1.562,
+     5.272
+    ],
+    "car_anchor": [
+     0.0038,
+     0.0042,
+     0.001
+    ],
+    "actor_anchor": [
+     -0.0669,
+     -0.0055,
+     -0.8177
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.088,
+    "chamfer_m": 0.096,
+    "chamfer85_m": 0.176,
+    "scale_actor_to_car": [
+     0.9437,
+     1.0874,
+     1.0879
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0038,
+     0.0042,
+     0.001
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "station-wagon-a-v2": {
+  "size": [
+   2.1197,
+   1.8434,
+   5.3272
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.125,
+    "chamfer_m": 0.097,
+    "chamfer85_m": 0.163,
+    "scale_actor_to_car": [
+     0.9287,
+     1.1171,
+     1.1251
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0001,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.178,
+    "chamfer_m": 0.091,
+    "chamfer85_m": 0.158,
+    "scale_actor_to_car": [
+     0.9582,
+     1.1777,
+     1.0148
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0001,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.179,
+    "chamfer_m": 0.093,
+    "chamfer85_m": 0.162,
+    "scale_actor_to_car": [
+     0.9701,
+     1.1793,
+     1.0105
+    ],
+    "actor_size": [
+     2.119,
+     1.562,
+     5.272
+    ],
+    "car_anchor": [
+     0.0057,
+     0.0001,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0669,
+     -0.0055,
+     -0.8177
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "suv-big-b": {
+  "size": [
+   2.4702,
+   1.7299,
+   5.2933
+  ],
+  "candidates": [
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.099,
+    "chamfer_m": 0.108,
+    "chamfer85_m": 0.195,
+    "scale_actor_to_car": [
+     1.0603,
+     1.0988,
+     1.0876
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     -0.0163,
+     0.0042,
+     -0.0
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.118,
+    "chamfer_m": 0.106,
+    "chamfer85_m": 0.18,
+    "scale_actor_to_car": [
+     1.0881,
+     1.046,
+     1.1179
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     -0.0163,
+     0.0042,
+     -0.0
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.126,
+    "chamfer_m": 0.106,
+    "chamfer85_m": 0.185,
+    "scale_actor_to_car": [
+     1.0611,
+     1.1259,
+     1.0893
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     -0.0163,
+     0.0042,
+     -0.0
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "suv-big-b-v2": {
+  "size": [
+   2.6241,
+   2.1919,
+   5.37
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.113,
+    "chamfer_m": 0.124,
+    "chamfer85_m": 0.237,
+    "scale_actor_to_car": [
+     0.8989,
+     1.0157,
+     0.9727
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     -0.0026,
+     0.0164,
+     0.0286
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 0,
+    "max_scale_dev": 0.113,
+    "chamfer_m": 0.124,
+    "chamfer85_m": 0.233,
+    "scale_actor_to_car": [
+     0.8982,
+     1.0066,
+     1.0797
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     -0.0026,
+     0.0164,
+     0.0286
+    ],
+    "actor_anchor": [
+     0.0039,
+     -0.0341,
+     0.4462
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.118,
+    "chamfer_m": 0.124,
+    "chamfer85_m": 0.242,
+    "scale_actor_to_car": [
+     0.8946,
+     1.0161,
+     0.9726
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     -0.0026,
+     0.0164,
+     0.0286
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "suv-big-c": {
+  "size": [
+   2.2424,
+   1.7604,
+   4.8544
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.067,
+    "chamfer_m": 0.099,
+    "chamfer85_m": 0.164,
+    "scale_actor_to_car": [
+     0.9639,
+     1.0671,
+     1.0251
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0002,
+     0.0003
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.121,
+    "chamfer_m": 0.107,
+    "chamfer85_m": 0.188,
+    "scale_actor_to_car": [
+     0.9393,
+     1.1209,
+     0.9973
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0002,
+     0.0003
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.125,
+    "chamfer_m": 0.107,
+    "chamfer85_m": 0.183,
+    "scale_actor_to_car": [
+     0.9945,
+     1.1249,
+     0.9246
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0393,
+     0.0002,
+     0.0003
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "suv-big-c-v2": {
+  "size": [
+   2.2424,
+   1.6894,
+   4.8246
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.028,
+    "chamfer_m": 0.099,
+    "chamfer85_m": 0.159,
+    "scale_actor_to_car": [
+     0.9732,
+     1.0241,
+     1.0189
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0069,
+     0.0004,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.076,
+    "chamfer_m": 0.104,
+    "chamfer85_m": 0.186,
+    "scale_actor_to_car": [
+     0.9484,
+     1.0757,
+     0.9913
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0069,
+     0.0004,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.088,
+    "chamfer_m": 0.103,
+    "chamfer85_m": 0.175,
+    "scale_actor_to_car": [
+     1.0041,
+     1.0795,
+     0.919
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0069,
+     0.0004,
+     0.0
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "truck-delivery-b": {
+  "size": [
+   3.0811,
+   3.9038,
+   9.9482
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.409,
+    "chamfer_m": 0.176,
+    "chamfer85_m": 0.338,
+    "scale_actor_to_car": [
+     0.9693,
+     1.1756,
+     1.4095
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0003,
+     0.1531,
+     0.0003
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.41,
+    "chamfer_m": 0.195,
+    "chamfer85_m": 0.421,
+    "scale_actor_to_car": [
+     0.9613,
+     1.2434,
+     1.4096
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0003,
+     0.1531,
+     0.0003
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.455,
+    "chamfer_m": 0.2,
+    "chamfer85_m": 0.439,
+    "scale_actor_to_car": [
+     0.9986,
+     1.3817,
+     1.4549
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     -0.0003,
+     0.1531,
+     0.0003
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "van-a-v3": {
+  "size": [
+   2.5616,
+   2.103,
+   5.9239
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.15,
+    "chamfer_m": 0.117,
+    "chamfer85_m": 0.22,
+    "scale_actor_to_car": [
+     0.8695,
+     1.0077,
+     1.0829
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     0.0008,
+     0.0004,
+     -0.0008
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.156,
+    "chamfer_m": 0.117,
+    "chamfer85_m": 0.222,
+    "scale_actor_to_car": [
+     0.8654,
+     1.0081,
+     1.0827
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     0.0008,
+     0.0004,
+     -0.0008
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-modern-f-wlf",
+    "theta_deg": 0,
+    "max_scale_dev": 0.156,
+    "chamfer_m": 0.124,
+    "chamfer85_m": 0.244,
+    "scale_actor_to_car": [
+     0.8653,
+     1.0038,
+     1.0749
+    ],
+    "actor_size": [
+     2.926,
+     2.092,
+     5.492
+    ],
+    "car_anchor": [
+     0.0008,
+     0.0004,
+     -0.0008
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0369,
+     0.0798
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "humvee-modern-v2": {
+  "size": [
+   2.9456,
+   2.2426,
+   5.4795
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.062,
+    "chamfer_m": 0.104,
+    "chamfer85_m": 0.181,
+    "scale_actor_to_car": [
+     0.9967,
+     1.0623,
+     1.0039
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     -0.0047,
+     0.0093,
+     0.0013
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.062,
+    "chamfer_m": 0.105,
+    "chamfer85_m": 0.18,
+    "scale_actor_to_car": [
+     1.0014,
+     1.0619,
+     1.0041
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     -0.0047,
+     0.0093,
+     0.0013
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-modern-f-wlf",
+    "theta_deg": 0,
+    "max_scale_dev": 0.058,
+    "chamfer_m": 0.107,
+    "chamfer85_m": 0.211,
+    "scale_actor_to_car": [
+     0.9966,
+     1.0578,
+     0.9966
+    ],
+    "actor_size": [
+     2.926,
+     2.092,
+     5.492
+    ],
+    "car_anchor": [
+     -0.0047,
+     0.0093,
+     0.0013
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0369,
+     0.0798
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "hatchback-a": {
+  "size": [
+   2.1862,
+   2.6311,
+   4.5354
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 0,
+    "max_scale_dev": 0.361,
+    "chamfer_m": 0.119,
+    "chamfer85_m": 0.312,
+    "scale_actor_to_car": [
+     0.7345,
+     1.2124,
+     0.8557
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     0.0017,
+     0.0786,
+     -0.166
+    ],
+    "actor_anchor": [
+     0.0039,
+     -0.0341,
+     0.4462
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "miltruck1-modern-f-wlf",
+    "theta_deg": 0,
+    "max_scale_dev": 0.367,
+    "chamfer_m": 0.12,
+    "chamfer85_m": 0.325,
+    "scale_actor_to_car": [
+     0.7316,
+     1.2186,
+     0.7652
+    ],
+    "actor_size": [
+     2.926,
+     2.092,
+     5.492
+    ],
+    "car_anchor": [
+     0.0017,
+     0.0786,
+     -0.166
+    ],
+    "actor_anchor": [
+     0.0,
+     -0.0369,
+     0.0798
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.36,
+    "chamfer_m": 0.122,
+    "chamfer85_m": 0.344,
+    "scale_actor_to_car": [
+     0.7351,
+     1.2233,
+     0.7709
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     0.0017,
+     0.0786,
+     -0.166
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "hatchback-a-v2": {
+  "size": [
+   2.1725,
+   1.5814,
+   4.2431
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.119,
+    "chamfer_m": 0.086,
+    "chamfer85_m": 0.14,
+    "scale_actor_to_car": [
+     0.9611,
+     0.9508,
+     0.8938
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0156,
+     0.0129,
+     -0.0023
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.15,
+    "chamfer_m": 0.088,
+    "chamfer85_m": 0.163,
+    "scale_actor_to_car": [
+     0.9366,
+     0.9988,
+     0.8696
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0156,
+     0.0129,
+     -0.0023
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.148,
+    "chamfer_m": 0.089,
+    "chamfer85_m": 0.16,
+    "scale_actor_to_car": [
+     0.9373,
+     1.0235,
+     0.871
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     0.0156,
+     0.0129,
+     -0.0023
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "compact-sedan-a-v2": {
+  "size": [
+   2.543,
+   1.9496,
+   5.0296
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.155,
+    "chamfer_m": 0.11,
+    "chamfer85_m": 0.246,
+    "scale_actor_to_car": [
+     0.8655,
+     0.9297,
+     0.9019
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     0.0028,
+     0.0091,
+     -0.0255
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 0,
+    "max_scale_dev": 0.156,
+    "chamfer_m": 0.112,
+    "chamfer85_m": 0.235,
+    "scale_actor_to_car": [
+     0.8649,
+     0.9214,
+     1.0011
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     0.0028,
+     0.0091,
+     -0.0255
+    ],
+    "actor_anchor": [
+     0.0039,
+     -0.0341,
+     0.4462
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.161,
+    "chamfer_m": 0.111,
+    "chamfer85_m": 0.241,
+    "scale_actor_to_car": [
+     0.8614,
+     0.93,
+     0.9018
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     0.0028,
+     0.0091,
+     -0.0255
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "suv-big-b-v3": {
+  "size": [
+   2.7796,
+   2.1896,
+   5.3595
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 180,
+    "max_scale_dev": 0.081,
+    "chamfer_m": 0.137,
+    "chamfer85_m": 0.269,
+    "scale_actor_to_car": [
+     0.9255,
+     1.0384,
+     0.9831
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     0.0219,
+     0.0167,
+     0.0002
+    ],
+    "actor_anchor": [
+     0.0068,
+     -0.0386,
+     -0.1002
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 180,
+    "max_scale_dev": 0.091,
+    "chamfer_m": 0.136,
+    "chamfer85_m": 0.271,
+    "scale_actor_to_car": [
+     0.9248,
+     1.0292,
+     1.0912
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     0.0219,
+     0.0167,
+     0.0002
+    ],
+    "actor_anchor": [
+     -0.0039,
+     -0.0341,
+     -0.4462
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-open-bed",
+    "theta_deg": 180,
+    "max_scale_dev": 0.084,
+    "chamfer_m": 0.138,
+    "chamfer85_m": 0.279,
+    "scale_actor_to_car": [
+     0.9229,
+     1.0368,
+     0.9747
+    ],
+    "actor_size": [
+     2.92,
+     2.087,
+     5.497
+    ],
+    "car_anchor": [
+     0.0219,
+     0.0167,
+     0.0002
+    ],
+    "actor_anchor": [
+     -0.001,
+     -0.0375,
+     -0.0768
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "suv-big-b-v4": {
+  "size": [
+   3.9709,
+   3.4409,
+   5.5271
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.347,
+    "chamfer_m": 0.241,
+    "chamfer85_m": 0.687,
+    "scale_actor_to_car": [
+     1.2222,
+     1.128,
+     0.7423
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0229,
+     0.0225,
+     -0.058
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.347,
+    "chamfer_m": 0.246,
+    "chamfer85_m": 0.731,
+    "scale_actor_to_car": [
+     1.2323,
+     1.0665,
+     0.7422
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0229,
+     0.0225,
+     -0.058
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-open-bed-fob",
+    "theta_deg": 0,
+    "max_scale_dev": 0.629,
+    "chamfer_m": 0.256,
+    "chamfer85_m": 0.737,
+    "scale_actor_to_car": [
+     1.3275,
+     1.6294,
+     0.9533
+    ],
+    "actor_size": [
+     2.922,
+     2.087,
+     5.494
+    ],
+    "car_anchor": [
+     0.0229,
+     0.0225,
+     -0.058
+    ],
+    "actor_anchor": [
+     -0.0,
+     -0.0386,
+     0.0788
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "suv-big-b-v5": {
+  "size": [
+   2.7179,
+   2.9744,
+   5.5448
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.295,
+    "chamfer_m": 0.145,
+    "chamfer85_m": 0.347,
+    "scale_actor_to_car": [
+     0.7723,
+     0.8816,
+     0.7733
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0974,
+     0.1493,
+     -0.0054
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.305,
+    "chamfer_m": 0.144,
+    "chamfer85_m": 0.367,
+    "scale_actor_to_car": [
+     0.766,
+     0.9324,
+     0.7734
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0974,
+     0.1493,
+     -0.0054
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.183,
+    "chamfer_m": 0.171,
+    "chamfer85_m": 0.376,
+    "scale_actor_to_car": [
+     0.975,
+     0.8456,
+     0.8946
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     0.0974,
+     0.1493,
+     -0.0054
+    ],
+    "actor_anchor": [
+     -0.0004,
+     -0.0122,
+     0.2047
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "truck-fire-engine-a": {
+  "size": [
+   4.0032,
+   5.0911,
+   10.5284
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.582,
+    "chamfer_m": 0.238,
+    "chamfer85_m": 0.555,
+    "scale_actor_to_car": [
+     1.225,
+     1.5824,
+     1.4866
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0018,
+     0.0201,
+     -0.0033
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.674,
+    "chamfer_m": 0.241,
+    "chamfer85_m": 0.69,
+    "scale_actor_to_car": [
+     1.215,
+     1.6735,
+     1.4868
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0018,
+     0.0201,
+     -0.0033
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.72,
+    "chamfer_m": 0.237,
+    "chamfer85_m": 0.508,
+    "scale_actor_to_car": [
+     1.5465,
+     1.5177,
+     1.7198
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     0.0018,
+     0.0201,
+     -0.0033
+    ],
+    "actor_anchor": [
+     0.0004,
+     -0.0122,
+     -0.2047
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "truck-postal-a": {
+  "size": [
+   2.6628,
+   2.2311,
+   4.5061
+  ],
+  "candidates": [
+   {
+    "actor": "miltruck1-short",
+    "theta_deg": 0,
+    "max_scale_dev": 0.143,
+    "chamfer_m": 0.137,
+    "chamfer85_m": 0.28,
+    "scale_actor_to_car": [
+     0.875,
+     1.0542,
+     0.9103
+    ],
+    "actor_size": [
+     2.914,
+     2.103,
+     4.911
+    ],
+    "car_anchor": [
+     0.0084,
+     0.0104,
+     0.011
+    ],
+    "actor_anchor": [
+     0.0039,
+     -0.0341,
+     0.4462
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-hard-shell-nologo",
+    "theta_deg": 0,
+    "max_scale_dev": 0.219,
+    "chamfer_m": 0.125,
+    "chamfer85_m": 0.25,
+    "scale_actor_to_car": [
+     0.8715,
+     1.0641,
+     0.82
+    ],
+    "actor_size": [
+     2.925,
+     2.083,
+     5.452
+    ],
+    "car_anchor": [
+     0.0084,
+     0.0104,
+     0.011
+    ],
+    "actor_anchor": [
+     0.0019,
+     -0.0377,
+     0.0998
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "miltruck1-hard-shell",
+    "theta_deg": 0,
+    "max_scale_dev": 0.219,
+    "chamfer_m": 0.126,
+    "chamfer85_m": 0.251,
+    "scale_actor_to_car": [
+     0.8756,
+     1.0636,
+     0.8202
+    ],
+    "actor_size": [
+     2.912,
+     2.084,
+     5.451
+    ],
+    "car_anchor": [
+     0.0084,
+     0.0104,
+     0.011
+    ],
+    "actor_anchor": [
+     -0.0068,
+     -0.0386,
+     0.1002
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "van-a-v4": {
+  "size": [
+   2.7748,
+   3.0131,
+   6.0605
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.191,
+    "chamfer_m": 0.138,
+    "chamfer85_m": 0.291,
+    "scale_actor_to_car": [
+     0.8399,
+     0.9524,
+     0.8452
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0121,
+     0.0884,
+     -0.0464
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.183,
+    "chamfer_m": 0.147,
+    "chamfer85_m": 0.318,
+    "scale_actor_to_car": [
+     0.8469,
+     0.9005,
+     0.845
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0121,
+     0.0884,
+     -0.0464
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.158,
+    "chamfer_m": 0.165,
+    "chamfer85_m": 0.385,
+    "scale_actor_to_car": [
+     1.0691,
+     0.8637,
+     0.9776
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     -0.0121,
+     0.0884,
+     -0.0464
+    ],
+    "actor_anchor": [
+     -0.0004,
+     -0.0122,
+     0.2047
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "van-delivery-a": {
+  "size": [
+   3.1349,
+   4.1754,
+   6.6381
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.29,
+    "chamfer_m": 0.17,
+    "chamfer85_m": 0.376,
+    "scale_actor_to_car": [
+     0.9459,
+     1.2901,
+     0.9306
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0391,
+     0.0448,
+     -0.0335
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.364,
+    "chamfer_m": 0.167,
+    "chamfer85_m": 0.376,
+    "scale_actor_to_car": [
+     0.9381,
+     1.3644,
+     0.9307
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0391,
+     0.0448,
+     -0.0335
+    ],
+    "actor_anchor": [
+     -0.0049,
+     -0.1416,
+     -0.2647
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.237,
+    "chamfer_m": 0.195,
+    "chamfer85_m": 0.459,
+    "scale_actor_to_car": [
+     1.1941,
+     1.2374,
+     1.0766
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     0.0391,
+     0.0448,
+     -0.0335
+    ],
+    "actor_anchor": [
+     0.0004,
+     -0.0122,
+     -0.2047
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "metro-bus-a": {
+  "size": [
+   3.232,
+   3.2436,
+   12.0929
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 180,
+    "max_scale_dev": 0.714,
+    "chamfer_m": 0.247,
+    "chamfer85_m": 0.619,
+    "scale_actor_to_car": [
+     0.9872,
+     1.0145,
+     1.7138
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0106,
+     0.0042,
+     -0.0002
+    ],
+    "actor_anchor": [
+     -0.0008,
+     -0.1432,
+     -0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "pat-tractor-hauler-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.258,
+    "chamfer_m": 0.342,
+    "chamfer85_m": 0.846,
+    "scale_actor_to_car": [
+     1.2234,
+     1.2406,
+     1.258
+    ],
+    "actor_size": [
+     2.54,
+     2.607,
+     9.612
+    ],
+    "car_anchor": [
+     0.0106,
+     0.0042,
+     -0.0002
+    ],
+    "actor_anchor": [
+     0.0001,
+     -0.0091,
+     2.1574
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.714,
+    "chamfer_m": 0.268,
+    "chamfer85_m": 0.691,
+    "scale_actor_to_car": [
+     0.9791,
+     1.073,
+     1.714
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0106,
+     0.0042,
+     -0.0002
+    ],
+    "actor_anchor": [
+     -0.0049,
+     -0.1416,
+     -0.2647
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "hatchback-b": {
+  "size": [
+   2.1752,
+   1.7685,
+   4.6201
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.071,
+    "chamfer_m": 0.09,
+    "chamfer85_m": 0.154,
+    "scale_actor_to_car": [
+     0.9726,
+     1.0713,
+     0.9754
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.009,
+     0.0015,
+     -0.0003
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.137,
+    "chamfer_m": 0.09,
+    "chamfer85_m": 0.172,
+    "scale_actor_to_car": [
+     1.0034,
+     1.1294,
+     0.8798
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.009,
+     0.0015,
+     -0.0003
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "good"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.125,
+    "chamfer_m": 0.095,
+    "chamfer85_m": 0.172,
+    "scale_actor_to_car": [
+     0.9478,
+     1.1254,
+     0.949
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.009,
+     0.0015,
+     -0.0003
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "good"
+   }
+  ]
+ },
+ "truck-delivery-b-v2": {
+  "size": [
+   3.0722,
+   3.4888,
+   9.8357
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.394,
+    "chamfer_m": 0.178,
+    "chamfer85_m": 0.346,
+    "scale_actor_to_car": [
+     0.9386,
+     1.0944,
+     1.3939
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     0.0589,
+     0.0,
+     -0.0002
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.394,
+    "chamfer_m": 0.199,
+    "chamfer85_m": 0.465,
+    "scale_actor_to_car": [
+     0.931,
+     1.1575,
+     1.3941
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     0.0589,
+     0.0,
+     -0.0002
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.439,
+    "chamfer_m": 0.206,
+    "chamfer85_m": 0.468,
+    "scale_actor_to_car": [
+     0.9671,
+     1.2863,
+     1.4388
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     0.0589,
+     0.0,
+     -0.0002
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "van-a-v5": {
+  "size": [
+   6.0189,
+   2.6265,
+   2.8112
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 270,
+    "max_scale_dev": 0.175,
+    "chamfer_m": 0.176,
+    "chamfer85_m": 0.461,
+    "scale_actor_to_car": [
+     0.8509,
+     0.8646,
+     0.8787
+    ],
+    "actor_size": [
+     7.055,
+     3.014,
+     3.173
+    ],
+    "car_anchor": [
+     -0.0058,
+     0.0067,
+     0.002
+    ],
+    "actor_anchor": [
+     0.2647,
+     -0.1416,
+     -0.0049
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 270,
+    "max_scale_dev": 0.223,
+    "chamfer_m": 0.173,
+    "chamfer85_m": 0.418,
+    "scale_actor_to_car": [
+     0.8508,
+     0.8174,
+     0.8859
+    ],
+    "actor_size": [
+     7.056,
+     3.188,
+     3.147
+    ],
+    "car_anchor": [
+     -0.0058,
+     0.0067,
+     0.002
+    ],
+    "actor_anchor": [
+     0.2642,
+     -0.1432,
+     -0.0008
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 270,
+    "max_scale_dev": 0.275,
+    "chamfer_m": 0.177,
+    "chamfer85_m": 0.446,
+    "scale_actor_to_car": [
+     0.9843,
+     0.7841,
+     1.1184
+    ],
+    "actor_size": [
+     6.099,
+     3.323,
+     2.493
+    ],
+    "car_anchor": [
+     -0.0058,
+     0.0067,
+     0.002
+    ],
+    "actor_anchor": [
+     -0.2047,
+     -0.0122,
+     -0.0004
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "van-delivery-a-v2": {
+  "size": [
+   2.8255,
+   2.9093,
+   6.3174
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.188,
+    "chamfer_m": 0.147,
+    "chamfer85_m": 0.299,
+    "scale_actor_to_car": [
+     0.8416,
+     0.8893,
+     0.8943
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0123,
+     0.0351,
+     -0.0029
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-van-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.172,
+    "chamfer_m": 0.153,
+    "chamfer85_m": 0.321,
+    "scale_actor_to_car": [
+     1.0625,
+     0.853,
+     1.0346
+    ],
+    "actor_size": [
+     2.493,
+     3.323,
+     6.099
+    ],
+    "car_anchor": [
+     -0.0123,
+     0.0351,
+     -0.0029
+    ],
+    "actor_anchor": [
+     0.0004,
+     -0.0122,
+     -0.2047
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.198,
+    "chamfer_m": 0.154,
+    "chamfer85_m": 0.356,
+    "scale_actor_to_car": [
+     0.8348,
+     0.9406,
+     0.8944
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0123,
+     0.0351,
+     -0.0029
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "metro-bus-a-exterior": {
+  "size": [
+   3.2267,
+   3.3272,
+   12.1699
+  ],
+  "candidates": [
+   {
+    "actor": "pat-tractor-hauler-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.274,
+    "chamfer_m": 0.283,
+    "chamfer85_m": 0.642,
+    "scale_actor_to_car": [
+     1.2381,
+     1.2744,
+     1.257
+    ],
+    "actor_size": [
+     2.54,
+     2.607,
+     9.612
+    ],
+    "car_anchor": [
+     -0.0185,
+     0.0023,
+     -0.0436
+    ],
+    "actor_anchor": [
+     -0.0001,
+     -0.0091,
+     -2.1574
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.712,
+    "chamfer_m": 0.251,
+    "chamfer85_m": 0.506,
+    "scale_actor_to_car": [
+     0.9991,
+     1.0422,
+     1.7124
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0185,
+     0.0023,
+     -0.0436
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 180,
+    "max_scale_dev": 0.713,
+    "chamfer_m": 0.274,
+    "chamfer85_m": 0.639,
+    "scale_actor_to_car": [
+     0.9909,
+     1.1022,
+     1.7127
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0185,
+     0.0023,
+     -0.0436
+    ],
+    "actor_anchor": [
+     -0.0049,
+     -0.1416,
+     -0.2647
+    ],
+    "fit": "poor"
+   }
+  ]
+ },
+ "compact-sedan-a-v3": {
+  "size": [
+   2.044,
+   2.0095,
+   4.755
+  ],
+  "candidates": [
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.278,
+    "chamfer_m": 0.123,
+    "chamfer85_m": 0.299,
+    "scale_actor_to_car": [
+     0.8926,
+     1.2781,
+     0.9761
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0004,
+     0.0009,
+     -0.0017
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.217,
+    "chamfer_m": 0.14,
+    "chamfer85_m": 0.317,
+    "scale_actor_to_car": [
+     0.9159,
+     1.2167,
+     1.0033
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0004,
+     0.0009,
+     -0.0017
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "sle-compact-sedan-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.31,
+    "chamfer_m": 0.137,
+    "chamfer85_m": 0.335,
+    "scale_actor_to_car": [
+     0.8932,
+     1.3097,
+     0.9777
+    ],
+    "actor_size": [
+     2.27,
+     1.532,
+     4.859
+    ],
+    "car_anchor": [
+     0.0004,
+     0.0009,
+     -0.0017
+    ],
+    "actor_anchor": [
+     0.0025,
+     -0.0145,
+     0.0088
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "suv-big-c-v3": {
+  "size": [
+   2.4061,
+   2.0165,
+   4.928
+  ],
+  "candidates": [
+   {
+    "actor": "wat-traps-suv-small-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.218,
+    "chamfer_m": 0.098,
+    "chamfer85_m": 0.159,
+    "scale_actor_to_car": [
+     1.0211,
+     1.2178,
+     1.0307
+    ],
+    "actor_size": [
+     2.214,
+     1.649,
+     4.735
+    ],
+    "car_anchor": [
+     0.0159,
+     0.0051,
+     0.0236
+    ],
+    "actor_anchor": [
+     -0.0016,
+     -0.005,
+     0.334
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "res-jesse-station-wagon-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.284,
+    "chamfer_m": 0.099,
+    "chamfer85_m": 0.177,
+    "scale_actor_to_car": [
+     1.0535,
+     1.2838,
+     0.9297
+    ],
+    "actor_size": [
+     2.145,
+     1.564,
+     5.25
+    ],
+    "car_anchor": [
+     0.0159,
+     0.0051,
+     0.0236
+    ],
+    "actor_anchor": [
+     -0.0492,
+     -0.0093,
+     -0.8097
+    ],
+    "fit": "ok"
+   },
+   {
+    "actor": "compact-sedan-a-rear-rig",
+    "theta_deg": 0,
+    "max_scale_dev": 0.279,
+    "chamfer_m": 0.101,
+    "chamfer85_m": 0.173,
+    "scale_actor_to_car": [
+     0.995,
+     1.2793,
+     1.0028
+    ],
+    "actor_size": [
+     2.271,
+     1.57,
+     4.867
+    ],
+    "car_anchor": [
+     0.0159,
+     0.0051,
+     0.0236
+    ],
+    "actor_anchor": [
+     -0.0045,
+     -0.0172,
+     0.0172
+    ],
+    "fit": "ok"
+   }
+  ]
+ },
+ "truck-delivery-b-v3": {
+  "size": [
+   3.2839,
+   3.9461,
+   9.7733
+  ],
+  "candidates": [
+   {
+    "actor": "military-truck-modern-a",
+    "theta_deg": 0,
+    "max_scale_dev": 0.384,
+    "chamfer_m": 0.195,
+    "chamfer85_m": 0.514,
+    "scale_actor_to_car": [
+     1.0129,
+     1.2197,
+     1.3836
+    ],
+    "actor_size": [
+     3.173,
+     3.014,
+     7.055
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.1385,
+     -0.0053
+    ],
+    "actor_anchor": [
+     0.0049,
+     -0.1416,
+     0.2647
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "military-truck-modern-b",
+    "theta_deg": 0,
+    "max_scale_dev": 0.383,
+    "chamfer_m": 0.202,
+    "chamfer85_m": 0.565,
+    "scale_actor_to_car": [
+     1.0213,
+     1.1533,
+     1.3834
+    ],
+    "actor_size": [
+     3.147,
+     3.188,
+     7.056
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.1385,
+     -0.0053
+    ],
+    "actor_anchor": [
+     0.0008,
+     -0.1432,
+     0.2642
+    ],
+    "fit": "poor"
+   },
+   {
+    "actor": "farm-truck",
+    "theta_deg": 0,
+    "max_scale_dev": 0.428,
+    "chamfer_m": 0.264,
+    "chamfer85_m": 0.682,
+    "scale_actor_to_car": [
+     1.0522,
+     1.3555,
+     1.4279
+    ],
+    "actor_size": [
+     3.055,
+     2.712,
+     6.836
+    ],
+    "car_anchor": [
+     -0.0001,
+     0.1385,
+     -0.0053
+    ],
+    "actor_anchor": [
+     -0.0095,
+     0.0018,
+     -1.3796
+    ],
+    "fit": "poor"
+   }
+  ]
+ }
+}

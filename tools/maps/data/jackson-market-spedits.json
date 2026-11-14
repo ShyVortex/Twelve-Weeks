@@ -1,0 +1,5 @@
+{
+  "_comment": "Edits of the SP levels' own spawners made in TLOUSceneEditor (Open Map > SP reference markers). Applied by tools/maps/collectibles.py build_key (parked / pose rewritten in the -ingame pak).",
+  "key": "jackson-market",
+  "edits": []
+}

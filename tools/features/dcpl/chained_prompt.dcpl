@@ -1,0 +1,16 @@
+@game "./re/dccgame"
+@target "ss-t2/ss-proto-chained-infected.bin"
+@mod "t2r-data"
+
+// No Return maps put chained clickers in Rattlers encounters; in multiplayer their "free"
+// prompt stayed (does nothing). The chain controller's first start lambda also disables the
+// chain interactable.
+using #enable-collision-fixed as far (u64, u64) -> u64;
+using #interactable-disable as far (u64) -> u64;
+using #tag-symbol as far (u64, u64) -> u64;
+
+u64 #wait-for-attack@start@main@0() {
+    #enable-collision-fixed(#self, 0);
+    #interactable-disable(#tag-symbol(#chain-interact, #self));
+    return 0;
+}

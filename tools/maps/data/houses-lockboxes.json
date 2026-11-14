@@ -1,0 +1,65 @@
+{
+ "key": "houses",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     58.485,
+     -1.861,
+     478.6
+    ],
+    "yaw_deg": 272.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     28.872,
+     -0.078,
+     459.001
+    ],
+    "yaw_deg": 270.0,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     23.123,
+     -0.078,
+     460.051
+    ],
+    "yaw_deg": 270.0,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     95.844,
+     -4.265,
+     440.46
+    ],
+    "yaw_deg": 180.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     59.231,
+     -0.949,
+     443.848
+    ],
+    "yaw_deg": 90.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     64.892,
+     -0.972,
+     426.794
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

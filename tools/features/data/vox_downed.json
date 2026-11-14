@@ -1,0 +1,2153 @@
+[
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrma-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrma-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrma-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrma-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrma-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrma-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrma-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrma-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrma-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrma-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrma-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrma-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrma-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrma-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrma-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrma-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrma-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrma-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrma-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrma-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrma-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrma-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrma-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrma-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrmb-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrmb-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrmb-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrmb-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrmb-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrmb-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 4,
+  "speech": "scrmb-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-scrmb-0-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrmb-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrmb-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrmb-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrmb-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrmb-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrmb-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrmb-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrmb-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrmb-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrmb-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrmb-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrmb-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrmb-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrmb-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrmb-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrmb-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrmb-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 6,
+  "speech": "scrmb-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-scrmb-2-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 7,
+  "speech": "scrmb-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-scrmb-2-07"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 8,
+  "speech": "scrmb-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-scrmb-2-08"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrmc-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrmc-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrmc-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrmc-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrmc-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrmc-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 4,
+  "speech": "scrmc-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-scrmc-0-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrmc-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrmc-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrmc-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrmc-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrmc-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrmc-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrmc-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrmc-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrmc-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrmc-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrmc-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrmc-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrmc-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrmc-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrmc-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrmc-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrmc-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 6,
+  "speech": "scrmc-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-scrmc-2-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 7,
+  "speech": "scrmc-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-scrmc-2-07"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrmd-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrmd-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrmd-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrmd-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrmd-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrmd-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 4,
+  "speech": "scrmd-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-scrmd-0-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrmd-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrmd-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrmd-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrmd-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrmd-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrmd-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrmd-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrmd-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrmd-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrmd-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrmd-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrmd-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrmd-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrmd-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrmd-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrmd-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrmd-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrfa-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrfa-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrfa-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrfa-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrfa-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrfa-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrfa-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrfa-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrfa-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrfa-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrfa-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrfa-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrfa-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrfa-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrfa-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrfa-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 6,
+  "speech": "scrfa-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-scrfa-2-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrfb-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrfb-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrfb-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrfb-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrfb-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrfb-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 4,
+  "speech": "scrfb-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-scrfb-0-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 5,
+  "speech": "scrfb-eff-gen-death-bleed-out-005",
+  "id": "t2r-vox-dn-scrfb-0-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 6,
+  "speech": "scrfb-eff-gen-death-bleed-out-006",
+  "id": "t2r-vox-dn-scrfb-0-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 7,
+  "speech": "scrfb-eff-gen-death-bleed-out-007",
+  "id": "t2r-vox-dn-scrfb-0-07"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 8,
+  "speech": "scrfb-eff-gen-death-bleed-out-008",
+  "id": "t2r-vox-dn-scrfb-0-08"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrfb-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrfb-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrfb-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrfb-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrfb-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrfb-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrfb-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrfb-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrfb-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrfb-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrfb-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrfb-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-scrfb-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrfb-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-scrfb-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrfb-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-scrfb-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 6,
+  "speech": "scrfb-eff-gen-death-hdsht-009",
+  "id": "t2r-vox-dn-scrfb-2-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrfc-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrfc-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrfc-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrfc-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrfc-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrfc-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 1,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-scrfc-1-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 2,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-scrfc-1-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 3,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-scrfc-1-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 4,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-scrfc-1-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 5,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-scrfc-1-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 6,
+  "speech": "scrfc-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-scrfc-1-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrfc-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrfc-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrfc-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrfc-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrfc-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrfc-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrfc-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrfc-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrfc-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrfc-2-05"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 6,
+  "speech": "scrfc-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-scrfc-2-06"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 1,
+  "speech": "scrfd-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-scrfd-0-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 2,
+  "speech": "scrfd-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-scrfd-0-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 3,
+  "speech": "scrfd-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-scrfd-0-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 1,
+  "speech": "scrfd-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-scrfd-2-01"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 2,
+  "speech": "scrfd-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-scrfd-2-02"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 3,
+  "speech": "scrfd-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-scrfd-2-03"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 4,
+  "speech": "scrfd-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-scrfd-2-04"
+ },
+ {
+  "fac": "scr",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 5,
+  "speech": "scrfd-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-scrfd-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltma-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltma-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltma-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltma-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltma-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltma-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltma-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltma-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 0,
+  "n": 5,
+  "speech": "mltma-eff-gen-death-bleed-out-006",
+  "id": "t2r-vox-dn-mltma-0-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltma-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltma-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltma-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltma-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltma-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltma-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltma-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltma-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltma-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltma-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltma-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltma-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltma-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltma-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltma-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltma-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltma-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltma-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltma-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltma-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltma-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltma-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 6,
+  "speech": "mltma-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-mltma-2-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 7,
+  "speech": "mltma-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-mltma-2-07"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "a",
+  "kind": 2,
+  "n": 8,
+  "speech": "mltma-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-mltma-2-08"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltmb-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltmb-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltmb-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltmb-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltmb-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltmb-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltmb-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltmb-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltmb-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltmb-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltmb-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltmb-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltmb-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltmb-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltmb-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltmb-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltmb-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltmb-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltmb-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltmb-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "b",
+  "kind": 2,
+  "n": 6,
+  "speech": "mltmb-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-mltmb-2-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltmc-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltmc-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltmc-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltmc-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltmc-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltmc-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltmc-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltmc-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltmc-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltmc-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltmc-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltmc-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltmc-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltmc-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltmc-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltmc-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltmc-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltmc-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltmc-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltmc-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltmc-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltmc-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltmc-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "c",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltmc-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-mltmc-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltmd-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltmd-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltmd-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltmd-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltmd-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltmd-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltmd-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltmd-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 0,
+  "n": 5,
+  "speech": "mltmd-eff-gen-death-bleed-out-005",
+  "id": "t2r-vox-dn-mltmd-0-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltmd-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltmd-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltmd-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltmd-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltmd-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltmd-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltmd-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltmd-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltmd-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltmd-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltmd-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltmd-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltmd-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "m",
+  "v": "d",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltmd-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltmd-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltfa-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltfa-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltfa-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltfa-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltfa-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltfa-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltfa-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltfa-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltfa-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltfa-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltfa-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltfa-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltfa-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltfa-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltfa-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltfa-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltfa-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltfa-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltfa-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltfa-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltfa-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltfa-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltfa-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltfa-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltfa-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 6,
+  "speech": "mltfa-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-mltfa-2-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 7,
+  "speech": "mltfa-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-mltfa-2-07"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "a",
+  "kind": 2,
+  "n": 8,
+  "speech": "mltfa-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-mltfa-2-08"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltfb-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltfb-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltfb-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltfb-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltfb-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltfb-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltfb-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltfb-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 5,
+  "speech": "mltfb-eff-gen-death-bleed-out-005",
+  "id": "t2r-vox-dn-mltfb-0-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 0,
+  "n": 6,
+  "speech": "mltfb-eff-gen-death-bleed-out-006",
+  "id": "t2r-vox-dn-mltfb-0-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltfb-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltfb-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltfb-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltfb-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltfb-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltfb-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltfb-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltfb-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltfb-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltfb-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltfb-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltfb-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltfb-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltfb-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltfb-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltfb-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltfb-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 6,
+  "speech": "mltfb-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-mltfb-2-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 7,
+  "speech": "mltfb-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-mltfb-2-07"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "b",
+  "kind": 2,
+  "n": 8,
+  "speech": "mltfb-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-mltfb-2-08"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltfc-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltfc-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltfc-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltfc-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltfc-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltfc-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 4,
+  "speech": "mltfc-eff-gen-death-bleed-out-004",
+  "id": "t2r-vox-dn-mltfc-0-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 5,
+  "speech": "mltfc-eff-gen-death-bleed-out-005",
+  "id": "t2r-vox-dn-mltfc-0-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 0,
+  "n": 6,
+  "speech": "mltfc-eff-gen-death-bleed-out-006",
+  "id": "t2r-vox-dn-mltfc-0-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 1,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-001",
+  "id": "t2r-vox-dn-mltfc-1-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 2,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-002",
+  "id": "t2r-vox-dn-mltfc-1-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 3,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-003",
+  "id": "t2r-vox-dn-mltfc-1-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 4,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-004",
+  "id": "t2r-vox-dn-mltfc-1-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 5,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-005",
+  "id": "t2r-vox-dn-mltfc-1-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 1,
+  "n": 6,
+  "speech": "mltfc-eff-gen-brth-fight-injrd-006",
+  "id": "t2r-vox-dn-mltfc-1-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltfc-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltfc-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltfc-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltfc-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltfc-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltfc-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltfc-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltfc-2-04"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 5,
+  "speech": "mltfc-eff-gen-death-hdsht-005",
+  "id": "t2r-vox-dn-mltfc-2-05"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 6,
+  "speech": "mltfc-eff-gen-death-hdsht-006",
+  "id": "t2r-vox-dn-mltfc-2-06"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 7,
+  "speech": "mltfc-eff-gen-death-hdsht-007",
+  "id": "t2r-vox-dn-mltfc-2-07"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "c",
+  "kind": 2,
+  "n": 8,
+  "speech": "mltfc-eff-gen-death-hdsht-008",
+  "id": "t2r-vox-dn-mltfc-2-08"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 1,
+  "speech": "mltfd-eff-gen-death-bleed-out-001",
+  "id": "t2r-vox-dn-mltfd-0-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 2,
+  "speech": "mltfd-eff-gen-death-bleed-out-002",
+  "id": "t2r-vox-dn-mltfd-0-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 0,
+  "n": 3,
+  "speech": "mltfd-eff-gen-death-bleed-out-003",
+  "id": "t2r-vox-dn-mltfd-0-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 1,
+  "speech": "mltfd-eff-gen-death-hdsht-001",
+  "id": "t2r-vox-dn-mltfd-2-01"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 2,
+  "speech": "mltfd-eff-gen-death-hdsht-002",
+  "id": "t2r-vox-dn-mltfd-2-02"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 3,
+  "speech": "mltfd-eff-gen-death-hdsht-003",
+  "id": "t2r-vox-dn-mltfd-2-03"
+ },
+ {
+  "fac": "mlt",
+  "g": "f",
+  "v": "d",
+  "kind": 2,
+  "n": 4,
+  "speech": "mltfd-eff-gen-death-hdsht-004",
+  "id": "t2r-vox-dn-mltfd-2-04"
+ }
+]

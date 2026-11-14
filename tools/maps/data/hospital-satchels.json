@@ -1,0 +1,76 @@
+{
+ "key": "hospital",
+ "map_index": 7,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 8,
+ "from": [
+  {
+   "traffic": 0.28,
+   "yaw_deg": 89.3,
+   "quality": 1.4
+  },
+  {
+   "traffic": 0.28,
+   "yaw_deg": 269.5,
+   "quality": 1.32
+  },
+  {
+   "traffic": 0.47,
+   "yaw_deg": 0.8,
+   "quality": 1.25
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    252.151,
+    12.793,
+    -48.476
+   ],
+   "quat": [
+    0.0,
+    0.70275,
+    0.0,
+    0.711437
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    223.946,
+    13.231,
+    -106.964
+   ],
+   "quat": [
+    0.0,
+    -0.709881,
+    0.0,
+    0.704322
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    273.46,
+    13.823,
+    -112.705
+   ],
+   "quat": [
+    0.0,
+    0.007222,
+    0.0,
+    0.999974
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

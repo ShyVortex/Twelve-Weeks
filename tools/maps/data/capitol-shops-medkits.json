@@ -1,0 +1,76 @@
+{
+ "key": "capitol-shops",
+ "map_index": 19,
+ "area_m2": 5700,
+ "count_wanted": 6,
+ "hand_placed": true,
+ "rule": "hand placed in the SceneEditor (tools/maps/editor_import.py); `medkits.py gen` keeps it",
+ "kits": [
+  {
+   "pos": [
+    -65.843,
+    -6.85,
+    -217.2
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -73.151,
+    -6.737,
+    -288.155
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -68.456,
+    -6.361,
+    -274.861
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -95.339,
+    -8.076,
+    -253.442
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -81.463,
+    -7.198,
+    -245.98
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -65.829,
+    -6.813,
+    -241.506
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  }
+ ]
+}

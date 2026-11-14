@@ -1,0 +1,64 @@
+{
+ "key": "forest",
+ "map_index": 0,
+ "area_m2": 6024,
+ "count_wanted": 5,
+ "rule": "round(6 * area / 7900) clamped 4..12 (re/maps/medkits-2013.md)",
+ "kits": [
+  {
+   "pos": [
+    40.16,
+    2.829,
+    56.851
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 6,
+   "above_floor": 0.9
+  },
+  {
+   "pos": [
+    30.66,
+    3.522,
+    35.851
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 7,
+   "above_floor": 0.8
+  },
+  {
+   "pos": [
+    -34.84,
+    0.703,
+    34.351
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 1.05
+  },
+  {
+   "pos": [
+    1.66,
+    2.877,
+    34.851
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 6,
+   "above_floor": 0.86
+  },
+  {
+   "pos": [
+    12.66,
+    2.454,
+    35.851
+   ],
+   "half": "mid",
+   "indoor": false,
+   "wall_dirs": 4,
+   "above_floor": 0.86
+  }
+ ]
+}

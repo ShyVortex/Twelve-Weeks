@@ -1,0 +1,97 @@
+{
+ "key": "outpost",
+ "map_index": 16,
+ "area_m2": 10232,
+ "count_wanted": 8,
+ "rule": "round(6 * area / 7900) clamped 4..12 (re/maps/medkits-2013.md)",
+ "kits": [
+  {
+   "pos": [
+    -18.25,
+    2.298,
+    27.75
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 2,
+   "above_floor": 0.97
+  },
+  {
+   "pos": [
+    13.75,
+    1.028,
+    22.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 2,
+   "above_floor": 0.58
+  },
+  {
+   "pos": [
+    9.75,
+    2.362,
+    53.25
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 2,
+   "above_floor": 1.22
+  },
+  {
+   "pos": [
+    -14.75,
+    1.348,
+    -37.75
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 4,
+   "above_floor": 0.66
+  },
+  {
+   "pos": [
+    -16.75,
+    1.882,
+    -70.75
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 2,
+   "above_floor": 0.66
+  },
+  {
+   "pos": [
+    14.75,
+    2.263,
+    -58.25
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 3,
+   "above_floor": 0.9
+  },
+  {
+   "pos": [
+    4.75,
+    1.43,
+    -40.75
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 5,
+   "above_floor": 0.93
+  },
+  {
+   "pos": [
+    12.75,
+    1.168,
+    4.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 0.98
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "key": "overpass",
+ "map_index": 21,
+ "area_m2": 7207,
+ "count_wanted": 5,
+ "hand_placed": true,
+ "rule": "hand placed in the SceneEditor (tools/maps/editor_import.py); `medkits.py gen` keeps it",
+ "kits": [
+  {
+   "pos": [
+    -351.25,
+    17.152,
+    -462.11
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -320.627,
+    17.231,
+    -442.596
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -302.277,
+    17.406,
+    -464.306
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -268.48,
+    15.783,
+    -428.874
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -254.687,
+    16.908,
+    -402.18
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  }
+ ]
+}

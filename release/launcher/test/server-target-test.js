@@ -1,0 +1,20 @@
+'use strict';
+// node test/server-target-test.js : live / testing server switch resolves the right pair; env overrides win; bad values are ignored.
+const assert = require('assert');
+const defaults = require('../defaults');
+delete process.env.F2_SERVER; delete process.env.F2_FILE_HOST;
+assert.strictEqual(defaults.server('live'), defaults.OFFICIAL_SERVER);
+assert.strictEqual(defaults.server(undefined), defaults.OFFICIAL_SERVER);
+assert.strictEqual(defaults.server('test'), 'play.twelve-weeks.com:7101');
+assert.strictEqual(defaults.fileHost('test'), 'http://play.twelve-weeks.com:7102');
+assert.strictEqual(defaults.fileHost('live'), defaults.OFFICIAL_FILE_HOST);
+process.env.F2_SERVER = 'x:1'; process.env.F2_FILE_HOST = 'http://y:2/';
+assert.strictEqual(defaults.server('test'), 'x:1');
+assert.strictEqual(defaults.fileHost('test'), 'http://y:2');
+const { createConfigStore } = require('../main/config');
+const cfg = createConfigStore({ runtime: { cfgFile: '/nonexistent/cfg.json', tmpDirLower: '' }, log: () => {} });
+cfg.load();
+assert.strictEqual(cfg.values.server_target, 'live');
+cfg.applyPatch({ server_target: 'test' }); assert.strictEqual(cfg.values.server_target, 'test');
+cfg.applyPatch({ server_target: 'evil' }); assert.strictEqual(cfg.values.server_target, 'test');
+console.log('server-target-test ok');

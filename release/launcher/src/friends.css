@@ -1,0 +1,206 @@
+/* FRIENDS tab (src/social.js): rows in the same bar language as the report / clan panels. Loaded after neat.css. */
+.view > .fr {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+  min-height: 0;
+}
+.fr > * + * {
+  margin-top: 4px;
+}
+.fr .pr-h {
+  margin: 14px 0 6px;
+}
+.fr .pr-h:first-child {
+  margin-top: 0;
+}
+.fr .empty {
+  padding: 26px 4px;
+}
+.fr-row {
+  display: grid;
+  grid-template-columns: 42px 1fr auto;
+  align-items: center;
+  column-gap: 12px;
+  min-height: 54px;
+  padding: 6px 12px 6px 10px;
+  background: var(--bar-bg);
+  border: 1px solid var(--bar-line);
+  border-top-color: rgba(205, 205, 200, 0.3);
+  animation: fadeup 0.5s both;
+}
+.fr-row:hover {
+  border-color: rgba(205, 205, 200, 0.42);
+}
+.fr-av {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--bar-line);
+  background: rgba(255, 255, 255, 0.04) url(../assets/icons/person.png) center / 22px no-repeat;
+}
+.fr-av .dot {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #55585a;
+  border: 2px solid #15171a;
+}
+.st-menu .dot,
+.st-launcher .dot {
+  background: #5bd05b;
+}
+.st-launcher .dot {
+  background: #8fc98f;
+}
+.st-search .dot {
+  background: var(--blue);
+  box-shadow: 0 0 6px var(--blue);
+}
+.st-match .dot {
+  background: var(--warn);
+  box-shadow: 0 0 6px var(--warn);
+}
+.fr-row.st-off .fr-who b,
+.fr-row.st-off .fr-av {
+  opacity: 0.55;
+}
+.fr-who {
+  min-width: 0;
+}
+.fr-who b {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fr-who small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.st-search .fr-who small {
+  color: var(--blue);
+}
+.st-match .fr-who small {
+  color: var(--warn);
+}
+.st-menu .fr-who small {
+  color: #8fc98f;
+}
+.fr-act {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.fr-b {
+  padding: 5px 12px;
+  font-size: 11.5px;
+  letter-spacing: 0.12em;
+}
+.fr-b.arm {
+  border-color: var(--bad);
+  color: #e0988f;
+}
+.fr-tag {
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+  border: 1px solid var(--bar-line);
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+.fr-ready {
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  margin-right: 6px;
+  white-space: nowrap;
+}
+.fr-ready.on {
+  color: #8fc98f;
+}
+.fr-crown {
+  width: 16px;
+  height: 12px;
+  fill: var(--warn);
+  flex: none;
+}
+.fr-n {
+  font-style: normal;
+  font-size: 10.5px;
+  min-width: 16px;
+  padding: 1px 5px;
+  text-align: center;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.1);
+}
+.fr-n.hot {
+  background: var(--warn);
+  color: #15171a;
+  font-weight: 700;
+}
+.fr-add {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  margin-bottom: 8px;
+}
+.fr-add input {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+}
+.fr-me {
+  margin-top: 22px;
+}
+.fr-me .msub {
+  margin-top: 4px;
+}
+.fr-err {
+  padding: 8px 12px;
+  border: 1px solid var(--warn);
+  color: var(--warn);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  background: var(--bar-bg);
+  margin-bottom: 8px;
+}
+.fr-note {
+  margin-top: 8px;
+}
+.fr-note b {
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  font-weight: 600;
+}
+.fr-note p {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+  line-height: 1.5;
+}
+.fr-hint {
+  margin-top: 12px;
+  line-height: 1.5;
+  max-width: 640px;
+}
+.mi u#fr-pip {
+  background: var(--warn);
+}
+body.sp-mode #menu .mi[data-view='friends'] {
+  display: none !important;
+}

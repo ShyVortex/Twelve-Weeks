@@ -1,0 +1,65 @@
+{
+ "key": "gas-station",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     43.578,
+     2.625,
+     -279.28
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     43.174,
+     2.625,
+     -264.89
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     34.523,
+     2.454,
+     -248.156
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     -6.341,
+     1.941,
+     -264.243
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     -5.122,
+     1.958,
+     -246.545
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     -13.156,
+     1.416,
+     -246.545
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

@@ -1,0 +1,665 @@
+{
+ "_note": "Part I Bookstore spawner arts whose TLOU2 actor pak carries the same art (mesh vertex/index counts within 10%, bbox within 0.05 m; tools in re/part1/bookstore_missing_objects_1105.md s9). 'diff' arts differ and wait for the Part I actor converter (class B). invisible-cube (68 poi / interact-loc AI markers, no collision) and light-skel are deliberately not listed. 'convert' = Part I-only arts + 'diff' arts, converted from the Part I actor paks by tools/part1/p1_actors.py (corpse-* held back).",
+ "same": {
+  "binder-box-set-a-binders-a": {
+   "verdict": "CLOSE",
+   "p1": [
+    18,
+    1436,
+    4332
+   ],
+   "t2": [
+    3,
+    1422,
+    4329
+   ],
+   "bbox": 0.027
+  },
+  "books-a-pile-collapsed": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    1036,
+    2910
+   ],
+   "t2": [
+    18,
+    1017,
+    2910
+   ],
+   "bbox": 0.01
+  },
+  "books-a-pile-scattered": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    1544,
+    4146
+   ],
+   "t2": [
+    3,
+    1500,
+    4140
+   ],
+   "bbox": 0.007
+  },
+  "books-a-pile-small": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    1062,
+    3018
+   ],
+   "t2": [
+    3,
+    1061,
+    3018
+   ],
+   "bbox": 0.008
+  },
+  "books-a-standing-large": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    4932,
+    13635
+   ],
+   "t2": [
+    3,
+    4892,
+    13635
+   ],
+   "bbox": 0.01
+  },
+  "bookset-modern-set-b": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    2552,
+    8205
+   ],
+   "t2": [
+    3,
+    2540,
+    8247
+   ],
+   "bbox": 0.005
+  },
+  "cash-register-d": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    2697,
+    7641
+   ],
+   "t2": [
+    3,
+    2695,
+    7647
+   ],
+   "bbox": 0.003
+  },
+  "coffee-syrup-caddy-a": {
+   "verdict": "CLOSE",
+   "p1": [
+    2,
+    7412,
+    21120
+   ],
+   "t2": [
+    3,
+    7848,
+    22911
+   ],
+   "bbox": 0.001
+  },
+  "compact-sedan-a-glass-fg": {
+   "verdict": "CLOSE",
+   "p1": [
+    1,
+    2085,
+    10164
+   ],
+   "t2": [
+    1,
+    1891,
+    8244
+   ],
+   "bbox": 0.0
+  },
+  "compact-sedan-b-glass-fg": {
+   "verdict": "CLOSE",
+   "p1": [
+    1,
+    2195,
+    10206
+   ],
+   "t2": [
+    1,
+    2157,
+    9978
+   ],
+   "bbox": 0.0
+  },
+  "counter-display-a-glass": {
+   "verdict": "CLOSE",
+   "p1": [
+    6,
+    13120,
+    23874
+   ],
+   "t2": [
+    6,
+    12609,
+    23886
+   ],
+   "bbox": 0.016
+  },
+  "desk-prop-b-coffee-cup-classic": {
+   "verdict": "CLOSE",
+   "p1": [
+    2,
+    350,
+    984
+   ],
+   "t2": [
+    2,
+    357,
+    987
+   ],
+   "bbox": 0.0
+  },
+  "desk-prop-b-paper-tray-medium": {
+   "verdict": "CLOSE",
+   "p1": [
+    18,
+    5558,
+    18624
+   ],
+   "t2": [
+    3,
+    5648,
+    18654
+   ],
+   "bbox": 0.005
+  },
+  "electric-pencil-sharpener": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    525,
+    1992
+   ],
+   "t2": [
+    3,
+    524,
+    1992
+   ],
+   "bbox": 0.001
+  },
+  "med-boxes-a-box-c": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    212,
+    732
+   ],
+   "t2": [
+    3,
+    211,
+    732
+   ],
+   "bbox": 0.009
+  },
+  "mug-rack-a": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    2542,
+    8508
+   ],
+   "t2": [
+    3,
+    2573,
+    8508
+   ],
+   "bbox": 0.008
+  },
+  "paper-b-folders-pile-large": {
+   "verdict": "CLOSE",
+   "p1": [
+    45,
+    2301,
+    3981
+   ],
+   "t2": [
+    3,
+    2320,
+    3984
+   ],
+   "bbox": 0.044
+  },
+  "paper-b-folders-pile-medium": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    1257,
+    2175
+   ],
+   "t2": [
+    21,
+    1207,
+    2175
+   ],
+   "bbox": 0.007
+  },
+  "pickup-big-a-glass-fg": {
+   "verdict": "CLOSE",
+   "p1": [
+    1,
+    1823,
+    8388
+   ],
+   "t2": [
+    1,
+    1791,
+    4098
+   ],
+   "bbox": 0.0
+  },
+  "suv-big-b-glass-fg": {
+   "verdict": "CLOSE",
+   "p1": [
+    1,
+    4793,
+    22578
+   ],
+   "t2": [
+    1,
+    4719,
+    22170
+   ],
+   "bbox": 0.0
+  },
+  "suv-small-a-glass-fg": {
+   "verdict": "CLOSE",
+   "p1": [
+    1,
+    3440,
+    16542
+   ],
+   "t2": [
+    1,
+    3375,
+    16152
+   ],
+   "bbox": 0.0
+  },
+  "vintage-books-set-b-single-a": {
+   "verdict": "CLOSE",
+   "p1": [
+    3,
+    175,
+    390
+   ],
+   "t2": [
+    3,
+    161,
+    396
+   ],
+   "bbox": 0.007
+  },
+  "window-0o6x1o25": {
+   "verdict": "MATCH",
+   "p1": [
+    5,
+    3124,
+    6234
+   ],
+   "t2": [
+    5,
+    3124,
+    6234
+   ],
+   "bbox": 0.0
+  },
+  "window-1o25x0o725": {
+   "verdict": "MATCH",
+   "p1": [
+    5,
+    5332,
+    10728
+   ],
+   "t2": [
+    5,
+    5332,
+    10728
+   ],
+   "bbox": 0.0
+  }
+ },
+ "diff": {
+  "bookset-modern-set-a": {
+   "p1": [
+    3,
+    4744,
+    15660
+   ],
+   "t2": [
+    3,
+    4015,
+    13662
+   ],
+   "bbox": 0.012
+  },
+  "bookset-old-a": {
+   "p1": [
+    3,
+    8792,
+    22884
+   ],
+   "t2": [
+    6,
+    31305,
+    127263
+   ],
+   "bbox": 0.007
+  },
+  "coffee-carafe-a": {
+   "p1": [
+    3,
+    818,
+    2817
+   ],
+   "t2": [
+    2,
+    689,
+    2442
+   ],
+   "bbox": 0.01
+  },
+  "coffee-dispenser-b": {
+   "p1": [
+    2,
+    1049,
+    3006
+   ],
+   "t2": [
+    3,
+    1221,
+    3465
+   ],
+   "bbox": 0.009
+  },
+  "debris-trash-addon": {
+   "p1": [
+    3,
+    12540,
+    54855
+   ],
+   "t2": [
+    3,
+    7099,
+    27423
+   ],
+   "bbox": 0.006
+  },
+  "desk-prop-a-pencil-holder-cup": {
+   "p1": [
+    3,
+    896,
+    2127
+   ],
+   "t2": [
+    3,
+    112,
+    192
+   ],
+   "bbox": 0.04
+  },
+  "desk-prop-a-pencil-holder-large": {
+   "p1": [
+    3,
+    1416,
+    3252
+   ],
+   "t2": [
+    3,
+    954,
+    2172
+   ],
+   "bbox": 0.051
+  },
+  "desk-prop-b-coffee-cup-round": {
+   "p1": [
+    2,
+    415,
+    1323
+   ],
+   "t2": [
+    2,
+    948,
+    2469
+   ],
+   "bbox": 0.002
+  },
+  "desk-prop-b-paper-tray-large": {
+   "p1": [
+    3,
+    9360,
+    31746
+   ],
+   "t2": [
+    3,
+    8051,
+    26733
+   ],
+   "bbox": 0.008
+  },
+  "med-boxes-a-container-c": {
+   "p1": [
+    6,
+    1685,
+    5064
+   ],
+   "t2": [
+    3,
+    832,
+    2727
+   ],
+   "bbox": 0.006
+  },
+  "mugs-colorful-a": {
+   "p1": [
+    3,
+    416,
+    1257
+   ],
+   "t2": [
+    30,
+    2338,
+    5322
+   ],
+   "bbox": 0.004
+  },
+  "office-computer-a-keyboard": {
+   "p1": [
+    3,
+    241,
+    507
+   ],
+   "t2": [
+    2,
+    210,
+    456
+   ],
+   "bbox": 0.014
+  },
+  "vintage-books-set-a-cluster-e": {
+   "p1": [
+    12,
+    691,
+    1599
+   ],
+   "t2": [
+    3,
+    788,
+    1806
+   ],
+   "bbox": 0.019
+  },
+  "vintage-books-set-a-cluster-f": {
+   "p1": [
+    3,
+    2828,
+    7071
+   ],
+   "t2": [
+    3,
+    3118,
+    7647
+   ],
+   "bbox": 0.016
+  },
+  "vintage-books-set-b-cluster-a": {
+   "p1": [
+    3,
+    3109,
+    7656
+   ],
+   "t2": [
+    3,
+    3652,
+    7662
+   ],
+   "bbox": 0.017
+  }
+ },
+ "convert": [
+  "bakery-bin-small-a",
+  "books-a-pile-medium",
+  "books-a-pile-tilted",
+  "books-a-pile-tiny",
+  "books-a-standing-medium",
+  "books-a-standing-small",
+  "books-a-standing-tilted",
+  "books-b-messy-a",
+  "books-b-messy-b",
+  "books-b-messy-stacked",
+  "books-b-neat-stacked",
+  "books-b-single",
+  "bookset-modern-set-a",
+  "bookset-old-a",
+  "bush-a-sm-a",
+  "bush-a-sm-b",
+  "bush-rhododendron-a",
+  "bush-shrub-a-sapling-c",
+  "calendar-a",
+  "canteen-a",
+  "cardboard-box-b-open-a",
+  "cardboard-box-b-open-b",
+  "coffee-carafe-a",
+  "coffee-cups-stack-b",
+  "coffee-dispenser-b",
+  "coffee-maker-commercial-a",
+  "condiment-rack-a",
+  "condiment-sauces-a",
+  "condiment-set-a",
+  "corpse-military-m19-02",
+  "corpse-prop-59",
+  "corpse-prop-60",
+  "debris-trash-addon",
+  "desk-prop-a-pencil-holder-cup",
+  "desk-prop-a-pencil-holder-large",
+  "desk-prop-b-coffee-cup-round",
+  "desk-prop-b-paper-tray-large",
+  "desk-prop-b-paper-tray-small",
+  "door-l-industrial-ext-a",
+  "fedra-bus-converted-glass-fg",
+  "fire-extinguisher-a",
+  "fire-extinguisher-container-a",
+  "fixtures-exit-sign-red-v2",
+  "grass-bluewillow-a-clump-a",
+  "grass-bluewillow-a-clump-b",
+  "ham-radio-smashed",
+  "hun-bookstore-kitchen-drawer-a",
+  "hun-bookstore-sign-new-arrivals-a",
+  "hun-isle-sign-a",
+  "hun-isle-sign-b",
+  "hun-isle-sign-c",
+  "hun-isle-sign-d",
+  "hun-isle-sign-e",
+  "hun-isle-sign-f",
+  "hun-isle-sign-g",
+  "hun-isle-sign-h",
+  "hun-isle-sign-i",
+  "hun-isle-sign-j",
+  "hun-tent-hanging-plug-a",
+  "hun-wires-hanging-box-a",
+  "ivy-weeds-a-overhanging-a",
+  "kitchen-trashcan-a",
+  "lab-pillow-a",
+  "med-boxes-a-box-b",
+  "med-boxes-a-box-d",
+  "med-boxes-a-container-b",
+  "med-boxes-a-container-c",
+  "med-ham-radio-microphone-a",
+  "mil-duffle-bag-b",
+  "mil-spotlight-military-a",
+  "monitor-desk-a-metal-stand",
+  "mugs-colorful-a",
+  "napkin-dispenser-a",
+  "office-computer-a-keyboard",
+  "office-paper-bulk-b",
+  "office-paper-bulk-d",
+  "office-paper-trimmer-a",
+  "office-wall-mount-phone-a-off",
+  "paper-a-magazine-stack-small",
+  "paper-a-newspaper-fallen-small",
+  "paper-b-folders-scattered-large",
+  "snack-vending-machine-a",
+  "t1x-cabinet-door-bookstore-register-l",
+  "t1x-cabinet-door-bookstore-register-r",
+  "t1x-out-black-blocker",
+  "t1x-plastic-bottle-grp-a",
+  "track-lighting-set-a-light-a",
+  "uni-library-books-set-a",
+  "uni-library-books-set-b",
+  "uni-library-books-set-c",
+  "vintage-books-set-a-cluster-a",
+  "vintage-books-set-a-cluster-b",
+  "vintage-books-set-a-cluster-e",
+  "vintage-books-set-a-cluster-f",
+  "vintage-books-set-b-cluster-a",
+  "vintage-books-set-b-cluster-b",
+  "vintage-books-set-b-cluster-c"
+ ],
+ "rename": {
+  "bookset-modern-set-a": "p1-kset-modern-set-a",
+  "bookset-old-a": "p1-kset-old-a",
+  "coffee-carafe-a": "p1-fee-carafe-a",
+  "coffee-dispenser-b": "p1-fee-dispenser-b",
+  "debris-trash-addon": "p1-ris-trash-addon",
+  "desk-prop-a-pencil-holder-cup": "p1-k-prop-a-pencil-holder-cup",
+  "desk-prop-a-pencil-holder-large": "p1-k-prop-a-pencil-holder-large",
+  "desk-prop-b-coffee-cup-round": "p1-k-prop-b-coffee-cup-round",
+  "desk-prop-b-paper-tray-large": "p1-k-prop-b-paper-tray-large",
+  "med-boxes-a-container-c": "p1--boxes-a-container-c",
+  "mugs-colorful-a": "p1-s-colorful-a",
+  "office-computer-a-keyboard": "p1-ice-computer-a-keyboard",
+  "vintage-books-set-a-cluster-e": "p1-tage-books-set-a-cluster-e",
+  "vintage-books-set-a-cluster-f": "p1-tage-books-set-a-cluster-f",
+  "vintage-books-set-b-cluster-a": "p1-tage-books-set-b-cluster-a"
+ },
+ "interactive-bg-actors": [
+  "ivy-weeds-a-overhanging-a",
+  "bush-a-sm-a",
+  "bush-a-sm-b",
+  "bush-rhododendron-a",
+  "bush-shrub-a-sapling-c",
+  "grass-bluewillow-a-clump-a",
+  "grass-bluewillow-a-clump-b",
+  "snack-vending-machine-a"
+ ],
+ "_ibg_note": "INTERACTIVE_BG_1 names its actors itself (cannot be renamed): ivy-weeds-a-hanging-flat-b and bush-shrub-a-sapling-b use the TLOU2 actors (same art), ivy-weeds-a-hanging-flat-c uses TLOU2's (168 vs 289 vertices: slightly sparser; overriding the stock actor is not acceptable), the 8 Part I-only ones are converted under their own names."
+}

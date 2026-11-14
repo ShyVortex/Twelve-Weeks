@@ -1,0 +1,76 @@
+{
+ "key": "train-station",
+ "map_index": 12,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 8,
+ "from": [
+  {
+   "traffic": 0.34,
+   "yaw_deg": 43.2,
+   "quality": 1.47
+  },
+  {
+   "traffic": 0.21,
+   "yaw_deg": 350.0,
+   "quality": 1.32
+  },
+  {
+   "traffic": 0.59,
+   "yaw_deg": 249.9,
+   "quality": 1.19
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    -104.546,
+    4.451,
+    151.54
+   ],
+   "quat": [
+    0.0,
+    0.368208,
+    0.0,
+    0.929743
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -44.151,
+    2.785,
+    153.103
+   ],
+   "quat": [
+    0.0,
+    -0.086859,
+    0.0,
+    0.996221
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -118.669,
+    4.397,
+    220.065
+   ],
+   "quat": [
+    0.0,
+    -0.819583,
+    0.0,
+    0.572961
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

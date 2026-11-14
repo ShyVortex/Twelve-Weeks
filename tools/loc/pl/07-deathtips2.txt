@@ -1,0 +1,5 @@
+## Death screen tips (the game's own SP death tips - its Polish wording, line breaks joined)
+In combat, use your environment to lose your enemies and slip back into stealth. => Wykorzystuj elementy otoczenia podczas walki, aby ponownie się ukryć.
+Look around to track enemy movements to ensure you aren't caught off guard. => Rozglądaj się wokół, by mieć przeciwników na oku i nie dać się zaskoczyć.
+If your usual strategy isn't working, vary your tactics. Try a new weapon or crafting recipe. => Jeśli zwykła taktyka się nie sprawdza, zastosuj inną. Wypróbuj nową broń albo schemat.
+One-handed melee weapons are fast and durable. Two-handed melee weapons are slower but deal massive damage. => Jednoręczna broń do walki wręcz jest wytrzymała i pozwala błyskawicznie wykonać atak. Broń oburęczna nieco cię spowolni, ale możesz dzięki niej ciężko ranić przeciwników.

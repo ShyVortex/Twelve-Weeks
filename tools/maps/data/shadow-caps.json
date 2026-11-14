@@ -1,0 +1,20 @@
+{
+ "pat-jackson-supermarket": {
+  "why": "'sunlight coming in through the ceiling' (back rooms / bakery, door sun on). SP never shadow-capped the store hall, pharmacy or truck bay (sun is 0 there in SP); the walls-grouped proxy holds 3 thin walls + one cap over the back rooms. Caps sit under the roof sheets / ceilings and on the sun-facing outer walls, all inside the building envelope. Offline proof + leak maps: re/maps/level-edit.md section 16.",
+  "submesh": "pat-supermarket-walls-grouped.ma|shadowProxy|shadowProxy|shadowProxyShape_shader17_merged_partition0",
+  "tris": 46,
+  "donors": [[28, 29], [32, 33], [36, 37], [40, 41], [0, 1], [16, 17], [12, 13], [14, 15], [2, 4, 3], [9, 11, 10], [18, 20, 19], [25, 27, 26]],
+  "caps": [
+   {"name": "store hall under far_roof / roof (24.2-24.7)", "kind": "h", "x0": -538.75, "z0": 215.8, "x1": -501.3, "z1": 273.45, "y": 24.1, "face": [0, 1, 0]},
+   {"name": "back rooms (stock room / bakery) under the store roof", "kind": "h", "x0": -528.9, "z0": 273.45, "x1": -509.05, "z1": 282.45, "y": 24.1, "face": [0, 1, 0]},
+   {"name": "pharmacy under loader_roof2 (25.85)", "kind": "h", "x0": -553.35, "z0": 252.8, "x1": -531.6, "z1": 276.4, "y": 25.65, "face": [0, 1, 0]},
+   {"name": "pharmacy north strip under loader_roof2", "kind": "h", "x0": -553.35, "z0": 276.4, "x1": -541.0, "z1": 278.1, "y": 25.65, "face": [0, 1, 0]},
+   {"name": "pill room / drug stockroom under its ceiling (22.0)", "kind": "h", "x0": -541.0, "z0": 276.4, "x1": -531.1, "z1": 278.2, "y": 21.95, "face": [0, 1, 0]},
+   {"name": "truck bay under the loading-dock roof (23.3)", "kind": "h", "x0": -541.6, "z0": 278.2, "x1": -530.8, "z1": 282.5, "y": 23.25, "face": [0, 1, 0]},
+   {"name": "store south wall (sun side)", "kind": "z", "z": 215.75, "a0": -538.75, "a1": -501.2, "y0": 17.85, "y1": 24.1, "face": [0, 0, -1]},
+   {"name": "store west wall (sun side)", "kind": "x", "x": -538.75, "a0": 215.75, "a1": 252.75, "y0": 17.85, "y1": 24.1, "face": [-1, 0, 0]},
+   {"name": "pharmacy west wall (sun side)", "kind": "x", "x": -553.42, "a0": 252.72, "a1": 278.15, "y0": 17.85, "y1": 25.65, "face": [-1, 0, 0]},
+   {"name": "pharmacy south wall (sun side)", "kind": "z", "z": 252.72, "a0": -553.42, "a1": -538.75, "y0": 17.85, "y1": 25.65, "face": [0, 0, -1]}
+  ]
+ }
+}

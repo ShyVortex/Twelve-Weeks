@@ -1,0 +1,65 @@
+{
+ "key": "p1-bookstore",
+ "method": "respawn points of the layout",
+ "teams": [
+  [
+   {
+    "pos": [
+     119.89,
+     -0.782,
+     260.498
+    ],
+    "yaw_deg": 90.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     115.889,
+     4.462,
+     280.84
+    ],
+    "yaw_deg": 91.7,
+    "name": "lockbox-0-1"
+   },
+   {
+    "name": "lockbox-0-2",
+    "pos": [
+     127.475,
+     -0.75,
+     268.902
+    ],
+    "yaw_deg": 270.5
+   }
+  ],
+  [
+   {
+    "pos": [
+     106.831,
+     4.446,
+     307.859
+    ],
+    "yaw_deg": 32.8,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     115.872,
+     -0.958,
+     308.224
+    ],
+    "yaw_deg": 87.1,
+    "name": "lockbox-1-1"
+   },
+   {
+    "name": "lockbox-1-2",
+    "pos": [
+     90.336,
+     4.456,
+     294.532
+    ],
+    "yaw_deg": 180.0
+   }
+  ]
+ ],
+ "hand_placed": true
+}

@@ -1,0 +1,87 @@
+# Generated data headers (not in the repository)
+
+`t2r-ext.c` includes the headers below. Each one is generated from data in your own game install
+(animation camera tracks, sound clips, animation tables, voice-line ids), so none of them is checked in.
+Run the listed generator against your install before building the extension. Rows marked *private* have
+a generator that is not published yet; the extension does not build until those headers exist.
+
+| Header | Generator |
+|---|---|
+| `alert_sting.h` | *private* |
+| `armor_audio.h` | *private* |
+| `bomb_roll.h` | *private* |
+| `bp_wpn_fit.h` | *private* |
+| `bp_wpn_pair.h` | *private* |
+| `burnscream.h` | *private* |
+| `carrier_dur.h` | *private* |
+| `ctx_fx_events.h` | *private* |
+| `ctx_hit_events.h` | *private* |
+| `ctx_sfx_events.h` | *private* |
+| `ctx_vox_events.h` | *private* |
+| `ctxcam_tracks.h` | *private* |
+| `dcam_tracks.h` | *private* |
+| `death_drone.h` | *private* |
+| `death_sting.h` | *private* |
+| `dkick_carriers.h` | *private* |
+| `down2013_carriers.h` | *private* |
+| `downed_music.h` | *private* |
+| `exec_music.h` | *private* |
+| `execplus.h` | *private* |
+| `execplus_tl.h` | *private* |
+| `exsfx2013.h` | *private* |
+| `finisher_anims.h` | *private* |
+| `footsteps.h` | *private* |
+| `gunexec_aim.h` | *private* |
+| `gunexec_alt.h` | *private* |
+| `gunexec_carriers.h` | *private* |
+| `gunexec_foley.h` | *private* |
+| `gunexec_rel.h` | *private* |
+| `gunexec_sfx.h` | *private* |
+| `holster_sids.h` | *private* |
+| `match_horn.h` | *private* |
+| `mdis_veto.h` | *private* |
+| `melee_dodge_moves.h` | *private* |
+| `melee_dodge_rm.h` | *private* |
+| `melee_hitreact_rm.h` | *private* |
+| `meleeexec_carriers.h` | *private* |
+| `meleeexec_foley.h` | *private* |
+| `meleeexec_variants.h` | *private* |
+| `music_pools.h` | *private* |
+| `perkvoice.h` | *private* |
+| `pinesc_cam_tracks.h` | *private* |
+| `placed_bomb.h` | *private* |
+| `postmatch_sfx.h` | *private* |
+| `pullout_cam_tracks.h` | *private* |
+| `pullout_spcam.h` | *private* |
+| `revive_carriers.h` | *private* |
+| `scar_draw.h` | `tools/features/scar_draw_gen.py` |
+| `shiv_drums.h` | *private* |
+| `shiv_kit.h` | *private* |
+| `shiv_sting.h` | *private* |
+| `shivcam_tracks.h` | *private* |
+| `sp_bullet_by.h` | *private* |
+| `sp_heal.h` | *private* |
+| `sp_hud_audio.h` | *private* |
+| `store_sfx.h` | *private* |
+| `stun2013_carrier.h` | *private* |
+| `stun_cough.h` | *private* |
+| `stun_ring.h` | *private* |
+| `stun_tone.h` | *private* |
+| `stunsfx2013.h` | *private* |
+| `t2blade.h` | *private* |
+| `t2melee.h` | *private* |
+| `trap2013.h` | *private* |
+| `vox_avail.h` | `tools/features/vox_lines.py` |
+| `vox_beg.h` | `tools/features/vox_lines.py` |
+| `vox_burn.h` | `tools/features/vox_lines.py` |
+| `vox_downed.h` | `tools/features/vox_lines.py` |
+| `vox_lines.h` | `tools/features/vox_lines.py` |
+| `vox_lines_female.h` | `tools/features/vox_lines.py` |
+| `xbow_hud.h` | *private* |
+| `xbow_zip.h` | *private* |
+| `xcam_tracks.h` | *private* |
+| `xcam_tracks_int.h` | *private* |
+| `xcam_tracks_ps4.h` | *private* |
+| `xcam_tracks_shiv.h` | *private* |
+| `vox_beg_keys.h` | *private* |
+| `vox_words.h` | `tools/features/gen_vox_words.py` |

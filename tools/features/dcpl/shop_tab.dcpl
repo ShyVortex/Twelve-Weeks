@@ -1,0 +1,278 @@
+@game "./re/dccgame"
+@target "ss-hud2/ss-menu2-player-upgrades.bin"
+@mod "t2r-upgrades"
+
+// Buy menu inside the backpack's supplements tab. Data and buying come from t2r-ext.dll
+// through a script bridge on two hooked natives. Only ONE argument reaches a native, and
+// the VM drops learn's return value (void) and turns knows?'s into a bool, so:
+//   #player-learn-recipe-by-item-id-no-tracking(tag)  command / select, returns nothing
+//   #player-knows-recipe?(literal)                    answer for the selected query
+// tag = 6067002091442798592 (0x54325242 << 32) + item * 65536 + op.
+//   op           commands: 1 refresh the item list
+//   op + 256     select text; knows?(placeholder) overwrites that literal (a run of '~',
+//                its length = capacity) with: 2 icon png, 3 name, 4 description,
+//                9 "SHOP", 12 status text, 15 cost, 16 coins
+//   op + 512     select predicate; knows?("?") returns it: 17 item exists, 18 can buy,
+//                19 too expensive, 20 anything affordable, 8 buy (true = bought)
+using #player-learn-recipe-by-item-id-no-tracking as far (u64) -> u64;
+using #player-knows-recipe? as far (string) -> bool;
+
+using #get-upgrade-slot-widget-path as near (u64) -> u64;
+using #get-upgrade-slot-child as near (u64, u64) -> u64;
+using #update-upgrade-slot-index as near (u64, u64) -> u16;
+using #populate-upgrade-slot as near (u16, bool, u64, bool, u64) -> bool;
+using #populate-all-upgrade-slots as near (u64, u64) -> u16;
+using #update-upgrade-info-pane as near (u64) -> u16;
+using #get-branch-slot-child as near (u64, u64) -> u64;
+using #get-upgrade-branch-widget-path as near (u64) -> u64;
+using #populate-branch-slot as near (i64, bool) -> u64;
+using #update-branch-widget-index as near (u64) -> u16;
+using #increment-branch-widget-index as near (u64) -> u64;
+using #populate-all-branch-slots as near (u64) -> u16;
+using #get-upgrade-branch-count-anim as near (u64) -> u64;
+using #branch-is-locked? as near (i64) -> bool;
+
+using #get-symbol as far (u64, u64) -> u64;
+using #get-int32 as far (u64, u64) -> i32;
+using #get-boolean as far (u64, u64) -> bool;
+using #set-boolean as far (u64, u64, u64) -> u64;
+using #gui2-set-widget-visible as far (u64, u64) -> u64;
+using #menu2-set-component-disabled as far (u64, u64) -> u64;
+using #gui2-set-widget-image as far (u64, string) -> u64;
+using #gui2-set-widget-alpha as far (u64, f32) -> u64;
+using #gui2-set-widget-palette-tint as far (u64, u64) -> u64;
+using #hud2-set-upgrade-component-upgraded as far (u64, u64, u64, u64) -> u64;
+using #gui2-set-widget-text-formatted as far (u64, u64) -> u64;
+using #gui2-set-widget-text-cipher as far (u64, u64) -> u64;
+using #cipher-box-lang-agnostic-string as far (string, u64, u64) -> u64;
+using #cipher-box-formatted-number-string as far (u64, i32, u64, u64, u64) -> u64;
+using #gui2-build-widget-path as far (u64, string, u64, u64, u64, u64, u64, u64, u64) -> u64;
+using #play-sound as far (u64, u64) -> u64;
+using #gui2-go-widget-state as far (u64, u64, u64, u64, u64) -> u64;
+using #set-int32 as far (u64, u64, u64) -> u64;
+
+u16 #populate-all-upgrade-slots(u64 arg_0, u64 arg_1) {
+    u64 a0 = arg_0 + 0;              // copy args first (any call overwrites r49..); "+ 0": dcc drops plain param copies
+    u64 a1 = arg_1 + 0;
+    u64 br = #get-int32(#branch-widget-index, #self);
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798593 + br * 65536);   // refresh, selected branch
+    u64 i = 0;
+    while (i < 5) {
+        #populate-upgrade-slot(i, false, a0, false, a1);
+        i = i + 1;
+    }
+    u64 cur = #get-int32(#upgrade-index, #self);
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + cur * 65536 + 17 + 512);
+    if (!#player-knows-recipe?("?")) {
+        #update-upgrade-slot-index(0, 1);
+    }
+    return 0;
+}
+
+bool #populate-upgrade-slot(u16 arg_0, bool arg_1, u64 arg_2, bool arg_3, u64 arg_4) {
+    u64 idx = arg_0 + 0;
+    u64 base = 6067002091442798592 + idx * 65536;
+    u64 w = #get-upgrade-slot-widget-path(idx);
+    #player-learn-recipe-by-item-id-no-tracking(base + 17 + 512);
+    if (#player-knows-recipe?("?")) {
+        u64 icon = #get-upgrade-slot-child(idx, 3);
+        #gui2-set-widget-visible(w, 1);
+        #menu2-set-component-disabled(w, 0);
+        string ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+        if (idx == 1) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        if (idx == 2) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        if (idx == 3) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        if (idx == 4) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        #player-learn-recipe-by-item-id-no-tracking(base + 2 + 256);
+        #player-knows-recipe?(ipath);
+        #gui2-set-widget-image(icon, ipath);
+        #gui2-set-widget-alpha(icon, 1.0);
+        #hud2-set-upgrade-component-upgraded(#get-upgrade-slot-child(idx, 0), 0, 0, 8);
+        #gui2-set-widget-visible(#get-upgrade-slot-child(idx, 8), 0);
+        #gui2-set-widget-visible(#get-upgrade-slot-child(idx, 9), 0);
+        #gui2-set-widget-visible(#get-upgrade-slot-child(idx, 7), 0);
+        #gui2-set-widget-visible(#get-upgrade-slot-child(idx, 6), 1);
+        #player-learn-recipe-by-item-id-no-tracking(base + 18 + 512);
+        u64 can = 0;
+        if (#player-knows-recipe?("?")) {
+            can = 1;
+        }
+        #gui2-set-widget-visible(#get-upgrade-slot-child(idx, 2), can);
+        #gui2-set-widget-palette-tint(#get-upgrade-slot-child(idx, 5), #t2-white);
+    } else {
+        #gui2-set-widget-visible(w, 0);
+        #menu2-set-component-disabled(w, 1);
+    }
+    return false;
+}
+
+u16 #update-upgrade-info-pane(u64 arg_0) {
+    u64 i = #get-int32(#upgrade-index, #self);
+    u64 base = 6067002091442798592 + i * 65536;
+    u64 wt = #get-symbol(#w-upgrade-title, #self);
+    string s_title = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    string s_desc = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    string s_stat = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    string s_branch = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+    string s_cost = "~~~~~~~~~~";
+    string s_coins = "~~~~~~~~~~~";
+    #player-learn-recipe-by-item-id-no-tracking(base + 3 + 256);
+    #player-knows-recipe?(s_title);
+    #player-learn-recipe-by-item-id-no-tracking(base + 4 + 256);
+    #player-knows-recipe?(s_desc);
+    #player-learn-recipe-by-item-id-no-tracking(base + 12 + 256);
+    #player-knows-recipe?(s_stat);
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798601 + 256);
+    #player-knows-recipe?(s_branch);
+    #player-learn-recipe-by-item-id-no-tracking(base + 15 + 256);
+    #player-knows-recipe?(s_cost);
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + 16 + 256);
+    #player-knows-recipe?(s_coins);
+    #gui2-set-widget-text-formatted(#get-symbol(#w-branch-title, #self),
+        #cipher-box-lang-agnostic-string(s_branch, 0, 0));
+    #gui2-set-widget-text-formatted(wt, #cipher-box-lang-agnostic-string(s_title, 0, 0));
+    #gui2-set-widget-text-formatted(#get-symbol(#w-upgrade-description, #self),
+        #cipher-box-lang-agnostic-string(s_desc, 0, 0));
+    #gui2-set-widget-text-formatted(#get-symbol(#w-upgrade-stats, #self),
+        #cipher-box-lang-agnostic-string(s_stat, 0, 0));
+    #gui2-set-widget-visible(#get-symbol(#w-upgrade-recipe, #self), 0);
+    #gui2-set-widget-visible(#get-symbol(#w-resource-cost-container, #self), 1);
+    #gui2-set-widget-alpha(wt, 1.0);
+    u64 cpath = #gui2-build-widget-path(#get-symbol(#w-resource-cost-counts, #self), "count", 0, 0, 0, 0, 0, 0, 0);
+    #gui2-set-widget-text-formatted(cpath, #cipher-box-lang-agnostic-string(s_cost, 0, 0));
+    u64 ipath2 = #gui2-build-widget-path(#get-symbol(#w-resource-inventory-counts, #self), "count", 0, 0, 0, 0, 0, 0, 0);
+    #gui2-set-widget-text-formatted(ipath2, #cipher-box-lang-agnostic-string(s_coins, 0, 0));
+    // cost / owned counters: the two-coin icon (coins-category, as the shop branch) instead of the supplements pill
+    #gui2-set-widget-image(#get-symbol(#w-resource-cost-icon, #self), "hud/collectibles/coins-category.png");
+    #gui2-set-widget-image(#get-symbol(#w-resource-inventory-icon, #self), "hud/collectibles/coins-category.png");
+    #populate-branch-slot(0, false);   // wrench marker follows the coins
+    #player-learn-recipe-by-item-id-no-tracking(base + 19 + 512);
+    if (#player-knows-recipe?("?")) {
+        #gui2-set-widget-palette-tint(#get-symbol(#w-resource-cost-counts, #self), #t2-red);
+        #gui2-set-widget-palette-tint(wt, #t2-red);
+    } else {
+        #gui2-set-widget-palette-tint(#get-symbol(#w-resource-cost-counts, #self), #t2-white);
+        #gui2-set-widget-palette-tint(wt, #t2-white);
+    }
+    return 0;
+}
+
+u16 #respond-to-upgrades-purchase-press--upgrades-navigation(u64 arg_0) {
+    if (!#get-boolean(#just-handled-upgrades-press?, #self)) {
+        u64 i = #get-int32(#upgrade-index, #self);
+        #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + i * 65536 + 8 + 512);
+        if (#player-knows-recipe?("?")) {
+            #play-sound(#sfx-menu-backpack-hover-craftable, 0);
+            #populate-all-upgrade-slots(0, 0);
+            #update-upgrade-info-pane(0);
+        } else {
+            #play-sound(#sfx-menu-backpack-upgrade-error, 0);
+        }
+        #set-boolean(#just-handled-upgrades-press?, 1, #self);
+    }
+    return 0;
+}
+
+// Branches (categories) = the guns we hold + ARMOUR (t2r-ext decides: predicate 21 "branch b
+// exists", text 22 = its icon). A/D switches between them.
+u64 #populate-branch-slot(i64 arg_0, bool arg_1) {
+    u64 b = arg_0 + 0;
+    u64 w = #get-upgrade-branch-widget-path(b);
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + b * 65536 + 21 + 512);
+    if (#player-knows-recipe?("?")) {
+        string ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~";
+        if (b == 1) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        if (b == 2) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        if (b == 3) { ipath = "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"; }
+        #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + b * 65536 + 22 + 256);
+        #player-knows-recipe?(ipath);
+        #gui2-set-widget-visible(w, 1);
+        #gui2-set-widget-visible(#get-branch-slot-child(b, 3), 0);
+        #gui2-go-widget-state(#get-branch-slot-child(b, 1), #unlocked, 0, 0, 0);
+        #gui2-set-widget-image(#get-branch-slot-child(b, 0), ipath);
+        #gui2-go-widget-state(#get-branch-slot-child(b, 4), #off, 0, 0, 0);
+    } else {
+        #gui2-set-widget-visible(w, 0);
+    }
+    return 0;
+}
+
+// A/D: next / previous branch, clamped to the existing ones
+u16 #update-branch-widget-index(u64 arg_0) {
+    u64 want = arg_0 + 0;
+    u64 cur = #get-int32(#branch-widget-index, #self);
+    if (want > 3) {                    // -1 (u64 wrap) or past the end: stay
+        return 0;
+    }
+    #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + want * 65536 + 21 + 512);
+    if (!#player-knows-recipe?("?")) {
+        return 0;
+    }
+    if (want == cur) {
+        return 0;
+    }
+    #set-int32(#branch-widget-index, want, #self);
+    #gui2-go-widget-state(#get-upgrade-branch-widget-path(cur), #normal, 0, 0, 0);
+    #gui2-go-widget-state(#get-upgrade-branch-widget-path(want), #focused, 0, 0, 0);
+    #play-sound(#sfx-menu-backpack-upgrade-sub-menu-hover, 0);
+    #populate-all-upgrade-slots(0, 0);
+    #update-upgrade-slot-index(0, 1);
+    #update-upgrade-info-pane(0);
+    return 0;
+}
+
+// The original caps A/D at its own unlocked-branches count (2): step freely, the clamp above
+// knows the real branch count
+u64 #increment-branch-widget-index(u64 arg_0) {
+    u64 step = arg_0 + 0;
+    u64 cur = #get-int32(#branch-widget-index, #self);
+    #update-branch-widget-index(cur + step);
+    return 0;
+}
+
+u16 #populate-all-branch-slots(u64 arg_0) {
+    u64 i = 0;
+    while (i < 4) {
+        #populate-branch-slot(i, false);
+        i = i + 1;
+    }
+    return 4;
+}
+
+// The branch strip's layout state is slotCount<N> (N = shown slots, the original counts its own
+// unlocked branches = 2): ours = the branches t2r-ext has (guns held, + ARMOUR when enabled).
+// arg 1 = the state the strip animates from (one less), as the original.
+u64 #get-upgrade-branch-count-anim(u64 arg_0) {
+    u64 from = arg_0 + 0;
+    u64 n = 1;
+    u64 b = 1;
+    while (b < 4) {
+        #player-learn-recipe-by-item-id-no-tracking(6067002091442798592 + b * 65536 + 21 + 512);
+        if (#player-knows-recipe?("?")) {
+            n = b + 1;
+        }
+        b = b + 1;
+    }
+    n = n - 1;                         // slotCount<N>: N = shown slots - 1 (3 branches -> slotCount2)
+    if (from && n > 0) {
+        n = n - 1;
+    }
+    if (n == 3) {
+        return #slotCount3;
+    }
+    if (n == 2) {
+        return #slotCount2;
+    }
+    if (n == 1) {
+        return #slotCount1;
+    }
+    return #slotCount0;                // one gun (pistol-only loadout): a single category
+}
+
+// branch-is-locked?(b) = b == count(unlocked-branches-darray): the game's own branch list (the
+// upgrade manuals found) decided it, so our 2nd gun category counted as the "locked" slot -
+// focus changes there were ignored (no text / sound, UPGRADE bought the ammo). Our categories
+// are never locked.
+bool #branch-is-locked?(i64 arg_0) {
+    return false;
+}

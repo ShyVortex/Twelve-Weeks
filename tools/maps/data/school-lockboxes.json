@@ -1,0 +1,56 @@
+{
+ "key": "school",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     327.184,
+     7.23,
+     -489.195
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     327.184,
+     7.23,
+     -508.134
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-0-1"
+   }
+  ],
+  [
+   {
+    "pos": [
+     283.568,
+     7.308,
+     -456.019
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     275.699,
+     7.308,
+     -472.3
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     275.699,
+     7.308,
+     -454.093
+    ],
+    "yaw_deg": 0.0,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

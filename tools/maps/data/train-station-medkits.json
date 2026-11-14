@@ -1,0 +1,87 @@
+{
+ "key": "train-station",
+ "map_index": 12,
+ "area_m2": 10256,
+ "count_wanted": 7,
+ "hand_placed": true,
+ "rule": "hand placed in the SceneEditor (tools/maps/editor_import.py); `medkits.py gen` keeps it",
+ "kits": [
+  {
+   "pos": [
+    -113.75,
+    5.223,
+    230.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 4,
+   "above_floor": 0.9
+  },
+  {
+   "pos": [
+    -107.25,
+    5.217,
+    198.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 0.89
+  },
+  {
+   "pos": [
+    -147.75,
+    7.089,
+    231.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 0.75
+  },
+  {
+   "pos": [
+    -47.979,
+    4.804,
+    116.744
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 0.0
+  },
+  {
+   "pos": [
+    -93.25,
+    5.475,
+    142.75
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 3,
+   "above_floor": 1.18
+  },
+  {
+   "pos": [
+    -61.25,
+    4.25,
+    182.25
+   ],
+   "half": "t1",
+   "indoor": true,
+   "wall_dirs": 4,
+   "above_floor": 0.69
+  },
+  {
+   "pos": [
+    -75.25,
+    4.382,
+    226.75
+   ],
+   "half": "mid",
+   "indoor": false,
+   "wall_dirs": 3,
+   "above_floor": 0.7
+  }
+ ]
+}

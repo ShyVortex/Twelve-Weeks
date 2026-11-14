@@ -1,0 +1,226 @@
+/* Ko-fi support button: bottom right, just above the bottom rule, same box as the ONLINE button; main screen and settings only */
+#kofi,
+#discord {
+  position: absolute;
+  right: 48px;
+  bottom: 62px;
+  z-index: 5;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  background: var(--bar-bg);
+  border: 1px solid var(--panel-line);
+  color: #d8d6cf;
+  transition:
+    border-color 0.3s,
+    background 0.3s,
+    color 0.3s,
+    opacity 0.25s,
+    transform 0.25s;
+}
+#kofi svg {
+  width: 30px;
+  height: 30px;
+  overflow: visible;
+}
+#kofi .kf-cup {
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+#kofi .kf-handle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+}
+#kofi .kf-heart {
+  fill: #ff5e5b;
+  transition: transform 0.3s;
+  transform-origin: 13.75px 18px;
+}
+#kofi:hover,
+#kofi:focus-visible,
+#discord:hover,
+#discord:focus-visible {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  outline: none;
+}
+#kofi:hover .kf-heart {
+  transform: scale(1.12);
+}
+#kofi:active,
+#discord:active {
+  transform: translateY(1px);
+}
+/* hidden on every other view (loadout, clan, friends, news, report); settings keeps it, the panel ends above it */
+#app.has-view:not([data-view='settings']) #kofi,
+#app.has-view:not([data-view='settings']) #discord {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+}
+#app[data-view='settings'] #v-settings {
+  bottom: 176px;
+}
+/* a running download writes its text on the right of the bottom rule: the button steps aside */
+#prog:not([hidden]) ~ #kofi,
+#prog:not([hidden]) ~ #discord {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Discord invite button: same box, stacked right above the Ko-fi one */
+#discord {
+  bottom: 118px;
+}
+#discord svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+  transition: transform 0.3s;
+}
+#discord:hover {
+  color: #fff;
+  background: rgba(88, 101, 242, 0.22);
+  border-color: #5865f2;
+}
+#discord:hover svg {
+  transform: scale(1.08);
+}
+
+/* ADD TO STEAM: a text button in the same box style, on the Ko-fi button's row to its left */
+#steamadd {
+  position: absolute;
+  right: 48px;
+  bottom: 62px;
+  z-index: 5;
+  height: 46px;
+  padding: 0 20px;
+  gap: 10px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  font: inherit;
+  background: var(--bar-bg);
+  border: 1px solid var(--panel-line);
+  color: #d8d6cf;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  white-space: nowrap;
+  transition:
+    border-color 0.3s,
+    background 0.3s,
+    color 0.3s,
+    opacity 0.25s,
+    transform 0.25s;
+}
+#steamadd svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+#steamadd:hover,
+#steamadd:focus-visible {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  outline: none;
+}
+#steamadd:active {
+  transform: translateY(1px);
+}
+#steamadd:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+#app.has-view:not([data-view='settings']) #steamadd {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+}
+#prog:not([hidden]) ~ #steamadd {
+  opacity: 0;
+  pointer-events: none;
+}
+/* shortcut already in Steam: a small box like Discord / Ko-fi (logo + check) that grows to the left on hover; the logo stays put at the right edge */
+#steamadd {
+  overflow: hidden;
+  width: auto;
+}
+#steamadd .sa-ck {
+  display: none;
+}
+#steamadd.added {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  gap: 0;
+  width: 46px;
+  padding: 0 10px 0 0;
+  box-sizing: border-box;
+  transition:
+    width 0.3s ease,
+    border-color 0.3s,
+    background 0.3s,
+    color 0.3s,
+    opacity 0.25s,
+    transform 0.25s;
+}
+#steamadd.added svg:first-child {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+#steamadd.added span {
+  max-width: 0;
+  opacity: 0;
+  margin-right: 0;
+  overflow: hidden;
+  transition:
+    max-width 0.3s ease,
+    opacity 0.25s ease,
+    margin 0.3s ease;
+}
+#steamadd.added:hover,
+#steamadd.added:focus-visible {
+  width: 176px;
+}
+#steamadd.added:hover span,
+#steamadd.added:focus-visible span {
+  max-width: 120px;
+  opacity: 1;
+  margin-right: 12px;
+}
+#steamadd.added .sa-ck {
+  display: block;
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
+  width: 12px;
+  height: 12px;
+  transition: opacity 0.2s;
+}
+#steamadd.added .sa-ck circle {
+  fill: #d8d6cf;
+}
+#steamadd.added .sa-ck path {
+  fill: none;
+  stroke: #101112;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+#steamadd.added:hover .sa-ck,
+#steamadd.added:focus-visible .sa-ck {
+  opacity: 0;
+}

@@ -1,0 +1,53 @@
+{
+ "key": "jackson-suburbs",
+ "map_index": 15,
+ "area_m2": 4313,
+ "count_wanted": 4,
+ "rule": "round(6 * area / 7900) clamped 4..12 (re/maps/medkits-2013.md)",
+ "kits": [
+  {
+   "pos": [
+    -404.75,
+    18.369,
+    415.25
+   ],
+   "half": "t0",
+   "indoor": true,
+   "wall_dirs": 5,
+   "above_floor": 0.77
+  },
+  {
+   "pos": [
+    -383.75,
+    18.324,
+    407.75
+   ],
+   "half": "t0",
+   "indoor": false,
+   "wall_dirs": 0,
+   "above_floor": 1.38
+  },
+  {
+   "pos": [
+    -469.25,
+    18.173,
+    413.75
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 8,
+   "above_floor": 0.62
+  },
+  {
+   "pos": [
+    -448.75,
+    18.032,
+    420.75
+   ],
+   "half": "t1",
+   "indoor": false,
+   "wall_dirs": 2,
+   "above_floor": 0.63
+  }
+ ]
+}

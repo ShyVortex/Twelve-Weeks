@@ -1,0 +1,30 @@
+[
+ {
+  "pak": "jackson-male-torso-02",
+  "garment": "jackson-winter-hoodie-a-scaf",
+  "material": "objects/characters/npc-normal/clothing/1upper/jackson-winter-hoodie-a-scaf:default",
+  "donor": "jackson-winter-hoodie-a",
+  "params": [
+   "g_snowStrength06"
+  ]
+ },
+ {
+  "pak": "owen-t2r-winter-01",
+  "garment": "jacket-distress",
+  "material": "objects/characters/owen/tracking/jacket-distress:default",
+  "donor": "jacket",
+  "params": [
+   "g_snowStrength07",
+   "g_snowStrength08"
+  ]
+ },
+ {
+  "pak": "militia-female-a-legs-kit",
+  "garment": "npc-militia-m-boots-01-hip",
+  "material": "objects/characters/npc-normal/militia/lower/npc-militia-m-boots-01-hip:default",
+  "donor": null,
+  "params": [
+   "g_snowStrength05"
+  ]
+ }
+]

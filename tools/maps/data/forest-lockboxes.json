@@ -1,0 +1,65 @@
+{
+ "key": "forest",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     25.105,
+     6.372,
+     49.929
+    ],
+    "yaw_deg": 75.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     37.134,
+     2.044,
+     40.809
+    ],
+    "yaw_deg": 90.0,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     25.22,
+     10.0,
+     44.469
+    ],
+    "yaw_deg": 78.7,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     -5.935,
+     1.15,
+     37.495
+    ],
+    "yaw_deg": 255.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     -25.012,
+     -0.373,
+     15.97
+    ],
+    "yaw_deg": 248.2,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     16.848,
+     4.45,
+     -1.136
+    ],
+    "yaw_deg": 218.6,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

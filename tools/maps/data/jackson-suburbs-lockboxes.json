@@ -1,0 +1,58 @@
+{
+ "key": "jackson-suburbs",
+ "method": "respawn points of the layout",
+ "teams": [
+  [
+   {
+    "name": "to1-spawn-point-10",
+    "pos": [
+     -404.75,
+     18.144,
+     420.25
+    ]
+   },
+   {
+    "name": "to1-spawn-point-3",
+    "pos": [
+     -410.75,
+     18.053,
+     411.25
+    ]
+   },
+   {
+    "name": "to1-spawn-point-9",
+    "pos": [
+     -408.223,
+     17.603,
+     400.216
+    ]
+   }
+  ],
+  [
+   {
+    "name": "to1-spawn-point-12",
+    "pos": [
+     -476.75,
+     18.406,
+     423.25
+    ]
+   },
+   {
+    "name": "to1-spawn-point-11",
+    "pos": [
+     -446.75,
+     17.717,
+     414.25
+    ]
+   },
+   {
+    "name": "to1-spawn-point-7",
+    "pos": [
+     -440.75,
+     18.042,
+     429.25
+    ]
+   }
+  ]
+ ]
+}

@@ -1,0 +1,56 @@
+{
+ "key": "resort",
+ "method": "SceneEditor (hand placed)",
+ "teams": [
+  [
+   {
+    "pos": [
+     92.824,
+     6.295,
+     47.144
+    ],
+    "yaw_deg": 315.0,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     97.033,
+     6.035,
+     66.174
+    ],
+    "yaw_deg": 45.0,
+    "name": "lockbox-0-1"
+   }
+  ],
+  [
+   {
+    "pos": [
+     85.813,
+     9.572,
+     7.642
+    ],
+    "yaw_deg": 90.0,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     80.281,
+     5.573,
+     -2.818
+    ],
+    "yaw_deg": 92.3,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     97.987,
+     9.572,
+     12.976
+    ],
+    "yaw_deg": 266.7,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

@@ -1,0 +1,65 @@
+{
+ "key": "overpass",
+ "method": "navmesh wall/corner crate spots (box_place.lockboxes)",
+ "teams": [
+  [
+   {
+    "pos": [
+     -241.864,
+     18.496,
+     -387.245
+    ],
+    "yaw_deg": 89.9,
+    "name": "lockbox-0-0"
+   },
+   {
+    "pos": [
+     -246.093,
+     17.318,
+     -396.835
+    ],
+    "yaw_deg": 89.1,
+    "name": "lockbox-0-1"
+   },
+   {
+    "pos": [
+     -270.766,
+     15.623,
+     -412.281
+    ],
+    "yaw_deg": 10.4,
+    "name": "lockbox-0-2"
+   }
+  ],
+  [
+   {
+    "pos": [
+     -320.298,
+     16.201,
+     -436.593
+    ],
+    "yaw_deg": 181.7,
+    "name": "lockbox-1-0"
+   },
+   {
+    "pos": [
+     -344.744,
+     15.984,
+     -458.662
+    ],
+    "yaw_deg": 248.6,
+    "name": "lockbox-1-1"
+   },
+   {
+    "pos": [
+     -334.224,
+     16.201,
+     -442.41
+    ],
+    "yaw_deg": 181.7,
+    "name": "lockbox-1-2"
+   }
+  ]
+ ],
+ "hand_placed": true
+}

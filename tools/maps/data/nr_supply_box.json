@@ -1,0 +1,134 @@
+{
+  "_doc": "No Return between-round supply crate (script ss-assault-lockbox), measured offline from the game paks + DC scripts; prose in re/nr-supply-box.md. Local frame: y up, x = long axis, hinge at -z, front/interact side at +z, origin on the floor at the crate centre (x). Metres.",
+  "names": {
+    "script": "ss-assault-lockbox (instance ss-assault-lockbox-1; scriptx t2r/src/game/scriptx/ss-rogue/ss-assault-lockbox.dcx; hub twin ss-hub-lockbox; survival/siege managers reuse it)",
+    "spawn_event": "spawn-lockbox (broadcast-event from ss-assault-manager state assault-recovery-phase; survival/siege managers pass a bound-frame + is-wood)",
+    "level_spawner_tag": "rogue-lockbox-spawner (siege: siege-lockbox-loc-0..3, siege-crate-tag; per-spawner bool tag is-wooden)",
+    "entity_spawners": {
+      "mp-crate-military-1": {"art": "rl-cache-crate-military", "defined_in": "pak68/t2r-rogue-encounters-const-ingame.pak (world-rogue.psarc)"},
+      "mp-crate-wood-a-1": {"art": "rl-cache-crate-wood-a"},
+      "mp-crate-wood-b-1": {"art": "rl-cache-crate-wood-b"},
+      "int-mp-crate-military-1": {"kind": "interactable spawner, interactable-def interact-lockbox", "tags": "interaction-single-use, high-contrast-mode-type, look-at-poi, NavBlockerType, camera-remap-priority, alpha-by-distance, auto-gen-crouched-allowed, auto-gen-stand-disallowed, ConversationPiece"},
+      "item-pickup-random-ammo-1..4": {"template": "pickup-template-ammo"},
+      "item-pickup-random-ingredient-1..4": {"template": "pickup-template-ingreds"}
+    },
+    "actors": {
+      "rl-cache-crate-military": "world-rogue.psarc actor97/rl-cache-crate-military.pak (1183328 B, mesh only, LOD0-2; sub-mesh 'cloth' = the lining at y 0.33-0.39)",
+      "rl-cache-crate-wood-a": "actor97/rl-cache-crate-wood-a.pak (935568 B)",
+      "rl-cache-crate-wood-b": "actor97/rl-cache-crate-wood-b.pak (930080 B)",
+      "rl-cache-crate-skel": "actor97/rl-cache-crate-skel.pak (7568 B): JOINT_HIERARCHY + clips idle/open/close/open-wood/close-wood + the sound events; the mesh paks carry no skeleton (the engine matches the hierarchy id)",
+      "hub_variants": "t2r-rewards-chest-crates-military-b / -wood-b / -skel (+ t2r-rewards-chest-crate-props 5.2 MB), spawners mp-chest-military-1 / mp-chest-wood-1, script ss-hub-lockbox"
+    },
+    "our_current_box": {"spawner": "to1-supplybox-N (+ to1-supplybox-N-itempos-1..12)", "art": "pickup-chest", "pak": "world-rogue.psarc actor97/pickup-chest.pak (652208 B, skeleton root+lid, clips idle 1f / open 31f 1.033 s / close 21f 0.7 s)"}
+  },
+  "joints": {
+    "rl-cache-crate-skel": [
+      {"i": 0, "name": "root", "parent": -1, "pos": [0, 0, 0]},
+      {"i": 1, "name": "lid", "parent": 0, "pos": [0.0, 0.440, -0.247], "note": "hinge, back edge; rotates about local X"},
+      {"i": 2, "name": "latch", "parent": 1, "pos_world_closed": [0.0, 0.467, 0.237]},
+      {"i": 3, "name": "player_blocker_col", "parent": 0, "note": "helper; bind (-0.276,-0.10,0), the open clip moves it to (0.532,-0.036,0) and rotates it ~12 deg"},
+      {"i": 4, "name": "interact", "parent": 0, "pos": [0.006, 0.435, 0.230], "note": "int-mp-crate-military-1 is spawned AT this joint and parent-bound to the crate"}
+    ],
+    "pickup-chest": [{"i": 0, "name": "root"}, {"i": 1, "name": "lid", "pos": [0.0, 0.192, -0.123]}]
+  },
+  "footprint": {
+    "rl-cache-crate-military": {
+      "closed_aabb_min": [-0.657, 0.0, -0.254], "closed_aabb_max": [0.657, 0.491, 0.239],
+      "closed_size": [1.314, 0.491, 0.493],
+      "pak_padded_bbox_min": [-1.001, -0.380, -0.637], "pak_padded_bbox_max": [1.001, 0.884, 0.639],
+      "open_lid_top_y": 0.90, "open_lid_extent_z": [-0.254, 0.239],
+      "lid_open_angle_deg": 70.1, "latch_open_angle_deg": 12.4,
+      "cloth_lining_aabb_min": [-0.575, 0.333, -0.226], "cloth_lining_aabb_max": [0.582, 0.394, 0.205],
+      "front_access_side": "+z local (interact joint at z=+0.23); the player stands on this side facing -z",
+      "recommended_clear_zone_m": "crate rectangle 1.31 x 0.49 plus >= 0.9 m free in front (+z) for the crouch pickup, >= 0.3 m behind; lid goes up to 0.9 m and swings over the back half only (no rear overhang)"
+    },
+    "rl-cache-crate-wood-a": {"closed_aabb_min": [-0.601, 0.0, -0.275], "closed_aabb_max": [0.610, 0.500, 0.247]},
+    "rl-cache-crate-wood-b": {"closed_aabb_min": [-0.648, 0.0, -0.277], "closed_aabb_max": [0.651, 0.491, 0.274]},
+    "t2r-rewards-chest-crates-military-b (hub)": {"closed_aabb_min": [-0.654, 0.0, -0.312], "closed_aabb_max": [0.655, 0.353, 0.280]},
+    "pickup-chest (current MP box)": {"closed_aabb_min": [-0.274, -0.004, -0.127], "closed_aabb_max": [0.274, 0.227, 0.145], "closed_size": [0.548, 0.231, 0.271], "pak_padded_bbox_min": [-0.774, -0.504, -0.627], "pak_padded_bbox_max": [0.774, 0.726, 0.644], "lid_open_angle_deg": 82.0},
+    "ratio_nr_over_current": {"x": 2.40, "y": 2.13, "z": 1.82}
+  },
+  "item_placement": {
+    "method": "populate-pickups: copy arr-lockbox-pickup-offsets; 4 times pick a random remaining offset (removed after use) and spawn-entity-at(item spawner, offset-locator(object-locator(crate), offset)); 2 spawns come from grp-lockbox-ammo-pickups and 2 from grp-lockbox-craft-mats-pickups (decompiler folds the counters: ammo index 0,1; mats index continues after the ammo ones, unconfirmed whether 0,1 or 2,3)",
+    "count": 4,
+    "ammo_group": ["item-pickup-random-ammo-1", "item-pickup-random-ammo-2", "item-pickup-random-ammo-3", "item-pickup-random-ammo-4"],
+    "craft_mats_group": ["item-pickup-random-ingredient-1", "item-pickup-random-ingredient-2", "item-pickup-random-ingredient-3", "item-pickup-random-ingredient-4"],
+    "random_ammo_template": "pickup-template-ammo (ammo for the weapons the player carries)",
+    "random_ingredient_template": "pickup-template-ingreds",
+    "unused_groups_in_same_script": ["grp-lockbox-parts-pickups (item-pickup-parts-large-ellie-1..4)", "grp-lockbox-parts-x-large-pickups", "grp-lockbox-currency-pickups (item-pickup-currency-1..4)", "grp-lockbox-supplements-pickups", "grp-lockbox-upgrade-pickups", "full-item-ellie/abby-pickups-group (display-upgrade-pickups, spawn-random-full-item-pickup)"],
+    "offsets_crate_local_arr_lockbox_pickup_offsets": [[-0.3560, 0.38, 0.0836], [-0.3815, 0.38, -0.1159], [0.0182, 0.38, -0.0607], [0.3795, 0.38, -0.0499]],
+    "offsets_hub_crate_arr_hub_lockbox_pickup_offsets": [[-0.3560, 0.15, 0.0836], [-0.3815, 0.15, -0.1159], [0.0182, 0.15, -0.0607], [0.3795, 0.15, -0.0499]],
+    "post_spawn_fixups": {
+      "arrows/bolts": "locator = crate + (0, 0.38, 0.10) rotated 90 deg about local Y",
+      "pistol magazines": "rotated 90 about X then 90 about Y",
+      "ingredients (alcohol, canisters, bottles)": "offset +(0.06 wood | 0.03 military, 0, 0), rotate 270 about X then 90 about Z (lie flat)",
+      "explosives (gunpowder, fireworks)": "rotate 270 about X, 90 about Z",
+      "pat-jackson / police-office / mainstreet tasks": "set-shader-instance-blend-offset(item, -1.0) one frame after spawn"
+    },
+    "suggested_12_slot_layout_for_our_itempos": {
+      "_note": "our box has 12 itempos slots (2013); NR has 4. Same cloth rectangle, y = 0.40 (cloth top 0.394). This is NOT an NR number.",
+      "local_xyz": [[-0.45, 0.40, -0.12], [-0.15, 0.40, -0.12], [0.15, 0.40, -0.12], [0.45, 0.40, -0.12],
+                    [-0.45, 0.40, 0.00], [-0.15, 0.40, 0.00], [0.15, 0.40, 0.00], [0.45, 0.40, 0.00],
+                    [-0.45, 0.40, 0.12], [-0.15, 0.40, 0.12], [0.15, 0.40, 0.12], [0.45, 0.40, 0.12]]
+    }
+  },
+  "animation": {
+    "crate_clips": {
+      "rl-cache-crate-skel": {
+        "idle": {"frames": 1, "fps": 30},
+        "open": {"frames": 15, "fps": 30, "seconds": 0.5, "lid_quat_end": [-0.574, 0, 0, 0.819], "latch_quat_end": [0.108, 0, 0, 0.994], "events": "3 x sound-effect at clip start: sfx-t2r-igc-loot-crate-open-hinge@lid, -latch@latch, -lid@root"},
+        "close": {"frames": 16, "fps": 30, "seconds": 0.533, "events": "none"},
+        "open-wood": {"frames": 15, "fps": 30, "events": "sfx-t2r-igc-wood-loot-crate-open-hinge@lid / -latch@latch / -lid@root"},
+        "close-wood": {"frames": 16, "fps": 30, "events": "none"}
+      },
+      "pickup-chest": {
+        "open": {"frames": 31, "fps": 30, "seconds": 1.033, "lid_quat_end": [-0.657, 0, 0, 0.754]},
+        "close": {"frames": 21, "fps": 30, "seconds": 0.7}, "idle": {"frames": 1}
+      },
+      "open-partial / open-wood-partial": "declared in the script, in no clip pak: unused"
+    },
+    "script_open_sequence": "event player-requested-interact -> interactable-disable, player-save-action-time(listen-mode-supplies); state opened-lockbox. Track player: broadcast-event(lockbox-opened), log-event('supply-drop','opened'), player-simulate-pickup(crate locator + (0,0.5,0), 1,0,0,1). Track crate: wait 0.50 s, animate_(crate, open|open-wood, [param 10 = crate locator, param 28 = blend 0.30]), wait 0.10, signal(box-opened). Track loot: wait-for(box-opened), lockbox-unopened=false, cleanup-pickups, populate-pickups (4 pickups), listen-mode-set-buddy-draw-mode(crate,0), listen-mode-visible(crate,0,1,-1), high-contrast 1 (opened look), marker cleared. Track haptics: play-hfx-id(unlock-crate-haptic,0,2) after box-opened.",
+    "player_clips_observed_sp_run_1025": {
+      "crouched_40cm_pickup": ["abby-scav-tense-crouch-pickup-40cm-left-arm--forward", "abby-pickup-crouch-idle-low-forward-l-hand-gesture", "s-pickup-gesture-3"],
+      "standing_pickup": ["s-pickup-gesture-1"],
+      "after": ["EVT dynamic-state-data signal-pickup=1 (+50 ms after the crate sounds)", "EVT bp-effect scav-insert-item joint=spineb -> SND sfx-backpack-abby-scav-insert-item (+0.38..0.74 s after the crate sounds)", "EVT dynamic-state-data pickup-ik-blend-end=1 (+0.58..0.9 s)"],
+      "note": "the pickup clip comes from the locator height (player-simulate-pickup); the crate lid is animated by the prop, the player plays no scripted full-body open for this crate"
+    },
+    "hub_crate_full_body_open (ss-hub-lockbox, the other crate, 'hub' sounds)": {
+      "abby": ["t2r-abby-scav-low-crate-open-start", "t2r-abby-scav-low-crate-open-idle", "t2r-abby-scav-low-crate-open-idle--grab", "t2r-abby-scav-low-crate-open-end", "t2r-abby-scav-low-crate-open-end-with-manual"],
+      "ellie": ["t2r-ellie-scav-low-crate-open-start", "-idle", "-end", "-end-with-manual"],
+      "prop_clips": ["t2r-ellie-scav-low-crate-open-start--prop", "-idle--prop", "-end--prop", "-end-with-manual--prop", "t2r-ellie-scav-low-crate-open--prop (+ _wood)"],
+      "timing_sp_1030": "open-start -> crate sounds +1.95 s -> idle +1.5 s -> idle--grab (+0.05 s) -> open-end +1.85 s after the grab",
+      "our_mp_box_already_uses": "t2r-abby-scav-low-crate-open-start + player-force-crouch + sfx-t2r-igc-loot-crate-open (winmm FUN_18004ee40)"
+    }
+  },
+  "interactable": {
+    "def": "interact-lockbox (dc1/interactable.bin game-interactable-def)",
+    "raw_values": {"0x08": 2.0, "0x28": 7.0, "0x2c": -0.5, "0x30": 4.5, "0x34": 80.0, "0x4c": 0.9, "0x74": 0.15, "0x7c": 0.2, "0x84": 0.1, "0x90..0x9c": [3.0, 3.2, 1.0, 3.0], "icon": "gen:interact"},
+    "spawn": "spawn-entity-at(int-mp-crate-military-1, get-joint-locator(crate, interact)); parent-bound-frame to the crate",
+    "interactable_offset_declared_unused": [0.0, 0.27, 0.28],
+    "marker": "hud/interactions/marker-lootbox.png via hud-buddy-status/rogue-attachable while listen mode is on (or for 7.5 s after the spawn)"
+  },
+  "sounds": {
+    "bank": "obj-dead-drops (aud-sfx-dead-drop.bin, common-objects; sfx-info-light category igc-sfx). Loaded by t2r-rewards-chest-crates-skel SOUND_BANK_TABLE and by the base 'starlight-mp-test' lines of our pak68 (tools/sp_parity/sound_audit.py)",
+    "military_open": ["sfx-t2r-igc-loot-crate-open-hinge (joint lid)", "sfx-t2r-igc-loot-crate-open-latch (joint latch)", "sfx-t2r-igc-loot-crate-open-lid (joint root)"],
+    "wood_open": ["sfx-t2r-igc-wood-loot-crate-open-hinge", "-latch", "-lid"],
+    "hub_open": ["sfx-t2r-igc-hub-loot-crate-open-hinge", "-latch", "-lid"],
+    "other_in_sequence": ["sfx-backpack-abby-scav-insert-item (bp-effect scav-insert-item, joint spineb)", "unlock-crate-haptic (hfx, controller)"],
+    "hud_voice": "HUD_ROGUE_WAVE_COMPLETED spoken at the recovery start; pause card *t2r-rogue-tutorial-supply-drop*",
+    "sp_trace_timing": "the three crate sounds fall in one frame, 0.35 s after the pickup gesture starts (script: wait 0.5 s after the interact event) = clip frame 0; box-opened signal and listen-mode remove 0.10 s later"
+  },
+  "spawn_logic": {
+    "when": "state assault-recovery-phase start (after each wave while waves remain): broadcast-event(spawn-lockbox)",
+    "where": "get-lockbox-spawner: first spawner of grp-lockbox-locations (tag rogue-lockbox-spawner) that is NOT on screen with a clear view, 10 m < distance to player < 1000 m and spawn-loc-clear? (spherecast r 0.8, 0.1 m up, hits nothing); else group-random; the used spawner is removed (no repeat)",
+    "after_spawn": "enable-nav-blocker-object, disable-cover-aps-in-sphere(pos, 1.5), set-high-contrast-mode-type 2, rogue-mark-always-visible-in-listen-mode, log-event('supply-drop','spawned'), 7.5 s marker timer (non-siege)",
+    "variants": "encounter-tweaks +100: 1 military (default), 2 wood-a, 3 wood-b; spawner tag is-wooden forces wood-a; wood crates use open-wood / close-wood",
+    "siege_mode": "spawn-all-lockbox: every siege-lockbox-loc-0..3 spawner gets a crate at once"
+  },
+  "our_ext": {
+    "file": "tools/ext/nrbox.c",
+    "approach": "dress the stock box: spawn-object rl-cache-crate-military (SimpleAttachable) at each winmm box-table spawner (0x18013A4A8: +0 hash, +0x14 opened flag), set-object-locator, mirror the opened flag with animate_ open/close",
+    "opt_out": "t2r-old-supplybox.txt next to the exe",
+    "actors_added_to_level": "tools/features/dc_data_patches.py MP_LEVEL_ADDS: actor rl-cache-crate-military, actor rl-cache-crate-skel (build switch T2R_NRBOX=0)"
+  }
+}

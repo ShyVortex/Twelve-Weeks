@@ -1,0 +1,12 @@
+# Lint configuration for the Python code (servers, build tools, tests).  Run:  ruff check .
+[tool.ruff]
+line-length = 200
+target-version = "py310"
+extend-exclude = ["re", "tools/local", "tools/models", "tools/win"]
+
+[tool.ruff.lint]
+# pyflakes (unused / undefined names, broken f-strings) + syntax errors
+select = ["F", "E9"]
+# star imports are used on purpose by the generated text tables
+ignore = ["F403", "F405"]
+

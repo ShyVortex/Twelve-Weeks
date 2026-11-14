@@ -1,0 +1,18 @@
+## Death screen tips (the game's own SP death tips - its Polish wording)
+Enemies are deadly accurate when you're charging towards them. => Strzały wrogów są bardzo celne, kiedy biegniesz wprost na nich.
+Stay crouched behind cover to protect from gunfire. => Kucaj za osłonami, aby uniknąć ostrzału.
+Enemies are less accurate while you're sprinting away or to the side. => Gdy biegniesz sprintem, uciekając od wroga lub przemieszczając się na boki, trudniej cię trafić.
+Don't approach enemies directly, use the environment to flank them. => Nie podchodź do przeciwników od przodu - korzystaj z elementów otoczenia, by zajść ich z boku.
+Your foes will investigate your last known location. Don't be there. => Twoi przeciwnicy zbadają miejsce, w którym cię usłyszeli lub dostrzegli. Pamiętaj, by się przemieścić.
+Aim more accurately by crouching, or even more accurately by going prone. => Kucając, strzelasz celniej, a najcelniej - leżąc.
+Using a health kit takes time. Make sure you're in a safe place. => Użycie apteczki wymaga czasu. Upewnij się, że znajdujesz się w bezpiecznym miejscu.
+Moving while aiming reduces your accuracy. Stand still to steady your aim. => Poruszanie się podczas celowania zmniejsza celność. Stań w miejscu, aby oddać precyzyjny strzał.
+Arc-throw a Molotov while in low cover to stay hidden while throwing. => Rzucaj mołotowy po łuku, kryjąc się za osłoną, aby nie wystawiać się na ostrzał.
+Bullets drop with gravity. Aim higher to compensate. => Grawitacja sprawia, że pociski wytracają wysokość. Mierz wyżej, aby to skompensować.
+Buy yourself time to heal wounds or craft by running away from combat. => Ucieknij od przeciwników, aby zyskać czas i móc się wyleczyć lub tworzyć przedmioty.
+Pipe bombs will land at an opponent's feet when quick-thrown. => Szybko rzucona bomba rurowa wyląduje u stóp przeciwnika.
+Smoke bomb clouds completely block enemy vision, hiding your movements and preventing them from firing on you. => Bomby dymne ukrywają przed wrogami twoje ruchy i uniemożliwiają im strzelanie do ciebie.
+Arrows do more damage when the bow is fully drawn. => Strzały zadają więcej obrażeń przy maksymalnie naciągniętej cięciwie.
+Upgraded melee weapons are restored to full durability and have greatly increased damage. => Ulepszenie broni do walki wręcz przywraca jej pełną wytrzymałość i znacznie zwiększa zadawane nią obrażenia.
+Breaking glass windows can open up new routes in combat, but the sound will draw enemy attention. => Rozbijanie szyb w oknach może otwierać nowe przejścia w trakcie walki, ale przyciąga też uwagę wrogów.
+You have the choice to engage your opponents quietly, by force, or sometimes avoid combat altogether. => Możesz atakować swoich przeciwników po cichu lub otwarcie, a czasami nawet całkowicie unikać walki.

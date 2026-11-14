@@ -1,0 +1,76 @@
+{
+ "key": "capitol-shops",
+ "map_index": 19,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 6,
+ "from": [
+  {
+   "traffic": 0.33,
+   "yaw_deg": 180.6,
+   "quality": 1.46
+  },
+  {
+   "traffic": 0.33,
+   "yaw_deg": 225.7,
+   "quality": 1.26
+  },
+  {
+   "traffic": 0.15,
+   "yaw_deg": 182.0,
+   "quality": 1.24
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    -106.577,
+    -8.833,
+    -239.737
+   ],
+   "quat": [
+    0.0,
+    -0.999986,
+    0.0,
+    0.005212
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -62.673,
+    -3.68,
+    -213.756
+   ],
+   "quat": [
+    0.0,
+    -0.921515,
+    0.0,
+    0.388343
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    -72.717,
+    -7.573,
+    -221.453
+   ],
+   "quat": [
+    0.0,
+    -0.999854,
+    0.0,
+    0.017081
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

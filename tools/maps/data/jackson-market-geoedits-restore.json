@@ -1,0 +1,17 @@
+{
+ "key": "jackson-market",
+ "note": "Hand-written, read by geoedit.load AFTER the editor's geoedits and the snow_fill auto file; level_morph applies these LAST (after every other edit and the wall bake). A 'restore' resets the vertices of ONE wall plane of an asset (render positions + baked per-vertex streams of the asset's world-space submeshes, and the collision vertices on that plane) to the stock SP paks. plane: normal (the way the wall faces) + d (n . p = d) + slab (m, default 0.15); a triangle belongs to the wall when it faces along normal (dot >= min_dot, default 0.5), lies within slab of the plane and its centroid is inside box. Triangles other edits cut stay cut.",
+ "edits": [
+  {
+   "kind": "restore",
+   "name": "pat-bldg-runner-store south wall (faces the front garage door)",
+   "level": "pat-jackson-supermarket",
+   "asset": "pat-bldg-runner-store",
+   "why": "runner-store back to its original, only the wall facing the garage door (store front, x -501.2 z 255.7..260.7); the exterior wall plane z 275.9, normal -z",
+   "plane": {"normal": [0, 0, -1], "d": -275.9, "slab": 0.25, "min_dot": 0.5},
+   "box": [-509.5, 17.5, 275.5, -493.5, 26.0, 276.4],
+   "collision": "match",
+   "active": true
+  }
+ ]
+}

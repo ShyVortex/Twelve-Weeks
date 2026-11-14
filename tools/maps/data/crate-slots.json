@@ -1,0 +1,120 @@
+{
+  "_comment": "ONE shared loot-slot layout for every No Return supply crate (crate-local metres, y up, front/kneel side +z). Edited in TLOUSceneEditor (supply box > Edit loot slots), generated into tools/ext/nrbox_slots.h by tools/maps/crate_slots.py. quat = the slot's rest rotation; kind_rot = optional extra rotation per item category (ammo, ingredient, throwable, health, melee), applied after the slot rotation. role: melee (the ONE slot the weapon lies on, long axis, lower half) | item (upper half) | spare (lower-half item spots, used only when the box has no melee or more items than item slots).",
+  "slots": [
+    {
+      "pos": [
+        -0.0839,
+        0.38,
+        -0.0816
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        -0.3815,
+        0.38,
+        -0.1159
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        0.0182,
+        0.38,
+        -0.0607
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        0.436,
+        0.38,
+        -0.0766
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        -0.45,
+        0.4,
+        0.12
+      ],
+      "role": "spare",
+      "quat": [
+        0.442575,
+        0.576775,
+        0.417992,
+        0.544738
+      ]
+    },
+    {
+      "pos": [
+        -0.4046,
+        0.4,
+        0.1149
+      ],
+      "role": "melee",
+      "quat": [
+        0.507958,
+        0.507958,
+        0.491914,
+        0.491913
+      ]
+    },
+    {
+      "pos": [
+        0.2342,
+        0.4,
+        -0.0597
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        -0.2257,
+        0.4,
+        -0.1041
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        -0.45,
+        0.379,
+        -0.12
+      ],
+      "role": "spare"
+    },
+    {
+      "pos": [
+        0.5242,
+        0.3874,
+        -0.0242
+      ],
+      "role": "spare",
+      "quat": [
+        0.0,
+        -0.423606,
+        0.0,
+        0.905847
+      ]
+    },
+    {
+      "pos": [
+        0.15,
+        0.4,
+        -0.12
+      ],
+      "role": "item"
+    },
+    {
+      "pos": [
+        0.45,
+        0.4,
+        -0.12
+      ],
+      "role": "item"
+    }
+  ],
+  "kind_rot": {}
+}

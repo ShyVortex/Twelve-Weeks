@@ -1,0 +1,76 @@
+{
+ "key": "into-the-city",
+ "map_index": 20,
+ "rule": "Fixed spots, 3 per shipped map, in the item-spot data format (itemspots.c: a spot whose only candidate is `parts` is a dedicated satchel spot, always filled,",
+ "boxes_checked": 7,
+ "from": [
+  {
+   "traffic": 0.2,
+   "yaw_deg": 354.9,
+   "quality": 1.3
+  },
+  {
+   "traffic": 0.17,
+   "yaw_deg": 85.0,
+   "quality": 1.27
+  },
+  {
+   "traffic": 0.33,
+   "yaw_deg": 147.9,
+   "quality": 1.21
+  }
+ ],
+ "spots": [
+  {
+   "pos": [
+    291.907,
+    27.073,
+    525.671
+   ],
+   "quat": [
+    0.0,
+    -0.044432,
+    0.0,
+    0.999012
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    263.967,
+    27.33,
+    541.27
+   ],
+   "quat": [
+    0.0,
+    0.675907,
+    0.0,
+    0.736987
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  },
+  {
+   "pos": [
+    287.299,
+    27.121,
+    558.716
+   ],
+   "quat": [
+    0.0,
+    0.961121,
+    0.0,
+    0.276126
+   ],
+   "family": "satchel",
+   "arts": [
+    "satchel"
+   ]
+  }
+ ]
+}

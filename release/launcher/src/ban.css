@@ -1,0 +1,32 @@
+/* Ban screen: the startup / launcher-update overlay (#loading), nearly opaque and above everything, with YOU ARE BANNED.
+   Only the window controls stay usable (close / minimize). Discord and Steam buttons are hidden whatever the overlay does. */
+#loading.ld-ban {
+  z-index: 60;
+  background: rgba(5, 6, 7, 0.985);
+  opacity: 1;
+  pointer-events: auto;
+  text-align: center;
+  padding: 0 48px;
+}
+#loading.ld-ban .ld-sub {
+  animation: none;
+  opacity: 1;
+  color: var(--dim);
+}
+#loading.ld-ban .ld-reason {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+}
+#loading.ld-ban .ld-reason:empty {
+  display: none;
+}
+body.banned #titlebar {
+  z-index: 70;
+}
+body.banned #discord,
+body.banned #steamadd {
+  display: none !important;
+}

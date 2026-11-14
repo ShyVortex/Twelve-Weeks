@@ -1,0 +1,7 @@
+{
+  "_comment": "Added collision boxes of sp_maps.json that the Scene Editor removed ('Remove this seal'); level_edit.spec_edits drops them at build time.",
+  "key": "jackson-market",
+  "remove": [
+    "north back-room door lintel wall"
+  ]
+}

@@ -1,0 +1,43 @@
+## Gear Up - 2013 loadout page (gearup13.c) and skill-list level lines
+%s  -  %u LP  -  EQUIPPED => {1}  -  {2} PKT  -  W UŻYCIU
+%s  -  LOCKED => {1}  -  ZABLOKOWANE
+%s  LOCKED => {1}  ZABLOKOWANE
+CHOOSE => WYBIERZ
+EDIT => EDYTUJ
+EQUIP => UŻYJ
+GEAR => EKWIPUNEK
+LOADOUTS => WYPOSAŻENIA
+LOUD => GŁOŚNY
+QUIET => CICHY
+SMALL FIREARM => MAŁA BROŃ PALNA
+LARGE FIREARM => DUŻA BROŃ PALNA
+That loadout can't be equipped right now. => Tego wyposażenia nie można teraz użyć.
+This is your current loadout => To twoje obecne wyposażenie
+Your own loadout. SELECT to change its gear. => Twoje własne wyposażenie. WYBIERZ je, aby zmienić jego zawartość.
+W / S  TO MOVE => W / S  - RUCH
+W / S  TO MOVE     A  SLOTS => W / S  - RUCH     A  - SLOTY
+W / S  TO MOVE     A / D  LEVEL => W / S  - RUCH     A / D  - POZIOM
+W / S  TO MOVE     A / D  SUPPRESSOR => W / S  - RUCH     A / D  - TŁUMIK
+W / S  TO MOVE     D  OPTIONS => W / S  - RUCH     D  - OPCJE
+# loadout names (RENAME, 11-12)
+RENAME => ZMIEŃ NAZWĘ
+DELETE => USUŃ
+TYPE A NAME     ENTER  SAVE     ESC  CANCEL => WPISZ NAZWĘ     ENTER  ZAPISZ     ESC  ANULUJ
+UP / DOWN  LETTER     LEFT / RIGHT  MOVE => GÓRA / DÓŁ  LITERA     LEWO / PRAWO  KURSOR
+# CREATE LOADOUT (11-12)
+CREATE LOADOUT => UTWÓRZ WYPOSAŻENIE
+CREATE => UTWÓRZ
+NAME YOUR LOADOUT => NAZWIJ WYPOSAŻENIE
+UP TO 20 LETTERS => DO 20 ZNAKÓW
+TYPE A NAME     ENTER  CREATE     ESC  CANCEL => WPISZ NAZWĘ     ENTER  UTWÓRZ     ESC  ANULUJ
+Make a new custom loadout. SELECT to name it, then choose its gear. => Nowe własne wyposażenie. WYBIERZ, aby nadać mu nazwę, a potem dobierz sprzęt.
+You have the most custom loadouts there can be. => Masz już najwięcej własnych wyposażeń, ile można mieć.
+New loadouts are made in GEAR UP from the menu. => Nowe wyposażenia tworzy się w menu WYPOSAŻENIE.
+## Award popups of the 2013 events and match results (+upper)
+Gift => Prezent
+Match Won => Wygrany mecz
+Match Lost => Przegrany mecz
+Molotov Kill => Zabójstwo koktajlem Mołotowa
+Nail Bomb Kill => Zabójstwo bombą gwoździową
+Multi-Kill => Wielokrotne zabójstwo
+Survived => Przetrwanie

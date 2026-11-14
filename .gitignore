@@ -1,0 +1,93 @@
+# --- game content: never commit anything taken from the game ---
+*.pak
+*.psarc
+*.bnk
+*.wem
+*.xvag
+*.pcm
+*.clip
+*.col
+*.colattr
+*.dcpl.bin
+sidbase.bin
+# generated from the game install (tools/ext/GENERATED.md)
+tools/ext/*_tracks*.h
+tools/ext/*_carriers.h
+tools/ext/vox_*.h
+tools/ext/ctx_*_events.h
+tools/ext/*_built.h
+tools/features/levels/
+tools/features/data/*/
+tools/maps/data/*-pak.json
+tools/maps/paks/
+tools/maps/seeds/
+
+# --- art / media (launcher and site assets are kept outside the repository) ---
+release/launcher/assets/
+site/assets/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.ico
+*.icns
+*.ogg
+*.mp3
+*.wav
+*.mp4
+*.webm
+*.mov
+*.mkv
+*.llc
+
+# --- binaries and archives ---
+*.dll
+*.exe
+*.bin
+*.dat
+*.zip
+*.7z
+*.rar
+*.asar
+
+# --- runtime data, logs, secrets ---
+*.db
+*.db-*
+*.db.bak*
+*.log
+*.log.*
+*.stdout
+*.stderr
+admin-secret.txt
+t2r-status.json
+reports/
+.env
+*.pem
+*.key
+
+# --- build / tool output ---
+node_modules/
+dist/
+out/
+__pycache__/
+*.pyc
+.venv/
+.build_cache/
+tools/local/
+.scratch/
+
+# --- editors / OS ---
+.vscode/
+.idea/
+.claude/
+Thumbs.db
+.DS_Store
+
+# local scratch output of the tools (previews, test temp dirs)
+/work/
+
+# level dumps the data build writes (tools/spawns/dump_json.ps1)
+/tools/spawns/*.json
+/tools/spawns/*.json.sha1
+!/tools/spawns/wilds-houses.json

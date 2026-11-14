@@ -1,0 +1,426 @@
+{
+  "_comment": "Edits of the SP levels' own spawners made in TLOUSceneEditor (Open Map > SP reference markers). Applied by tools/maps/collectibles.py build_key (parked / pose rewritten in the -ingame pak).",
+  "key": "capitol-shops",
+  "edits": [
+    {
+      "action": "move",
+      "pos": [
+        -114.034,
+        -7.947,
+        -252.325
+      ],
+      "quat": [
+        -0.27072,
+        -0.27072,
+        0.65323,
+        0.65323
+      ],
+      "level": "wat-capitol-hill-int-bank",
+      "name": "item-pickup-canister-small-138",
+      "orig_pos": [
+        -114.034,
+        -7.947,
+        -252.325
+      ],
+      "orig_quat": [
+        -0.27072,
+        -0.27072,
+        0.65323,
+        0.65323
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -46.375,
+        -7.637,
+        -294.383
+      ],
+      "quat": [
+        0.69325,
+        -0.1211,
+        0.11319,
+        0.70137
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-alcohol-small-66",
+      "orig_pos": [
+        -46.375,
+        -7.637,
+        -294.383
+      ],
+      "orig_quat": [
+        0.69325,
+        -0.1211,
+        0.11319,
+        0.70137
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -61.813,
+        -7.249,
+        -274.677
+      ],
+      "quat": [
+        -0.1304,
+        0.04325,
+        0.00569,
+        0.9905
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-alcohol-small-67",
+      "orig_pos": [
+        -61.813,
+        -7.249,
+        -274.677
+      ],
+      "orig_quat": [
+        -0.1304,
+        0.04325,
+        0.00569,
+        0.9905
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -72.759,
+        -6.467,
+        -280.995
+      ],
+      "quat": [
+        -0.70663,
+        0.02592,
+        0.02592,
+        0.70663
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-alcohol-small-154",
+      "orig_pos": [
+        -72.759,
+        -6.467,
+        -280.995
+      ],
+      "orig_quat": [
+        -0.70663,
+        0.02592,
+        0.02592,
+        0.70663
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -71.043,
+        -7.159,
+        -284.97
+      ],
+      "quat": [
+        0.0,
+        0.38268,
+        0.0,
+        0.92388
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-ammo-1056",
+      "orig_pos": [
+        -71.043,
+        -7.159,
+        -284.97
+      ],
+      "orig_quat": [
+        0.0,
+        0.38268,
+        0.0,
+        0.92388
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -42.866,
+        -6.981,
+        -281.033
+      ],
+      "quat": [
+        0.0,
+        0.60876,
+        0.0,
+        0.79335
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-ammo-1057",
+      "orig_pos": [
+        -42.866,
+        -6.981,
+        -281.033
+      ],
+      "orig_quat": [
+        0.0,
+        0.60876,
+        0.0,
+        0.79335
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -43.974,
+        -6.691,
+        -293.599
+      ],
+      "quat": [
+        0.02642,
+        0.64428,
+        0.01794,
+        0.76412
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-blade-small-104",
+      "orig_pos": [
+        -43.974,
+        -6.691,
+        -293.599
+      ],
+      "orig_quat": [
+        0.02642,
+        0.64428,
+        0.01794,
+        0.76412
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -46.923,
+        -6.958,
+        -293.026
+      ],
+      "quat": [
+        0.68301,
+        0.18301,
+        -0.18301,
+        0.68301
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-canister-small-58",
+      "orig_pos": [
+        -46.923,
+        -6.958,
+        -293.026
+      ],
+      "orig_quat": [
+        0.68301,
+        0.18301,
+        -0.18301,
+        0.68301
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -42.815,
+        -6.38,
+        -281.678
+      ],
+      "quat": [
+        0.0,
+        -0.64279,
+        -0.0,
+        0.76604
+      ],
+      "level": "wat-capitol-hill-int-grocery",
+      "name": "item-pickup-parts-medium-173",
+      "orig_pos": [
+        -42.815,
+        -6.38,
+        -281.678
+      ],
+      "orig_quat": [
+        0.0,
+        -0.64279,
+        -0.0,
+        0.76604
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -69.991,
+        -7.638,
+        -232.897
+      ],
+      "quat": [
+        0.10563,
+        -0.82986,
+        0.51161,
+        0.19603
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-alcohol-small-70",
+      "orig_pos": [
+        -69.991,
+        -7.638,
+        -232.897
+      ],
+      "orig_quat": [
+        0.10563,
+        -0.82986,
+        0.51161,
+        0.19603
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -75.318,
+        -3.412,
+        -243.438
+      ],
+      "quat": [
+        -0.0,
+        -0.64279,
+        0.0,
+        0.76604
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-ammo-1104",
+      "orig_pos": [
+        -75.318,
+        -3.412,
+        -243.438
+      ],
+      "orig_quat": [
+        -0.0,
+        -0.64279,
+        0.0,
+        0.76604
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -65.88,
+        -6.842,
+        -226.432
+      ],
+      "quat": [
+        0.0,
+        0.5373,
+        0.0,
+        0.84339
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-ammo-2609",
+      "orig_pos": [
+        -65.88,
+        -6.842,
+        -226.432
+      ],
+      "orig_quat": [
+        0.0,
+        0.5373,
+        0.0,
+        0.84339
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -74.949,
+        -2.833,
+        -235.271
+      ],
+      "quat": [
+        0.0,
+        -0.34202,
+        0.0,
+        0.93969
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-blade-small-41",
+      "orig_pos": [
+        -74.949,
+        -2.833,
+        -235.271
+      ],
+      "orig_quat": [
+        0.0,
+        -0.34202,
+        0.0,
+        0.93969
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -55.076,
+        -3.21,
+        -242.607
+      ],
+      "quat": [
+        0.25658,
+        0.0,
+        0.96652,
+        -0.0
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-health-kit-103",
+      "orig_pos": [
+        -55.076,
+        -3.21,
+        -242.607
+      ],
+      "orig_quat": [
+        0.25658,
+        0.0,
+        0.96652,
+        -0.0
+      ],
+      "active": true
+    },
+    {
+      "action": "move",
+      "pos": [
+        -69.304,
+        -6.854,
+        -233.488
+      ],
+      "quat": [
+        -0.0,
+        -0.92388,
+        0.0,
+        0.38268
+      ],
+      "level": "wat-capitol-hill-int-sandwich",
+      "name": "item-pickup-health-small-398",
+      "orig_pos": [
+        -69.304,
+        -6.854,
+        -233.488
+      ],
+      "orig_quat": [
+        -0.0,
+        -0.92388,
+        0.0,
+        0.38268
+      ],
+      "active": true
+    }
+  ]
+}
