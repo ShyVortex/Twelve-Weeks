@@ -35,7 +35,7 @@ def setp(a, b, ms, at):
 
 
 lim = daemon.PING_KICK_MS
-check(lim == 190, "default limit 190 ms")
+check(lim == 205, "default limit 205 ms")
 # A high, B / C fine: A is removed only after PING_KICK_S of it
 for t in (0, 30, 59):
     now = T0 + t
@@ -47,7 +47,7 @@ setp(A, H, 255, now); setp(B, H, 80, now); setp(C, H, 120, now)
 daemon.ping_check(now)
 check(len(kicked) == 1 and kicked[0][0] == A, "removed after the limit time")
 check(kicked and kicked[0][2] == "ping-kick" and kicked[0][3] and kicked[0][4], "ping-kick kind, kept out of the match, no penalty")
-check(kicked and "255 ms" in kicked[0][1] and "(limit 190 ms)" in kicked[0][1], "text carries the ping and the limit: %r" % (kicked[0][1] if kicked else ""))
+check(kicked and "255 ms" in kicked[0][1] and "(limit 205 ms)" in kicked[0][1], "text carries the ping and the limit: %r" % (kicked[0][1] if kicked else ""))
 daemon.ping_check(now + 10)
 check(len(kicked) == 1, "once per match")
 # a dip under the limit restarts the clock

@@ -187,7 +187,7 @@ AFK_KICKED = set()       # (token, mid) removed for inactivity (once per match)
 # (no clan penalty), no requeue ticket, join in progress keeps it out of that match. Never the host itself, never while most players are high to the host
 # (then the host's link is the problem: host migration's business), not in the first PING_GRACE_S of a match, only fresh measurements (PING_FRESH_S).
 # T2R_PING_KICK_MS=0 = off.
-PING_KICK_MS = int(os.environ.get("T2R_PING_KICK_MS", "190"))
+PING_KICK_MS = int(os.environ.get("T2R_PING_KICK_MS", "205"))      # 11-15 user: 205 (was 190)
 PING_KICK_S = float(os.environ.get("T2R_PING_KICK_S", "60"))
 PING_GRACE_S = 45.0
 PING_FRESH_S = 90.0
