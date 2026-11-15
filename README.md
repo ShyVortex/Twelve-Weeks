@@ -48,7 +48,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
-- **kellie**: project lead and design: gameplay, melee, clans, maps, launcher, etc.
+- **Kellie**: project lead and design: gameplay, melee, clans, maps, launcher and site, etc.
 - **Wedge**: male character animations, help with weapons.
 - **OmegaMan**: launcher code cleanup, the Linux port, Rich Presence support.
 - **DeepQuantum**: server hosting, general help.
