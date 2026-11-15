@@ -306,7 +306,46 @@ class H(BaseHTTPRequestHandler):
         if ctype.startswith("text/") or ctype in ("application/javascript",):
             ctype += "; charset=utf-8"
         cache = "public, max-age=86400" if "/assets/" in f.replace("\\", "/") else "public, max-age=300"
+        if f.endswith((".mp4", ".webm")):          # feature clips: byte ranges (Safari / iOS will not play a video whose server ignores Range)
+            return self._media(f, ctype, cache)
         return self._send(200, open(f, "rb").read(), ctype, cache=cache)
+
+    def _media(self, f, ctype, cache):
+        size = os.path.getsize(f)
+        start, end, code = 0, size - 1, 200
+        m = re.match(r"bytes=(\d*)-(\d*)$", (self.headers.get("Range") or "").strip())
+        if m and (m.group(1) or m.group(2)):
+            if m.group(1):
+                start = int(m.group(1)); end = min(int(m.group(2)), size - 1) if m.group(2) else size - 1
+            else:
+                start = max(0, size - int(m.group(2)))
+            if start > end or start >= size:
+                self.send_response(416); self.send_header("Content-Range", "bytes */%d" % size); self.send_header("Content-Length", "0"); self.end_headers()
+                return
+            code = 206
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(end - start + 1))
+        if code == 206:
+            self.send_header("Content-Range", "bytes %d-%d/%d" % (start, end, size))
+        self.send_header("Cache-Control", cache)
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.end_headers()
+        if self.command == "HEAD":
+            return
+        with open(f, "rb") as fh:
+            fh.seek(start)
+            left = end - start + 1
+            while left > 0:
+                b = fh.read(min(65536, left))
+                if not b:
+                    break
+                try:
+                    self.wfile.write(b)
+                except (BrokenPipeError, ConnectionResetError):
+                    return
+                left -= len(b)
 
 
 def main():
