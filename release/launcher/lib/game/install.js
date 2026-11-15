@@ -247,6 +247,37 @@ async function buildSlimMod({ clientDir, game, src, dst, slimDat, extra, log, pr
  * @param {object} options
  * @returns {Promise<void>}
  */
+/**
+ * Do two files differ? Size first, then the first and last 64 KB. part1.dat keeps its size from build to build (only its data and the 16-byte
+ * build id at the end change), so a size-only check left an older build's part1.dat in the game folder and the mod switched Bookstore off.
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+function filesDiffer(a, b) {
+  let fa, fb;
+  try {
+    const sa = fs.statSync(a).size;
+    if (sa !== fs.statSync(b).size) return true;
+    const n = Math.min(65536, sa);
+    fa = fs.openSync(a, 'r');
+    fb = fs.openSync(b, 'r');
+    const ba = Buffer.alloc(n);
+    const bb = Buffer.alloc(n);
+    for (const pos of n ? [0, sa - n] : []) {
+      fs.readSync(fa, ba, 0, n, pos);
+      fs.readSync(fb, bb, 0, n, pos);
+      if (!ba.equals(bb)) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  } finally {
+    if (fa !== undefined) fs.closeSync(fa);
+    if (fb !== undefined) fs.closeSync(fb);
+  }
+}
+
 async function copyModJobs({ clientDir, game, src, dst, slimDat, progress }) {
   // the files to copy, counted first so the bar has a total (bytes)
   const ext = path.join(clientDir, 't2r-ext.dll');
@@ -262,7 +293,7 @@ async function copyModJobs({ clientDir, game, src, dst, slimDat, progress }) {
   if (exists(maps))
     for (const f of listFiles(maps)) {
       const d = path.join(game, 't2r-maps', path.relative(maps, f));
-      if (!exists(d) || fs.statSync(d).size !== fs.statSync(f).size) jobs.push([f, d]);
+      if (!exists(d) || filesDiffer(f, d)) jobs.push([f, d]);
     }
   const total = jobs.reduce((a, j) => a + fs.statSync(j[0]).size, 0);
   let done = 0,
@@ -477,7 +508,7 @@ function missingModFiles(clientDir, gameDir) {
   if (exists(maps))
     for (const f of listFiles(maps)) {
       const d = path.join(gameDir, 't2r-maps', path.relative(maps, f));
-      if (!exists(d) || fs.statSync(d).size !== fs.statSync(f).size)
+      if (!exists(d) || filesDiffer(f, d))
         out.push('t2r-maps/' + path.relative(maps, f));
     }
   return out;

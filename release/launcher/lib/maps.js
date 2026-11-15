@@ -327,6 +327,14 @@ function endMarkerUpdate(gameDir, ok) {
  * @param {string} gameDir
  * @returns {string}
  */
+function hasPart1Dat(gameDir) {
+  try {
+    return !!gameDir && fs.statSync(path.join(part1Dir(gameDir), 'part1.dat')).size > 0;
+  } catch {
+    return false;
+  }
+}
+
 function part1Dir(gameDir) {
   return path.join(gameDir || '', PACK_DIR, PART1_SUB);
 }
@@ -406,6 +414,8 @@ function mapsState(cfg) {
   const have = new Set(packs.map((p) => p.id));
   const set = cfg.game_dir ? installedFileset(cfg.game_dir) : null;
   if (set) have.add(set.pack);
+  // the Part I file set (server download 'part1-<build>', converter 'part1-a') or the part1.dat the client ships: Bookstore is there
+  if ((set && /^part1-/.test(set.pack)) || hasPart1Dat(cfg.game_dir)) have.add('part1-a');
   return {
     part2: PART2,
     part1: PART1.map((m) => ({ ...m, installed: have.has(m.pack) })),
