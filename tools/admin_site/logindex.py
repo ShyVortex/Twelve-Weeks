@@ -36,11 +36,17 @@ def _bracket(body, key):
     return parse_list(body[i + len(key) + 1:j + 1]) if j > 0 else []
 
 
+def _candidates(dist):
+    """Every daemon.log under dist: PC layout dist/<pt>/host and dist/<pt>/<folder>/host, Pi layout <live>/host and <live>/hostNN (one folder per build)."""
+    return (glob.glob(os.path.join(dist, "*", "host", "daemon.log")) + glob.glob(os.path.join(dist, "*", "*", "host", "daemon.log"))
+            + glob.glob(os.path.join(dist, "host*", "daemon.log")))
+
+
 def newest_daemon_log(dist):
     """The daemon.log written last under dist/<pt>/host or dist/<pt>/<folder>/host: the live server moves to a new PT folder with every
     build, so a fixed --daemon-log went stale (the admin site kept reading an old folder)."""
     best, bt = "", -1.0
-    for p in glob.glob(os.path.join(dist, "*", "host", "daemon.log")) + glob.glob(os.path.join(dist, "*", "*", "host", "daemon.log")):
+    for p in _candidates(dist):
         try:
             t = os.stat(p).st_mtime
         except OSError:
@@ -55,7 +61,7 @@ def prior_daemon_logs(dist, current, keep=4):
     its own log, so reading only the newest one made every player's match history / the matches page empty after each build switch (a new build's start made the previous build's matches vanish from the site)."""
     cur = os.path.abspath(current) if current else ""
     found = []
-    for p in glob.glob(os.path.join(dist, "*", "host", "daemon.log")) + glob.glob(os.path.join(dist, "*", "*", "host", "daemon.log")):
+    for p in _candidates(dist):
         if os.path.abspath(p) == cur:
             continue
         try:

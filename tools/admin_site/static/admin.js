@@ -28,19 +28,33 @@ function platform(p) { return p ? (p === "linux" ? "LINUX" : "WINDOWS") : "-"; }
 
 async function api(path) {
   const r = await fetch(path, { cache: "no-store" });
+  if (r.status === 401) { loggedOut(); throw new Error("login required"); }
   if (!r.ok && r.status !== 404) throw new Error("HTTP " + r.status);
   return r.json();
 }
 async function post(path, body) {
   const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", "X-Admin-Request": "1" }, body: JSON.stringify(body) });
+  if (r.status === 401) loggedOut();
   return r.json();
 }
+let outShown = false;
+function loggedOut() { if (!outShown) { outShown = true; clearInterval(S.timer); location.reload(); } }      // session ended: the reload shows the login page
 function setHTML(el, key, html) {
   if (S.last[key] === html) return;
   S.last[key] = html;
   const keep = el.scrollTop;
   el.innerHTML = html;
   el.scrollTop = keep;
+  labelCells(el);
+}
+// phone cards: every cell of a table row gets its column header as data-l (shown by admin.css under 900 px, where the header row is hidden)
+function labelCells(root) {
+  root.querySelectorAll(".tbl").forEach(t => {
+    const th = t.querySelector(".tr.th");
+    if (!th) return;
+    const names = [...th.children].map(c => c.textContent.trim());
+    t.querySelectorAll(".tr:not(.th)").forEach(r => [...r.children].forEach((c, i) => { if (i && names[i]) c.setAttribute("data-l", names[i]); }));
+  });
 }
 function flash(msg, bad) {
   const d = document.createElement("div");
@@ -89,14 +103,13 @@ function noticePanel(nt) {
   const list = (nt && nt.notices) || [];
   let h = '<div class="sec"><h3>SERVER NOTICES <span class="faint">(shown in game, in matches and menus, and in the launcher)</span></h3>';
   if (nt && nt.ok === false) h += note("Notices need the daemon admin listener: " + (nt.error || "not reachable"), true);
-  h += list.length ? '<div class="tbl" style="--cols:130px 1fr 150px 80px">' + list.map(n => {
+  h += list.length ? '<div class="tbl" style="--cols:190px 1fr 150px 90px">' + list.map(n => {
     const left = n.kind === "r" && n.endsAt ? "in " + dur(Math.max(0, Math.round(n.endsAt - Date.now() / 1000))) : n.endsAt ? "until " + when(n.endsAt) : "";
-    return `<div class="tr"><span class="warn">${esc(NK[n.kind] || n.kind)}</span><span>${esc(n.text || "")}${n.text_pl ? ' <span class="dim">/ PL: ' + esc(n.text_pl) + "</span>" : ""}</span><span class="dim">${esc(left)}</span><span>${n.kind === "t" || n.kind === "r" ? `<button class="btn sm" data-nclear="${esc(n.id)}">${n.kind === "r" ? "CANCEL" : "REMOVE"}</button>` : ""}</span></div>`;
+    return `<div class="tr"><span class="warn">${esc(NK[n.kind] || n.kind)}</span><span>${esc(n.text || "")}</span><span class="dim">${esc(left)}</span><span>${n.kind === "t" || n.kind === "r" ? `<button class="btn sm" data-nclear="${esc(n.id)}">${n.kind === "r" ? "CANCEL" : "REMOVE"}</button>` : ""}</span></div>`;
   }).join("") + "</div>" : '<div class="empty">NO ACTIVE NOTICE</div>';
-  h += '<div class="toolbar" style="margin-top:10px"><input class="tool-in" id="nt-text" maxlength="140" placeholder="Free text for all players (English / default)" style="flex:1;min-width:240px">' +
-    '<input class="tool-in" id="nt-text-pl" maxlength="140" placeholder="Polish version (optional - Polish players see this one)" style="flex:1;min-width:240px">' +
-    '<input class="tool-in" id="nt-sec" value="8" style="width:60px" title="seconds on screen (2-600)"><span class="dim" style="align-self:center">s</span><button class="btn" data-nsend="1">SEND NOTICE</button></div>';
-  h += '<div class="toolbar" style="margin-top:8px"><input class="tool-in" id="sd-min" value="10" style="width:60px" title="minutes until the restart"><input class="tool-in" id="sd-why" maxlength="100" placeholder="Reason (optional)" style="flex:1;min-width:200px"><input class="tool-in" id="sd-why-pl" maxlength="100" placeholder="Polish reason (optional)" style="flex:1;min-width:200px">' +
+  h += '<div class="row-in"><input class="tool-in grow" id="nt-text" maxlength="140" placeholder="Free text for all players">' +
+    '<input class="tool-in num" id="nt-sec" value="8" title="seconds on screen (2-600)"><span class="dim">s</span><button class="btn main" data-nsend="1">SEND NOTICE</button></div>';
+  h += '<div class="row-in"><input class="tool-in num" id="sd-min" value="10" title="minutes until the restart"><input class="tool-in grow" id="sd-why" maxlength="100" placeholder="Reason (optional)">' +
     '<button class="btn danger" data-nrestart="1">SCHEDULE RESTART</button><button class="btn" data-ncancel="1">CANCEL RESTART</button></div></div>';
   return h;
 }
@@ -130,16 +143,19 @@ function viewOverview(ov, on, nt) {
   return h + "</div>";
 }
 
+// ban / unban (a ban button on every player for the mods; the server writes bans.txt, the daemon refuses the player from then on)
+function banBtn(id, name, banned) { return `<button class="btn sm ${banned ? "" : "danger"}" data-${banned ? "unban" : "ban"}="${esc(id)}" data-name="${esc(name)}">${banned ? "UNBAN" : "BAN"}</button>`; }
+
 function viewPlayers(on, all) {
   let h = on.source === "log" ? note("Live feed not active: names come from the log, session data is approximate. Kick and ping need the daemon build with the admin listener (daemon restart).") : "";
   h += `<div class="sec"><h3>ONLINE NOW (${on.players.length})</h3>${onlineTable(on)}</div>`;
   h += `<div class="sec"><h3>ALL PLAYERS (${all.shown}${S.q ? " matching" : ""})${all.hidden ? ` <span class="faint">${all.hidden} never-played installs hidden - search to find them</span>` : ""}</h3>`;
   if (!all.players.length) return h + '<div class="empty">NO PLAYER FOUND</div></div>';
-  h += '<div class="tbl" style="--cols:minmax(120px,1.4fr) 120px 1fr 70px 70px 70px 120px 90px"><div class="tr th"><span>NAME</span><span>STEAM ID</span><span>CLAN</span><span>MATCHES</span><span>WINS</span><span>LOSSES</span><span>LAST SEEN</span><span>BUILD</span></div>';
+  h += '<div class="tbl" style="--cols:minmax(110px,1.3fr) 158px minmax(130px,1.2fr) 64px 50px 60px 100px 70px 62px"><div class="tr th"><span>NAME</span><span>STEAM ID</span><span>CLAN</span><span>MATCHES</span><span>WINS</span><span>LOSSES</span><span>LAST SEEN</span><span>BUILD</span><span></span></div>';
   for (const p of all.players) {
-    h += `<div class="tr click" data-go="player/${esc(p.id)}"><span>${p.online ? '<span class="ok">● </span>' : ""}${esc(p.name)}</span><span class="dim">${p.steamid || "-"}</span>` +
+    h += `<div class="tr click" data-go="player/${esc(p.id)}"><span>${p.online ? '<span class="ok">● </span>' : ""}${esc(p.name)}${p.banned ? ' <span class="pill bad">BANNED</span>' : ""}</span><span class="dim">${p.steamid || "-"}</span>` +
       `<span>${p.faction ? `<span class="${facCls(p.faction)}">${esc(p.faction)}</span> <span class="dim">${p.clanStatus === "alive" ? `W${p.week} D${p.day} · ${p.size}` : esc(p.clanStatus)}</span>` : '<span class="faint">no clan</span>'}</span>` +
-      `<span>${p.matches}</span><span>${p.wins}</span><span>${p.losses}</span><span class="dim">${p.online ? "now" : ago(p.lastSeen)}</span><span class="dim">${esc(p.version || "-")}</span></div>`;
+      `<span>${p.matches}</span><span>${p.wins}</span><span>${p.losses}</span><span class="dim">${p.online ? "now" : ago(p.lastSeen)}</span><span class="dim">${esc(p.version || "-")}</span><span>${banBtn(p.id, p.name, p.banned)}</span></div>`;
   }
   return h + "</div></div>";
 }
@@ -149,7 +165,7 @@ function clanBlock(c, morale) {
   const pct = c.status === "alive" ? Math.min(100, Math.round(c.day / c.daysTotal * 100)) : 100;
   const tot = Math.max(1, c.size);
   return `<div class="kvs">` + kv("FACTION", facPill(c.factionName)) + kv("STATUS", esc(c.status.toUpperCase()) + (c.risk.length ? ` <span class="bad">AT RISK: ${esc(c.risk.join(", "))}</span>` : "")) +
-    kv("PROGRESS", c.status === "alive" ? `WEEK ${c.week} OF ${c.weeks} · DAY ${c.dayOfWeek} <span class="faint">(${c.day} / ${c.daysTotal} days)</span><div class="bar ${facCls(c.factionName)}"><i style="width:${pct}%"></i></div>` : "-") +
+    kv("PROGRESS", c.status === "alive" ? `WEEK ${c.week} OF ${c.weeks} · DAY ${c.dayOfWeek} <span class="faint">(${c.day} / ${c.daysTotal} days)</span><div class="bar2 ${facCls(c.factionName)}"><i style="width:${pct}%"></i></div>` : "-") +
     kv("SURVIVORS", `${c.size} <span class="faint">healthy ${c.healthy} · hungry ${c.hungry} · sick ${c.sick} · needs ${c.needed}/day</span>`) +
     kv("WEEKS DONE (ALL RUNS)", c.weeksTotal) + kv("CLAN RUNS", `${c.runsWon} won · ${c.runsLost} lost`) +
     (c.lastParts != null ? kv("LAST MATCH", `${c.lastParts} parts · ${c.lastSupplies} supplies${c.lastDied ? ` · <span class="bad">${c.lastDied} died</span>` : ""}`) : "") +
@@ -184,7 +200,8 @@ function viewPlayer(p) {
   const dec = p.wins + p.losses + p.draws;
   const wr = dec ? Math.round(p.wins / dec * 100) + "%" : "-";
   let h = '<button class="back" data-go="players">&lt; PLAYERS</button>';
-  h += `<div class="match" style="margin-top:10px"><div class="mh"><b>${esc(p.name)}</b><span>${p.online ? statePill(p.online.state) : '<span class="faint">OFFLINE</span>'} ${p.clan ? facPill(p.clan.factionName) : ""} ${p.canKick ? `<button class="btn sm danger" data-kick="${esc(p.online.pid)}" data-name="${esc(p.name)}">FORCE KICK</button>` : ""}</span></div>`;
+  h += `<div class="match" style="margin-top:10px"><div class="mh"><b>${esc(p.name)}</b><span>${p.online ? statePill(p.online.state) : '<span class="faint">OFFLINE</span>'} ${p.clan ? facPill(p.clan.factionName) : ""} ${p.canKick ? `<button class="btn sm danger" data-kick="${esc(p.online.pid)}" data-name="${esc(p.name)}">FORCE KICK</button>` : ""} ${banBtn(p.id, p.name, !!p.ban)}</span></div>`;
+  if (p.ban) h += note("BANNED" + (p.ban.reason ? ": " + p.ban.reason : "") + "  (bans.txt: " + p.ban.line + ")", true);
   h += '<div class="facts" style="margin:0">' + fact("MATCHES", p.matches) + fact("WINS", p.wins, wr + " win rate", "") + fact("LOSSES", p.losses) + fact("DRAWS", p.draws) +
     (p.avgParts != null ? fact("AVG PARTS", p.avgParts, "per match") : "") + (p.kills || p.deaths ? fact("K / D", p.kills + " / " + p.deaths) : "") + "</div></div>";
   h += '<div class="cols2"><div class="sec"><h3>ACCOUNT</h3><div class="kvs">' +
@@ -194,8 +211,11 @@ function viewPlayer(p) {
     (p.kills || p.deaths ? "" : '<div class="faint" style="font-size:11.5px;margin-top:8px;line-height:1.5">Kills, deaths and executions are not recorded by the server (the engine keeps them in the match).</div>') +
     '</div><div class="sec"><h3>CLAN</h3>' + clanBlock(p.clan, p.morale) + "</div></div>";
   if (p.clan && p.clan.status) h += `<div class="sec"><h3>CLAN, AS THE PLAYER SEES IT <span class="faint">(the launcher's CLAN tab, read-only; EN / PL button inside)</span></h3><iframe class="clanframe" title="clan" src="/clan.html?id=${encodeURIComponent(p.id)}"></iframe></div>`;
-  if (p.feed.length) {
-    h += '<div class="sec"><h3>CLAN FEED <span class="faint">(what the launcher journal shows; PL = the Polish text)</span></h3>' + p.feed.map(m => `<div class="feedline"><em>W${m.week} D${m.day}${m.kind === "alife" ? ' <span class="pill ok">A-LIFE</span>' : ""}</em>${esc(m.text)}${m.textPl ? `<div class="faint pl">PL: ${esc(m.textPl)}</div>` : ""}</div>`).join("") + "</div>";
+  if (p.feed.length) {      // English only (both sites get localisation later), the newest few open, the rest behind SHOW ALL
+    const line = m => `<div class="feedline"><em>W${m.week} D${m.day}${m.kind === "alife" ? ' <span class="pill ok">A-LIFE</span>' : ""}</em>${esc(m.text)}</div>`;
+    const N = 5, more = p.feed.length - N;
+    h += `<div class="sec"><h3>CLAN FEED <span class="faint">(what the launcher journal shows, newest first)</span></h3>${p.feed.slice(0, N).map(line).join("")}` +
+      (more > 0 ? `<details class="feedmore"><summary><span class="sm-open">SHOW ALL ${p.feed.length}</span><span class="sm-close">SHOW LESS</span></summary>${p.feed.slice(N).map(line).join("")}</details>` : "") + "</div>";
   }
   h += viewAlife(p.alife);
   h += `<div class="sec"><h3>CLAN RESET <span class="faint">(wipes this player's clan to a fresh start; the old state is saved so it can be restored)</span></h3><div class="row" style="gap:8px;display:flex;flex-wrap:wrap"><button class="btn sm danger" data-clanreset="${esc(p.id)}" data-name="${esc(p.name)}">RESET CLAN</button><button class="btn sm" data-clanrestore="${esc(p.id)}" data-name="${esc(p.name)}">RESTORE A BACKUP</button></div></div>`;
@@ -254,7 +274,7 @@ function teamsLive(d) {
   if (!live.length) return '<div class="empty">NO MATCH RUNNING</div>';
   return live.map(m => {
     const col = (n, ps) => `<div class="sec"><h3>${n}</h3>${ps.length ? ps.map(p => `<div class="tr"><span>${esc(p.name)} <span class="faint">slot ${p.slot}</span></span>` +
-      (p.slot === 0 && !p.inmatch ? '<span class="faint" title="its game is too old to switch teams in the match; a host cannot be kicked to rejoin">HOST</span>' : `<span>${p.slot === 0 ? '<span class="faint">HOST </span>' : ""}${p.swapped ? '<span class="faint">MOVED </span>' : ""}<button class="tool-in" data-move="${esc(p.pid)}" data-name="${esc(p.name)}" data-inmatch="${p.inmatch ? 1 : 0}">MOVE TO OTHER TEAM</button></span>`) + "</div>").join("") : '<div class="empty">-</div>'}</div>`;
+      (p.slot === 0 ? '<span class="faint">HOST</span>' : `<span><button class="btn sm" data-move="${esc(p.pid)}" data-name="${esc(p.name)}">MOVE TO OTHER TEAM</button></span>`) + "</div>").join("") : '<div class="empty">-</div>'}</div>`;
     const mv = (m.moving || []).map(x => `${esc(x.name)} -> team ${x.team === 0 ? "A" : "B"}`).join(", ");
     return `<div class="dim">MATCH ${esc(m.mid)}${mv ? " · WAITING TO RE-ENTER: " + mv : ""}</div><div class="facts">${col("TEAM A", m.teams[0])}${col("TEAM B", m.teams[1])}</div>`;
   }).join("");
@@ -270,10 +290,10 @@ function viewTeams(d) {
   return `<div class="sec"><h3>RULES</h3><div class="dim">One rule per line, names as shown in game (any case) or Steam ids.<br>` +
     `<b>apart PlayerA PlayerB</b> = never on the same team &nbsp;·&nbsp; <b>together PlayerC PlayerD</b> = same team &nbsp;·&nbsp; # = comment.<br>` +
     `Applies to the next match that forms (a running match keeps its teams). top_players.txt players are also kept apart.</div>` +
-    `<textarea id="trules" class="tool-in" rows="8" style="width:100%;font-family:monospace">${esc(d.rules)}</textarea>` +
-    `<div style="margin-top:8px"><button class="tool-in" id="tsave">SAVE RULES</button></div></div>` +
+    `<textarea id="trules" class="tool-in" rows="8" style="margin-top:12px;font-family:Consolas,monospace">${esc(d.rules)}</textarea>` +
+    `<div style="margin-top:10px"><button class="btn main" id="tsave">SAVE RULES</button></div></div>` +
     `<div class="sec"><h3>NEXT SPLIT (QUEUE NOW)</h3><div id="tprev">${teamsPreview(d)}</div></div>` +
-    `<div class="sec"><h3>RUNNING MATCHES</h3><div class="dim">MOVE switches the player's team inside the running match (same life, new side on every screen). A player on an older game version is sent to the menu instead and rejoins on the other team by itself.</div><div id="tlive">${teamsLive(d)}</div></div>`;
+    `<div class="sec"><h3>RUNNING MATCHES</h3><div class="dim">MOVE sends the player to the menu; their next FIND MATCH puts them back into the same match on the other team (valid 15 min).</div><div id="tlive">${teamsLive(d)}</div></div>`;
 }
 function viewClans(d) {
   let h = '<div class="facts">' + fact("CLANS ALIVE", d.alive) + fact("WLF", d.byFaction.WLF, "alive clans") + fact("SERAPHITES", d.byFaction.SERAPHITES, "alive clans") + fact("AT RISK", d.atRisk, "dying or struggling", d.atRisk ? "warn" : "") + "</div>";
@@ -283,7 +303,7 @@ function viewClans(d) {
   for (const c of d.clans) {
     const pct = c.status === "alive" ? Math.min(100, Math.round(c.day / c.daysTotal * 100)) : 100;
     h += `<div class="tr click" data-go="player/${esc(c.ownerId)}"><span>${esc(c.owner)}</span><span>${facPill(c.factionName)}</span>` +
-      `<span>${c.status === "alive" ? `W${c.week} · D${c.dayOfWeek} <span class="faint">${c.day}/${c.daysTotal}</span><div class="bar ${facCls(c.factionName)}"><i style="width:${pct}%"></i></div>` : '<span class="faint">-</span>'}</span>` +
+      `<span>${c.status === "alive" ? `W${c.week} · D${c.dayOfWeek} <span class="faint">${c.day}/${c.daysTotal}</span><div class="bar2 ${facCls(c.factionName)}"><i style="width:${pct}%"></i></div>` : '<span class="faint">-</span>'}</span>` +
       `<span>${c.size}</span><span class="dim"><span class="wlf">${c.healthy}</span> / ${c.hungry} / <span class="bad">${c.sick}</span></span><span class="dim">${c.weeksTotal}</span>` +
       `<span class="${c.risk.length ? "bad" : c.status === "alive" ? "ok" : "dim"}">${esc(c.status.toUpperCase())}${c.risk.length ? " · " + esc(c.risk[0]) : ""}</span>` +
       `<span class="dim">${c.alife && c.alife.threads != null ? c.alife.threads + " running" : "-"}</span></div>`;
@@ -340,11 +360,13 @@ function hilite(t, q) {
 function viewLogs(d) {
   if (!d.ok) return note(d.error, true);
   const lines = d.lines.map(l => `<div class="ll ${l.c}">${hilite(l.t, S.logQ)}</div>`).join("");
-  return `<div class="logbox">${lines || '<div class="empty">NO LINES MATCH</div>'}</div>`;
+  return `<div class="logwrap" id="logwrap"><div class="logbox">${lines || '<div class="empty" style="padding-left:12px">NO LINES MATCH</div>'}</div></div>`;
 }
 
 // PATCH NOTES: the launcher's own news page (news.html: launcher news.js + news.css) made editable in place; it loads and saves /api/news itself.
-function viewNotes() { return '<iframe id="nwframe" class="nwframe" title="patch notes" src="/news.html"></iframe>'; }
+// Steam admins get the website's news editor (rich blocks, stats board, media, EN + PL; same login); token / local users the older sections editor
+function notesSrc() { const w = S.who; return w && w.kind === "steam" && w.site ? w.site + "/news.html?embed=1" : "/news.html"; }
+function viewNotes() { return `<iframe id="nwframe" class="nwframe" title="patch notes" src="${esc(notesSrc())}"></iframe>`; }
 function notesDirty() { const f = $("#nwframe"); try { return !!(f && f.contentWindow.NewsEd && f.contentWindow.NewsEd.dirty()); } catch (e) { return false; } }
 window.addEventListener("beforeunload", e => { if (notesDirty()) { e.preventDefault(); e.returnValue = ""; } });
 
@@ -370,6 +392,7 @@ function renderToolbar() {
   if (S.last.toolbar !== h + t) { S.last.toolbar = h + t; tb.innerHTML = h; }
   document.querySelectorAll(".mi").forEach(b => b.classList.toggle("active", b.dataset.tab === mainTab(r)));
   $("#ph-title").textContent = t === "player" ? "PLAYER" : t === "report" ? "BUG REPORT " + r.arg : TITLES[t];
+  document.title = (t === "player" ? "Player" : t === "report" ? "Report " + r.arg : TITLES[t].charAt(0) + TITLES[t].slice(1).toLowerCase()) + " - Twelve Weeks admin";
 }
 
 async function refresh(force) {
@@ -400,9 +423,10 @@ async function refresh(force) {
       const sel = $("#lf");
       if (sel && d.ok && S.last.logfiles !== d.files.join()) { S.last.logfiles = d.files.join(); sel.innerHTML = d.files.map(f => `<option value="${f}" ${f === S.logFile ? "selected" : ""}>${f === "0" ? "CURRENT LOG" : "ROTATED LOG " + f}</option>`).join(""); }
       html = viewLogs(d);
-      const atEnd = body.scrollHeight - body.scrollTop - body.clientHeight < 60;
+      const lw = $("#logwrap"), atEnd = !lw || lw.scrollHeight - lw.scrollTop - lw.clientHeight < 60, keep = lw ? lw.scrollTop : 0;
       setHTML(body, "body", html);
-      if (S.logFollow && (atEnd || force)) body.scrollTop = body.scrollHeight;
+      const nw = $("#logwrap");
+      if (nw) nw.scrollTop = S.logFollow && (atEnd || force) ? nw.scrollHeight : keep;
       html = null;
     }
     if (html !== null) setHTML(body, "body", html);
@@ -419,7 +443,7 @@ function paintTop(ov) {
   o.className = !up ? "down" : ov.source === "log" ? "warn" : "up";
   $("#on-n").textContent = !up ? "-" : ov.online.total == null ? "?" : ov.online.total;
   $("#on-txt").textContent = !up ? "SERVER DOWN" : ov.source === "log" ? "ONLINE (APPROX.)" : "ONLINE";
-  $("#ver-txt").textContent = "SERVER " + (ov.server.version || "-").toUpperCase() + (ov.server.uptime_s != null ? " · UP " + dur(ov.server.uptime_s).toUpperCase() : "");
+  $("#ver-txt").textContent = "Server " + (ov.server.version || "-") + (ov.server.uptime_s != null ? " · up " + dur(ov.server.uptime_s) : "");
 }
 
 function onRoute() {
@@ -430,7 +454,7 @@ function onRoute() {
   $("#body").classList.toggle("flush", nxt.tab === "notes");
   S.last.body = null;
   $("#body").innerHTML = "";
-  $("#body").scrollTop = 0;
+  window.scrollTo(0, 0);
   renderToolbar();
   refresh(true);
 }
@@ -442,11 +466,10 @@ document.addEventListener("click", async e => {
   const mvb = t.closest("[data-move]");
   if (mvb) {
     const name = mvb.dataset.name;
-    const inm = mvb.dataset.inmatch === "1";
-    const ok = await confirmBox("MOVE TO OTHER TEAM", `Move <b>${esc(name)}</b> to the other team?<br>` + (inm ? "They stay in the match and keep their current life; their team changes on every screen within a few seconds and they respawn on the new side." : "Their game is an older version: they go back to the menu now and rejoin this match on the other team by themselves."), "MOVE " + name.toUpperCase().slice(0, 18), false);
+    const ok = await confirmBox("MOVE TO OTHER TEAM", `Move <b>${esc(name)}</b> to the other team?<br>They go back to the menu now; when they press FIND MATCH they rejoin this match on the other team.`, "MOVE " + name.toUpperCase().slice(0, 18), false);
     if (!ok) return;
     const r = await post("/api/teams-move", { pid: mvb.dataset.move });
-    flash(r.ok ? `${r.name} moved - ${r.note || "rejoins on the other team"}` : "Move failed: " + (r.error || "unknown"), !r.ok);
+    flash(r.ok ? `${r.name} moved - tell them to press FIND MATCH to rejoin on the other team` : "Move failed: " + (r.error || "unknown"), !r.ok);
     return refresh(true);
   }
   if (t.closest("#tsave")) {
@@ -482,6 +505,27 @@ document.addEventListener("click", async e => {
     flash(r.ok ? `Clan of ${name} restored (${r.restored} rows)` : "Restore failed: " + (r.error || "unknown"), !r.ok);
     S.last.body = null; return refresh(true);
   }
+  const ban = t.closest("[data-ban]");
+  if (ban) {
+    e.stopPropagation();
+    const name = ban.dataset.name;
+    setTimeout(() => { const i = $("#ban-reason"); if (i) i.focus(); }, 30);
+    const ok = await confirmBox("BAN PLAYER", `Ban <b>${esc(name)}</b>?<br>Their Steam id goes on the server's ban list: they cannot play or use the launcher until unbanned. If they are online they are kicked now.<br><label style="display:block;margin-top:8px">Reason (shown to them):<input id="ban-reason" type="text" maxlength="160" autocomplete="off" style="margin-top:4px;width:100%"></label>`, "BAN " + name.toUpperCase().slice(0, 18), true);
+    if (!ok) return;
+    const r = await post("/api/ban", { id: ban.dataset.ban, reason: ($("#ban-reason") || {}).value || "" });
+    flash(r.ok ? `${r.name || name} banned${r.kicked ? " and kicked" : ""}` : "Ban failed: " + (r.error || "unknown"), !r.ok);
+    S.last.body = null; return refresh(true);
+  }
+  const unban = t.closest("[data-unban]");
+  if (unban) {
+    e.stopPropagation();
+    const name = unban.dataset.name;
+    const ok = await confirmBox("UNBAN PLAYER", `Remove <b>${esc(name)}</b> from the ban list? They can play again right away.`, "UNBAN", false);
+    if (!ok) return;
+    const r = await post("/api/unban", { id: unban.dataset.unban });
+    flash(r.ok ? `${r.name || name} unbanned` : "Unban failed: " + (r.error || "unknown"), !r.ok);
+    S.last.body = null; return refresh(true);
+  }
   const kick = t.closest("[data-kick]");
   if (kick) {
     e.stopPropagation();
@@ -495,11 +539,11 @@ document.addEventListener("click", async e => {
   }
   const nsend = t.closest("[data-nsend]");
   if (nsend) {
-    const text = $("#nt-text").value.trim(), text_pl = $("#nt-text-pl").value.trim();
-    if (!text && !text_pl) return flash("Type the notice text first.", true);
-    const r = await post("/api/notice", { text, text_pl, seconds: parseFloat($("#nt-sec").value) || 8 });
+    const text = $("#nt-text").value.trim();
+    if (!text) return flash("Type the notice text first.", true);
+    const r = await post("/api/notice", { text, seconds: parseFloat($("#nt-sec").value) || 8 });
     flash(r.ok ? "Notice sent." : "Failed: " + (r.error || "unknown"), !r.ok);
-    $("#nt-text").value = ""; $("#nt-text-pl").value = ""; S.last.body = null; return refresh(true);
+    $("#nt-text").value = ""; S.last.body = null; return refresh(true);
   }
   const nclear = t.closest("[data-nclear]");
   if (nclear) { const r = await post("/api/notice-clear", { id: parseInt(nclear.dataset.nclear, 10) }); if (!r.ok) flash(r.error || "not found", true); S.last.body = null; return refresh(true); }
@@ -509,7 +553,7 @@ document.addEventListener("click", async e => {
     if (!(m >= 0)) return flash("Minutes?", true);
     const ok = await confirmBox("SCHEDULE RESTART", `Restart the server in <b>${esc(m)}</b> min? Players get a countdown notice (5 / 2 / 1 min); matches still running then end.`, "SCHEDULE", true);
     if (!ok) return;
-    const r = await post("/api/shutdown", { minutes: m, reason: $("#sd-why").value, reason_pl: $("#sd-why-pl").value, restart: true });
+    const r = await post("/api/shutdown", { minutes: m, reason: $("#sd-why").value, restart: true });
     flash(r.ok ? "Restart scheduled." : "Failed: " + (r.error || "unknown"), !r.ok);
     S.last.body = null; return refresh(true);
   }
@@ -545,7 +589,49 @@ document.addEventListener("keydown", e => {
   else if (e.key.toLowerCase() === "r") refresh(true);
 });
 window.addEventListener("hashchange", onRoute);
-const bgs = ["seattle-falls", "seattle-overgrown", "stadium-stands", "wlf-hq", "haven", "haven-village"];
-$("#bg").style.backgroundImage = `url(/bg/${bgs[Math.floor(Date.now() / 3600000) % bgs.length]}.jpg)`;
+// who is logged in (Steam admin: name / id + Log out link to the website; token user: name; loopback: nothing to show)
+fetch("/api/whoami", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(w => {
+  S.who = w;
+  const fr = $("#nwframe");
+  if (fr && w && fr.getAttribute("src") !== notesSrc()) fr.setAttribute("src", notesSrc());
+  const el = $("#who");
+  if (!w || !el || w.kind === "local") return;
+  const label = w.kind === "steam" ? `<b>${esc(w.name || "Steam admin")}</b><small>${esc(w.id)}</small>` : `<b>${esc(w.name)}</b>`;
+  el.innerHTML = label + (w.logout ? `<a href="${esc(w.logout)}">Log out</a>` : "");
+}).catch(() => {});
+// LIVE / TEST server switch: the cookie tw_srv=test sends every request (the clan / news frames too) to the test daemon
+fetch("/api/server", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(sv => {
+  const b = $("#srvsw");
+  if (!sv || !sv.test || !b) return;
+  b.hidden = false;
+  b.querySelectorAll("span").forEach(x => x.classList.toggle("on", x.dataset.s === sv.server));
+  document.body.classList.toggle("srv-test", sv.server === "test");
+  const k = $(".phead .kicker");
+  if (k && sv.server === "test") k.textContent = "Twelve Weeks admin - TEST SERVER";
+  b.addEventListener("click", () => {
+    document.cookie = "tw_srv=" + (sv.server === "test" ? "live" : "test") + "; path=/; max-age=31536000; SameSite=Strict" + (location.protocol === "https:" ? "; Secure" : "");
+    location.reload();
+  });
+}).catch(() => {});
 onRoute();
 S.timer = setInterval(() => { if (!S.paused && !document.hidden) refresh(false); }, POLL_MS);
+
+// phone layout (admin.css max-width 900px): the hamburger opens the sidebar; a tab pick, the shade or Escape closes it
+(function () {
+  var app = document.getElementById('app'), btn = document.getElementById('navbtn'), shade = document.getElementById('navshade'), menu = document.getElementById('menu');
+  if (!app || !btn) return;
+  function set(on) { app.classList.toggle('nav-open', on); btn.setAttribute('aria-expanded', on ? 'true' : 'false'); }
+  btn.addEventListener('click', function () { set(!app.classList.contains('nav-open')); });
+  shade.addEventListener('click', function () { set(false); });
+  menu.addEventListener('click', function (e) { if (e.target.closest('.mi')) { set(false); window.scrollTo(0, 0); } });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') set(false); });
+})();
+
+// the clan iframe (clanframe.js) reports its full height: the frame grows to it, so the admin page is the only scroll
+window.addEventListener("message", e => {
+  if (e.origin !== location.origin || !e.data || typeof e.data !== "object") return;
+  const f = [...document.querySelectorAll(".clanframe")].find(x => x.contentWindow === e.source);
+  if (!f) return;
+  if (typeof e.data.clanHeight === "number") f.style.height = Math.max(200, Math.min(20000, e.data.clanHeight)) + "px";
+  if (e.data.clanTab) { const top = f.getBoundingClientRect().top; if (top < 70) window.scrollBy({ top: top - 80, behavior: "smooth" }); }
+});

@@ -1,40 +1,52 @@
 <!doctype html>
-<html lang="en" data-theme="wlf">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Twelve Weeks Admin</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="12W Admin">
+<meta name="theme-color" content="#070808">
+<title>Admin - Twelve Weeks</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="icon" href="/icon.png">
 <link rel="stylesheet" href="admin.css">
 </head>
 <body>
 <div id="app">
-  <div id="bgwrap"><div class="bgimg" id="bg"></div></div>
-  <div class="shade"></div>
-  <div class="vignette"></div>
+  <header class="bar" id="bar">
+    <a class="brand" href="#overview" aria-label="Twelve Weeks admin"><span class="logo">12</span><span class="adm">ADMIN</span></a>
+    <button id="srvsw" hidden title="Which server this panel shows and acts on"><span data-s="live">LIVE</span><span data-s="test">TEST</span></button>
+    <nav class="nav" id="menu">
+      <button class="mi" data-tab="overview">OVERVIEW</button>
+      <button class="mi" data-tab="players">PLAYERS</button>
+      <button class="mi" data-tab="matches">MATCHES</button>
+      <button class="mi" data-tab="teams">TEAMS</button>
+      <button class="mi" data-tab="clans">CLANS</button>
+      <button class="mi" data-tab="reports">REPORTS<u id="rep-pip" hidden></u></button>
+      <button class="mi" data-tab="logs">LOGS</button>
+      <button class="mi" data-tab="notes">PATCH NOTES</button>
+      <span class="sp"></span>
+      <div class="who" id="who"></div>
+    </nav>
+    <div id="online"><i id="on-dot"></i><b id="on-n">-</b><span id="on-txt">ONLINE</span></div>
+    <button id="navbtn" aria-label="Menu" aria-expanded="false"><i></i><i></i><i></i></button>
+  </header>
+  <div id="navshade"></div>
 
-  <div id="title"><label>TLOU2 FACTIONS</label><h1>ADMIN</h1><div class="t-rule"></div></div>
-  <div id="online"><b id="on-n">-</b><span><i id="on-dot"></i><em id="on-txt">ONLINE</em></span></div>
-
-  <nav id="menu">
-    <button class="mi" data-tab="overview"><i></i><span>OVERVIEW</span></button>
-    <button class="mi" data-tab="players"><i></i><span>PLAYERS</span></button>
-    <button class="mi" data-tab="matches"><i></i><span>MATCHES</span></button>
-    <button class="mi" data-tab="teams"><i></i><span>TEAMS</span></button>
-    <button class="mi" data-tab="clans"><i></i><span>CLANS</span></button>
-    <button class="mi" data-tab="reports"><i></i><span>REPORTS</span><u id="rep-pip" hidden></u></button>
-    <button class="mi" data-tab="logs"><i></i><span>LOGS</span></button>
-    <button class="mi" data-tab="notes"><i></i><span>PATCH NOTES</span></button>
-  </nav>
-
-  <section class="view panel" id="view">
-    <div class="ph"><span id="ph-title">OVERVIEW</span><b id="ph-right"></b></div>
+  <main class="page" id="view">
+    <div class="phead"><div><div class="kicker">Twelve Weeks admin</div><h1 class="title" id="ph-title">Overview</h1></div><span class="src" id="ph-right"></span></div>
     <div id="toolbar"></div>
     <div id="body"></div>
-  </section>
+  </main>
 
-  <div id="footline"></div>
-  <div id="ver"><span id="ver-txt"></span></div>
-  <div id="hints"><span><b>1-8</b> TABS</span><span><b>/</b> SEARCH</span><span><b>ESC</b> BACK</span><span><b>P</b> PAUSE</span></div>
+  <footer>
+    <span id="ver"><span id="ver-txt"></span></span>
+    <div id="hints"><span><b>1-8</b> Tabs</span><span><b>/</b> Search</span><span><b>Esc</b> Back</span><span><b>P</b> Pause</span><span><b>R</b> Refresh</span></div>
+  </footer>
 </div>
 <div id="modal" hidden><div class="mbox"><div class="ph"><span id="m-title"></span></div><div class="mbody" id="m-body"></div><div class="mfoot" id="m-foot"></div></div></div>
 <script src="admin.js"></script>

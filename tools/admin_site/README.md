@@ -1,19 +1,40 @@
 # Twelve Weeks admin site
 
-A local, launcher-styled web page for the server owner (Python stdlib only, binds **127.0.0.1** only).
+Styled like the public website (twelve-weeks.com: same fonts, colours, header bar, tables, tiles, chips, panels; phone layout included). Public URL **https://admin.twelve-weeks.com** (Cloudflare tunnel -> this server).
+
+## Admin accounts (Steam login first, token as fallback)
+
+**Steam admins (primary).** Open https://admin.twelve-weeks.com and press "Log in with Steam". The site signs you in on twelve-weeks.com (cookie `tw_s`,
+valid for `twelve-weeks.com` and every subdomain) and sends you back here. You are in when your Steam64 id is a line in
+`<db dir>/web-admins.txt` (one id per line, `# comments` allowed, re-read on every change, no restart). The very same list lets those people edit the
+news on twelve-weeks.com. Someone logged in with Steam who is *not* on the list sees a "Not an admin" page with their Steam id to send to the owner.
+Add one: `echo "76561198000000000  # name" >> <db dir>/web-admins.txt`.
+How to find a Steam64 id: open the Steam profile page in a browser; if the address is `steamcommunity.com/profiles/7656...` that number is it, if it is a
+`/id/name` custom URL paste the profile link into steamid.io (or look at the player in this panel's PLAYERS tab: the STEAM ID column). It is the 17-digit
+number starting with `7656`.
+
+**Token accounts (fallback).** Under the "Use an access token" link on the login page (https://admin.twelve-weeks.com/login-token) the browser asks for a
+user name and password (HTTP Basic). Accounts are lines `name token` in `<db dir>/admin-users.txt` (re-read on every request, no restart). Ten failed token logins from one address lock it for 10 minutes.
+
+**Where the checks live.** `admin.py` validates the `tw_s` cookie with the website's secret (`--web-secret`, default `<db dir>/web-secret`; HMAC-SHA256 of
+`<steamid>.<expiry>`, expired or forged = login page) and the id against `--web-admins` (default `<db dir>/web-admins.txt`). `--site-url` (default
+`https://twelve-weeks.com`) is where the Steam button and Log out go. The website's `web.py` takes `--allow-next` (default `https://admin.twelve-weeks.com`):
+the only https origins `/auth/steam?next=` may send you back to after login (subdomains of the public host only, never an open redirect). Unauthenticated
+visitors get a styled login page (HTTP 401, no `WWW-Authenticate`, so no browser dialog). Requests from this machine over 127.0.0.1 (ssh tunnel) still
+need no login. Start line: `admin.py --bind 127.0.0.1 --tunnel-host admin.twelve-weeks.com --db data/t2r.db ...` (the two new args default to files next to the DB).
+
+A local, launcher-styled web page for the server owner (Python stdlib only, binds **127.0.0.1** by default, `--bind 0.0.0.0` + a users file for LAN access).
 
 ```
 python tools/admin_site/admin.py --db "%LOCALAPPDATA%\T2R-Factions2\t2r.db" --daemon-log <host folder>\daemon.log ^
        --reports <update data>\reports [--port 7010] [--daemon 127.0.0.1:7001] [--admin-url http://127.0.0.1:7011] [--update-data <update data>]
 ```
-Open http://127.0.0.1:7010/ . Keys: `1-6` tabs, `/` search, `Esc` back, `P` pause the 3 s refresh, `R` refresh now.
+Open http://127.0.0.1:7010/ . Keys: `1-8` tabs, `/` search, `Esc` back, `P` pause the 3 s refresh, `R` refresh now.
 
 Tabs: OVERVIEW (server up/down, uptime, build vs latest published, online / in match / searching, matches, recent errors), PLAYERS (online now with state,
 clan, ping, build, platform, session length and a FORCE KICK button; all-time list with search; per-player page with clan state, morale, clan feed, match
 history, bug reports), MATCHES (live matches with teams, map, host, ping, time left, reinforcements; recent results), CLANS (all clans, at-risk ones, feed),
 REPORTS (bug reports, files, text preview, mark handled, attached screenshots as click-to-open thumbnails via `/api/report-image`, attached clips in an inline player via `/api/report-video` with HTTP Range seeking; both only for files the server recorded as screenshot/video, type from the bytes), LOGS (daemon log tail, filter, error highlighting, rotated logs, tokens masked).
-
-PATCH NOTES tab (key `8`, needs `--update-data`): the launcher's own NEWS page made editable in place (`static/news.html` + `newsframe.js` in an iframe; it loads the launcher's real `release/launcher/src/app/news.js`, `news.css`, `style.css`, `neat.css`, `i18n/pl.json` through the same `/launcher/src/...` route the CLAN page uses, so it always looks exactly like the launcher; `release/launcher/src` must exist next to the admin on the host). Click an entry to open it, click any text to edit it (Enter = new line, Backspace on an empty line removes it, hover `+` adds a line, paste is plain text), EN / PL switch (a missing PL text shows the English one dimmed; typing there creates the PL text), date / build / kind / stamp strip inside the opened entry, new entry = next id + today, delete entry with confirm, unsaved-changes flag. SAVE TO LIVE validates, backs the old file up to `<update data>/news-backups/` (last 20) and replaces `news.json` atomically; the update server re-reads the file on every request, so launchers see it at once. The only other file this site writes besides the report `handled` flag.
 
 ## Where the data comes from
 | Source | When | Gives |

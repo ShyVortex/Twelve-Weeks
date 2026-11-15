@@ -26,7 +26,8 @@
     tab = t;
     document.querySelectorAll("#ctabs [data-ct]").forEach((b) => b.classList.toggle("on", b.dataset.ct === t));
     document.querySelectorAll("#clan-body [data-ct]").forEach((e) => e.classList.toggle("ct-on", e.dataset.ct === t || e.dataset.ct === ""));
-    const b = document.getElementById("clan-body"); b.scrollTop = 0;
+    const b = document.getElementById("clan-body");
+    if (opts.play) parent.postMessage({ clanTab: t }, location.origin);      // the admin page brings the frame's top into view
     const old = document.getElementById("cnone"); if (old) old.remove();
     if (b.querySelector(".clan-top") && !b.querySelector(`[data-ct="${t}"]`)) {     // the launcher draws nothing for a part the server has no data for yet
       const n = document.createElement("div"); n.className = "empty"; n.id = "cnone"; n.dataset.ct = t; n.classList.add("ct-on");
@@ -56,5 +57,9 @@
     const t = e.target.closest("[data-ct]"); if (t) return show(t.dataset.ct, { play: true });
     if (e.target.id === "c-lang") { lang = lang === "pl" ? "en" : "pl"; location.search = `?id=${encodeURIComponent(id)}&lang=${lang}&tab=${tab}`; }
   });
+  // one scroll: the frame is as tall as the clan view; the admin page scrolls, nothing inside does
+  let lastH = 0;
+  const sizeUp = () => { const h = Math.ceil(document.getElementById("v-clan").getBoundingClientRect().height); if (Math.abs(h - lastH) > 1) { lastH = h; parent.postMessage({ clanHeight: h }, location.origin); } };
+  new ResizeObserver(sizeUp).observe(document.getElementById("v-clan"));
   load();
 })();

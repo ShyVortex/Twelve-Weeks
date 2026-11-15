@@ -6,26 +6,33 @@
 <title>Patch notes</title>
 <!-- the launcher's NEWS tab, as it is: its own news.js (list rows, opened entry, EN/PL fallback) and styles are served from release/launcher/src (admin.py /launcher/...);
      newsframe.js only makes the rendered text editable in place and loads / saves /api/news -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Narrow:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/launcher/src/style.css">
 <link rel="stylesheet" href="/launcher/src/neat.css">
 <link rel="stylesheet" href="/launcher/src/news.css">
 <link rel="stylesheet" href="/launcher/src/motion.css">
 <style>
-  html, body { overflow: hidden; }
+  /* chrome = the admin panel's (website) look: flat dark page, site buttons / toggle; the entries below stay the launcher's own renderer (a preview of what players see) */
+  html, body { overflow: hidden; background: #070808; }
+  #bgwrap, .shade, .vignette { display: none !important; }
+  #app { background: #070808; }
   #app .view#v-news { left: 0; right: 0; top: 0; bottom: 0; transform: none; opacity: 1; visibility: visible; pointer-events: auto; display: flex; flex-direction: column; border: 0; }
-  #v-news > h2 { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-  #v-news .tb { display: flex; align-items: center; gap: 12px; font-size: 11px; font-weight: 500; letter-spacing: .14em; }
-  #v-news .seg { display: flex; border: 1px solid var(--line2); }
-  #v-news .seg button { border: 0; background: none; padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: var(--dim); }
-  #v-news .seg button.on { background: rgba(255, 255, 255, .12); color: #fff; }
-  #v-news .tbtn { border: 1px solid var(--line2); background: transparent; padding: 4px 12px; font-size: 11px; font-weight: 600; letter-spacing: .16em; color: var(--text); }
-  #v-news .tbtn:hover:not(:disabled) { border-color: #fff; background: rgba(255, 255, 255, .06); }
-  #v-news .tbtn:disabled { opacity: .35; cursor: default; }
-  #v-news .tbtn.save { border-color: var(--accent); }
-  #v-news .tbtn.danger { border-color: rgba(196, 106, 94, .6); color: #e0a39a; }
-  #v-news .tbtn.danger:hover { border-color: var(--bad); background: rgba(196, 106, 94, .12); }
-  #dirty { color: var(--warn); } #dirty.clean { color: var(--faint); }
-  #news-list { flex: 1; min-height: 0; overflow-y: auto; }
+  #v-news > h2 { display: flex; justify-content: space-between; align-items: center; gap: 10px 16px; flex-wrap: wrap; padding: 12px 16px; margin: 0; font-family: 'Archivo Narrow', 'Bahnschrift', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: .22em; background: none; border-bottom: 1px solid rgba(220, 220, 214, .14); color: #6f6b60; }
+  #v-news { background: #0e0f0f !important; backdrop-filter: none !important; }
+  #v-news .tb { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; font-size: 12px; font-weight: 600; letter-spacing: .14em; }
+  #v-news .seg { display: flex; border: 1px solid rgba(220, 220, 214, .3); }
+  #v-news .seg button { border: 0; background: none; padding: 0 12px; min-height: 32px; font: 600 12px 'Archivo Narrow', 'Bahnschrift', sans-serif; letter-spacing: .14em; color: #a8a292; }
+  #v-news .seg button.on { background: #e6dfcf; color: #0b0b0b; }
+  #v-news .tbtn { border: 1px solid rgba(220, 220, 214, .3); background: transparent; padding: 0 14px; min-height: 32px; font: 600 12px 'Archivo Narrow', 'Bahnschrift', sans-serif; letter-spacing: .14em; text-transform: uppercase; color: #e6dfcf; }
+  #v-news .tbtn:hover:not(:disabled) { border-color: #e6dfcf; background: rgba(230, 223, 207, .08); }
+  #v-news .tbtn:disabled { opacity: .4; cursor: default; }
+  #v-news .tbtn.save { background: #e6dfcf; color: #0b0b0b; border-color: #e6dfcf; } #v-news .tbtn.save:hover:not(:disabled) { background: #fff; border-color: #fff; }
+  #v-news .tbtn.danger { border-color: rgba(212, 84, 74, .55); color: #e08a7a; }
+  #v-news .tbtn.danger:hover { border-color: #d4544a; background: rgba(212, 84, 74, .12); }
+  #dirty { color: #c3a566; } #dirty.clean { color: #6f6b60; }
+  #news-list { flex: 1; min-height: 0; overflow-y: auto; max-width: none; padding: 0 16px 16px 16px; margin-top: 0; }
   #news-list.still .nitem { animation: none; }
   .help { padding: 8px 8px 12px; font-size: 11.5px; line-height: 1.55; color: var(--faint); letter-spacing: .04em; }
 
@@ -49,11 +56,8 @@
 </head>
 <body>
 <div id="app">
-  <div id="bgwrap"><div class="bgimg on" id="bg-a" style="background-image:url(/launcher/assets/bg/wlf-hq.jpg)"></div></div>
-  <div class="shade" id="shade"></div>
-  <div class="vignette"></div>
   <section class="view active" id="v-news">
-    <h2><span>NEWS</span><span class="tb"><span id="dirty" class="clean"></span><span class="seg" id="lang"><button data-l="en" class="on">EN</button><button data-l="pl">PL</button></span><button class="tbtn" id="bnew">+ NEW ENTRY</button><button class="tbtn save" id="bsave">SAVE TO LIVE</button></span></h2>
+    <h2><span>NEWS PREVIEW <span style="letter-spacing:.04em;font-weight:500;text-transform:none">- as the launcher shows it, editable in place</span></span><span class="tb"><span id="dirty" class="clean"></span><span class="seg" id="lang"><button data-l="en" class="on">EN</button><button data-l="pl">PL</button></span><button class="tbtn" id="bnew">+ NEW ENTRY</button><button class="tbtn save" id="bsave">SAVE TO LIVE</button></span></h2>
     <div class="news" id="news-list"><div class="empty">Loading...</div></div>
   </section>
 </div>

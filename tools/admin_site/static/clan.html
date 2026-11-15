@@ -11,14 +11,18 @@
 <link rel="stylesheet" href="/launcher/src/news.css">
 <link rel="stylesheet" href="/launcher/src/motion.css">
 <style>
-  html, body { overflow: hidden; }
-  #app .view#v-clan { left: 0; right: 0; top: 0; bottom: 0; transform: none; opacity: 1; visibility: visible; pointer-events: auto; display: flex; flex-direction: column; border: 0; }
+  /* one scroll for the whole page: the launcher's fixed-window layout gives the clan columns + journal their own scroll boxes;
+     here everything grows to its content and clanframe.js sizes the iframe to it, so the admin page itself is the only scroll */
+  html, body { overflow: hidden; height: auto; min-height: 0; }
+  #app { position: relative; height: auto; min-height: 0; overflow: visible; }
+  #app .view#v-clan { position: relative; inset: auto; left: 0; right: 0; top: 0; bottom: auto; height: auto; transform: none; opacity: 1; visibility: visible; pointer-events: auto; display: flex; flex-direction: column; border: 0; }
+  #clan-body, #clan-body .clan-cols, #clan-body .clan-surv, #clan-body .clan-right, #clan-body .jrnl { flex: none; height: auto; max-height: none; min-height: 0; overflow: visible; }
+  #bgwrap, #shade, .vignette { position: absolute; inset: 0; height: auto; }
   #v-clan > h2 { display: flex; justify-content: space-between; align-items: center; }
   #ctabs { display: flex; gap: 26px; padding: 10px 16px 0; border-bottom: 1px solid var(--bar-line); flex: none; align-items: baseline; }
   #ctabs button { border: 0; background: none; padding: 0 0 8px; font-size: 14px; letter-spacing: .14em; color: var(--dim); border-bottom: 2px solid transparent; }
   #ctabs button:hover { color: #fff; } #ctabs button.on { color: #fff; border-bottom-color: var(--accent); }
   #ctabs .sp { flex: 1; } #ctabs .lg { font-size: 11px; padding-bottom: 8px; }
-  #clan-body { flex: 1; min-height: 0; overflow-y: auto; }
   #clan-body [data-ct]:not(.ct-on) { display: none !important; }
   #clan-body .camp { display: block; }
   #clan-body .camp > h3 { display: none; }

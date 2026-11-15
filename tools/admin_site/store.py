@@ -458,7 +458,7 @@ class Admin:
         ms = self.derived_matches(ls)
         return {"now": now, "source": lv["source"], "snapshotAge": lv["snapshot_age_s"], "notes": notes,
                 "server": {"up": server_up, "probe": probe, "version": sv, "latest": latest, "uptime_s": uptime, "started": started,
-                          "logFresh": fresh_log, "logPath": self.daemon_log},
+                          "logFresh": fresh_log, "logPath": self.cur_log()},
                 "online": {"total": online, "menu": by_state["menu"], "queue": counts.get("queue") if counts.get("queue") is not None else by_state["queue"],
                            "match": by_state["match"]},
                 "matchesRunning": matches_running,
@@ -523,6 +523,7 @@ class Admin:
         online_names = {p["name"].lower() for p in lv["snap"].get("players", [])}
         online_sid = {p.get("steamid") for p in lv["snap"].get("players", []) if p.get("steamid")}
         rows, hidden = [], 0
+        ban_ids, ban_names = self.banned_index()
         for g in pg.values():
             if ql and not (ql in g["display"].lower() or any(ql in a for a in g["alias"]) or ql in str(g["steamid"])):
                 continue
@@ -536,7 +537,7 @@ class Admin:
                 continue
             rows.append({"id": g["id"], "name": g["display"], "steamid": g["steamid"], "matches": g["matches"], "wins": g["wins"], "losses": g["losses"], "draws": g["draws"],
                          "lastSeen": g["last_seen"], "version": g["version"], "platform": g["platform"],
-                         "online": online,
+                         "online": online, "banned": bool(str(g["steamid"]) in ban_ids or (g["alias"] & ban_names)),
                          "faction": c["factionName"] if c else "", "clanStatus": c["status"] if c else "", "week": c["week"] if c else 0,
                          "day": c["dayOfWeek"] if c else 0, "size": c["size"] if c else 0})
         rows.sort(key=lambda r: (-r["lastSeen"],))
@@ -586,7 +587,7 @@ class Admin:
                 "matches": g["matches"], "wins": g["wins"], "losses": g["losses"], "draws": g["draws"], "kills": g["kills"], "deaths": g["deaths"],
                 "avgParts": round(pm) if pm else None, "lastSeen": g["last_seen"], "version": g["version"], "platform": g["platform"], "clan": g["clan"],
                 "morale": people.get("morale"), "people": people.get("people", [])[:12], "alive": people.get("alive"), "feed": feed, "alife": alife,
-                "history": hist, "reports": reps, "online": online, "alifeServerOn": clan_alife.enabled() if clan_alife else False,
+                "history": hist, "reports": reps, "online": online, "ban": self.ban_state(g), "alifeServerOn": clan_alife.enabled() if clan_alife else False,
                 "matchLogFrom": (self.log.earliest() if self.log else None), "canKick": bool(online and online.get("pid") and self.live()[0] == "live")}
 
     def matches(self):
@@ -801,8 +802,13 @@ class Admin:
         return {"ok": True, "handled": bool(handled)}
 
     # ------------------------------------------------------------------ logs
+    def cur_log(self):
+        """The daemon.log being read: the followed file when --daemon-log is auto[:dir], else the fixed path."""
+        return (self.log.path if self.log and self.log.follow is not None else self.daemon_log) or ""
+
     def logs(self, q="", level="all", which="0", n=300, quiet=True):
-        path = self.daemon_log
+        self.log and self.log.refresh()
+        path = self.cur_log()
         if not path:
             return {"ok": False, "error": "no --daemon-log configured"}
         if which and which != "0":
@@ -837,7 +843,7 @@ class Admin:
             if ql and ql not in ln.lower():
                 continue
             out.append({"t": ln[:420], "c": cls})
-        files = ["0"] + [s for s in sorted((p[len(self.daemon_log) + 1:] for p in __import__("glob").glob(self.daemon_log + ".*")), key=lambda x: (not x.isdigit(), x)) if s.isdigit()]
+        files = ["0"] + [s for s in sorted((p[len(self.cur_log()) + 1:] for p in __import__("glob").glob(self.cur_log() + ".*")), key=lambda x: (not x.isdigit(), x)) if s.isdigit()]
         return {"ok": True, "lines": out[-n:], "matched": len(out), "file": os.path.basename(path), "files": files, "size": size, "mtime": os.path.getmtime(path)}
 
     # ------------------------------------------------------------------ kick
@@ -856,16 +862,15 @@ class Admin:
         except (OSError, ValueError, urllib.error.URLError) as e:
             return {"ok": False, "error": "daemon admin listener not reachable (%s)" % getattr(e, "reason", e)}
 
-    def notice_send(self, text, seconds, text_pl=""):
-        # seconds ON SCREEN (2..600); the daemon keeps it long enough for every client's ~6 s poll. text_pl (optional): the Polish form, shown to
-        # players whose language is Polish (everybody else gets `text`); empty = `text` for everybody.
-        return self._notice_call("/notice", {"text": str(text)[:300], "text_pl": str(text_pl or "")[:300], "seconds": max(2.0, min(float(seconds or 8), 600.0))})
+    def notice_send(self, text, seconds):
+        # seconds ON SCREEN (2..600); the daemon keeps it long enough for every client's ~6 s poll
+        return self._notice_call("/notice", {"text": str(text)[:300], "seconds": max(2.0, min(float(seconds or 8), 600.0))})
 
     def notice_clear(self, nid):
         return self._notice_call("/notice/clear", {"id": int(nid)})
 
-    def shutdown_schedule(self, minutes, reason, restart, reason_pl=""):
-        return self._notice_call("/shutdown", {"minutes": max(0.0, min(float(minutes), 1440.0)), "reason": str(reason)[:100], "reason_pl": str(reason_pl or "")[:100], "restart": bool(restart)})
+    def shutdown_schedule(self, minutes, reason, restart):
+        return self._notice_call("/shutdown", {"minutes": max(0.0, min(float(minutes), 1440.0)), "reason": str(reason)[:100], "restart": bool(restart)})
 
     def shutdown_cancel(self):
         return self._notice_call("/shutdown/cancel", {})
@@ -1007,6 +1012,94 @@ class Admin:
             return {"ok": False, "error": str(e)}
         except (OSError, ValueError, urllib.error.URLError) as e:
             return {"ok": False, "error": "daemon admin listener not reachable (%s). It exists on the daemon build with the admin op and needs a daemon restart." % getattr(e, "reason", e)}
+
+    # ---- bans (a ban button on every player for the mods). The list is <db dir>/bans.txt, the file the daemon re-reads
+    # when it changes (daemon.py _bans_load): one entry per line, a Steam id or a player name (a name also bans every Steam account
+    # that ever used it), '#' starts a comment. A ban from here writes the Steam id (and the name when there is no Steam id).
+    def _bans_path(self):
+        return os.path.join(self.dbdir, "bans.txt")
+
+    def _bans_lines(self):
+        try:
+            with open(self._bans_path(), encoding="utf-8", errors="ignore") as f:
+                return f.read().splitlines()
+        except OSError:
+            return ["# bans (one per line: steam id or name)"]
+
+    @staticmethod
+    def _ban_hit(line, sid, names):
+        e = line.split("#", 1)[0].strip()
+        return bool(e) and ((sid and e == str(sid)) or (not e.isdigit() and e.lower() in names))
+
+    def ban_state(self, g):
+        """None or {"reason", "line"} for a player group (Steam id or any of its names listed)."""
+        for line in self._bans_lines():
+            if self._ban_hit(line, g["steamid"], g["alias"]):
+                c = line.split("#", 1)[1] if "#" in line else ""
+                return {"reason": c.split("reason:", 1)[1].strip() if "reason:" in c else "", "line": line.strip()}
+        return None
+
+    def banned_index(self):
+        """(steam ids, lower-case names) listed in bans.txt, for the player list."""
+        ids, names = set(), set()
+        for line in self._bans_lines():
+            e = line.split("#", 1)[0].strip()
+            if e and not e.lower().startswith(("hwid:", "token:")):
+                (ids if e.isdigit() else names).add(e if e.isdigit() else e.lower())
+        return ids, names
+
+    def _bans_write(self, lines):
+        p = self._bans_path()
+        if os.path.exists(p):
+            shutil.copy2(p, p + ".bak-admin")          # the state before the newest admin-site change
+        tmp = p + ".tmp"
+        with open(tmp, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(lines).rstrip("\n") + "\n")
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, p)
+
+    def _audit(self, line):
+        try:
+            with open(os.path.join(self.dbdir, "admin-actions.log"), "a", encoding="utf-8") as f:
+                f.write("%s %s\n" % (time.strftime("%Y-%m-%d %H:%M:%S"), line))
+        except OSError:
+            pass
+
+    def ban(self, pid, reason="", who=""):
+        g = self.player_groups().get(pid or "")
+        if not g:
+            return {"ok": False, "error": "no such player"}
+        if self.ban_state(g):
+            return {"ok": False, "error": "already banned"}
+        clean = lambda s, n: re.sub(r"\s+", " ", "".join(ch for ch in str(s or "") if ch >= " " and ch not in "\x7f#")).strip()[:n]
+        reason, who, name = clean(reason, 160), clean(who, 60), clean(g["display"], 60)
+        tail = "%s - admin site %s%s" % (name, time.strftime("%Y-%m-%d"), " by " + who if who else "") + (" | reason: " + reason if reason else "")
+        if g["steamid"]:
+            entry = "%d  # %s" % (g["steamid"], tail)
+        elif name and not name.isdigit():
+            entry = "%s  # %s" % (name, tail)          # no Steam id known: the name (the daemon also bans every account that used it)
+        else:
+            return {"ok": False, "error": "this player has no Steam id or usable name to ban"}
+        self._bans_write(self._bans_lines() + [entry])
+        self._audit("BAN %s (%s) by %s: %s" % (name, g["steamid"] or "no steam id", who or "?", reason or "-"))
+        kicked = None
+        online = next((p for p in self.players_online()["players"] if p.get("playerId") == pid and p.get("pid")), None)
+        if online:      # online now: kick at once (the daemon refuses the reconnect with the ban)
+            kicked = self.kick(online["pid"], "Banned" + (": " + reason if reason else "")).get("ok", False)
+        return {"ok": True, "name": name, "entry": entry, "kicked": kicked}
+
+    def unban(self, pid, who=""):
+        g = self.player_groups().get(pid or "")
+        if not g:
+            return {"ok": False, "error": "no such player"}
+        lines = self._bans_lines()
+        keep = [l for l in lines if not self._ban_hit(l, g["steamid"], g["alias"])]
+        if len(keep) == len(lines):
+            return {"ok": False, "error": "not banned"}
+        self._bans_write(keep)
+        self._audit("UNBAN %s (%s) by %s: removed %d line(s)" % (g["display"], g["steamid"] or "no steam id", who or "?", len(lines) - len(keep)))
+        return {"ok": True, "name": g["display"], "removed": len(lines) - len(keep)}
 
     def clan_reset(self, pid, confirm, names=False):
         """Wipe one player's clan. `confirm` must equal the player's name (the page makes the admin type it). The daemon does the write

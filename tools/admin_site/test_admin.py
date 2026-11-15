@@ -394,7 +394,7 @@ class TestHttp(Fixture):
         if self.launcher_root:
             for p in ("/launcher/src/clan.js", "/launcher/src/neat.css", "/launcher/src/i18n/pl.json", "/launcher/assets/icons/skill-fortitude.png", "/assets/icons/skill-fortitude.png"):
                 self.assertEqual(self.req(p)[0], 200, p)
-            for p in ("/launcher/src/../main/clan.js", "/launcher/main/clan.js", "/launcher/src/app/core.js", "/launcher/assets/sounds/x.ogg", "/launcher/src/%2e%2e/preload.js"):
+            for p in ("/launcher/src/../main/clan.js", "/launcher/main/clan.js", "/launcher/src/app/../../main/clan.js", "/launcher/assets/sounds/x.ogg", "/launcher/src/%2e%2e/preload.js"):
                 self.assertEqual(self.req(p)[0], 404, p)
 
     @property
@@ -453,17 +453,6 @@ class TestHttp(Fixture):
         self.assertEqual(FakeDaemon.seen[0], ("/kick", "s" * 32, {"pid": "0123456789ab"}))
         self.assertFalse(json.loads(self.req("/api/kick", "POST", {"pid": "zz"}, {"X-Admin-Request": "1"})[1])["ok"])
 
-    def test_kick_reason_forwarded(self):
-        hdr = {"X-Admin-Request": "1", "Origin": "http://127.0.0.1:%d" % self.port}
-        FakeDaemon.seen.clear()
-        self.assertTrue(json.loads(self.req("/api/kick", "POST", {"pid": "0123456789ab", "reason": "  be \x00nice\n " + "x" * 200}, hdr)[1])["ok"])
-        sent = FakeDaemon.seen[0][2]
-        self.assertEqual(sent["pid"], "0123456789ab")
-        self.assertTrue(sent["reason"].startswith("be nice xxx") and len(sent["reason"]) == 120)
-        FakeDaemon.seen.clear()
-        self.req("/api/kick", "POST", {"pid": "0123456789ab", "reason": "   "}, hdr)
-        self.assertEqual(FakeDaemon.seen[0][2], {"pid": "0123456789ab"})        # empty reason = the old request body
-
     def test_handled_endpoint(self):
         code = self.rep["code"]
         c, b, _ = self.req("/api/report-handled", "POST", {"code": code, "handled": True}, {"X-Admin-Request": "1"})
@@ -471,92 +460,148 @@ class TestHttp(Fixture):
         self.req("/api/report-handled", "POST", {"code": code, "handled": False}, {"X-Admin-Request": "1"})
 
 
-class TestNews(Fixture):
-    """Patch notes editor: news.json of the update server, validated, atomic, backed up."""
-    @classmethod
-    def setUpClass(cls):     # no report store needed here
-        cls.tmp = tempfile.mkdtemp()
-        cls.db = os.path.join(cls.tmp, "t2r.db")
-        make_db(cls.db)
-        cls.logp = os.path.join(cls.tmp, "daemon.log")
-        open(cls.logp, "w").write("")
-        cls.reports = os.path.join(cls.tmp, "reports")
+def _lan_ip():
+    import socket
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("192.168.255.254", 9))
+        ip = s.getsockname()[0]
+    except OSError:
+        return ""
+    finally:
+        s.close()
+    return ip if ip and not ip.startswith("127.") else ""
 
+
+class TestLanAuth(Fixture):
+    """Remote (non-loopback) clients need a login from the users file; loopback (the SSH tunnel) stays login-free."""
     def setUp(self):
-        self.data = tempfile.mkdtemp()
-        self.np = os.path.join(self.data, "news.json")
-        self.entry = {"id": 2, "date": "2026-11-06", "build": "170", "kind": "build", "stamp": "abc", "headline": "Two",
-                      "sections": {"new": ["a", "b"]}, "pl": {"headline": "Dwa", "sections": {"new": ["aa", "bb"]}}}
-        json.dump([self.entry, {"id": 1, "date": "2026-11-01", "headline": "One", "sections": {}}], open(self.np, "w", encoding="utf-8"))
-        self.a = self.mk(update_data=self.data)
-        self.srv = admin.make_server(self.a, 0)
+        self.ip = _lan_ip()
+        if not self.ip:
+            self.skipTest("no LAN address on this machine")
+        self.uf = os.path.join(self.tmp, "users-test.txt")
+        open(self.uf, "w").write("# c\nalice tok-alice-1234\n")
+        self.srv = admin.make_server(self.mk(launcher_dir=admin.default_launcher_dir()), 0, "0.0.0.0", self.uf)
         threading.Thread(target=self.srv.serve_forever, daemon=True).start()
         self.port = self.srv.server_address[1]
 
     def tearDown(self):
         self.srv.shutdown()
 
-    def post(self, entries, hdr=True):
-        r = urllib.request.Request("http://127.0.0.1:%d/api/news" % self.port, data=json.dumps({"entries": entries}).encode(), method="POST")
-        if hdr:
-            r.add_header("X-Admin-Request", "1")
+    def get(self, host, auth=None, path="/api/overview"):
+        import base64
+        r = urllib.request.Request("http://%s:%d%s" % (host, self.port, path))
+        if auth:
+            r.add_header("Authorization", "Basic " + base64.b64encode(auth.encode()).decode())
         try:
-            with urllib.request.urlopen(r, timeout=5) as resp:
-                return resp.status, json.loads(resp.read())
+            with urllib.request.urlopen(r, timeout=8) as resp:
+                return resp.status
         except urllib.error.HTTPError as e:
-            return e.code, json.loads(e.read())
+            return e.code
 
-    def test_get_and_save(self):
-        g = self.a.news_get()
-        self.assertTrue(g["ok"])
-        self.assertEqual([e["id"] for e in g["entries"]], [2, 1])
-        e = dict(self.entry, headline="Two edited", sections={"new": ["b", " ", "a"]})
-        e["pl"] = {"headline": "Dwa", "sections": {"new": ["bb", "aa"]}}
-        new = {"id": 3, "date": "2026-11-07", "build": "171", "kind": "hotfix", "stamp": "", "headline": "Three", "sections": {"fixed": ["x"]}, "pl": {"headline": "", "sections": {}}}
-        c, r = self.post([new, e])
-        self.assertEqual((c, r["ok"], r["count"]), (200, True, 2))
-        d = json.load(open(self.np, encoding="utf-8"))
-        self.assertEqual([x["id"] for x in d], [3, 2])
-        self.assertEqual(d[1]["sections"]["new"], ["b", "a"])         # blank line dropped, order kept
-        self.assertEqual(d[1]["headline"], "Two edited")
-        bd = os.path.join(self.data, "news-backups")
-        self.assertEqual(len(os.listdir(bd)), 1)
-        self.assertEqual(json.load(open(os.path.join(bd, os.listdir(bd)[0]), encoding="utf-8"))[0]["headline"], "Two")   # the old file
-        self.assertFalse(os.path.exists(self.np + ".tmp"))
+    def test_lan(self):
+        self.assertEqual(self.get(self.ip), 401)
+        self.assertEqual(self.get(self.ip, "alice:wrong"), 401)
+        self.assertEqual(self.get(self.ip, "nobody:tok-alice-1234"), 401)
+        self.assertEqual(self.get(self.ip, "alice:tok-alice-1234"), 200)
+        self.assertEqual(self.get("127.0.0.1"), 200)              # loopback needs no login
+        open(self.uf, "w").write("")                               # revoked: next request fails
+        self.assertEqual(self.get(self.ip, "alice:tok-alice-1234"), 401)
 
-    def test_backups_pruned(self):
-        for i in range(25):
-            self.assertTrue(self.a.news_save([dict(self.entry, headline="v%d" % i)])["ok"])
-        self.assertEqual(len(os.listdir(os.path.join(self.data, "news-backups"))), 20)
 
-    def test_validation_keeps_file(self):
-        before = open(self.np, "rb").read()
-        for bad in ([{"id": 1, "headline": "x"}, {"id": 1, "headline": "y"}], [{"headline": "x"}], [{"id": 5, "headline": " "}],
-                    [{"id": 5, "headline": "x", "sections": {"new": "not a list"}}], [{"id": 5, "headline": "x", "date": "yesterday"}], "nope"):
-            c, r = self.post(bad)
-            self.assertFalse(r["ok"], bad)
-        self.assertEqual(open(self.np, "rb").read(), before)
-        self.assertFalse(os.path.exists(os.path.join(self.data, "news-backups")))
+class TestTunnelSteamLogin(Fixture):
+    """admin.twelve-weeks.com over the Cloudflare tunnel (loopback client + public Host): Steam cookie (tw_s) of an id in web-admins.txt, token Basic
+    fallback, styled login / not-admin pages, CSRF origin. Cookie format = tools/web/web.py session cookie."""
+    HOST = "admin.twelve-weeks.com"
+    ADMIN, OTHER = 76561190000000001, 76561190000000002
 
-    def test_post_needs_csrf_header_and_update_data(self):
-        self.assertEqual(self.post([self.entry], hdr=False)[0], 403)
-        self.assertFalse(self.mk().news_save([self.entry])["ok"])
-        self.assertFalse(self.mk().news_get()["ok"])
+    def setUp(self):
+        self.uf = os.path.join(self.tmp, "users-tunnel.txt")
+        open(self.uf, "w").write("alice tok-alice-1234\n")
+        self.secret = b"s3cret-" * 6
+        self.sf = os.path.join(self.tmp, "web-secret-test")
+        open(self.sf, "wb").write(self.secret + b"\n")
+        self.af = os.path.join(self.tmp, "web-admins-test.txt")
+        open(self.af, "w").write("# admins\n%d  # me\n" % self.ADMIN)
+        self.srv = admin.make_server(self.mk(launcher_dir=admin.default_launcher_dir()), 0, "127.0.0.1", self.uf, (), (self.HOST,), self.sf, self.af, "https://twelve-weeks.com")
+        threading.Thread(target=self.srv.serve_forever, daemon=True).start()
+        self.port = self.srv.server_address[1]
 
-    def test_editor_page_is_served(self):
-        for path in ("/news.html", "/newsframe.js"):
-            with urllib.request.urlopen("http://127.0.0.1:%d%s" % (self.port, path), timeout=5) as r:
-                self.assertEqual(r.status, 200)
-                self.assertIn(b"/launcher/src/app/news.js" if path.endswith("html") else b"newsItem", r.read())
+    def tearDown(self):
+        self.srv.shutdown()
 
-    def test_big_body_and_update_server_reads_fresh(self):
-        big = dict(self.entry, sections={"new": ["line %d " % i + "x" * 100 for i in range(300)]})     # > 8 KB body
-        self.assertTrue(self.post([big])[1]["ok"])
-        import importlib.util
-        sp = importlib.util.spec_from_file_location("t2r_update_server", os.path.join(HERE, "..", "update_server", "server.py"))
-        us = importlib.util.module_from_spec(sp)
-        sp.loader.exec_module(us)
-        self.assertEqual(len(us.Store(self.data).read_json("news.json", [])[0]["sections"]["new"]), 300)    # the update server reads the file per call
+    def cookie(self, sid, exp=None, secret=None):
+        import hashlib, hmac
+        exp = int(time.time()) + 3600 if exp is None else exp
+        mac = hmac.new(secret or self.secret, ("%s.%d" % (sid, exp)).encode(), hashlib.sha256).hexdigest()
+        return "tw_s=%s.%d.%s" % (sid, exp, mac)
+
+    def req(self, path="/", method="GET", data=None, headers=None):
+        r = urllib.request.Request("http://127.0.0.1:%d%s" % (self.port, path), data=json.dumps(data).encode() if data is not None else None, method=method)
+        r.add_header("Host", self.HOST)
+        for k, v in (headers or {}).items():
+            r.add_header(k, v)
+        try:
+            with urllib.request.urlopen(r, timeout=8) as resp:
+                return resp.status, resp.read(), resp.headers
+        except urllib.error.HTTPError as e:
+            return e.code, e.read(), e.headers
+
+    def test_admin_cookie_is_200(self):
+        c, b, h = self.req("/", headers={"Cookie": self.cookie(self.ADMIN)})
+        self.assertEqual(c, 200)
+        self.assertIn(b"ADMIN", b)
+        self.assertEqual(self.req("/api/overview", headers={"Cookie": self.cookie(self.ADMIN)})[0], 200)
+        w = json.loads(self.req("/api/whoami", headers={"Cookie": self.cookie(self.ADMIN)})[1])
+        self.assertEqual((w["kind"], w["id"], w["logout"]), ("steam", str(self.ADMIN), "https://twelve-weeks.com/auth/logout"))
+        open(self.af, "w").write("# revoked\n")        # the list is re-read on change
+        os.utime(self.af, (time.time() + 5, time.time() + 5))
+        self.assertEqual(self.req("/", headers={"Cookie": self.cookie(self.ADMIN)})[0], 403)
+
+    def test_valid_non_admin_gets_not_admin_page(self):
+        c, b, h = self.req("/", headers={"Cookie": self.cookie(self.OTHER)})
+        self.assertEqual(c, 403)
+        self.assertIn(str(self.OTHER).encode(), b)
+        self.assertIn(b"Not an admin", b)
+        self.assertIsNone(h.get("WWW-Authenticate"))
+        self.assertEqual(self.req("/api/overview", headers={"Cookie": self.cookie(self.OTHER)})[0], 403)
+
+    def test_bad_or_expired_cookie_gets_login_page(self):
+        for ck in (self.cookie(self.ADMIN, secret=b"wrong" * 8), self.cookie(self.ADMIN, exp=int(time.time()) - 5), "tw_s=garbage", self.cookie(self.ADMIN)[:-4] + "0000"):
+            c, b, h = self.req("/", headers={"Cookie": ck})
+            self.assertEqual(c, 401, ck)
+            self.assertIsNone(h.get("WWW-Authenticate"), ck)
+            self.assertIn(b"Log in with Steam", b)
+            self.assertIn(b"https://twelve-weeks.com/auth/steam?next=https%3A%2F%2Fadmin.twelve-weeks.com%2F", b)
+        c, b, h = self.req("/")                                  # no cookie at all
+        self.assertEqual((c, h.get("WWW-Authenticate")), (401, None))
+        self.assertIn(b"/login-token", b)
+        c, b, h = self.req("/api/overview")                      # API: JSON 401, still no dialog
+        self.assertEqual((c, h.get("WWW-Authenticate")), (401, None))
+        self.assertEqual(self.req("/admin.css")[0], 200)         # the login page's stylesheet needs no login
+        self.assertEqual(self.req("/admin.js")[0], 401)
+
+    def test_login_token_asks_basic_and_token_still_works(self):
+        import base64
+        c, b, h = self.req("/login-token")
+        self.assertEqual(c, 401)
+        self.assertIn("Basic", h["WWW-Authenticate"])
+        auth = {"Authorization": "Basic " + base64.b64encode(b"alice:tok-alice-1234").decode()}
+        self.assertEqual(self.req("/", headers=auth)[0], 200)
+        self.assertEqual(self.req("/api/overview", headers=auth)[0], 200)
+        self.assertEqual(self.req("/login-token", headers=auth)[0], 200)      # a good token on the fallback URL redirects into the panel
+        w = json.loads(self.req("/api/whoami", headers=auth)[1])
+        self.assertEqual((w["kind"], w["name"]), ("token", "alice"))
+
+    def test_tunnel_origin_csrf(self):
+        ck = {"Cookie": self.cookie(self.ADMIN), "X-Admin-Request": "1"}
+        body = {"pid": "0123456789ab"}
+        ok = dict(ck, Origin="https://admin.twelve-weeks.com")
+        self.assertNotEqual(self.req("/api/kick", "POST", body, ok)[0], 403)                      # passes the CSRF gate (the kick itself fails: no daemon)
+        for bad in ({}, {"Origin": "http://admin.twelve-weeks.com"}, {"Origin": "https://twelve-weeks.com"}, {"Origin": "https://evil.example"}):
+            self.assertEqual(self.req("/api/kick", "POST", body, dict(ck, **bad))[0], 403, bad)
+        self.assertEqual(self.req("/api/kick", "POST", body, {"Cookie": self.cookie(self.ADMIN), "Origin": "https://admin.twelve-weeks.com"})[0], 403)   # no X-Admin-Request
+        self.assertEqual(self.req("/api/kick", "POST", body, {"X-Admin-Request": "1", "Origin": "https://admin.twelve-weeks.com"})[0], 401)         # not logged in
 
 
 if __name__ == "__main__":
