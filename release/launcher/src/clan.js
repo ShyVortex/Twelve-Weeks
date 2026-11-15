@@ -382,8 +382,12 @@ const Clan = (() => {
     lastSummary = r;
     const ok = r && r.ok && r.hasClan && r.status === 'alive';
     const spm = document.body.classList.contains('sp-mode');   // SP: the plain game's title, no FACTIONS II line
-    $('t-fac').textContent = ok ? T(r.factionName) : ''; $('t-fac').hidden = !ok; $('t-sub').hidden = ok || spm;
-    $('t-main').textContent = ok ? T('WEEK {w}: DAY {d}', { w: r.week, d: r.dayOfWeek }) : spm ? 'THE LAST OF US PART II' : 'THE LAST OF US';
+    $('t-fac').textContent = ok ? T(r.factionName) : ''; $('t-fac').hidden = !ok; $('t-sub').hidden = spm;
+    // a living clan (MP): the TWELVE WEEKS text logo stays as the title and WEEK n: DAY d sits under it, smaller (user 11-15)
+    const clanTitle = ok && !spm;
+    $('title').classList.toggle('clan', clanTitle);
+    $('t-main').textContent = spm ? 'THE LAST OF US PART II' : 'THE LAST OF US';
+    $('t-sub').textContent = clanTitle ? T('WEEK {w}: DAY {d}', { w: r.week, d: r.dayOfWeek }) : 'TWELVE WEEKS';
     if (r && r.ok && r.hasClan && typeof Feed !== 'undefined') Feed.setClan(r);
     $('clanbox').hidden = !ok;
     if (!ok) { document.documentElement.dataset.theme = r && r.ok && r.hasClan && r.factionName ? (r.faction === 2 ? 'sera' : 'wlf') : 'neutral'; Scenes.setFaction(r && r.ok && r.hasClan ? (r.faction === 2 ? 'sera' : 'wlf') : 'neutral'); return; }

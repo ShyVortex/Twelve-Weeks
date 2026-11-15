@@ -249,6 +249,13 @@ body.sp-mode .rowbar.st:has(#srv-state) { display: none !important; }
 /* the tag below FACTIONS II grows the title block: the menu moves down by the tag's height so it never clips into the first button */
 #title:has(#test-tag:not([hidden])) ~ #menu { top: 160px; }
 #title:has(#test-tag:not([hidden])):has(#t-sub:not([hidden])) ~ #menu { top: 172px; }
+/* a living clan (clan.js summary): faction label, the TWELVE WEEKS text logo (tw-logo.png = the game's tw-title texture, ink cropped) as the title, WEEK n: DAY d under it, smaller (user 11-15) */
+#t-logo { display: none; height: 54px; width: 255px; background: currentColor; -webkit-mask: url('tw-logo.png') left center / contain no-repeat; mask: url('tw-logo.png') left center / contain no-repeat; }
+#title.clan #t-logo { display: block; margin-top: 4px; }
+#title.clan h1 { display: none; }
+#title.clan #t-sub { margin-top: 10px; font-size: 18px; letter-spacing: .14em; }
+#title.clan ~ #menu { top: 168px; }
+#title.clan:has(#test-tag:not([hidden])):has(#t-sub:not([hidden])) ~ #menu { top: 196px; }
 #confirm { position: absolute; inset: 0; z-index: 70; background: rgba(5, 6, 7, .84); display: flex; align-items: center; justify-content: center; }
 #confirm[hidden] { display: none; }
 #confirm .cfm-box { width: 460px; max-width: 80%; padding: 22px 26px; background: rgba(14, 16, 18, .96); border: 1px solid var(--panel-line); border-left: 4px solid var(--accent); }
