@@ -48,10 +48,12 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Credits
 
-- **Kellie**: project lead and design: gameplay, melee, clans, maps, launcher and site, etc.
-- **Wedge**: male character animations, help with weapons.
+Although Twelve Weeks is mostly a one-person project, it wouldn't be the same without the help of others.
+
+- **Kellie**: project lead and design (gameplay, melee, clans, maps, site, launcher).
+- **Wedge**: male character animations (not in yet) and the Frontier rifle animations.
 - **OmegaMan**: launcher code cleanup, the Linux port, Rich Presence support.
-- **DeepQuantum**: server hosting, general help.
+- **DeepQuantum**: server hosting, funding, general help, and being an awesome friend :3
 - Everyone who playtested and sent bug reports.
 
 ## License
