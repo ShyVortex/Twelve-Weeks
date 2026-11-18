@@ -1,0 +1,8 @@
+# 11-18: Polish strings that were only hand-added lines in tools/ext/loc_pl.h (no source here, so gen_loc pl dropped them),
+# plus a launcher game-data line that had lost its source. Move each to its topic file when you touch it.
+## Restored hand-added strings (11-18)
+SURVIVORS JOIN => OCALALI DOŁĄCZAJĄ
+SURVIVOR JOINS => OCALAŁY DOŁĄCZA
+NO MARK: LOSE %d%% => BEZ PROGU: STRATA {1}%
+## Launcher game data (11-18)
+Silent. Two body shots to down, a headshot kills. Bolts that hit scenery can be picked up again. => Cicha. Dwa trafienia powalają, strzał w głowę zabija. Bełty z otoczenia można podnieść.

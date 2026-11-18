@@ -884,5 +884,6 @@
  "Convention Center": "Centrum konferencyjne",
  "Chase": "Pościg",
  "Supermarket": "Supermarket",
- "Join the Twelve Weeks Discord": "Dołącz do Discorda Twelve Weeks"
+ "Join the Twelve Weeks Discord": "Dołącz do Discorda Twelve Weeks",
+ "The client files folder is the game folder (or shares winmm.dll with it). Open Settings > Files, clear the client folder (use the default), then press UPDATE CLIENT and Play again.": "Folder plików klienta to folder gry (albo dzieli z nim winmm.dll). Otwórz Ustawienia > Pliki, wyczyść folder klienta (użyj domyślnego), a potem naciśnij AKTUALIZUJ KLIENTA i Graj ponownie."
 }

@@ -169,7 +169,7 @@ function prepareInstall(clientDir, cfg) {
   // check sees a different hash, downloads the slim file over the game's winmm.dll again and the mod never loads
   if (sameLocation(clientDir, game) || sameLocation(src, dst))
     throw new Error(
-      'The client files folder is the game folder (or shares winmm.dll with it). Open Settings > Files, clear the client folder (use the default), then press Update client and Play again.',
+      'The client files folder is the game folder (or shares winmm.dll with it). Open Settings > Files, clear the client folder (use the default), then press UPDATE CLIENT and Play again.',
     );
   if (upd.hasPendingUpdate(clientDir))
     throw new Error(
