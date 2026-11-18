@@ -37955,7 +37955,12 @@ static void install_weapon_tables(void) {
         // 9 = the explosive bow's row of another branch: this block runs after both). Wiki: 2 LP, 240 parts, starting ammunition 30, magazine 100,
         // ammo 30 for 360. HUD icon = the game's own (gui2-textures-common: hud/weapons/guns/flamethrower/flamethrower.png, checked in the pak).
         g_fl_row = 0xffffffffu;
-        if (flame_built() && npurch < purch_cap) {
+        // The Flamethrower is off sale for now: no GEAR UP row (its data and code stay; T2R_SELL_FLAME 1 at compile = the row again).
+        // A saved loadout with it keeps the rest (lo_load: purchasable -> none).
+#ifndef T2R_SELL_FLAME
+#define T2R_SELL_FLAME 0
+#endif
+        if (T2R_SELL_FLAME && flame_built() && npurch < purch_cap) {
             uint8_t *fl = np + npurch * 0x40;
             memcpy(fl, sp, 0x40);
             *(const char **)fl = "FLAMETHROWER";
@@ -46805,6 +46810,11 @@ static void lo_load(void) {
             else if (l.w[2] >= 4) l.w[2]++;                                                              // saved without it, back now
         }
         if (db_pick && l.w[2] == 0xffffffffu) l.w[2] = g_db_row;       // after the El Diablo remap: g_db_row is a row of the current list
+        {   // a purchasable row that is not in the list any more (a row taken off sale) = no purchasable; the rest of the loadout stays
+            // (lo_valid would refuse the whole loadout and it would fall back to its default)
+            const uint32_t *pc = (const uint32_t *)VMA(0x1800A0DA4);
+            if (l.w[2] != 0xffffffffu && l.w[2] >= pc[2]) { xlog("loadout: custom %d's purchasable row %u is not in the list (%u rows) - set to none", i, l.w[2], pc[2]); l.w[2] = 0xffffffffu; }
+        }
         if (i < N_CUSTOM) lo_migrate_budget(&l, i);     // bow 2 -> 3 LP: a saved custom now over 13 keeps its guns and loses its cheapest skill
         if (lo_valid(&l)) g_lo[i] = l;
         if (i == N_CUSTOM - 1 && v7) nlo = N_CUSTOM + 1;                 // try one more: a MORE line may follow
