@@ -544,7 +544,7 @@ function planEnableMove(game, deps, jd) {
   ); // never overwrite: stop before the first move
   if (clash)
     throw mkErr(
-      `Cannot move the mod back: ${clash.to} already exists in the game folder (a mod file was installed there again). Delete it (or Verify / Repair in Settings > Files), then press SWITCH TO MP again.`,
+      `Cannot move the mod back: ${clash.to} already exists in the game folder (a mod file was installed there again). Delete it (or press REPAIR INSTALL in Settings > Files), then press SWITCH TO MP again.`,
       'EEXIST',
     );
   return { d, ops, modEntries, inGame, oldListed };

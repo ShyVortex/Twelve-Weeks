@@ -80,7 +80,7 @@ const NEXT_STEPS =
  * @returns {string}
  */
 function loopMessage(count) {
-  return `The game closed on startup ${count} times in a row. Another try will probably do the same. Next: start The Last of Us Part II once from your Steam library, finish any Steam window or dialog (install step, cloud sync, EULA) and wait until the game opens, then close it and press Play again. If it still happens, open REPORT A BUG in the menu and send it (it includes the logs and the newest crash dump), or run Verify / Repair in Settings > Files first.`;
+  return `The game closed on startup ${count} times in a row. Another try will probably do the same. Next: start The Last of Us Part II once from your Steam library, finish any Steam window or dialog (install step, cloud sync, EULA) and wait until the game opens, then close it and press Play again. If it still happens, open REPORT A BUG in the menu and send it (it includes the logs and the newest crash dump), or press REPAIR INSTALL in Settings > Files first.`;
 }
 
 module.exports = {

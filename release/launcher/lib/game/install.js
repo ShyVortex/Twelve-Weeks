@@ -163,7 +163,7 @@ function prepareInstall(clientDir, cfg) {
   const src = path.join(clientDir, 'winmm.dll');
   if (!exists(src))
     throw new Error(
-      'winmm.dll is missing from the downloaded client files. Run Verify / Repair in Settings > Files.',
+      'winmm.dll is missing from the downloaded client files. Press REPAIR INSTALL in Settings > Files.',
     );
   // client folder == game folder (or the same file by a link): t2r-slim would rebuild the client's own winmm.dll in place, so the next update
   // check sees a different hash, downloads the slim file over the game's winmm.dll again and the mod never loads
@@ -373,7 +373,7 @@ async function finalizeInstall({ clientDir, cfg, game, dst, src, slimNeeded, mar
       if (exists(dst + '.t2r-original')) fs.copyFileSync(dst + '.t2r-original', dst);
     } catch {}
     throw new Error(
-      `The mod file winmm.dll in the game folder is damaged (${wv.why}) and was removed. Press Verify / Repair in Settings > Files, then Play again.`,
+      `The mod file winmm.dll in the game folder is damaged (${wv.why}) and was removed. Press REPAIR INSTALL in Settings > Files, then Play again.`,
     );
   }
   step('Writing the mod version and settings');

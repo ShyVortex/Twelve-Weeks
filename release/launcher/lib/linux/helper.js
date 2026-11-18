@@ -81,7 +81,7 @@ async function startHelper({ clientDir, gameDir, dataDir, server, log, deps = {}
   if (!exists(exe))
     return {
       pid: null,
-      reason: `${exe} is missing (Verify / Repair in Settings > Files).`,
+      reason: `${exe} is missing (press REPAIR INSTALL in Settings > Files).`,
     };
   const prefix = path.join(dataDir, 't2r-steam-prefix');
   fs.mkdirSync(prefix, { recursive: true });

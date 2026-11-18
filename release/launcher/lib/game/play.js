@@ -178,7 +178,7 @@ function watchModLoad({ gameDir, spawnedAt, log, waitMs = 90000, pollMs = 3000 }
       if (modBootedSince(gameDir, spawnedAt - 2000)) return;
       if (Date.now() - t0 < waitMs) return void setTimeout(tick, pollMs).unref();
       log(
-        `WARNING: the game is running but the mod did not load (no t2r-ext-boot.txt / t2r-ext.log write ${Math.round(waitMs / 1000)} s after the start) - it is probably showing the plain single-player menu. Game folder: ${modFilesSnapshot(gameDir)}. Press Verify / Repair in Settings > Files, then Play again.`,
+        `WARNING: the game is running but the mod did not load (no t2r-ext-boot.txt / t2r-ext.log write ${Math.round(waitMs / 1000)} s after the start) - it is probably showing the plain single-player menu. Game folder: ${modFilesSnapshot(gameDir)}. Press REPAIR INSTALL in Settings > Files, then Play again.`,
       );
     } catch {}
   };
@@ -424,7 +424,7 @@ async function prepareClientFiles({ clientDir, cfg, log, progress, opts, extra }
       .catch(() => ({ pending: true, complete: false }));
     if (rec.pending && !rec.complete)
       throw new Error(
-        'The last update did not finish (the client files are half old, half new). Press Update client (or Verify / Repair), then play again.',
+        'The last update did not finish (the client files are half old, half new). Press UPDATE CLIENT (or REPAIR INSTALL) in Settings > Files, then play again.',
       );
   }
   if (opts.reinstall || !modCurrent(clientDir, cfg)) {
