@@ -51,7 +51,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 Although Twelve Weeks is mostly a one-person project, it wouldn't be the same without the help of others.
 
 **DEVS**
-- **Kellie**: project lead and design (gameplay, melee, clans, maps, site, launcher).
+- **Kellie**: creator, project lead and design (gameplay, melee, clans, maps, site, launcher).
 - **OmegaMan**: launcher code cleanup, the Linux port, Rich Presence support.
   
 **HELP**
