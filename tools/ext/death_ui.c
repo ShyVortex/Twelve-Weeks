@@ -8,7 +8,7 @@
 // tools/rip_t2_death_sting.py: the game's sound events are silent in MP and *music-playlist-player-death* is an empty playlist =
 // the music cut, which the stinger layer still does at the death edge). Then, over the black, fading in:
 //   - a TLOU2 SP death tip, native look (hud-post-death-tip's icon0 / label0 copied into hud-root, the SP illustration
-//     streaming/large/death-tips/<name>.png): SP tips that fit Factions PvP, and our Factions tips (MF_TIPS, the loading screen's)
+//     streaming/large/death-tips/<name>.png): one tip list shared with the loading screen (tips.h T2R_TIPS)
 //     on a fitting SP picture; one per death, rotating
 //   - KILLED BY: the killer's name, the weapon's icon and name (guns from the GEAR UP tables = the loadout icons incl. Shorty /
 //     El Diablo / suppressed rows, melee weapons, shiv, FISTS for an unarmed execution, molotov / nail bomb)
@@ -52,45 +52,9 @@ extern const int16_t ds_blob[];
 #define DU_SPEC_MIN_S  1.6f     // no spectate offer in the last seconds
 
 // ---- tips: SP death tips (post-death-tips.bin -> eng.common text, MP-fitting, no input-glyph tokens) and our Factions tips on an SP picture
-static const struct { const char *img, *text; } DU_TIPS[] = {
-    {"easy-target", "Enemies are deadly accurate when you're charging towards them."},
-    {"use-molotov", NULL},                      // MF_TIPS[0] molotov
-    {"cover-from-gunfire", "Stay crouched behind cover to protect from gunfire."},
-    {"sprint-to-avoid", "Enemies are less accurate while you're sprinting away or to the side."},
-    {"weapon-shotgun", NULL},                   // MF_TIPS[1] shotguns
-    {"general-flank-them", "Don't approach enemies directly, use the environment to flank them."},
-    {"buddy-rescue", NULL},                     // MF_TIPS[7] revive a downed teammate
-    {"escape-sneak", "Your foes will investigate your last known location. Don't be there."},
-    {"crouch-prone-aim", "Aim more accurately by crouching, or even more accurately by going prone."},
-    {"ellie-in-backpack", NULL},                // MF_TIPS[4] crafting before the fight
-    {"general-dont-get-flanked", "Look around to track enemy movements to ensure you aren't caught off guard."},
-    {"silent-bow", NULL},                       // MF_TIPS[3] the bow
-    {"use-health-kit", "Using a health kit takes time. Make sure you're in a safe place."},
-    {"overwhelmed", NULL},                      // MF_TIPS[9] stick together
-    {"hide", "In combat, use your environment to lose your enemies and slip back into stealth."},
-    {"stand-aim-rifle", "Moving while aiming reduces your accuracy. Stand still to steady your aim."},
-    {"scavenge-items", NULL},                   // MF_TIPS[5] supply boxes
-    {"stealth-explosives", "Arc-throw a Molotov while in low cover to stay hidden while throwing."},
-    {"grass-crouch-prone", NULL},               // MF_TIPS[10] grass
-    {"general-vary-your-tactics", "If your usual strategy isn't working, vary your tactics. Try a new weapon or crafting recipe."},
-    {"weapon-bullet-drop", "Bullets drop with gravity. Aim higher to compensate."},
-    {"shooting-armor-legs", NULL},              // MF_TIPS[6] armor
-    {"melee-weapon-types", "One-handed melee weapons are fast and durable. Two-handed melee weapons are slower but deal massive damage."},
-    {"sprint-base", "Buy yourself time to heal wounds or craft by running away from combat."},
-    {"use-pipe-bombs", "Pipe bombs will land at an opponent's feet when quick-thrown."},
-    {"vulnerable-enemies-5-6", NULL},           // MF_TIPS[12] finishing a downed enemy
-    {"player-upgrade-stun-bomb-smoke", "Smoke bomb clouds completely block enemy vision, hiding your movements and preventing them from firing on you."},
-    {"full-draw-bow", "Arrows do more damage when the bow is fully drawn."},
-    {"limited-supplies", NULL},                 // MF_TIPS[14] the clan eats
-    {"upgraded-melee", "Upgraded melee weapons are restored to full durability and have greatly increased damage."},
-    {"glass-break", "Breaking glass windows can open up new routes in combat, but the sound will draw enemy attention."},
-    {"crouch-beside-enemy", "You have the choice to engage your opponents quietly, by force, or sometimes avoid combat altogether."},
-    {"buddy-rescue", "Marking a downed teammate and running towards them doesn't deplete your stamina limit."},   // helpcall.c hc_rush_towards
-};
-#define DU_NTIPS (int)(sizeof DU_TIPS / sizeof DU_TIPS[0])
-static const signed char DU_TIP_MF[DU_NTIPS] = {-1, 0, -1, -1, 1, -1, 7, -1, -1, 4, -1, 3, -1, 9, -1, -1, 5, -1, 10, -1, -1, 6, -1, -1, -1, 12, -1, -1, 14, -1, -1, -1, -1};
-_Static_assert(sizeof DU_TIP_MF == DU_NTIPS, "DU_TIP_MF out of step with DU_TIPS");
-static const char *du_tip_text(int i) { return DU_TIPS[i].text ? DU_TIPS[i].text : MF_TIPS[DU_TIP_MF[i] >= 0 ? DU_TIP_MF[i] : 0][1]; }
+// the death screen and the loading screen share one tip list (tips.h T2R_TIPS: text + this screen's SP picture)
+#define DU_NTIPS T2R_NTIPS
+static const char *du_tip_text(int i) { return T2R_TIPS[i].text; }
 
 // ---- killed-by weapon: name + icon
 static int du_row(uint8_t *row, uint64_t w, const char **name, const char **icon) {
@@ -152,10 +116,12 @@ static int du_weapon(uint64_t w, const char **name, const char **icon, const cha
         {"rifle-m14-semi", "SEMI-AUTO RIFLE", "streaming/t2r/icons/m14.png"},
         {"rifle-burst", "BURST RIFLE", "streaming/t2r/icons/burst-rifle.png"},
         {"pistol-cz75-enforcer", "ENFORCER", "streaming/t2r/icons/cz75.png"},
-        {"pistol-el-diablo", "EL DIABLO", "streaming/t2r/icons/el-diablo.png"},
+        {"pistol-el-diablo", "EL DIABLO", "streaming/t2r/icons/el-diablo.png"}, {"pistol-snubby", "SNUBBY", "streaming/t2r/icons/snubby.png"},
         {"shotgun-shorty", "SHORTY", "streaming/t2r/icons/shorty.png"},
         {"rifle-frontier", "FRONTIER RIFLE", "streaming/t2r/icons/frontier.png"},
         {"rifle-milsniper", "MILITARY SNIPER", "streaming/t2r/icons/milsniper.png"},
+        {"rifle-vintage", "VINTAGE RIFLE", "streaming/t2r/icons/vintage-rifle.png"},
+        {"shotgun-dragon", "DRAGON'S BUCKSHOT", "streaming/t2r/icons/dragon-buckshot.png"},
     };
     static const char *const FISTS[] = {"abby-unarmed", "ellie-unarmed", "unarmed", "fists", "fist"};
     *name = NULL; *icon = NULL; *src = "-";
@@ -167,10 +133,10 @@ static int du_weapon(uint64_t w, const char **name, const char **icon, const cha
     for (int pass = 0; pass < 2; pass++) {
         uint64_t k = pass ? base_weapon(w) : w;
         if (pass && k == w) break;
-        uint8_t *lt = g_large_tab ? g_large_tab : (uint8_t *)VMA(0x1800A0DB0), *pt = lo_purch_tab(), *st = (uint8_t *)VMA(0x1800A0E90);
+        uint8_t *lt = g_large_tab ? g_large_tab : (uint8_t *)VMA(0x1800A0DB0), *pt = lo_purch_tab(), *st = small_tab();
         for (int r = 0; r < 16; r++) { int x = du_row(lt + r * 0x38, k, name, icon); if (x < 0) break; if (x > 0) { *src = "large table"; return 1; } }
         for (int r = 0; r < 16; r++) { int x = du_row(pt + r * 0x40, k, name, icon); if (x < 0) break; if (x > 0) { *src = "purchasable table"; return 1; } }
-        for (int r = 0; r < 8; r++) { int x = du_row(st + r * 0x38, k, name, icon); if (x < 0) break; if (x > 0) { *src = "small table"; return 1; } }
+        for (int r = 0; r < 16; r++) { int x = du_row(st + r * 0x38, k, name, icon); if (x < 0) break; if (x > 0) { *src = "small table"; return 1; } }
     }
     uint64_t b = base_weapon(w);
     for (size_t i = 0; i < sizeof X / sizeof *X; i++)
@@ -233,7 +199,7 @@ static void du_text(const char *rel, const char *t) { uint64_t w = du_w(rel); if
 static void du_image(const char *rel, const char *img) { uint64_t w = du_w(rel); if (w) ((fn_settext_t)VMA(0x180068260))(w, img); }
 static void du_tip_image(int i) {
     char b[96];
-    snprintf(b, sizeof b, "streaming/large/death-tips/%s.png", DU_TIPS[i].img);
+    snprintf(b, sizeof b, "streaming/large/death-tips/%s.png", T2R_TIPS[i].img);
     du_image("t2rDeath.dTip.dTipImg", b);
 }
 
@@ -655,7 +621,11 @@ static void feature_death_ui(void) {
 #define DU_PAIR_HOLD_MS 1200      // [TUNING ps44] a chosen value, labelled
             // (the shiv rule holds here too: the black is FULL while the body still moves - the fade starts at most left - cut - 350 ms after the kill
             //  frame, never earlier than the old delay; a shiv victim's delay set above is kept as it is)
-            if (!inst && !shiv44 && g_ps.role == 2 && g_ps.ent_vic == SID_PLAYER) {
+            // REVERTED to opt-in: the hold read as a regression in play - the death screen came up to a second after the killing blow / shot of
+            // every special execution and finisher instead of a few frames after it. Default = DU_DELAY_MS after the kill frame again; the
+            // ps44 / ps45 hold only with t2r-death-pair-hold.txt.
+            static int off_ph = -1; static uint64_t chk_ph;
+            if (!inst && !shiv44 && g_ps.role == 2 && g_ps.ent_vic == SID_PLAYER && ov_off("t2r-death-pair-hold.txt", &off_ph, &chk_ph)) {
                 static int off44 = -1; static uint64_t chk44;
                 int left = psync_vic_left_ms();
                 if (left > 0) {
@@ -700,7 +670,7 @@ static void feature_death_ui(void) {
             float lb[16]; const float *l = player_locator(lb);
             xlog("death ui: died (hp %.1f, state %s, downed %d, execution victim %d, xcam %d) at %.2f %.2f %.2f - fade to black after %d ms over %d ms; tip #%d %s \"%.60s\"",
                  hp, death_state ? "Death" : "other", g_downed, gx_victim_active(), g_xcam_on, l ? l[0] : 0.0f, l ? l[1] : 0.0f, l ? l[2] : 0.0f,
-                 g_du_delay, g_du_cut, ti, DU_TIPS[ti].img, du_tip_text(ti));
+                 g_du_delay, g_du_cut, ti, T2R_TIPS[ti].img, du_tip_text(ti));
         }
     }
     if (sig && g_du.phase == 1 && g_du_edge_ms != sig_used) sig_used = g_du_edge_ms;   // (a signal during a running death screen)

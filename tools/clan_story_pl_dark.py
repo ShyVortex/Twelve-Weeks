@@ -178,7 +178,7 @@ LINES["death_mercy"] = [
     "{A} sam{A?|a} o to prosi{A?ł|ła}. {B} zrobi{B?ł|ła} to szybko. Nikt nie powinien tego nosić, ale ktoś musiał.",
     "{A} błaga{A?ł|ła}, żebyśmy to zakończyli. {B} to zrobi{B?ł|ła}. Staliśmy na zewnątrz i słuchaliśmy niczego.",
     "Nie zostało nic do spróbowania. {A} poprosi{A?ł|ła}, a {B} się zgodzi{B?ł|ła}. Tak to teraz wygląda.",
-    "{A} cierpia{A?ł|ła} do dziś. {B} położy{B?ł|ła} temu kres. To było łaskawe i straszne, i jedno nie znosi drugiego.",
+    "{A} cierpia{A?ł|ła} do dziś. {B} położy{B?ł|ła} temu kres. To była łaska i to było straszne. Jedno nie znosi drugiego.",
     "Nie mogliśmy patrzeć, jak {A} cierpi kolejną noc. {B} {B?poszedł|poszła} z {A?nim|nią} na spacer. {B} wrócił{B?|a} sam{B?|a}.",
     "{A} tak cierpia{A?ł|ła}. W końcu wszyscy się zgodziliśmy. To było miłosierdzie. Wciąż jak morderstwo.",
     "{A} odchodzi{A?ł|ła} spokojnie: {B} trzyma{B?ł|ła} {A?go|ją} za rękę i powiedzia{B?ł|ła} {A?mu|jej}, że można. Potem było po wszystkim. {ill} już {A?mu|jej} nie zaszkodzi.",
@@ -188,10 +188,10 @@ LINES["death_mercy"] = [
     "{A} nie chcia{A?ł|ła} stać się jednym z nich. {B} dopilnowa{B?ł|ła}, żeby tak się nie stało. Isaac mówi, że tak postępują żołnierze. Nie robi się od tego łatwiej.",
     "Dziś {A} przestał{A?|a} cierpieć. Z {ill_ins} nie było innego wyjścia. Jezu, co za świat.",
     "Nikt nie chciał tej roboty. {B} się jej podj{B?ął|ęła}. Potem wyczyści{B?ł|ła} pistolet i nie powiedzia{B?ł|ła} ani słowa do kolacji.",
-    "{A}: to było szybkie. Tyle powiem. Szybkie, a {A} nam podziękowa{A?ł|ła}, i nie przestaję tego słyszeć.",
+    "{A}: to było szybkie. Tyle powiem. Na koniec {A} nam podziękowa{A?ł|ła} i nie przestaję tego słyszeć.",
     "{A} prosi{A?ł|ła} Prorokinię o wyzwolenie, a ręką, która je dała, był{B?|a} {B}. To niczego nie ułatwia.",
     "{A} {A?odszedł|odeszła}, a przy {A?nim|niej} do końca siedzieli uzdrowicielka i {B}. Poduszka, modlitwa i po wszystkim. Nie mówimy o tym.",
-    "{A} cierpia{A?ł|ła} ponad to, co mogły uleczyć nasze zioła i pieśni. {B} dał{B?|a} {A?mu|jej} spokój. Niech Prorokini wybaczy nam obojgu.",
+    "{A} cierpia{A?ł|ła} ponad to, co mogły uleczyć nasze zioła i pieśni. {B} dał{B?|a} {A?mu|jej} spokój. Niech Prorokini wybaczy {B?jemu|jej} i nam wszystkim.",
     "{A} został{A?|a} zaprowadzon{A?y|a} nad wodę, a {B} dał{B?|a} {A?mu|jej} cichy koniec. Siostry śpiewały przez cały czas.",
     "Miłosierdzie też jest ciężarem. {A} już {A?odszedł|odeszła}, a {B} niesie ten ciężar. Nie wiem, jak to zniesie.",
     "{A} nie chcia{A?ł|ła} zwlekać. Starsi się zgodzili. {B} to zrobi{B?ł|ła}. Potem staliśmy w milczeniu przez godzinę.",
@@ -478,6 +478,42 @@ LINES["event_warn"] = [
     "Dym z obozu Wilków i bębny. {A} mówi, że chcą uderzyć o świcie. Musimy wyszkolić każdą rękę.",
     "Starsi mówią, że Wilki łakną naszego domu. Nauczymy nasze dzieci walczyć, choć to łamie serce.",
     "Patroli Wilków jest z dnia na dzień więcej. {A} mówi, że nas mierzą. Niech zobaczą, co potrafią Serafici.",
+]
+
+LINES["event_warn_h"] = [
+    "Warta liczyła zarażonych za linią drzew, aż zabrakło jej liczb. Horda. Mamy kilka dni na przygotowania.",
+    "{A} wróci{A?ł|ła} z grzbietu bez słowa i zacz{A?ął|ęła} układać worki z piaskiem. Horda ruszyła, a my stoimy jej na drodze.",
+    "Nocą już ich słychać, z daleka, jak rzekę. {A} mówi, że trzy dni. Mało kto śpi.",
+    "Dziś rano przyszła wiadomość: nadchodzi horda. Okopać się, wyostrzyć czujność i powtórzyć ćwiczenia.",
+]
+
+LINES["event_hold_h"] = [
+    "Horda uderzyła w mur i mur wytrzymał. Straciliśmy {lost_acc}. {A} mówi, że to zasługa ćwiczeń, i ma rację.",
+    "Szli całą noc, a my całą noc byliśmy gotowi. Straty: {lost}, a mogliśmy zginąć wszyscy.",
+    "{A} i {B} trzyma{AB?li|ły} wyłom, dopóki nie padł ostatni z nich. Straciliśmy {lost_acc}. Obóz jest nadal nasz.",
+]
+
+LINES["event_heavy_h"] = [
+    "Było źle. Horda dwa razy przeszła przez mur. Odepchnęliśmy ją, ale nie przeżyło: {lost}.",
+    "Przetrwaliśmy hordę, ale za swoją cenę. Straty: {lost}. Szkolenie pomogło, ale nie wystarczyło.",
+    "Był moment, kiedy wyglądało na to, że nas pogrzebią. {A} utrzyma{A?ł|ła} linię. Straciliśmy {lost_acc}.",
+]
+
+LINES["event_massacre_h"] = [
+    "Horda przeszła przez nas. Martwych: {lost}. Nie wiem, jak reszta z nas jeszcze stoi.",
+    "Nie byliśmy gotowi, a zarażeni nie czekają. Straty jednej nocy: {lost}.",
+    "{A} wciąż tam jest i pali to, co zostało. Naszych zginęło: {lost}. Ten mur nie miał prawa wytrzymać.",
+]
+
+LINES["death_horde"] = [
+    "{A} {A?zginął|zginęła} na murze, kiedy przyszła horda. {B} to widzi{B?ał|ała} i nie potrafi o tym mówić.",
+    "{A} nie przetrwa{A?ł|ła} nocy. Zarażeni przeszli przez mur tam, gdzie sta{A?ł|ła}.",
+    "{A} {A?zginął|zginęła} w walce z hordą. {B} wciągn{B?ął|ęła} {A?go|ją} z powrotem do środka, ale było już po wszystkim.",
+]
+
+LINES["death_horde_many"] = [
+    "Horda zabrała nam {n_acc}, wśród nich {A} i {B}. Reszta wciąż stoi na murze, bo nikt nie wie, gdzie indziej miałby być.",
+    "Po hordzie martwych: {n}. {A}, {B}. Spalimy ich o świcie, tak jak trzeba.",
 ]
 
 LINES["event_heavy"] = [

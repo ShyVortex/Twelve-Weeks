@@ -27,7 +27,7 @@ def find_gcc():
         if os.path.exists(p):
             return p
         root = os.path.dirname(root)
-    for root in (os.environ.get("T2R_MAIN_ROOT"), os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))):     # a worktree elsewhere (build_dll.py does the same)
+    for root in (os.environ.get("T2R_MAIN_ROOT"), "."):     # a checkout elsewhere (build_dll.py does the same)
         p = os.path.join(root or "", "tools", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe")
         if root and os.path.exists(p):
             return p

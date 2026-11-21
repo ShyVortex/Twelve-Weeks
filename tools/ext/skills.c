@@ -157,7 +157,7 @@ static const sk_def_t SK[SK_COUNT] = {
          "Your counter attack after a dodge can be started 40% longer, also after a late dodge, and it is ready again sooner."},
         "Modelled on Agility. I: the dodge counter's melee-press window 600 -> 850 ms (dcounter.c DC_WINDOW_MS). II: the counter also arms from a late (not perfect, > 200 ms before the contact) dodge of a melee weapon swing, and the counter cooldown is 2.2 -> 1.5 s. Decided on the dodger's own machine."},
     [SK_GRIP] = {"IRON GRIP", SK_ICON("grip"), 2, {2, 3}, 3,
-        {"You have 50% more time to break out of a pin or a pull-out.",
+        {"You have 50% more time to break out of a pin or a pull-out.",   // (the body shield grab line went with BODYSHIELD, skills.h)
          "You have 50% more time to break out of a pin or a pull-out. Once per life the first pin or pull-out on you is broken for you."},
         "Modelled on Fortitude. I: the pin escape press window (the last 330 ms of the blow's window -> 495 ms, as far as the blow's 480 ms allows) and the pull-out counter window 400 -> 600 ms. II: once per life the first pin or pull-out QTE on us is passed for us the moment its press window opens. Judged on the victim's machine, which owns the skill."},
     [SK_BLADE] = {"BLADE DISCIPLINE", SK_ICON("blade"), 2, {1, 3}, 3,
@@ -178,6 +178,9 @@ static const sk_def_t SK[SK_COUNT] = {
          "Your dodge is ready again 15% sooner.",
          "Your dodge is ready again 20% sooner."},
         "Modelled on Marathon Runner. The dodge cooldown (melee_dodge.c MD_COOLDOWN_MS, also the 2-charge refill and the cooldown bar) x0.9 / 0.85 / 0.8. Decided on the dodger's own machine."},
+#if T2R_BODYSHIELD
+#include "skills_bodyshield.h"
+#endif
 };
 static const char *const SK_ROMAN[4] = {"", "I", "II", "III"};
 
@@ -333,7 +336,7 @@ static void r2_mirror_fill(const void *lo, int active) {
             nm = lo_weapon_name(slot, l->w[slot], &ic);
             if (nm && l->w[slot] < cnt[slot]) {
                 if (slot == 0) cost = g_large_tab ? *(const int *)(g_large_tab + 0x18 + l->w[0] * 0x38) : 2;
-                else if (slot == 1) cost = *(const int *)(VMA(0x1800A0EA8) + l->w[1] * 0x38);
+                else if (slot == 1) cost = *(const int *)(small_tab() + 0x18 + l->w[1] * 0x38);
                 else cost = *(const int *)(lo_purch_tab() + 0x18 + l->w[2] * 0x40);
             } else nm = NULL;
         } else {
@@ -1991,9 +1994,9 @@ static DWORD WINAPI pc_scan_thread(void *arg) {
 }
 // m != 1: install (background scan, retried every 600 frames while nothing is patched, 6 tries) and set the factor
 static void prone_crawl_apply(float m, const char *why) {
-    // (patches the crawl states' rate lambdas in the loaded DC image after a memory scan - unverified in game, so OPT-IN
-    // until an A/B run confirms it: t2r-prone-crawl.txt next to the exe)
-    { static int on = -1; static uint64_t chk; if (on < 0 || g_frame >= chk) { on = GetFileAttributesA("t2r-prone-crawl.txt") != INVALID_FILE_ATTRIBUTES; chk = g_frame + 600; } if (!on) m = 1.0f; }
+    // (patches the crawl states' rate lambdas in the loaded DC image after a memory scan. It was OPT-IN (t2r-prone-crawl.txt) and so never ran
+    // for players (prone speed was not adjusted by agility 2). ON by default now; t2r-no-prone-crawl.txt = off.)
+    { static int off = -1; static uint64_t chk; if (off < 0 || g_frame >= chk) { off = GetFileAttributesA("t2r-no-prone-crawl.txt") != INVALID_FILE_ATTRIBUTES; chk = g_frame + 600; } if (off) m = 1.0f; }
     if (g_pc_patched && !(g_frame % 120)) {                  // a level reload re-reads the DC file: the stock lambdas are back
         volatile uint8_t *pr = g_pc_probe;
         if (!pr || IsBadReadPtr((const void *)pr, 8) || pr[0] != 0x40) {
@@ -2046,7 +2049,15 @@ static void sk_movement(void) {
     if (mxs != 1.0f) { float k = mxs_lo < 1.0f ? (1.0f - mxs) / (1.0f - mxs_lo) : 0.0f; spr *= mxs * (1.0f - 0.435f * k); cro *= mxs; run *= mxs; }      // slowdown.h: -10 % on top of the perk factors (they stay relative)
     int refresh = !(g_frame % 30) && (spr != 1.0f || cro != 1.0f || run != 1.0f);     // winmm's latch / a level reload may undo them
     int idle = !(g_frame % 600);
-    prone_crawl_apply(g_downed ? 1.0f : sk_prone_mul(), g_downed ? "downed" : "Agility");   // the stock prone crawl (rate lambdas); the downed crawl keeps the curves
+    // (a recording and a report: the crawl speed itself was fixed but the prone anims were still far too fast): the speed curves
+    // below carry Agility's ground speed (stock full stick = 0.80 m/s = the curve top, so the curve looks like the limit). The x1.19 rate patch
+    // on top played the crawl clips too fast. The patch now stays at x1.00 (identity). Not measured in game yet: Agility ground speed without it.
+    prone_crawl_apply(1.0f, g_downed ? "downed" : "Agility (rate patch off: curves only)");   // the stock prone crawl (rate lambdas); the downed crawl keeps the curves
+    // (Agility should speed up the anim itself while not affecting prone speed. The rate patch alone plays the clips faster but the
+    // capsule stays at the curve speed; the curves alone left the speed too. The ground speed is the lower of the clips' root motion and
+    // the *player-prone-settings* curve (stock: full stick 0.80 m/s = the curve top, prone_crawl_diag), so Agility scales both.
+    // Downed keeps its own factor (downed_prone_speed); up again, this puts the Agility factor back on the next frame.)
+    if (!g_downed && !g_down_dying) prone_speed_apply(sk_prone_mul(), "Agility");
     prone_crawl_diag();
     if (spr != s_spr || refresh || idle) {
         sk_move_set("player-set-motion-match-sprint-speed-multiplier/f", spr);
@@ -2187,7 +2198,7 @@ static void sk_sprint_meter_reset(void) {
 static int sk_pistol_in_hand(void) {
     uint64_t w = base_weapon(current_weapon());
     return w == fnv64("pistol-beretta") || w == fnv64("pistol-glock") || w == fnv64("pistol-revolver-taurus") ||
-           w == fnv64("pistol-cz75-enforcer") || w == fnv64("pistol-xcaliber");
+           w == fnv64("pistol-cz75-enforcer") || w == fnv64("pistol-xcaliber") || w == fnv64("pistol-snubby");
 }
 static void sk_pistol_zoom(int live) {
     static float s, base = 73.74f, last_set;
@@ -2230,6 +2241,7 @@ static void sk_movement_reset(void) {              // match over: stock speeds a
     }
     g_sk_mv[0] = g_sk_mv[1] = g_sk_mv[2] = 1.0f;
     prone_crawl_apply(1.0f, "match over");
+    if (!g_downed) prone_speed_apply(1.0f, "match over");
 }
 
 // ---- Lucky Break (supply box modifiers), Scavenger (kill drops), Awareness (nametags), Bomb Expert (fuse)
@@ -2420,7 +2432,7 @@ static void skills_on_spawn(void) {
         const char *ammo = NULL; int start = 0;
         if (gun == fnv64("pistol-beretta") || gun == fnv64("pistol-glock")) { ammo = "ammo-pistol"; start = 10; }
         else if (gun == fnv64("pistol-cz75-enforcer")) { ammo = "ammo-pistol"; start = 8; }
-        else if (gun == fnv64("pistol-revolver-taurus")) { ammo = "ammo-revolver"; start = 7; }
+        else if (gun == fnv64("pistol-revolver-taurus") || gun == fnv64("pistol-snubby")) { ammo = "ammo-revolver"; start = 7; }
         int extra = 0;
         if (ammo && skl(SK_GUNSLINGER)) extra += skl(SK_GUNSLINGER) >= 2 ? start : (start + 1) / 2;
         const char *any = ammo;

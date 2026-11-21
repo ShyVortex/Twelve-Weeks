@@ -14,7 +14,10 @@ import p1_abi  # noqa: E402
 
 ref = p1_abi.Ref()
 # ---- reference: every Part I global maps onto a TLOU2 one, parameter for parameter
-assert ref.map == {0x3a89862b: 0x767c0614, 0x04a50665: 0x767c0614, 0x96c693b9: 0x6638bddc, 0xabb5ec8d: 0xbc7e24a6}, ref.map
+# (+ Part I's particle SRV table -> TLOU2's, the table every particle stage names - part levels, the sky)
+assert ref.map == {0x3a89862b: 0x767c0614, 0x04a50665: 0x767c0614, 0x96c693b9: 0x6638bddc, 0xabb5ec8d: 0xbc7e24a6,
+                   0xf41661b6: 0xe356750f}, ref.map
+assert ref.srv_tables() == [0xabb5ec8d, 0xf41661b6] and ref.uav_base == {0xabb5ec8d: 278, 0xf41661b6: 276}
 for p1id, tid in ref.map.items():
     tn = {p["name"]: p for p in ref.t2[tid]["params"]}
     for p in ref.p1[p1id]["params"]:
@@ -50,12 +53,20 @@ assert tab[("t", 4, 144)] == 146 and tab[("t", 201, 0)] == 147 and tab[("t", 201
 assert tab[("u", 4, 0)] == 280 and tab[("u", 4, 14)] == 294
 assert new.params[:2] == rs.params[:2] and p1_abi._rts_ok(new, im) is None and p1_abi._rts_ok(rs, im) is not None
 # Part I's sky signature leaves the s201 range out: its UAVs are appended 2 slots low (u0 at descriptor 276); they still have
-# to land on TLOU2's u0 (280) - placement by register name, not by descriptor offset
+# to land on TLOU2's u0 (280) - placement by register name, not by descriptor offset)
 rs.params[2][2] = [[0, 145, 0, 4, 0, A], [0, 131, 147, 4, 0, A], [1, 15, 0, 4, 0, A]]
 cont = dxbc.build(bytes(c0), [(b"RTS0", rs.encode())])
 new = dxbc.RootSig(dict(dxbc.parts(p1_abi.patch_rootsig(cont, im)))[b"RTS0"])
 tab = {(("tu"[r[0]], r[3], r[2] + j)): r[-1] + j for r in new.params[2][2] for j in range(r[1])}
 assert tab[("u", 4, 0)] == 280 and tab[("t", 4, 147)] == 149 and p1_abi._rts_ok(new, im) is None
+# the same signature on Part I's particle table (0xf41661b6: the global one without t276 / t277, UAVs from 276) -> TLOU2's
+# particle table 0xe356750f (UAVs from 278); a stage naming one table picks its map (Ref.table_of)
+ip = ref.imap[0xf41661b6]
+new = dxbc.RootSig(dict(dxbc.parts(p1_abi.patch_rootsig(cont, ip, 276)))[b"RTS0"])
+tab = {(("tu"[r[0]], r[3], r[2] + j)): r[-1] + j for r in new.params[2][2] for j in range(r[1])}
+assert tab[("u", 4, 0)] == 278 and tab[("u", 4, 14)] == 292 and tab[("t", 4, 147)] == 149 and tab[("t", 4, 11)] == 13
+assert p1_abi._rts_ok(new, ip, 276) is None and p1_abi._rts_ok(new, im) is not None
+assert ref.table_of({0xf41661b6, 0x3a89862b}) == 0xf41661b6 and ref.table_of({0x3a89862b}) == 0xabb5ec8d
 print("ok  root signature remap: Part I registers on the TLOU2 offsets of the same names (also with a range left out)")
 
 # ---- converted paks (optional)

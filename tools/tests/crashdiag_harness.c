@@ -1,4 +1,4 @@
-// Offline harness for tools/ext/crashdiag.h.
+// Offline harness for tools/ext/crashdiag.h (re/crash-diag-pt81-1019.md).
 //   gcc -std=gnu2x -O2 -o crashdiag_harness.exe crashdiag_harness.c        (MSYS2 UCRT64; no game, no windows.h)
 //   crashdiag_harness.exe [image.bin]     checks the rings (wrap, order, fields), prints the per-event cost, and writes the raw block to image.bin
 // tools/tests/test_crashdiag.py compiles + runs it, then parses image.bin with tools/reports/dumps.py (--ring-image) and compares.

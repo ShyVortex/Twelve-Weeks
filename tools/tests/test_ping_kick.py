@@ -27,6 +27,7 @@ T0 = 1000000.0
 snap = [("m1", [H, A, B, C], T0 - 100, True, False, 0.0, set())]
 daemon.MM.snapshot = lambda: snap
 daemon.HM.enabled = False
+daemon.MM.started.update({"m1", "m2", "m3"})      # (GAME-START went out: a player is judged only after it)
 
 
 def setp(a, b, ms, at):
@@ -35,7 +36,7 @@ def setp(a, b, ms, at):
 
 
 lim = daemon.PING_KICK_MS
-check(lim == 205, "default limit 205 ms")
+check(lim == 190, "default limit 190 ms")
 # A high, B / C fine: A is removed only after PING_KICK_S of it
 for t in (0, 30, 59):
     now = T0 + t
@@ -47,7 +48,7 @@ setp(A, H, 255, now); setp(B, H, 80, now); setp(C, H, 120, now)
 daemon.ping_check(now)
 check(len(kicked) == 1 and kicked[0][0] == A, "removed after the limit time")
 check(kicked and kicked[0][2] == "ping-kick" and kicked[0][3] and kicked[0][4], "ping-kick kind, kept out of the match, no penalty")
-check(kicked and "255 ms" in kicked[0][1] and "(limit 205 ms)" in kicked[0][1], "text carries the ping and the limit: %r" % (kicked[0][1] if kicked else ""))
+check(kicked and "255 ms" in kicked[0][1] and "(limit 190 ms)" in kicked[0][1], "text carries the ping and the limit: %r" % (kicked[0][1] if kicked else ""))
 daemon.ping_check(now + 10)
 check(len(kicked) == 1, "once per match")
 # a dip under the limit restarts the clock
@@ -77,6 +78,36 @@ for t in (0, 5):
     setp(A, H, 400, now); setp(B, H, 80, now); setp(C, H, 90, now)
     daemon.ping_check(now)
 check(not daemon.PING_HIGH, "nothing counted in the first %d s of a match" % daemon.PING_GRACE_S)
+# a player still on the loading screen (no GAME-START yet) is never kicked, and its timer starts only after the start
+kicked.clear(); daemon.PING_HIGH.clear(); daemon.PING_KICKED.clear()
+snap[0] = ("m3", [H, A, B, C], T0 + 3000 - 100, True, False, 0.0, set())
+daemon.MM.started.discard("m3")
+for t in (0, 40, 80, 120):
+    now = T0 + 3000 + t
+    setp(A, H, 400, now); setp(B, H, 80, now); setp(C, H, 90, now)
+    daemon.ping_check(now)
+check(not kicked and not daemon.PING_HIGH, "match not started (loading screen): nobody removed, no timer")
+daemon.MM.started.add("m3")
+now = T0 + 3200
+setp(A, H, 400, now); setp(B, H, 80, now); setp(C, H, 90, now)
+daemon.ping_check(now)
+check(not kicked and (A, "m3") in daemon.PING_HIGH, "timer starts at the GAME-START, not before")
+setp(A, H, 400, now + 30); setp(B, H, 80, now + 30); setp(C, H, 90, now + 30)
+daemon.ping_check(now + 30)
+check(not kicked, "still under the time %d s after the start" % daemon.PING_KICK_S)
+now2 = now + 62
+setp(A, H, 400, now2); setp(B, H, 80, now2); setp(C, H, 90, now2)
+daemon.ping_check(now2)
+check(len(kicked) == 1 and kicked[0][0] == A, "removed once the time ran after the start")
+# a joiner of a running match waits for its own GAME-START
+kicked.clear(); daemon.PING_HIGH.clear(); daemon.PING_KICKED.clear()
+daemon.MM.joining[A] = ("m3", T0)
+for t in (0, 40, 80, 120):
+    now = T0 + 4000 + t
+    setp(A, H, 400, now); setp(B, H, 80, now); setp(C, H, 90, now)
+    daemon.ping_check(now)
+check(not kicked and (A, "m3") not in daemon.PING_HIGH, "a joiner without its GAME-START is not judged")
+daemon.MM.joining.pop(A, None)
 # texts
 en = daemon.srv_text("ping_kicked", "en", ms=250, s=61, lim=190)
 pl = daemon.srv_text("ping_kicked", "pl", ms=250, s=61, lim=190)

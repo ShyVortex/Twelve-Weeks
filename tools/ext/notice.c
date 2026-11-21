@@ -11,7 +11,7 @@
 static void fr13_note_seen(const char *text);            // friends13.c: a friends / party line was shown or queued (its own toasts skip what was announced)
 static int fr13_enabled(void);
 static int fr13_toast_line(const char *text, float secs);   // friends13.c: the friend / party card takes a kind p line (0 = the old toast)
-// Friends / party lines (kind p) are never shown over a running match (invites and requests pop up in the menus, not mid-game): they wait here and are shown the
+// Friends / party lines (kind p) are never shown over a running match (invites and requests pop up in the menus only, not mid game): they wait here and are shown the
 // moment the match is over (the pending request / invite itself stays on the server; the FRIENDS button's badge counts it anyway).
 static char g_nt_pq[6][300]; static float g_nt_pqs[6]; static int g_nt_pqn;
 static volatile LONG g_nt_busy, g_nt_have;
@@ -66,8 +66,8 @@ static void nt_render(char kind, int param, const char *text, int pl, char *out,
     }
 }
 
-// Players in a match are forced to close their game when an update drops (with a warning and a countdown, and a message
-// explaining their clan progress is not lost), because being in a match of a different update introduces odd bugs. The server sends kind u while
+// Players in a match are made to close their game when an update drops (with a warning and a countdown, and a message
+// explaining the clan progress is not lost), because being in a match of a different update introduces bugs. The server sends kind u while
 // our build differs from the published one; in a match that starts a 60 s countdown (toasts at 60 / 30 / 10 / 5 s), then the game closes.
 // The daemon excuses the leave for the clan (version differs from the target). t2r-no-update-close.txt = only the old 'restart after the match' line.
 #define NT_UPD_CLOSE_S 60

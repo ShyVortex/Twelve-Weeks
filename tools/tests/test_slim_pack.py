@@ -1,10 +1,10 @@
-"""T2SLIM02 round trip on a synthetic stage (no game files needed): pack a few files into the unpatched DLL, write the slim DLL + .dat
+"""T2SLIM02 round trip on a synthetic stage (no game files needed): pack a few files into the original mod DLL, write the slim DLL + .dat
 with the xz pack stream, run the helper exe (t2r-slim.exe built into a temp dir) and compare its output with the full DLL byte for byte.
 Also: a damaged pack stream / wrong DLL must be refused (nothing written).
 
   tools/win/.venv/Scripts/python tools/tests/test_slim_pack.py
 
-Needs: the unpatched winmm.dll (extracted/InstallerFiles/winmm.dll, T2R_BASE_DLL), MSYS2 gcc (tools/win/ext/msys64/ucrt64/bin, T2R_SLIM_GCCDIR).
+Needs: the original winmm.dll (extracted/InstallerFiles/winmm.dll, T2R_BASE_DLL), MSYS2 gcc (tools/win/ext/msys64/ucrt64/bin, T2R_SLIM_GCCDIR).
 Skips (exit 0, SKIP) when either is missing."""
 import hashlib
 import os

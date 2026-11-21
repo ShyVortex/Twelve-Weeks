@@ -26,7 +26,7 @@ net-10.bin); the full decode with addresses is re/factions2013/ps4/logic/clan.md
 State is keyed by the player's token id = token bytes 20..31 (the 12-byte install id T2R-Play.ps1 puts behind the name), so a rename
 keeps the clan.
 """
-import json, math, random, struct, time, zlib
+import json, math, os, random, struct, time, zlib
 import clan_supply
 
 WEEKS = 12
@@ -66,6 +66,54 @@ EVENT_DAYS.update({15: ("attack", ATTACK_EARLY), 30: ("attack", ATTACK_EARLY), 3
 # faction of the clan (WLF replaces the Fireflies, Seraphites the Hunters). Marauder Attack is a growth event in the doc (repel them -> survivors join).
 GROWTH_NAMES = ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES", "MARAUDER ATTACK")
 EV_NONE, EV_GROWTH, EV_ATTACK = 0, 1, 2
+# (re/clan-events-1117.md): two more event STORIES on the 2013 calendar, ON by default. They move no number - the day, the mission tiers
+# and the casualty / growth percentages are those of the event they stand in for:
+#   INFECTED HORDE    a story attack told as a horde of infected (attack name 1): the casualties of that day's attack (30: ATTACK_EARLY, 65: ATTACK)
+#   SPOILED SUPPLIES  a growth event (growth name 5): 5 / 7 / 10 % like every growth event. It takes two of MARAUDER ATTACK's three days.
+# Off: tools/clan_events.txt whose first word is 0 / off / false / no (next to daemon.py), or env T2R_CLAN_NEW_EVENTS=0 -> the 2013 names on those days.
+HORDE_DAYS = (30, 65)
+SPOIL_DAYS = (45, 70)
+AN_ENEMY, AN_HORDE = 0, 1                  # attack names (the name id of an EV_ATTACK)
+GN_SPOIL = 5                               # growth name id of SPOILED SUPPLIES
+ATTACK_NAMES = ("ATTACK", "INFECTED HORDE")
+GROWTH_NAMES_ALL = GROWTH_NAMES + ("SPOILED SUPPLIES",)
+NEW_EVENTS_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clan_events.txt")
+_ne = {"mtime": None, "val": True}
+
+
+def new_events():
+    """The horde / spoiled supplies stories are told (default ON; the switch file is re-read when it changes; the env wins)."""
+    e = os.environ.get("T2R_CLAN_NEW_EVENTS")
+    if e is not None and e.strip():
+        return e.strip().lower() in ("1", "on", "true", "yes")
+    try:
+        m = os.path.getmtime(NEW_EVENTS_FILE)
+    except OSError:
+        return True
+    if _ne["mtime"] != m:
+        try:
+            with open(NEW_EVENTS_FILE, encoding="utf-8", errors="ignore") as f:
+                w = (f.read().split() or [""])[0].strip().lower()
+        except OSError:
+            w = ""
+        _ne.update(mtime=m, val=w not in ("0", "off", "false", "no"))
+    return _ne["val"]
+
+
+def attack_story(day):
+    """AN_HORDE / AN_ENEMY: the story of the attack that settled on day index `day` or the day before (a dead member's record keeps the day, not the story)."""
+    for d in (day, day - 1):
+        s = event_window(d)
+        if s >= 0 and EVENT_DAYS[s][0] == "attack":
+            return AN_HORDE if new_events() and s in HORDE_DAYS else AN_ENEMY
+    return AN_ENEMY
+
+
+def event_name(kind, name_id):
+    """The event's name in capitals (the update server view, logs)."""
+    if kind == EV_ATTACK:
+        return ATTACK_NAMES[name_id if 0 <= name_id < len(ATTACK_NAMES) else 0]
+    return GROWTH_NAMES_ALL[name_id % len(GROWTH_NAMES_ALL)] if kind == EV_GROWTH else ""
 rng = random.Random()             # tests replace it
 
 
@@ -80,7 +128,10 @@ def event_today(day):
     e = EVENT_DAYS.get(day)
     if not e:
         return EV_NONE, 0
-    return (EV_GROWTH, (day // 5) % len(GROWTH_NAMES)) if e[0] == "growth" else (EV_ATTACK, 0)
+    new = new_events()
+    if e[0] == "growth":
+        return EV_GROWTH, GN_SPOIL if new and day in SPOIL_DAYS else (day // 5) % len(GROWTH_NAMES)
+    return EV_ATTACK, AN_HORDE if new and day in HORDE_DAYS else AN_ENEMY
 
 
 def event_window(day):

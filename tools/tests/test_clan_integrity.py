@@ -2,7 +2,7 @@
 one) with invariants (no negative members, day +1 at most, mission left 0..3, progress >= 0, weeks_total, boosters 0..99, story roster = clan,
 feed ids / days in order), the match tag that tells a new result from the old one when a day does not count, the ext's mission counters
 and the daemon's second-report guard.   Run: python tools/tests/test_clan_integrity.py"""
-import os, random, socket, sqlite3, sys, tempfile, threading, time
+import os, random, re, socket, sqlite3, struct, sys, tempfile, threading, time
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))

@@ -92,7 +92,7 @@ def test_mesh_audio():
         asm = os.path.join(out, "mac.asm")
         subprocess.run([dcon, "-i", os.path.join(out, "mesh-audio-config.bin"), "-o", asm, "--no_decompile"], capture_output=True)
         txt = open(asm, errors="replace").read() if os.path.exists(asm) else ""
-        check("keys array" in txt and f"{{size: {len(m1)}}}" in txt, "dconstruct parses the grown map")
+        check(f"keys array" in txt and f"{{size: {len(m1)}}}" in txt, "dconstruct parses the grown map")
 
 
 # ---------------------------------------------------------------- 2. own foley (sp_parity.c)

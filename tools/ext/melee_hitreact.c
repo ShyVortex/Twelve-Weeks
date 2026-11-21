@@ -1,5 +1,5 @@
-// melee_hitreact.c - TLOU2's own melee hit reactions for a landed blow (melee must feel impactful: a short hit reaction taken from the game, not a random head snap, with a good blend back into whatever the controller is doing; while the victim's short impact reaction plays the
-// ATTACKER cannot swing again). Included after melee_pace.c in t2r-ext.c. Notes: re/melee-hitreact-1026.md. Log prefix "hitreact:". Opt-out: t2r-no-sp-hitreact.txt next to
+// melee_hitreact.c - TLOU2's own melee hit reactions for a landed blow (melee must feel impactful: a short hit reaction taken from the game, not a random head snap, with a good blend back into whatever the controller is trying to do;
+// while the victim's short impact reaction plays the attacker cannot swing again). Included after melee_pace.c in t2r-ext.c. Notes: re/melee-hitreact-1026.md. Log prefix "hitreact:". Opt-out: t2r-no-sp-hitreact.txt next to
 // the exe (re-read every 3 s): the old behaviour (additive upper-body flinch of feel.c + the command lock of melee_stagger.c) is back.
 //
 // Before: a blow that hurt a standing player played only the ADDITIVE upper-body gesture of feel.c (gesture-ellie-idle-ub-hr-<zone>-add, no root motion) and melee_stagger.c took
@@ -32,7 +32,7 @@ static uint8_t mhr_pain_bits(int str);
 static int mhr_pain_sharp(void);
 static const uint32_t MHR_CUT_MS[3] = {360, 440, 520};
 static const float MHR_CAP_M[3] = {0.32f, 0.42f, 0.52f};
-// SP push-back (hit reactions should feel like SP in animation, sound and fluidity; SP recording
+// SP push-back (it should feel like the SP animation, sound and fluidity; SP recording
 // re/sp-melee-1027): the victim of ONE landed punch is carried back ~0.4-1.0 m (clean single hits: head-front-c 0.88-1.03 m, hip-front-left-from-right 0.69 / 0.74 m,
 // chest-front-horizontal 0.43 / 0.50 m, a lone left jab only 0.01-0.08 m; peak 1.9-3.9 m/s) while the reaction lasts ~1.2 s, then walks on. The MP control lock stays
 // the short cut above (fairness: MHS_* in melee_stagger.c untouched); the rest of the push is an ADDITIVE shove on top of whatever the stick does, easing out over
@@ -76,7 +76,7 @@ static struct {
     float ys[8]; uint64_t yt[8]; int yi;                                      // our root height, sampled every tick (vertical motion = ladder / mantle / jump / fall)
     double t0q;     // psync_ms() at t0 (the pin path's clock)
 } g_mhr;
-// (7 fist blows on a passive bat holder: 'hitreact: SP reaction ... cut after 360 ms' + 'reaction over after 375 ms (impact part over) ...
+// ps25 (a hand-played clip, 7 fist blows on a passive bat holder: B.log 'hitreact: SP reaction ... cut after 360 ms' + 'reaction over after 375 ms (impact part over) ...
 // clip blended out over 0.45 s' on every blow, knock-back 'capped 0.32 m'; SP re/sp-melee-spec-1110.md 2 / 7: a reaction runs until the next hit or its own end
 // 616-1383 ms, control loss 631-1413 ms, knock-back 0.15 / 0.27 / 0.40 / 0.62 m at 100 / 200 / 300 / 500 ms): the reaction has two parts. Up to its EXIT POINT
 // (cut_ms, unchanged: 360 / 440 / 520 ms) the controls are locked - mhr_running() is that part only, so the stagger lock, the holster hold and the pin veto last
@@ -109,19 +109,19 @@ static void mhr_stop(uint64_t ent, uint64_t sid, float blend) {
     uint64_t a[5] = {ent, ANIM_LAYER, 0, sid, 0}; memcpy(&a[2], &blend, 4);
     dc_call(fnv64("stop-animating"), 5, a);
 }
-// ---- the weapon hold is released for the reaction (the bat stays in a two-hand grip through every reaction,
+// ---- ps25 (1): the weapon hold is released for the reaction (a clip 2.3-5.5 s, both windows: the bat stays in a two-hand grip through every reaction,
 // the arms never open; SP: the hit enemy holds its weapon in ONE hand and both arms fling out - npc-1h-hr-* even for a 2h-blunt holder). Our reaction is a clip on the
-// base layer; the player's anim control also runs the layers WeaponPartial / WeaponPartialAlt ('uc4 own: anim layers (64): ... db55d7d8c61fcf45
+// base layer; the player's anim control also runs the layers WeaponPartial / WeaponPartialAlt (B.log [40091] 'uc4 own: anim layers (64): ... db55d7d8c61fcf45
 // fb872a70daf7adfe ...' = sid WeaponPartialAlt / WeaponPartial, tools/sid.py) ABOVE it - the weapon's hold pose (both arms for a two-handed item) stays layered over
 // every reaction clip. For the reaction those layers are faded to 1 % with the engine's own layer fade (the fields uc4_gik_restore / the prone ground-IK pin in
-// t2r-ext.c write: +0x2c timer, +0x30 length, +0x34 start, +0x48 target; never 0 - a blend of exactly 0 drops the layer's state, see the crash note there) and faded
+// t2r-ext.c write: +0x2c timer, +0x30 length, +0x34 start, +0x48 target; never 0 - a blend of exactly 0 drops the layer's state, crash note there) and faded
 // back when the reaction is over. The same on a puppet that plays a reaction clip (its own anim control, when it has those layers - the log line lists the
 // puppet's layer sids so the next recording names its hold layer if it is another one). NOT proven in game: that WeaponPartial is the layer that carries the
 // two-hand grip is read from its name + the layer list, no recording shows it faded yet. t2r-hr-weapon-partial-ps24.txt = the layers are left alone.
 #define MHR_WP_FADE_S 0.10f            // [TUNING ps25] fade of the hold layers at the reaction start (the reaction clip's own blend-in is 0.06-0.10 s)
 #define MHR_WP_BACK_S 0.25f            // [TUNING ps25] fade back when the reaction is over
 static const uint64_t MHR_WP_SIDS[3] = {0xfb872a70daf7adfeULL /* WeaponPartial */, 0xdb55d7d8c61fcf45ULL /* WeaponPartialAlt */, 0};
-// (the attacker's screen: 'hitreact: puppet slot 0 weapon hold for its reaction - 0 WeaponPartial / WeaponPartialAlt layer(s) ... -1.00 / -1.00 ...
+// ps29 (uc4, the attacker's screen, B.log: 'hitreact: puppet slot 0 weapon hold for its reaction - 0 WeaponPartial / WeaponPartialAlt layer(s) ... -1.00 / -1.00 ...
 // its anim layers: 81b46a69304ee2c9 ... 9da0551daebb873 932f90f311514ea0 27756a2441539c7c ... 76add18493720b5 ...' = hands, facial-base, speech-layer, blink, base,
 // idle-randomness, melee-partial, weapon-additive, melee-hands, stairs, weapon-partial, facial-partial, hit-reaction-partial, hit-reaction-partial-override,
 // hit-reaction-additive, gesture-1, gesture-2 (tools/sid.py): the puppet is an NPC-class body with the NPC's layer set - no WeaponPartial; its weapon hold sits in
@@ -132,12 +132,12 @@ typedef struct { uint8_t *ly[3]; float w[3]; int on; uint64_t until, ent; const 
 static mhr_wp_t g_mhr_wp, g_mhr_wpp[T2R_MAX_PEERS];
 static uint64_t mdu_vic_melee(int s);                   // melee_duel.c: the melee item in a peer's hand, 0 = none
 static int mhr_wp_old(void) { static int off = -1; static uint64_t at; return feel_flag("t2r-hr-weapon-partial-ps24.txt", &at, &off, 180); }
-// ---- (the generic reactions were wrong: hitting a player without a response should
-// feel exactly like hitting an NPC in No Return when they do not parry): an ARMED duel victim takes the blow as the synced -hit pair again (melee_duel.c mdu_armed_pairs,
-// default on), with the weapon kept in ONE hand through the victim half on every screen. SP (a recorded SP clip, a hammer holder punched
+// ---- ps30 (after hand-playing ps29 the reactions were not the right ones; hitting B as A without B responding should
+// feel exactly like hitting an NPC in no return when they don't parry"): an ARMED duel victim takes the blow as the synced -hit pair again (melee_duel.c mdu_armed_pairs,
+// default on), with the weapon kept in ONE hand through the victim half on every screen. SP (a recording 20.9-22.0 s, a hammer holder punched
 // by Abby; melee-cur.log F=121948: the machete NPC's own move is 'fist-light-attack-1-hit' = it IS the pair's defender; game data re/melee-dc: defender_weapons mask 0x1 =
 // any, no weapon / hand flag on the move): the victim half <swing>-hit--npc-f plays on the armed enemy, the weapon stays gripped in the main hand, both arms fling.
-// What the layer logs show (tools/sid.py on the tables of 'uc4 own: anim layers' / 'hitreact: puppet slot ... its anim layers', test logs):
+// What the layer logs show (tools/sid.py on the tables of 'uc4 own: anim layers' / 'hitreact: puppet slot ... its anim layers', A/B logs):
 //   OUR body:   backpack-bindpose, Face, Hands (a STATE layer, weight 1, one instance: 'psync layers ... own victim' L2 t2 f1.00 n1), breath, braid-collider, hands (simple,
 //               empty), facial-base, CharacterSpeech, blink, base, gesture-1 / -2, WeaponPartial (state layer, target 1.00 with a melee item: 'weapon hold released ...
 //               before 1.00'), WeaponPartialAlt, FireAnim0, BandagePartial.
@@ -148,10 +148,10 @@ static int mhr_wp_old(void) { static int off = -1; static uint64_t at; return fe
 // weapon-partial). INFERRED from the names + those weights, not seen in a recording: Hands / hands / melee-hands = the grip of the fingers, WeaponPartial / weapon-partial
 // (/ melee-partial) = the arms' carry / two-hand hold. For the pair half: the finger layers are never touched (full weight above the half), the arm hold fades to 1 % (both
 // arms follow the half: the off hand of a two-handed item lets go, the weapon stays attached to the main hand's joint) and comes back when the half is over.
-// The put-away ("the right hand opens flat with the 2x4 lying across the palm, swings low by the hip, then grips it again") fits the engine's begin-holster, not the
+// The put-away seen in a recording (the right hand opens flat with the 2x4 lying across the palm, swings low by the hip, then grips it again) fits the engine's begin-holster, not the
 // clip: PlayerWeaponState::BeginHolster swaps the weapon overlay to s_weapon-holster = the put-away ARM clip (t2r-ext.c pbegin_hook notes), while the item itself never
 // left the hand because the holster anim actions / state requests of a victim half are refused ("stow fix: ... not begun (victim half)") - the arms mimed a put-away around
-// an item that stayed. begin-holster was gated for the attacker half, the finisher windup and our generic reaction (exe+2c4c8d on the reaction's first
+// an item that stayed. begin-holster was gated for the attacker half, the finisher windup and our generic reaction (v5-dis3: B 36833, exe+2c4c8d on the reaction's first
 // frame), never for the victim half. NOT proven for the victim half by a log (nothing logged an unskipped begin-holster): the END line counts the skips, 0 = this guess
 // was wrong and the open palm is the clip's own hand pose.
 // One switch file per sub-change (re-read every 2 s):
@@ -268,7 +268,7 @@ static void mhr_wp_pup_begin(uint32_t slot, uint64_t ent, uint64_t keep_ms) {
     uint64_t now = GetTickCount64();
     if (p->on && p->ent == ent) { p->until = now + keep_ms; return; }     // the next blow's reaction: still released
     uint8_t *obj = ob_proc(ent);
-    // SP's hit enemy keeps its weapon GRIPPED through a generic reaction too (npc-1h-hr-* on a 2h-blunt holder: one hand on the weapon, arms flung) - the
+    // ps30: SP's hit enemy keeps its weapon GRIPPED through a generic reaction too (npc-1h-hr-* on a 2h-blunt holder: one hand on the weapon, arms flung) - the
     // finger layer melee-hands is not faded any more, only the arm hold weapon-partial / melee-partial (inferred from the layer names). t2r-ps30-hr-hands-fade.txt = ps29.
     float was[3]; p->sids = p30_hr_hands_fade() ? MHR_WP_PUP_SIDS : MHR_WP_PUP_ARM_SIDS; int n = mhr_wp_begin(p, obj, was);
     p->ent = ent; p->until = now + keep_ms;
@@ -444,14 +444,14 @@ static uint64_t mhr_exit_ms_of(uint64_t sid, uint64_t cut) {
     return ex > cut ? ex : cut;
 }
 static void dtl_react_over(uint32_t slot, uint64_t sid);   // melee_duel_tl.c
-// ---- the reaction BY THE ATTACKER'S MOVE, from SP. Every npc-standing-hit-reaction MSTART of the SP melee run (melee-prev.log + melee-cur.log,
-// 102 reactions on the frame of the player's <move>-hit), per player move: the reactions SP played with their counts. (MP punch 3 played
-// ellie-1h-hr-right-horizontal-a - which SP plays for punch 4 (4 of 6); SP's punch 3 is rt-ft-chest-front-horizontal-a / head-front-a (4 + 4 of 10);
+// ---- ps25 (2): the reaction BY THE ATTACKER'S MOVE, from SP. Every npc-standing-hit-reaction MSTART of the SP melee run (melee-prev.log + melee-cur.log,
+// 102 reactions on the frame of the player's <move>-hit), per player move: the reactions SP played with their counts. (a recording: MP punch 3 played
+// ellie-1h-hr-right-horizontal-a - B.log [39696] - which SP plays for punch 4 (4 of 6); SP's punch 3 is rt-ft-chest-front-horizontal-a / head-front-a (4 + 4 of 10);
 // the old pick took the directional pool by where the attacker stood, 'from the right' on all 7 blows.) The pick stays inside the move's set: a blow from the
 // front arc takes its front members, from behind its back members (none = the old directional pool), from a side the members named for that side
 // (-from-left / -from-right, else the zone name left- / right- / head-left / head-right; none = the front members), weighted by SP's counts, no clip twice in a row.
-// A move SP has no sample of keeps the old pick. t2r-hr-pick-ps24.txt = the old pick (the earlier three-move table + wrist + directional pool).
-// ---- (the reactions were wrong). What the frames
+// A move SP has no sample of keeps the old pick. t2r-hr-pick-ps24.txt = the old pick (three-move table + wrist + directional pool).
+// ---- ps29 (a recording). What the frames
 // show on the bat holder: after each punch it rears up with the bat over its head in both hands, then stumbles bent double with its head near the ground, 0.9-1.3 m
 // per blow (A.log 'reaction over after 750 / 719 / 812 / 1188 ms ... moved 1.05 / 0.92 / 1.30 / 1.25 m'); SP's hit enemy stays upright, facing the player, arms
 // flung, and is knocked 0.15 / 0.27 / 0.40 / 0.62 m at 100 / 200 / 300 / 500 ms (re/sp-melee-spec-1110.md 2). Causes, each from the code + logs:
@@ -468,12 +468,12 @@ static void dtl_react_over(uint32_t slot, uint64_t sid);   // melee_duel_tl.c
 // (c) THE ONSET. mhr_animate floors every blend at MEL_MIN_BLEND 0.10 s, so 'blend in 0.06 s' was 0.10 s; SP's hit enemy changes pose on the contact frame. An NPC
 //     reaction clip starts over MEL_HIT_BLEND (2 frames), like the -hit halves. t2r-hr-blend-ps28.txt = 0.10 s.
 #define MHR_TURN_DEG_F 15.0f           // [TUNING ps29] deg per frame of the victim's turn (SP: median 10.3, p90 28.7 deg/frame over the first 6 frames)
-// (a blow from behind over 90 deg = SP back reaction clip, then the victim turns around to face the attacker after it): the
-// attacker more than MHR_BACK44_DEG off our facing = the BACK reaction - SP's back set of the attacker's move (mhr_sp_pick at 180 deg: clips named
+// ps44 T9 (a blow from behind over 90 deg = the SP back reaction clip, then the victim turns around to face the attacker after it - as long as they
+// turn around after): the attacker more than MHR_BACK44_DEG off our facing = the BACK reaction - SP's back set of the attacker's move (mhr_sp_pick at 180 deg: clips named
 // back / hip-back / back-*-shoulder / head-back-center, weighted by SP's counts), none in the move's set = the directional pool's 'behind' row (dir 1); the clip plays
 // with our facing kept (its own root path carries the body forward, away from the blow; no ps29 turn first). At the control return (the exit point) our body turns to
 // face the attacker through the same hitreact.pin write, at most MHR_BACK44_TURN_F deg a frame (no snap); the clip's own exit waits for that turn (inputs still end it).
-// melee_duel.c sends such a blow PLAIN (MDUO_PLAIN) instead of the -hit pair that turned the victim 170 deg in 2 frames. t2r-hr-back-ps44-old.txt = old (re-read every 2 s).
+// melee_duel.c sends such a blow PLAIN (MDUO_PLAIN) instead of the -hit pair that turned the victim 170 deg in 2 frames (ps40 D10). t2r-hr-back-ps44-old.txt = old (re-read every 2 s).
 #define MHR_BACK44_DEG 90.0f           // over 90 deg from the victim's facing
 #define MHR_BACK44_TURN_F 10.3f        // SP's median turn of a hit enemy toward the player (re/sp-melee-spec-1110.md: 10.3 deg/frame); it is used AFTER the reaction
 static int mhr_back44_off(void) { static int off = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (off < 0 || n - at > 2000) { at = n; off = GetFileAttributesA("t2r-hr-back-ps44-old.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
@@ -483,8 +483,8 @@ static const MhrRm MHR_RM_SPNPC = {0, 1.15f, 0.45f, 0.57f, 24, {0}, {0, -8, -15,
 static int mhr_turn_old(void) { static int off = -1; static uint64_t at; return feel_flag("t2r-hr-turn-ps28.txt", &at, &off, 180); }
 static uint64_t mhr_npc_sid_of(int k) { static uint64_t h[MHR_POOL_N]; if (k < 0 || k >= MHR_POOL_N) return 0; if (!h[k]) { char b[96]; snprintf(b, sizeof b, "npc-1h-hr-%s", MHR_POOL[k].n); h[k] = fnv64_rt(b); } return h[k]; }
 static int mhr_npc_sid(uint64_t sid) { for (int k = 0; k < MHR_POOL_N; k++) if (mhr_npc_sid_of(k) == sid) return 1; return 0; }
-// (a kick into a wall should trigger a wall reaction, acting like any other hit reaction;
-// logs: 'WALL 0.30 m behind the victim', 'recoil path checked - pinned 0.10 m of 0.56 m planned' = the
+// ps48 (a kick should trigger a wall reaction (TLOU2 has animations for an NPC kicked into a wall),
+// and it should act like any other hit reaction; rec48 B [14137] 'WALL 0.30 m behind the victim', A [15000] 'recoil path checked - pinned 0.10 m of 0.56 m planned' = the
 // kick's reaction ran into the wall and stopped dead): when a KICK's reaction recoil is cut short by a WALL (not a ledge / step), the reaction becomes TLOU2's own
 // single-body wall impact (names from the game's sidbase: npc-m-nw-idle-wall-bump-hr-fw-chest, npc-wall-push-a01-impact-hr, wall-knock-stand-l-nw, being-pushed-
 // high-wall-fw - the first one loaded in MP), plus the body-on-wall impact sound. Same control return, same lock, same message to the other screens (MSG_HITREACT2).
@@ -607,7 +607,7 @@ static void mhr_end(const char *why, int release) {
     uint64_t now = GetTickCount64();
     float lb[16]; const float *l = uc4_my_loc(lb);
     float moved = l ? __builtin_sqrtf((l[0] - g_mhr.from[0]) * (l[0] - g_mhr.from[0]) + (l[2] - g_mhr.from[2]) * (l[2] - g_mhr.from[2])) : 0.0f;
-    // ('reaction over after 500 ms (a dodge owns the body) ... clip blended out over 0.45 s': the last blow's reaction clip faded for
+    // ps35 (uc5 B [16261] 'reaction over after 500 ms (a dodge owns the body) ... clip blended out over 0.45 s': the last blow's reaction clip faded for
     // 0.45 s UNDER the dodge clip, so the first half of the dodge still showed a hit pose). SP: the dodge takes the body over its own fade-in, 11 frames
     // (re/sp-melee-spec-1110.md 6) - the reaction leaves over the same 0.183 s. t2r-react-dodge-blend-ps34.txt = the reaction's own blend-out.
     if (release && why && !strcmp(why, "a dodge owns the body") && g_mhr.blend_out > 0.183f && GetFileAttributesA("t2r-react-dodge-blend-ps34.txt") == INVALID_FILE_ATTRIBUTES) g_mhr.blend_out = 0.183f;
@@ -664,7 +664,7 @@ static int mhr_victim_start(uint32_t slot, uint64_t w, float dmg, uint64_t *ms) 
         if (!mhr_back44_off() && (ang44 > MHR_BACK44_DEG || ang44 < -MHR_BACK44_DEG)) { back44 = 1; if (dir != 1) { static int nd; if (LOGCAP(nd, 40)) xlog("hitreact: ps44 back blow from %+.0f deg - the 'behind' row (dir_around said %s)", (double)ang44, MHR_DIRN[dir]); } dir = 1; }
     }
     { int fl = mdu_plain_str(slot); if (fl > str) { str = fl; used = str; } }   // v5-var: a plain duel blow - SP's combo 3 / 4 blows hit harder (medium / heavy reaction)
-    // The character winced in the wrong direction of the punch: the reaction follows WHERE the blow landed - the attacker's striking wrist
+    // the reaction follows WHERE the blow landed - the attacker's striking wrist
     // (the one nearer our head at the hit) in our own frame: at head height a head reaction toward the side it came from (head-left / head-right / head-front),
     // lower down the body pool with its from-left / from-right taken from the wrist instead of the announced (often guessed) hand.
     int k = -1; char why[96] = "";
@@ -701,7 +701,7 @@ static int mhr_victim_start(uint32_t slot, uint64_t w, float dmg, uint64_t *ms) 
             int fistw = mhr_fist_w(w);
             const char *const *L = NULL; int nL = 0;
             if (head) { if (lat > 0.10f) { L = HL; nL = 1; } else if (lat < -0.10f) { L = HR; nL = 2; } else if (fistw) { L = HFC; nL = 1; } else { L = HF; nL = 4; } }
-            // v5-hrside (stomach punches played to the left; B 18518: a right-hand gut punch 0.17 m left of our head played
+            // v5-hrside (a recording: stomach punches played to the left; B 18518: a right-hand gut punch 0.17 m left of our head played
             // rt-ft-chest-front-horizontal-a, whose recoil steps off to the side): the rt-ft variant only for a blow from our right. t2r-hr-chest-both.txt = old.
             else if (fistw && wp[1] >= pv[1] + 0.12f) { L = CH; nL = from_left && GetFileAttributesA("t2r-hr-chest-both.txt") == INVALID_FILE_ATTRIBUTES ? 1 : 2; }
             if (L) {
@@ -792,7 +792,7 @@ static int mhr_victim_start(uint32_t slot, uint64_t w, float dmg, uint64_t *ms) 
                                                          (unsigned long long)cut, (unsigned long long)exit_ms, (double)wd, (double)target); }
     return 1;
 }
-// ---- the victim's pain grunt (MP melee felt empty without SP's pain effect). SP, every standing
+// ---- the victim's pain grunt (MP melee had no pain effect). SP, every standing
 // melee hit on Ellie (t2r-sp.log): the hit reaction + voice-effect vox-eff-gen-fight-take-med (heavier: -take-lrg) + a pain face. Here the grunt, through `say`
 // on the hurt body: the victim on its own body when it judges the blow, everybody else on its puppet from MSG_HITREACT2 bit2 (bits 3-4 = strength 0..2;
 // an old client ignores them). Not for downs / deaths / pairs (their own voices). t2r-no-melee-pain-vox.txt = off.
@@ -819,7 +819,7 @@ static void mhr_pain_say(uint32_t who, uint64_t ent, int str, int sharp) {     /
     dm_say(ent, ev, VXE_PAIN);
     if (LOGCAP(nl, 60)) xlog("hitreact: pain grunt %s on %s", ev, who == T2R_MAX_PEERS ? "us" : "a puppet");
 }
-// Many hits played no sounds, neither for the victim nor for bystanders: winmm's fist hit list is muted (g_hit_sfx_fist_net) and only the
+// (many hits played no sound, for the attacker and for bystanders): winmm's fist hit list is muted (g_hit_sfx_fist_net) and only the
 // ATTACKER played a punch, ~340 ms late, on the victim's confirmation - the victim and every bystander heard nothing. Now: the attacker plays it at the
 // contact (unless the victim's dodge press already arrived), the victim on its own head when the blow lands, bystanders on MSG_HITREACT2 bit 0x40
 // (= a fist blow landed; an old client never sets it). t2r-punch-sfx-old.txt = the old attacker-only confirmation path.
@@ -832,7 +832,7 @@ static uint64_t mhr_punch_at(uint64_t ent, int str, const char *who) {
     if (!ent || ent == ~0ULL) return 0;
     if (!g_mhr_punch_thud && mdu_owns_punch(ent)) return 1;   // the duel's thud + this one's random (often flammy, "slappy") wave doubled up
     const char *pn = PN[str < 0 ? 0 : str > 2 ? 2 : str];
-    // Punches sometimes missed sounds in sequences: every blow of a combo played the SAME event on the SAME head joint, and the
+    // (punches in sequences sometimes missed sounds): every blow of a combo played the SAME event on the SAME head joint, and the
     // sound engine keeps one instance of an event per emitter - the next blow inside the last one's tail was swallowed (the log showed each call).
     // A blow on a head that took a punch in the last 1.5 s alternates to TLOU2's breaker variant (sfx-unarmed-breaker-face-skin, the counter's layer).
     // t2r-punch-sfx-same.txt = always the same event.
@@ -841,8 +841,8 @@ static uint64_t mhr_punch_at(uint64_t ent, int str, const char *who) {
     if (!same && str < 2 && ent == last_ent && now_ - last_ms < 1500) { alt ^= 1; if (alt) pn = "sfx-unarmed-breaker-face-skin"; } else alt = 0;
     last_ent = ent; last_ms = now_;
     static int nl;
-    // The sfx-unarmed-* events return a handle but are SILENT in MP (their layers are
-    // not loaded - same finding as the execution punches, t2r-ext.c exec sfx). Every landed fist blow (exchange blows, sequence hits,
+    // (muted hits in recordings): the sfx-unarmed-* events return a handle but are SILENT in MP (their layers are
+    // not loaded - same finding as the execution punches t2r-ext.c exec sfx). Every landed fist blow (exchange blows, sequence hits,
     // bystanders, the victim's own head) logged a handle and the recording had no sound there; only the dodge counter's PCM punch was heard.
     // Default now: the ripped TLOU2 punch waves through our PCM mixer, like the counter / executions. t2r-native-punch-hit.txt = the native events.
     static int nat = -1; static uint64_t nat_chk;
@@ -881,7 +881,7 @@ static void mhr_victim_none(uint32_t slot) { mhr_victim_none2(slot, 0); }
 // feel.c hrx_victim_hit: this melee blow is covered by the SP reaction (running, or inside its 1.0 s grazing window): no additive flinch on top
 static int mhr_covers_blow(void) {
     if (mhr_off()) return 0;
-    // A 2nd blow 550 ms after the first landed after the SP clip was cut (453 ms) but inside
+    // (a recording of constantly getting hit looked janky): a 2nd blow 550 ms after the first landed after the SP clip was cut (453 ms) but inside
     // the 1 s graze window - it showed NOTHING (no clip, no flinch, no grunt). Now only a clip that is really playing covers a blow; otherwise the additive flinch plays.
     return g_mhr.on;
 }
@@ -898,7 +898,7 @@ static void mhr_shove_tick(uint64_t now) {
     else if (busy) why = busy;
     else if (mhr_off() || mhr_push_off()) why = "opt-out";
     else if (g_mdg.cmb_on || g_md_fb.on) why = "a dodge owns the body";
-    // ('YAW SNAP 113 deg ... writers: hitreact.shove', 59 deg, 48 deg - each on the first frame of our own duel
+    // ps23 (rec13 A [17313] 'YAW SNAP 113 deg ... writers: hitreact.shove', B [12890] 59 deg, B [15930] 48 deg - each on the first frame of our own duel
     // swing: the push-back writes the position with the yaw the engine left, so it carried the engine's swing-start snap, and its step ran beside the swing's
     // placement): our duel swing places the body from its first frame - the push-back ends there. t2r-shove-in-swing-old.txt = it runs on.
     else if (mdu_warp_owns() && GetFileAttributesA("t2r-shove-in-swing-old.txt") == INVALID_FILE_ATTRIBUTES) why = "our duel swing places the body";
@@ -945,7 +945,7 @@ static void mhr_tick(void) {
     if (mhr_off()) { mhr_end("opt-out", 1); return; }
     const char *busy = mdg_busy();
     if (busy) { mhr_end(busy, 1); return; }
-    // (a reaction pin and a dodge pin both wrote our body for 22 frames - 'hitreact.pin + dodge.pin: 55 frames' in the motion table - SNAP 0.24-0.97 m,
+    // (me-match [46310]-[46350]: a reaction pin and a dodge pin both wrote our body for 22 frames - 'hitreact.pin + dodge.pin: 55 frames' in the motion table - SNAP 0.24-0.97 m,
     // YAW SNAP +-46-49, the snap-cross check teleporting back every other frame): a running dodge pin owns the body, the reaction's absolute path stops writing it (the shove already did).
     // t2r-react-dodge-old.txt = both write.
     if (g_md_fb.on && g_md_fb.pin) {
@@ -1081,7 +1081,7 @@ static void mhr_puppet_play_age(uint32_t slot, uint64_t sid, uint32_t cut_ms, fl
     uint64_t now = GetTickCount64(), kx = mhr_exit_ms_of(sid, cut_ms), keep = kx > (uint64_t)age ? kx - (uint64_t)age : 60;   // ps25: the clip stays to its exit (the victim's 0x80 notice ends it earlier)
     g_mhr.pd[slot].ent = ent; g_mhr.pd[slot].sid = sid; g_mhr.pd[slot].end = now + keep;
     mhr_wp_pup_begin(slot, ent, keep);
-    // (A's swing was cut by our blow, yet B's dodge window for it opened 500 ms later and the bot hopped 0.62 m at
+    // (A/B recording review 143.6-144.5 s: A's swing was cut by our blow, yet B's dodge window for it opened 500 ms later and the bot hopped 0.62 m at
     // nothing): a puppet that plays a hit reaction has no swing coming any more - its pending swing window is closed (landed).
     if (slot < T2R_MAX_PEERS && g_mdg.sw[slot].ms) g_mdg.sw[slot].landed_ms = GetTickCount64();
     static int nl2; if (LOGCAP(nl2, 60)) xlog("hitreact: puppet slot %u plays reaction clip %llx at phase %.2f (age %.0f ms), cut in %llu ms -> %llx", slot, (unsigned long long)sid, (double)ph, (double)age, (unsigned long long)keep, (unsigned long long)r);
@@ -1111,7 +1111,7 @@ static void mhr_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
         static int nl; if (LOGCAP(nl, 80)) xlog("hitreact: victim slot %u %s - our next swing start %s (%lld ms from now)", slot, react ? "reacts" : "does not react", react ? "waits for its impact part" : "is free", (long long)(until > now ? until - now : 0));
         g_mhr.atk.ms = 0;
     }
-    // Punch sounds are disabled when a dodge is detected (they still played if the fist contacted the body despite the dodge). winmm's local fist hit
+    // winmm's local fist hit
     // list is silent (melee_hit_sfx_swap, g_hit_sfx_fist_net); our punch plays here when the victim confirms the blow landed (reaction / bit1), at its head
     if ((react || (buf[0] & 2)) && g_hit_sfx_fist_net && g_mhr.snd.ms && g_mhr.snd.slot == slot && now - g_mhr.snd.ms < 900) {
         uint64_t ent = puppet_handle(slot);
@@ -1165,7 +1165,7 @@ static void mhr_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
     if (buf[0] & 4) mhr_pain_say(slot, puppet_handle(slot), (buf[0] >> 3) & 3, (buf[0] & 0x20) != 0);
     if (react) mhr_puppet_play(slot, sid, c16);
 }
-// ---- client-side prediction, attacker side (melee sequences made more client-side, visually and audibly; live log: our contact 36619,
+// ---- client-side prediction, attacker side (melee sequences should be more client-side, visually and audibly; log: our contact 36619,
 // the victim's reaction on its puppet 36641 = ~230 ms of a puppet standing still after the fist connected, and the blade / blunt cut waited the same round trip).
 // At our contact the victim's reaction clip (the pick the victim makes: where we stand around it, the blow's strength), its pain grunt and our blade / blunt cut play
 // MHR_PRED_GRACE_MS later on our screen - unless its dodge is known by then. The victim's MSG_HITREACT2 confirms (cut timing) or undoes (blend out) it.
@@ -1221,7 +1221,7 @@ static void mhr_pred_tick(uint64_t now) {
         g_bfx_pend.ms = 0;
     }
 }
-// ---- the attacker glides WITH the victim (on a successful hit the attacker glides WITH the movement of the victim, so if they are walking
+// ---- the attacker glides WITH the victim (on a successful hit the attacker should glide WITH the movement of the victim, so if the victim is walking
 // away the punch still visually connects on the face). Our own body, from our swing's start until the contact (MHG_PRE_MS): every frame it moves by the target's
 // own motion (its locator delta), and a gap over MHG_REACH closes at up to MHG_CLOSE m/s (SP's melee magnetism). After a confirmed blow it keeps following the
 // victim's recoil for MHG_POST_MS, fading out, so the fist stays on the face while the reaction plays. Not during a dodge of that target, paired moves, downs.
@@ -1254,8 +1254,8 @@ static void mhg_tick(void) {
     float mb[16]; const float *ml = uc4_my_loc(mb);
     int pre = g_ms_atk && g_mdg.my_swing_ms && now - g_mdg.my_swing_ms < MHG_PRE_MS; if (pre && mdu_warp_owns()) pre = 0;   // the duel warp places us until the contact
     int post = g_mhr.atk.ms && now - g_mhr.atk.ms < MHG_POST_MS;
-    // ('glide with slot 1 (our swing to the contact) ... we moved 1.43 m with it', [17443]-[17464] 1.10 m, both AFTER the duel's
-    // contact - the swing was 485 ms long, MHG_PRE_MS is 650 - while the duel's plain-blow rule held the same body in place; 0.81 m in another recording): inside a duel
+    // ps23 (rec13 A [17392]-[17413] 'glide with slot 1 (our swing to the contact) ... we moved 1.43 m with it', [17443]-[17464] 1.10 m, both AFTER the duel's
+    // contact - the swing was 485 ms long, MHG_PRE_MS is 650 - while the duel's plain-blow rule held the same body in place; rec11 40.713 B 0.81 m): inside a duel
     // the duel places our body (the warp to the contact, then the -hit pair or the plain blow's in-place rule) - no glide. t2r-duel-glide-ps22.txt = the glide runs.
     {   static int dg = -1; static uint64_t dgat; if (dg < 0 || now - dgat > 3000) { dgat = now; dg = GetFileAttributesA("t2r-duel-glide-ps22.txt") != INVALID_FILE_ATTRIBUTES; }
         if (!dg && mdu_engaged()) pre = post = 0; }

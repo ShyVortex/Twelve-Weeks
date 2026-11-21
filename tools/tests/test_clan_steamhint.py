@@ -1,6 +1,6 @@
 """Daemon clan reads with the launcher's steamid hint (ops 0xE0 / 0xE8 + optional 8-byte steamid). Scratch DB, no listener.
 Run: python tools/tests/test_clan_steamhint.py"""
-import os, struct, sys, tempfile
+import os, sqlite3, struct, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))

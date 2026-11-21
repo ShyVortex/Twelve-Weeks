@@ -25,7 +25,7 @@ t0, t1 = daemon.split_teams(q, {}, sk, set(), daemon.rule_groups(q))
 sides = [set(t0), set(t1)]
 check(any({"Player Two", "PlayerThree"} <= x for x in sides) and any("PlayerOne" in x for x in sides) and not any({"PlayerOne", "PlayerThree"} <= x for x in sides), "formation: PlayerTwo+jas together, apart from Brandon")
 rg = daemon.rule_groups(["PlayerOne", "Player Two", "PlayerThree"])
-check(daemon.rule_team_for("PlayerThree", {"PlayerOne": 0, "Player Two": 1}, rg)[0] == 1, "joiner -> Player Two's team")
+check(daemon.rule_team_for("PlayerThree", {"PlayerOne": 0, "Player Two": 1}, rg)[0] == 1, "joiner -> PlayerTwo's team")
 check(daemon.rule_team_for("PlayerThree", {"PlayerOne": 1, "Player Two": 1}, rg)[0] == 1, "together beats apart when both name the same team")
 check(daemon.rule_team_for("PlayerThree", {"PlayerOne": 0}, rg)[0] == 1, "apart only -> other team")
 check(daemon.rule_team_for("PlayerThree", {}, rg)[0] is None, "no rule players -> balance")

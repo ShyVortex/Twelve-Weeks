@@ -1,8 +1,8 @@
-// Execution begging: begging for life voicelines (with adrenaline, not quiet normal begging, more like NO PLEASE! or NOO!) as
-// characters are about to get shot in special executions, interrupted by the shot. In animations where the victim is shot multiple
-// times, the begging can start before the first shot and be interrupted, with the sounds of how a voice sounds when somebody is
-// shot multiple times while talking, and then stay quiet on the death shot.
-// The first (PCM mixer) version sounded 2D and unlike the real vox, the mouths did not move and it did not use the language vox, so this
+// Execution begging: "begging for life voicelines (but with adrenaline, not quiet normal begging, more like NO PLEASE! or NOO!) as
+// characters are about to get shot in special executions, make that get interrupted by the shot. In animations where the victim is shot multiple
+// times, you can start begging before the first shot and then have them get interrupted but also do sounds of how a voice sounds when somebody is
+// shot multiple times while talking, and then stay quiet on the death shot."
+// A/B verdict on the first (PCM mixer) version: "2dish, way different than actual vox, enemies dont move their mouths, doesnt use polish vox" -> this
 // version goes through the ENGINE's speech path like every other character line (team callouts, burn screams, reload callouts):
 //   start : `say(character, vox-info record, 2, 0)` on the victim's body (SID_PLAYER on our own screen, the puppet elsewhere). The records
 //           t2r-vox-beg-<voice>-<kind>-NN live in the mod's vox-igc-greenlight module (vox_lines.py genbeg -> vox_beg.h, dc_data_patches.patch_vox_beg) and
@@ -83,14 +83,14 @@ static int eb_voice(uint64_t ent, int *fac, int *g, int *v, char *desc, size_t d
         look = fl_core_shown(&g_fl, slot, &team); *fac = vx_fac_of_slot(slot, &why); fem = slot_female(slot); eb_vslot = slot;
     }
     if ((*fac != 0 && *fac != 1) || look < 0) { snprintf(desc, dn, "faction %d / look %d not known", *fac, look); return 0; }
-    *g = fem ? 1 : 0; *v = vx_voice_of_look(*fac, look);
+    *g = fem ? 1 : 0; *v = vx_voice_of_body(ent == SID_PLAYER ? T2R_US : (int)eb_vslot, *fac, look);
     snprintf(desc, dn, "%s %s voice %c", *fac ? "WLF" : "Seraphite", fem ? "female" : "male", 'a' + *v);
     return 1;
 }
 // a record of kind `kind` (0 plea, 1 / 2 / 3 hit grunt) of the voice set with a stream in the voice language (never `avoid`); grunts fall back to the
 // other hit kinds of the same voice; -1 = none
 static int k_is_verbal(int k) { return k == 0; }
-// the long NOOOOOO scream did not fit even gunshot executions, it should be more like "Wait, wai-": the plea pool no longer holds the long panicked
+// the plea pool no longer holds the long panicked
 // shouts (VXG_SCREAM: "No!!" / "No, no!!" / "Oh no!!", Seraphite voices only - every WLF plea is an interrupted "Wait, wait--!" / "No, please--!"). t2r-exec-keep-long-scream.txt
 // next to the exe = the shouts back in the gun executions' pool. g_eb_pick_max: a take longer than this many ms is not picked (the melee pleas: short, cut by the next blow).
 static int eb_keep_scream(void) { static uint64_t at; static int off; return feel_flag("t2r-exec-keep-long-scream.txt", &at, &off, 120); }
@@ -118,12 +118,12 @@ static int eb_pick(int kind, int avoid, uint32_t salt) {
     }
     return -1;
 }
-// `say` of the record answered 0 on both screens and nothing was heard, while the same call (winmm FUN_18000b640 = say(speaker, line, 2, 0), checked
+// A/B: `say` of the record answered 0 on both screens and nothing was heard, while the same call (winmm FUN_18000b640 = say(speaker, line, 2, 0), checked
 // in the disassembly: identical arguments) speaks the team callouts. 0 is the answer of every started AND every silently refused line, so it proves nothing:
 // the engine's dialogue speech refuses lines for a body in some states (a paired execution, a downed / dying body), while the EFFORT events (vox-eff-gen-*,
 // resolved through the character's own vox table) do play on execution bodies (exec+ voices, the audit). So each line is verified: EB_CHECK_MS after the
 // `say`, the native is-speaking?(body) is asked; an explicit "no" switches the session to the effort-event fallback below (the same moments, the same cuts) and the
-// refused line is re-spoken that way at once. Raw answers are logged ('exec beg: is-speaking? ...') so the next test shows which path the engine takes.
+// refused line is re-spoken that way at once. Raw answers are logged ('exec beg: is-speaking? ...') so the next A/B shows which path the engine takes.
 #define EB_CHECK_MS 140
 static const char *const EB_EV[8][3] = {
     {"vox-eff-gen-fight-take-hvy", "vox-eff-gen-begs-for-life-stun", NULL},           // 0 plea: a heavy panicked cry (the closest effort to "NO!")
@@ -227,8 +227,7 @@ static void eb_begin(int pair, float skip_ms) {
          n > 1 ? "bullet-hit grunts after the others" : "no grunts (one shot)", g_eb.shot[n - 1], skip_ms > 0 ? " (late start)" : "");
     if (g_eb.limb >= 0) xlog("dismember scream: %s - shot %d of %d (%d ms) blows the limb off: %s screams in a chain of takes from there until the death shot (%d ms)", GUNEXEC_PAIRS[pair].name, g_eb.limb + 1, n, g_eb.shot[g_eb.limb], desc, g_eb.shot[n - 1]);
 }
-// The dismemberment scream chain (TLOU2 NPCs scream in a horrifying way, in long continuous / rapid screams, when their limbs are blown
-// off): takes of the victim's own voice, started back to back by their voiced length (VXG_DUR, 0.93 of it, so a take's tail rings into the next and
+// The dismemberment scream chain (TLOU2 NPCs scream in long continuous / rapid screams when their limbs are blown off): takes of the victim's own voice, started back to back by their voiced length (VXG_DUR, 0.93 of it, so a take's tail rings into the next and
 // there is no gap), the intensity falling off as SP's NPC does: the long agony scream (hit-by-explsn, 2-2.6 s) and the rapid short screams
 // (fight-take-hvy) first, then the crying (death-whine-lrg) with injured panting (brth-fight-injrd) between.
 // SP clip of a shotgun leg dismember: ~0.5-2 s after the hit four short pained cries, from ~2.7 s one long sustained wail. The leg shot of a gun execution
@@ -248,7 +247,7 @@ static void eb_scream_step(double ems) {
                               (unsigned long long)VXG_LINES[rec], dur, (unsigned long long)r, g_eb.scr_next);
 }
 // every frame (ex_tick)
-// the begs felt a little quiet during special executions: the plea / grunts are the engine's `say` (no gain of
+// (the beg sounds felt a little quiet during special executions): the plea / grunts are the engine's `say` (no gain of
 // ours), and the victim's execution music (exec_music.c, PCM) runs under them - it is ducked to EB_MUSIC_DUCK from just before the plea to just after
 // the last shot (the mixer ramps the gain per block), then back up for its hit on the death screen
 #define EB_MUSIC_DUCK 0.35f
@@ -272,7 +271,7 @@ static void eb_music_duck(void) {
     ducked = want;
     static int nl; if (LOGCAP(nl, 40)) xlog("exec beg: execution music %s (gain %.2f)", want ? "ducked under the plea" : "back up", (double)g);
 }
-// the victim's scream was quieter than the executioner's voiceline: the plea is a `say` of a vox-info stream record, which the
+// (the victim's scream was quieter than the executioner's voice line): the plea is a `say` of a vox-info stream record, which the
 // base mix (mix-default) plays 6 dB under the effort events the attacker's grunts are (vox -6 / -6 vs vox-effort -6 / 0). The same `say` call as winmm's
 // team lines (FUN_18000b640 = say(speaker, line, 2, 0)), so no other path would be louder; instead a mix snapshot (a spare SP-only record of audio.bin,
 // dc_data_patches PLEA_SNAPSHOT: dialogue rows +9 dB, effort / HUD / radio / crowd rows at the base mix) is applied every frame of the plea window
@@ -333,8 +332,7 @@ static void eb_tick(void) {
     }
     if (g_eb.scr_on && ems >= g_eb.scr_next && ems < (double)g_eb.shot[g_eb.nshot - 1]) eb_scream_step(ems);
 }
-// ---- melee pleas (begs that do not sound like the victim is about to get shot, more like "Wait wai- ... Ugh, Argh,
-// Bleeeh" on the finishing punch). The victim of an unarmed execution begs through the same engine path as the gun pleas (the victim's own NPC voice set, `say` of the
+// ---- melee pleas (begs, excluding those that sound like they are about to get shot: more like Wait wai- ... Ugh, Argh, Bleeeh (on the finishing punch)). The victim of an unarmed execution begs through the same engine path as the gun pleas (the victim's own NPC voice set, `say` of the
 // plea record: 3D, lip-synced), but ONLY from short pleas (WLF "Wait, wait--!" / "No, please--!" ..., Seraphite "Don't!" / "No!" / "No, no!"; the long "No!!" shouts are
 // never in the pool) and each one is cut by the next blow (stop-vox), so it ends as "Wait, wai-" + the blow's take-face "Ugh". The state is g_eb with nshot = 0: eb_tick then
 // only runs the is-speaking? check, the 8 s cover and the match-state cut. t2r-no-exec-beg.txt (shared with the gun pleas) = off for both, t2r-no-melee-beg.txt = only these.
@@ -376,7 +374,7 @@ static void ebm_cut(double ems) {
 // 59; it resolves to vox-event-ai-gen-enmy-pre-strike-shock-spj = the victim voice set's own short shocked line, e.g. scrmd-gen-enmy-shckd-spj-014, priority 15 - and
 // is dropped as character_busy_speaking when the victim is mid-grunt). MP had no voice at a finisher's start: only the clips' own effort / pain / death events
 // (ctx_vox_events.h) and, 1.1 s after the down, the attacker's enemy-down line. The gasp here is ONE short plea take of the victim's own voice set (faction, sex and
-// voice letter of the body shown on THIS screen: eb_voice's rule, by slot) through the engine's `say` of the vox-info record (the gun / melee pleas' path: 3D at
+// voice letter of the body shown on THIS screen: eb_voice's rule, by slot) through the engine's `say` of the mod's vox-info record (the gun / melee pleas' path: 3D at
 // the head, lip-synced, subtitled, in the voice language) - "No!" / "Don't!" / "Wait, wait--!", never the long shouts (VXG_SCREAM), <= EBF_MAXDUR ms. The same take on
 // every screen (seed). No PCM. A voice set whose record line was refused on paired bodies this session (g_eb_events) says the begs-for-life effort instead.
 // Called at the finisher intro's first frame where an intro plays (attacker: mdu_fw_begin; victim: the SWING message's intro replica) and at the finisher pair's
@@ -399,7 +397,7 @@ static void eb_fin_gasp(uint64_t ent, uint32_t slot, uint32_t seed, const char *
     }
     (void)team;
     if (faction_looks_off() || (fac != 0 && fac != 1) || look < 0) { if (LOGCAP(nl, 80)) xlog("fin voices: no gasp (%s) - the victim's voice set is not known here (faction %d, look %d; ps31)", why, fac, look); return; }
-    int g = fem ? 1 : 0, v = vx_voice_of_look(fac, look);
+    int g = fem ? 1 : 0, v = vx_voice_of_body(ent == SID_PLAYER ? T2R_US : (int)slot, fac, look);
     if (v < 0 || v > 3) return;
     int n = VXG_RANGE[fac][g][v][0][1], first = VXG_RANGE[fac][g][v][0][0], cand[16], nc = 0;
     const uint8_t *av = eb_avail();

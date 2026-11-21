@@ -366,6 +366,9 @@ static const char *sfxw_name(const uint8_t *n, char *b, size_t nb) {
     // (hatchet victim silent: native sfx-hatchet-hit-gut on SID_PLAYER returns a handle, nothing heard): the melee weapon hit / breaker / finisher
     // events too, so the cull reason / PlaySfx result / voice of every one shows in the log ("sfx spawn culled / play failed / play started")
     if (i >= 8 && !strncmp(b, "sfx-", 4) && (strstr(b, "-hit-") || strstr(b, "-breaker-") || strstr(b, "-finisher-"))) return b;
+    // (the Vintage Rifle's bolt cycle played only the bolt-back sound, no bolt-forward): the bolt rifles' clip foley too
+    // (sfx-weapon-<set>-bolt-open / -bolt-close / -bolt-close-end), so each one's cull / PlaySfx result / voice shows in the log
+    if (i >= 8 && !strncmp(b, "sfx-weapon-", 11) && strstr(b, "-bolt-") && (strstr(b, "-open") || strstr(b, "-close"))) return b;
     return NULL;
 }
 static void sfxd_push(int kind, uint32_t code, float v, float l, const char *n) {

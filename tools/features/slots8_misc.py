@@ -1,5 +1,7 @@
 """Everything outside the session layer and the net player records that was sized for 4 players:
 
+  * (every "8" below is the slot count N; for N = 9 the stats rows (12 x 9 = 108 bytes) no longer fit in place - ctx+0x2BF8 holds the next
+    match-state struct - so they move to .t2r8 as well and every access is re-based)
   * PA_SLOT (per-slot anim replay state, 0x18013B2A0, 4 x 0x77E8) -> 8 entries (relocated, rip-relative references retargeted,
     unrolled chains extended, the offset loop FUN_180028C40 now ends at 8 * 0x77E8);
   * match state in the match context: stats[slot] (kills, deaths, parts; 12 bytes at ctx+0x2B98) grows in place from 4 to 8 rows
@@ -15,11 +17,12 @@ CTX = 0x180135388
 PA_OLD = 0x18013B2A0
 PA_STRIDE = 0x77E8
 SS_OLD = 0x2BC8
-N = 8
+STATS_OLD = 0x2B98
 
 
 def build(S):
-    from slots8 import decode  # noqa: F401
+    from slots8 import decode, bump  # noqa: F401
+    N = S.N
     # ================================================================================== PA_SLOT
     pa = S.data("pa_slot", N * PA_STRIDE)
     S.relocate_table("pa_slot", PA_OLD, 4 * PA_STRIDE, pa)
@@ -59,10 +62,11 @@ S8_netanimclear:
     ret
 """, "netanimclear")
     S.hook_entry(0x180029A30, "S8_netanimclear", "NetAnimClear: 8 slots")
-    S.patch(0x180028CE7, "49 81 fe a0 df 01 00", "49 81 fe 40 bf 03 00", "anim offset loop: 4 -> 8 slots (end 8*0x77E8)")
+    S.patch(0x180028CE7, "49 81 fe a0 df 01 00", bytes([0x49, 0x81, 0xfe]) + struct.pack("<I", N * PA_STRIDE),
+            f"anim offset loop: 4 -> {N} slots (end {N}*0x77E8)")
     for va, old in ((0x18002668F, 3), (0x180026A92, 3), (0x180027810, 3), (0x1800292E7, 3), (0x1800293B5, 3), (0x1800297B7, 3),
                     (0x180029960, 3), (0x1800299A0, 3), (0x1800299D0, 3), (0x180027D07, 3), (0x180027D14, 3)):
-        S.patch_imm(va, old, 7, "anim slot bound 3 -> 7", mnem="cmp")
+        S.patch_imm(va, old, bump(N, old), f"anim slot bound 3 -> {bump(N, old)}", mnem="cmp")
 
     # ================================================================================== small per-slot arrays (4 -> 8)
     arrays = (("sa_last", 0x18013B120, 16, 4), ("sa_alive", 0x18013B1E0, 16, 4),
@@ -70,20 +74,37 @@ S8_netanimclear:
     for name, old, size, elem in arrays:
         new = S.data(name, N * elem)
         S.relocate_table(name, old, size, new)
-    S.asm("""
-# FUN_1800380A0 (replication ResetRuntime): clear the three death-state arrays (bool[8], dword[8], bool[8])
-S8_death_clear:
-    mov qword ptr [rip + D_d_pending], 0
+    if N <= 8:
+        dc = """    mov qword ptr [rip + D_d_pending], 0
     mov qword ptr [rip + D_d_anim], 0
     xorps xmm0, xmm0
     movaps xmmword ptr [rip + D_d_age], xmm0
     movaps xmmword ptr [rip + D_d_age + 16], xmm0
-    jmp V_1800380c3
+"""
+    else:                       # the tables are 64-byte aligned and padded: bool[N <= 16] in one 16-byte store, dword[N] in 16-byte stores
+        dc = "    xorps xmm0, xmm0\n    movaps xmmword ptr [rip + D_d_pending], xmm0\n    movaps xmmword ptr [rip + D_d_anim], xmm0\n"
+        dc += "".join(f"    movaps xmmword ptr [rip + D_d_age + {16 * k}], xmm0\n" for k in range((N * 4 + 15) // 16))
+    S.asm(f"""
+# FUN_1800380A0 (replication ResetRuntime): clear the three death-state arrays (bool[N], dword[N], bool[N])
+S8_death_clear:
+{dc}    jmp V_1800380c3
 """, "death_clear")
     S.hook(0x1800380A5, 0x1800380C3 - 0x1800380A5, "S8_death_clear", "ResetRuntime: clear death arrays for 8 slots")
 
     # ================================================================================== slotState (moves) / stats (grows in place)
     ss = S.data("slotstate", N * 12)
+    # 8 rows (96 bytes) still fit over the old stats + slotState bytes; a 9th would run into the next match-state struct (ctx+0x2BF8..: +0x2C04 is
+    # read / written all over TickMatchAuthority), so from N = 9 the rows live in .t2r8 and the 9 access sites (+ the reset) are re-based
+    stats_moved = N * 12 > 96
+    stats = S.data("stats", (N * 12 + 15) // 16 * 16) if stats_moved else 0
+    if stats_moved:
+        d_st = stats - CTX - STATS_OLD
+        for va, old, note in ((0x180018EAF, 0x2BA0, "score"), (0x180018EF6, 0x2BA0, "score"), (0x180018F9C, 0x2BA0, "score"),
+                              (0x180019265, 0x2BA0, "score"), (0x18001C13D, 0x2BA0, "parts add"), (0x180033BB0, 0x2BA0, "AddParts"),
+                              (0x180061DF2, 0x2B98, "kills++"), (0x180061E8B, 0x2B9C, "deaths++")):
+            S.patch_disp(va, old, old + d_st, f"stats rows moved to .t2r8 ({note})")
+        for va, reg in ((0x180067A7C, "rax"), (0x180067AB6, "rax"), (0x180067B9F, "r12")):
+            S.patch_imm(va, STATS_OLD, STATS_OLD + d_st, f"stats rows moved to .t2r8 (scoreboard row base, add {reg})")
     delta = ss - CTX - SS_OLD                       # new disp32 = old disp32 + delta
     for va, old, note in (
             (0x18001CF49, 0x2BC8, "slotState.dead"), (0x18001D23A, 0x2BC8, "slotState.dead"), (0x18002CD82, 0x2BC8, "slotState.dead"),
@@ -114,30 +135,26 @@ S8_death_clear:
     S.copy_chain("cooldown_tick", hook=(0x180034D66, 0x180034D7F), tmpl=(0x180034D66, 0x180034D7F), win_lo=0, stride=12, new_lo=0,
                  tmpl_entry=3, first=3, rec_disp=(0x2BEC, 0x2BF8), rec_delta=delta, fall="next", end=0x180034D7F,
                  note="Update: grantCooldown tick slots 3..7")
-    S.asm("""
-# ResetRuntime: slotState of slots 4..7 (0..3 were re-based above); then the displaced `mov dword [rsi+0x2c18], -1`
+    ss_end = N * 12
+    ss_clear = "".join(f"    mov qword ptr [rip + D_slotstate + {o}], 0\n" for o in range(48, ss_end - 7, 8))
+    if (ss_end - 48) % 8:                           # N = 9: 60 bytes = 7 qwords + 1 dword
+        ss_clear += f"    mov dword ptr [rip + D_slotstate + {ss_end - 4}], 0\n"
+    if stats_moved:
+        st_clear = "".join(f"    movups xmmword ptr [rip + D_stats + {o}], xmm0\n" for o in range(0, (N * 12 + 15) // 16 * 16, 16))
+    else:
+        st_clear = "".join(f"    movups xmmword ptr [rax + {STATS_OLD + o:#x}], xmm0\n" for o in range(0, 96, 16))
+    S.asm(f"""
+# ResetRuntime: slotState of slots 4..N-1 (0..3 were re-based above); then the displaced `mov dword [rsi+0x2c18], -1`
 S8_ss_reset:
-    mov qword ptr [rip + D_slotstate + 48], 0
-    mov qword ptr [rip + D_slotstate + 56], 0
-    mov qword ptr [rip + D_slotstate + 64], 0
-    mov qword ptr [rip + D_slotstate + 72], 0
-    mov qword ptr [rip + D_slotstate + 80], 0
-    mov qword ptr [rip + D_slotstate + 88], 0
-    mov dword ptr [rsi + 0x2c18], 0xffffffff
+{ss_clear}    mov dword ptr [rsi + 0x2c18], 0xffffffff
     jmp V_180038218
 
-# FUN_180061EA0: new match -> stats of all 8 rows (ctx+0x2B98 .. +0x2BF8) cleared
+# FUN_180061EA0: new match -> stats of all N rows cleared (in place ctx+0x2B98 .. +0x2BF8 for N = 8, D_stats for N = 9)
 S8_stats_reset:
-    movups xmmword ptr [rax + 0x2b98], xmm0
-    movups xmmword ptr [rax + 0x2ba8], xmm0
-    movups xmmword ptr [rax + 0x2bb8], xmm0
-    movups xmmword ptr [rax + 0x2bc8], xmm0
-    movups xmmword ptr [rax + 0x2bd8], xmm0
-    movups xmmword ptr [rax + 0x2be8], xmm0
-    jmp V_180061f1b
+{st_clear}    jmp V_180061f1b
 """, "ss_reset")
-    S.hook(0x18003820E, 10, "S8_ss_reset", "ResetRuntime: clear slotState 4..7")
-    S.hook(0x180061F06, 0x180061F1B - 0x180061F06, "S8_stats_reset", "new match: clear stats rows 0..7")
+    S.hook(0x18003820E, 10, "S8_ss_reset", f"ResetRuntime: clear slotState 4..{N - 1}")
+    S.hook(0x180061F06, 0x180061F1B - 0x180061F06, "S8_stats_reset", f"new match: clear stats rows 0..{N - 1}")
 
     # ================================================================================== unrolled per-slot resets through BySlot
     # (xor ecx,ecx / mov ecx,k ; call BySlot ; store) x 4: the slot-3 block is copied for 4..7
@@ -150,7 +167,8 @@ S8_stats_reset:
 
     # ================================================================================== slot guards (3 -> 7, 4 -> 8)
     for va, old, new, note in GUARDS:
-        S.patch_imm(va, old, new, note)
+        assert new == old + 4
+        S.patch_imm(va, old, bump(N, old), note)
 
 
 GUARDS = [

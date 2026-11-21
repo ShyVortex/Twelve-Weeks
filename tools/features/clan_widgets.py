@@ -26,6 +26,8 @@ import copy
 import json
 import os
 import t2guid
+import nr_style as nr
+import nr_style as NR      # (the clan event page's builder, clan-events-1117, spells it NR)
 import ui_r2_widgets
 
 W, H = 3840, 2160
@@ -235,6 +237,8 @@ def build_side_page(main):
     # --- CHOOSE YOUR SIDE (2013factionsclanfirstlaunch2)
     sd = b.group("side", a, b.tl(0, 0, W, H), visible=0, **{"color.a": 0})
     s = sd["guid"]
+    import choose_widgets                                         # the redesigned pick: the art under everything, the UI over it
+    choose_widgets.add_art(b, s)
     # mood lights of the focused faction (t2r-ext side_tick fades the group alpha, 300 ms, cross-fading): a soft radial bloom from the bottom-left corner in
     # white (WLF) / the bottom-right corner in red (Seraphites)
     for key, col, left in (("W", 0xFFEAF4FF, True), ("S", 0xFFE03A2C, False)):
@@ -262,6 +266,7 @@ def build_side_page(main):
     b.text("sideHintPadTx", ph, b.tl(150, 0, 750, 70), "TO SWITCH", 38, 0xFF9A9A9A, tracking=4)
     b.image("sideSelectIcon", s, b.tl(3270, 1898, 56, 56), "menu:select", 0xFFFFFFFF)
     b.text("sideSelectText", s, b.tl(3350, 1890, 300, 70), "SELECT", 46, 0xFFE6E6E6, tracking=4)
+    choose_widgets.add_ui(b, s)
 
     # --- the clan end screens (won / lost, t2r-ext clanend.c): key art + roll call, then the rank page
     import clanend_widgets
@@ -1024,124 +1029,252 @@ PM_PAGE = "clan-postmatch"
 PM_ROWS = 5
 PM_TEXT = 0xFFD8D4CC                 # the 2013 post-match labels: warm light grey
 PM_DIM = 0xFF8E8A84
-PM_CIRCLE, PM_DOT = 430, 18
+PM_CIRCLE, PM_DOT = 430, 20                    # the result's dot circle (t2r-ext g_pmd: mid 215, drift radius 178)
 GEAR_ICON = "streaming/t2r/icons/gear.png"            # tools/models/make_icons.gear_icon (2013 parts cog)
 PERSON_ICON = "streaming/t2r/icons/person.png"        # make_icons.person_icon (2013 survivor pictogram)
 PM_ROW_Y, PM_ROW_H = 420, 80         # breakdown rows (top of row 0), row pitch
 PM_PARTS_Y, PM_CONV_Y = 916, 1012    # centre lines of PARTS EARNED / CONVERTED
 PM_LX, PM_RX = 1234, 2862            # label left edge / number right edge (2013 layout x 3)
 PM_OUT_ROWS = 5
+# the No Return layout of the supply counter (build_postmatch_page): left column AWARDS / DAILY SUPPLIES + OUTCOME, right column PARTS EARNED /
+# CONVERTED / SURVIVORS GAINED + health bars + the daily mission; every y is the top of a tile, section rows are centre lines
+PM_LX0, PM_LX1, PM_RX0, PM_RX1 = 148, 1900, 2100, 3700
+PM_SEC_Y, PM_SEC2_Y = 470, 840
+PM_ROW_Y0, PM_ROW_DY, PM_RH = 530, 122, 106
+PM_HERO_Y, PM_HERO_H, PM_HERO2_Y = 530, 240, 900
+PM_NOTE_Y = 1260
+PM_STAT_Y0, PM_STAT_DY, PM_STAT_H = 800, 110, 100
+PM_OUT_SEC_Y, PM_OUT_Y0, PM_OUT_DY, PM_OUT_H = 1090, 1150, 100, 88
+PM_ST_Y0, PM_ST_DY, PM_ST_H, PM_ST_BX0, PM_ST_BX1 = 900, 110, 100, 420, 300
+PM_MIS_Y = 1330
+# the verdict banner ("YOUR CLAN DIED" needs emphasis; heavy, but not too heavy, as the animated clan end screen follows): full width
+# under the two columns, the display face, a red (died) / accent (survived 12 weeks) bar at its left edge
+PM_VD_Y, PM_VD_H = 1690, 200
+PM_VD_RED = 0xFFC0473D
+# stage 3 "unlocks" (the summary shows the achievements unlocked in the match and the new clothing unlocks; t2r-ext pmunlock.c):
+# ACHIEVEMENTS left | NEW UNLOCKS right, PM_U_ROWS tiles each (the accent bar at the left edge = new, as the NEW dot elsewhere), a "+N MORE"
+# line under a full column, "EQUIP THEM IN CUSTOMIZE" under the gear; a column with nothing new says so on one grey line
+PM_U_ROWS = 4
+PM_U_Y0, PM_U_DY, PM_U_H = 530, 250, 226          # first tile top, pitch, tile height
+PM_U_IC = 180                                     # achievement icon (square)
+PM_U_PW, PM_U_PH = 220, 202                       # clothing card picture (the CUSTOMIZE card's 300 x 275 aspect)
+PM_U_TX = 280                                     # text left edge from the column's left
+PM_U_FOOT_Y = PM_U_Y0 + PM_U_ROWS * PM_U_DY + 20  # "+N MORE" / "EQUIP THEM IN CUSTOMIZE"
+# style A: HEALTHY / HUNGRY / SICK rows in the right column's left part, the dot circle right of them (t2r-ext PM_CIR_*)
+PM_ST_W = 760
+PM_CIR_X, PM_CIR_Y = 3280, 1080
+
+
+# ------------------------------------------------------------------ the 2013 Factions frame of clan-event / clan-postmatch (style A)
+# "factions + modernization, not pure modernization": the 2013 post-match screens' ground (a dark cracked-paint plate, tools/models/figures/
+# plate13_ship.py) and header (the faction pictogram, WEEK n: DAY d, a thin rule across; the label right; the 84 days as pips, 7 a week),
+# cyan numbers (HEALTHY) and red risk / loss (SICK), the 2013 cog / supply can / person pictograms, hairlines instead of tiles.
+# t2r-ext fac13ui.c f13_header fills the header.
+PLATE_TEX = "streaming/t2r/clan/plate13.png"
+PLATE_TOP_TEX = "streaming/t2r/clan/plate13-top.png"
+PLATE_EVBOT_TEX = "streaming/t2r/clan/plate13-evbot.png"
+SUPPLY_ICON13 = "streaming/t2r/icons/supply.png"       # make_icons.supply_icon (the 2013 can)
+F13_CYAN, F13_RED, F13_COG = HEALTHY, SICK, 0xFFB4B4B4
+F13_HAIR = 0xFF3A3A3A                                  # a row's hairline (opaque dark grey: the ext's alpha is absolute)
+F13_ICON_Y, F13_ICON_H = 80, 72
+F13_DAY_Y = 116                                        # header centre line
+F13_RULE_Y = 172
+F13_PIP_W, F13_PIP_STEP, F13_WEEK_STEP = 4, 8, 68      # = fac13ui.c F13_PIP_*
+F13_PIP_X0 = 3700 - 12 * F13_WEEK_STEP + 12            # (R1 - 12 weeks; the last week's gap trimmed)
+F13_PIP_Y, F13_PIP_H = 198, 20
+
+
+def f13_pip_x(k):
+    return F13_PIP_X0 + (k // 7) * F13_WEEK_STEP + (k % 7) * F13_PIP_STEP
+
+
+def f13_header(b, a, label):
+    """f13IcW / f13IcS (the faction pictogram, one shown), f13Day, f13Lab, f13Rule, f13Sv, f13Pip0..83, f13Today"""
+    for k, col in (("W", WLF_COL), ("S", SER_COL)):
+        b.image("f13Ic" + k, a, b.tl(nr.L0, F13_ICON_Y, F13_ICON_H * 120 / 260, F13_ICON_H), PERSON_ICON, col, 255, visible=int(k == "W"))
+    b.text("f13Day", a, nr.lm(nr.L0 + 64, F13_DAY_Y - 45, 1600, 90), "WEEK 1: DAY 1", nr.pt(34), nr.WHITE, tracking=3)
+    b.text("f13Lab", a, nr.lm(nr.R1 - 1600, F13_DAY_Y - 32, 1600, 64, right=1), "", nr.pt(20), nr.GREY, align=2, tracking=6)
+    b.rect("f13Rule", a, b.tl(nr.L0, F13_RULE_Y, nr.R1 - nr.L0, nr.HAIR), nr.WHITE, 70)
+    b.text("f13Sv", a, nr.lm(F13_PIP_X0 - 1428, F13_PIP_Y + F13_PIP_H / 2 - 26, 1400, 52, right=1), "DAYS SURVIVED 0 | 84", nr.pt(16), nr.GREY,
+           align=2, tracking=4)
+    for k in range(84):
+        b.rect(f"f13Pip{k}", a, b.tl(f13_pip_x(k), F13_PIP_Y, F13_PIP_W, F13_PIP_H), nr.WHITE, 40)
+    b.rect("f13Today", a, b.tl(f13_pip_x(0), F13_PIP_Y - 4, F13_PIP_W, F13_PIP_H + 8), F13_CYAN, 255)
+
+
+def f13_demo(by, fac, label, day, survived):
+    """= fac13ui.c f13_header"""
+    by["f13IcW"]["visible"], by["f13IcS"]["visible"] = int(fac != 2), int(fac == 2)
+    by["f13Day"]["text"] = f"WEEK {day // 7 + 1}: DAY {day % 7 + 1}"
+    by["f13Lab"]["text"] = label
+    by["f13Sv"]["text"] = f"DAYS SURVIVED {survived} | 84"
+    for k in range(84):
+        by[f"f13Pip{k}"]["color.a"] = 230 if k < survived else 40
+    by["f13Today"]["visible"] = int(survived < 84)
+    by["f13Today"]["pivotAs.x"] = float(f13_pip_x(min(survived, 83)))
+
+
+def f13_plate(b, bg):
+    """the plate behind a page: dark beyond the 16:9 edge, the plate on the canvas (bleed group: canvas = + (W, H))"""
+    b.rect(bg["name"] + "Dark", bg["guid"], b.bleed(), 0xFF101011, 255)
+    b.image(bg["name"] + "Plate", bg["guid"], b.tl(W, H, W, H), PLATE_TEX, 0xFFFFFFFF, 255)
 
 
 def build_postmatch_page(main):
-    """to1/clan-postmatch.widget.json content."""
+    """to1/clan-postmatch.widget.json content: the SUPPLY COUNTER in the 2013 frame (f13_header, the plate): two columns of section rows over
+    hairlines (AWARDS | PARTS EARNED -> CONVERTED, then DAILY SUPPLIES + OUTCOME | SURVIVORS GAINED + HEALTHY / HUNGRY / SICK + the dot circle
+    + the daily mission), cyan numbers with the 2013 pictograms, one boxed prompt (NEXT / CONTINUE). t2r-ext pm_fill / pm_tick fill it."""
     t, root0, anim0 = _templates(main)
     b = Builder(t)
     root = copy.deepcopy(root0); root.update(guid=t2guid.guid())
     anim = copy.deepcopy(anim0); anim.update(guid=t2guid.guid(), parent=root["guid"])
     b.items += [root]
     a = anim["guid"]
-    # the backdrop is its own group under the root (drawn first), NOT under anim-group: anim-group is the
-    # content that fades in, the dark background is opaque from the very first frame (t2r-ext pm_tick
-    # fades "pmBg" only when the page goes out, 0.3 s)
-    bg = b.group("pmBg", root["guid"], b.bleed())["guid"]
-    b.image("bgBlur", bg, b.bleed(), "general-textures/blur-background.png", 0xFFFFFFFF, 255)
-    b.rect("bgDark", bg, b.bleed(), 0xFF0B0C0D, 255)
-    b.image("bgLight", bg, b.ctr(1920, 980, 3600, 2200), "hud/player-menu/gradient/radial-gradient.png", 0xFFFFFFFF, 26)
+    # the backdrop is its own group under the root (drawn first), NOT under anim-group: anim-group is the content that fades in, the backdrop
+    # is opaque from the very first frame (t2r-ext pm_tick fades "pmBg" only when the page goes out, 0.3 s)
+    bg = b.group("pmBg", root["guid"], b.bleed())
+    f13_plate(b, bg)
     anim["depth"] = float(len(b.items)) * 0.01     # above the backdrop
     b.items.append(anim)
+    f13_header(b, a, "SUPPLIES")
+    nr.prompt_slots(b, a, 1)
 
-    # --- header (post-match-rewards/1.png)
-    for key, col in (("W", WLF_COL), ("S", SER_COL)):
-        b.image(f"pmEmblem{key}", a, b.tl(318, 158, 66, 137), FIG_IMG[key], col, 210, visible=int(key == "W"))
-    b.text("pmTitle", a, b.tl(450, 150, 2200, 150), "WEEK 1: DAY 1", 86, PM_TEXT, tracking=6)
-    b.text("pmFaction", a, b.tl(2600, 118, 976, 60), "WASHINGTON LIBERATION FRONT", 34, PM_DIM, align=2, tracking=4)
-    b.line("pmTitleLine", a, 264, 305, 3576, 305, 0xFFFFFFFF, 120, 2.0)
-    b.line("pmScroll", a, 3768, 420, 3768, 1925, 0xFFFFFFFF, 140, 2.0)
+    def tile(g, name, x, y, w, h, vis=1):
+        """(the NR tile's name, ext-driven) = the row's hairline at its foot"""
+        return b.rect(name, g, b.tl(x, y + h - nr.HAIR, w, nr.HAIR), F13_HAIR, 255, visible=vis)
 
-    def amount(prefix, parent, cy, pt, num, argb, icon, icon_argb, icon_w, icon_h):
-        """number right-aligned on PM_RX + its icon right of it (the 2013 '2065 [cog]')."""
-        b.text(prefix + "Num", parent, b.tl(PM_RX - 700, cy - pt, 700, pt * 2), num, pt, argb, align=2, tracking=2)
-        # hidden twin (the counting numbers flicker - the ext writes the hidden copy and swaps, db_text_w)
-        b.text(prefix + "NumB", parent, b.tl(PM_RX - 700, cy - pt, 700, pt * 2), num, pt, argb, align=2, tracking=2, visible=0)
-        b.image(prefix + "Icon", parent, b.ctr(PM_RX + 86, cy, icon_w, icon_h), icon, icon_argb)
+    def cap(g, name, x, y, text, w=900):
+        b.text(name, g, nr.lm(x, y - 30, w, 60), text, nr.pt(20), nr.GREY, tracking=3)
 
-    # --- stage 0: parts per award + total (post-match-rewards/2.png, with our breakdown above)
+    def icon(g, name, path, x, cy, h, col=F13_CYAN, aspect=1.0, vis=1):
+        return b.image(name, g, b.tl(x, cy - h / 2, h * aspect, h), path, col, 255, scaleMode="StretchAspect", visible=vis)
+
+    def hero(g, prefix, y, caption, num="0", x0=PM_RX0, x1=PM_RX1, pic=GEAR_ICON, pic_aspect=1.0, pic_h=96):
+        """a big number: the caption left (with the cog), the number big cyan right aligned with its pictogram after it
+        (+ a hidden twin: the ext double-buffers the counting numbers)"""
+        tile(g, prefix + "Tile", x0, y, x1 - x0, PM_HERO_H)
+        cap(g, prefix + "Cap", x0 + 50, y + PM_HERO_H / 2, caption)
+        for s, v in (("", 1), ("B", 0)):
+            b.text(prefix + "Num" + s, g, b.tl(x1 - 170 - 800, y, 800, PM_HERO_H), num, nr.pt(72), F13_CYAN, align=2, tracking=2, visible=v)
+        icon(g, prefix + "Pic", pic, x1 - 140, y + PM_HERO_H / 2, pic_h, F13_CYAN, pic_aspect)
+
+    # --- stage 0: the match's parts per award (left) + PARTS EARNED (right)
     e = b.group("earned", a, b.tl(0, 0, W, H))["guid"]
+    nr.section(b, e, "pmSecA", PM_LX0, PM_LX1, PM_SEC_Y, "AWARDS", "PARTS")
     rows = b.group("rows", e, b.tl(0, 0, W, H))["guid"]
-    demo = [("DOWNED ENEMY", 6, 600), ("EXECUTION", 4, 200), ("REVIVE", 2, 200), ("HEADSHOT", 5, 250),
-            ("KILL ASSIST", 3, 75)]
+    demo = [("DOWNED ENEMY", 6, 600), ("EXECUTION", 4, 200), ("REVIVE", 2, 200), ("HEADSHOT", 5, 250), ("KILL ASSIST", 3, 75)]
     for k in range(PM_ROWS):
-        cy = PM_ROW_Y + k * PM_ROW_H + PM_ROW_H / 2
+        y = PM_ROW_Y0 + k * PM_ROW_DY
         r = b.group(f"pmRow{k}", rows, b.tl(0, 0, W, H))["guid"]
         lab, cnt, pts = demo[k]
-        b.text(f"pmRow{k}Label", r, b.tl(PM_LX, cy - 40, 1000, 80), lab, 46, PM_TEXT, tracking=4)
-        b.text(f"pmRow{k}Count", r, b.tl(2080, cy - 40, 260, 80), f"x{cnt}", 40, PM_DIM, align=1, tracking=2)
-        b.text(f"pmRow{k}Num", r, b.tl(PM_RX - 500, cy - 40, 500, 80), str(pts), 46, PM_TEXT, align=2, tracking=2)
-        b.image(f"pmRow{k}Icon", r, b.ctr(PM_RX + 86, cy, 58, 58), GEAR_ICON, PM_DIM)
-    b.line("pmEarnLine", e, PM_LX - 90, PM_ROW_Y + PM_ROWS * PM_ROW_H + 30, PM_RX + 130,
-           PM_ROW_Y + PM_ROWS * PM_ROW_H + 30, 0xFFFFFFFF, 70, 2.0)
-    b.image("pmPartsGear", e, b.ctr(PM_LX - 84, PM_PARTS_Y, 80, 80), GEAR_ICON, PM_TEXT, visible=0)      # (hidden - a second cog left of the label stuck out of the column and doubled the right-hand one; round 2 shows it as the hero plate watermark)
-    b.text("pmPartsLabel", e, b.tl(PM_LX, PM_PARTS_Y - 76, 1100, 152), "PARTS EARNED", 66, PM_TEXT, tracking=6)
-    amount("pmParts", e, PM_PARTS_Y, 66, "1325", PM_TEXT, GEAR_ICON, PM_TEXT, 80, 80)
+        tile(r, f"pmRow{k}Bg", PM_LX0, y, PM_LX1 - PM_LX0, PM_RH)
+        icon(r, f"pmRow{k}Cog", GEAR_ICON, PM_LX0 + 8, y + PM_RH / 2, 50, F13_COG)
+        b.text(f"pmRow{k}Label", r, nr.lm(PM_LX0 + 90, y, 960, PM_RH), lab, nr.pt(26), nr.WHITE, tracking=2)
+        b.text(f"pmRow{k}Count", r, nr.lm(PM_LX0 + 1060, y, 260, PM_RH), f"x{cnt}", nr.pt(22), nr.GREY, tracking=2)
+        b.text(f"pmRow{k}Num", r, nr.lm(PM_LX1 - 100 - 400, y, 400, PM_RH, right=1), str(pts), nr.pt(28), F13_CYAN, align=2, tracking=2)
+        icon(r, f"pmRow{k}Pic", GEAR_ICON, PM_LX1 - 76, y + PM_RH / 2, 46, F13_CYAN)
+    nr.section(b, e, "pmSecP", PM_RX0, PM_RX1, PM_SEC_Y, "PARTS EARNED", "")
+    hero(e, "pmParts", PM_HERO_Y, "PARTS", "1325")
 
-    # --- stage 1: CONVERTED (post-match-rewards/3.png, 4.png)
+    # --- stage 1: CONVERTED
     cv = b.group("convert", a, b.tl(0, 0, W, H), visible=0)["guid"]
-    b.image("pmConvGear", cv, b.ctr(PM_LX - 84, PM_CONV_Y, 80, 80), GEAR_ICON, PM_TEXT, visible=0)      # (hidden - the supply icon sits on the right)
-    b.text("pmConvLabel", cv, b.tl(PM_LX, PM_CONV_Y - 76, 1100, 152), "CONVERTED:", 66, PM_TEXT, tracking=6)
-    amount("pmConv", cv, PM_CONV_Y, 66, "26", SUPPLY_BLUE, SUPPLY_ICON, 0xFFFFFFFF, 100, 100)
-    b.text("pmConvRate", cv, b.tl(PM_LX, PM_CONV_Y + 80, PM_RX - PM_LX, 70), "50 PARTS = 1 SUPPLY", 40, PM_DIM,
-           tracking=4)
-    b.text("pmWait", cv, b.tl(PM_LX, PM_CONV_Y + 190, PM_RX - PM_LX + 130, 80), "WAITING FOR THE CAMP...", 48,
-           PM_DIM, align=1, tracking=4, visible=0)
-    b.text("pmLeft", cv, b.tl(PM_LX, PM_CONV_Y + 190, PM_RX - PM_LX + 130, 80),
-           "YOU LEFT EARLY - THE DAY'S PARTS ARE LOST", 48, RED_TEXT, align=1, tracking=4, visible=0)
+    nr.section(b, cv, "pmSecC", PM_RX0, PM_RX1, PM_SEC2_Y, "CONVERTED", "")
+    hero(cv, "pmConv", PM_HERO2_Y, "SUPPLIES", "26", pic=SUPPLY_ICON13, pic_h=120)
+    b.text("pmConvRate", cv, nr.lm(PM_RX0 + 50, PM_HERO2_Y + PM_HERO_H + 40, 900, 60), "50 PARTS = 1 SUPPLY", nr.pt(20), nr.GREY, tracking=3)
+    b.text("pmWait", cv, nr.lm(nr.L0, PM_NOTE_Y, nr.R1 - nr.L0, 70), "WAITING FOR THE CAMP...", nr.pt(22), nr.GREY, tracking=3, visible=0)
+    b.text("pmLeft", cv, nr.lm(nr.L0, PM_NOTE_Y, nr.R1 - nr.L0, 70), "YOU LEFT EARLY - THE DAY'S PARTS ARE LOST", nr.pt(22), nr.WHITE, tracking=3, visible=0)
 
-    # --- stage 2: the day for the clan (post-match-rewards/5.png)
+    # --- stage 2: the day for the clan (left: supplies + what the day did | right: survivors, their health, the dot circle, the mission)
     rs = b.group("result", a, b.tl(0, 0, W, H), visible=0)["guid"]
-    LX, RX, TY = 570, 2100, 485                         # column left edges, first row centre line
-    b.text("pmDailyLabel", rs, b.tl(LX, TY - 66, 1000, 132), "DAILY SUPPLIES:", 56, PM_TEXT, tracking=5)
-    b.text("pmDailyNum", rs, b.tl(1340, TY - 96, 360, 192), "+4", 84, SUPPLY_BLUE, align=2, tracking=2)
-    b.text("pmDailyNumB", rs, b.tl(1340, TY - 96, 360, 192), "+4", 84, SUPPLY_BLUE, align=2, tracking=2, visible=0)
-    b.image("pmDailyIcon", rs, b.ctr(1790, TY, 120, 120), SUPPLY_ICON, 0xFFFFFFFF)
-    b.text("pmGathered", rs, b.tl(LX, 620, 1250, 80), 'SUPPLIES GATHERED: <font color="#3fa9f5">26</font>', 42,
-           PM_DIM, tracking=4)
-    b.text("pmNeeded", rs, b.tl(LX, 710, 1250, 80), 'NEEDED PER DAY: <font color="#3fa9f5">22</font>', 42,
-           PM_DIM, tracking=4)
-    b.line("pmOutLine", rs, LX, 830, 1800, 830, 0xFFFFFFFF, 60, 2.0)
+    nr.section(b, rs, "pmSecD", PM_LX0, PM_LX1, PM_SEC_Y, "DAILY SUPPLIES", "")
+    tile(rs, "pmDailyTile", PM_LX0, PM_HERO_Y, PM_LX1 - PM_LX0, PM_HERO_H)
+    cap(rs, "pmDailyCap", PM_LX0 + 50, PM_HERO_Y + PM_HERO_H / 2, "SUPPLIES")
+    for s, v in (("", 1), ("B", 0)):
+        b.text("pmDailyNum" + s, rs, b.tl(PM_LX1 - 170 - 800, PM_HERO_Y, 800, PM_HERO_H), "+4", nr.pt(72), nr.WHITE, align=2, tracking=2, visible=v)
+    icon(rs, "pmDailyPic", SUPPLY_ICON13, PM_LX1 - 140, PM_HERO_Y + PM_HERO_H / 2, 120, F13_CYAN)
+    for k, (nm, lb, v) in enumerate((("pmGathered", "SUPPLIES GATHERED", "26"), ("pmNeeded", "NEEDED PER DAY", "22"))):
+        y = PM_STAT_Y0 + k * PM_STAT_DY
+        tile(rs, nm + "Tile", PM_LX0, y, PM_LX1 - PM_LX0, PM_STAT_H)
+        b.text(nm + "L", rs, nr.lm(PM_LX0 + 44, y, 1000, PM_STAT_H), lb, nr.pt(22), nr.GREY, tracking=3)
+        b.text(nm, rs, nr.lm(PM_LX1 - 44 - 400, y, 400, PM_STAT_H, right=1), v, nr.pt(30), nr.WHITE, align=2, tracking=2)
+    nr.section(b, rs, "pmSecO", PM_LX0, PM_LX1, PM_OUT_SEC_Y, "OUTCOME", "")
     for k in range(PM_OUT_ROWS):
-        b.text(f"pmOut{k}", rs, b.tl(LX, 880 + k * 92, 1300, 80), ["THE CLAN IS FED", "2 RECOVERED", "", "", ""][k],
-               46, HEALTHY, tracking=4)
-    b.line("pmMisLine", rs, LX, 1370, 1800, 1370, 0xFFFFFFFF, 60, 2.0)       # the daily mission (t2r-ext pm_mission)
-    b.text("pmMis0", rs, b.tl(LX, 1400, 1300, 80), "", 46, PM_TEXT, tracking=4)
-    b.text("pmMis1", rs, b.tl(LX, 1490, 1300, 80), "", 42, PM_DIM, tracking=3)
-    b.text("pmMis2", rs, b.tl(LX, 1580, 1300, 80), "", 42, HEALTHY, tracking=3)
-    b.line("pmDivider", rs, 1910, 400, 1910, 1870, 0xFFFFFFFF, 150, 2.0)
-    b.text("pmGainLabel", rs, b.tl(RX, TY - 66, 1000, 132), "SURVIVORS GAINED:", 56, PM_TEXT, tracking=5)
-    b.text("pmGainNum", rs, b.tl(2760, TY - 72, 300, 144), "0", 64, HEALTHY, align=2, tracking=2)
-    b.text("pmGainNumB", rs, b.tl(2760, TY - 72, 300, 144), "0", 64, HEALTHY, align=2, tracking=2, visible=0)
-    b.image("pmGainIcon", rs, b.ctr(3150, TY, 60, 130), PERSON_ICON, HEALTHY)
-    b.text("pmCount", rs, b.tl(RX, 630, 1000, 90), "21 SURVIVORS", 50, HUNGRY, tracking=4)
-    for k, (nm, txt, col) in enumerate((("pmHealthy", "HEALTHY: 19", HEALTHY), ("pmHungry", "HUNGRY: 2", HUNGRY),
-                                        ("pmSick", "SICK: 0", SICK))):
-        b.text(nm, rs, b.tl(RX, 815 + k * 120, 720, 80), txt, 52, col, tracking=3)
-    cx, cy = 2870, 990
-    c = b.group("pmCircle", rs, b.tl(cx - PM_CIRCLE / 2, cy - PM_CIRCLE / 2, PM_CIRCLE, PM_CIRCLE))["guid"]
-    b.image("pmCircleSoft", c, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_CIRCLE * 1.25, PM_CIRCLE * 1.25),
-            "hud/player-menu/gradient/radial-gradient.png", 0xFF9A9A9A, 90)
-    b.ellipse("pmCircleBg", c, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_CIRCLE, PM_CIRCLE), 0xFF6E6E6E, 60)
+        y = PM_OUT_Y0 + k * PM_OUT_DY
+        tile(rs, f"pmOutBg{k}", PM_LX0, y, PM_LX1 - PM_LX0, PM_OUT_H, vis=int(k < 2))
+        b.text(f"pmOut{k}", rs, nr.lm(PM_LX0 + 44, y, PM_LX1 - PM_LX0 - 88, PM_OUT_H), ["THE CLAN IS FED", "2 RECOVERED", "", "", ""][k], nr.pt(24), nr.WHITE, tracking=3)
+    nr.section(b, rs, "pmSecS", PM_RX0, PM_RX1, PM_SEC_Y, "SURVIVORS GAINED", "")
+    tile(rs, "pmGainTile", PM_RX0, PM_HERO_Y, PM_RX1 - PM_RX0, PM_HERO_H)
+    cap(rs, "pmGainCap", PM_RX0 + 50, PM_HERO_Y + PM_HERO_H / 2, "SURVIVORS")
+    for s, v in (("", 1), ("B", 0)):
+        b.text("pmGainNum" + s, rs, b.tl(PM_RX1 - 170 - 800, PM_HERO_Y, 800, PM_HERO_H), "0", nr.pt(72), nr.WHITE, align=2, tracking=2, visible=v)
+    icon(rs, "pmGainPic", PERSON_ICON, PM_RX1 - 128, PM_HERO_Y + PM_HERO_H / 2, 120, F13_CYAN, 120 / 260)
+    nr.section(b, rs, "pmSecH", PM_RX0, PM_RX1, PM_SEC2_Y, "SURVIVORS", "21")
+    for k, (nm, lb, v, col) in enumerate((("pmHealthy", "HEALTHY", 19, HEALTHY), ("pmHungry", "HUNGRY", 2, HUNGRY), ("pmSick", "SICK", 0, SICK))):
+        y = PM_ST_Y0 + k * PM_ST_DY
+        tile(rs, nm + "Tile", PM_RX0, y, PM_ST_W, PM_ST_H)
+        b.text(nm, rs, nr.lm(PM_RX0 + 44, y, 380, PM_ST_H), lb, nr.pt(22), col, tracking=3)
+        b.text(nm + "N", rs, nr.lm(PM_RX0 + PM_ST_W - 44 - 200, y, 200, PM_ST_H, right=1), str(v), nr.pt(30), col, align=2, tracking=2)
+    # the 2013 dot circle: one dot per survivor (up to 60), healthy cyan / hungry grey / sick red, drifting (t2r-ext clan_dots), a soft cyan light
+    cg = b.group("pmCircle", rs, b.ctr(PM_CIR_X, PM_CIR_Y, PM_CIRCLE, PM_CIRCLE))["guid"]
+    b.image("pmCirGlow", cg, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_CIRCLE * 1.9, PM_CIRCLE * 1.9), "hud/player-menu/gradient/radial-gradient.png", F13_CYAN, 46)
+    b.ellipse("pmCirBg", cg, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_CIRCLE, PM_CIRCLE), 0xFFFFFFFF, 12)
     for k in range(MAX_DOTS):
-        d = b.group(f"pmDot{k}", c, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_DOT, PM_DOT), visible=0)["guid"]
+        d = b.group(f"pmDot{k}", cg, b.ctr(PM_CIRCLE / 2, PM_CIRCLE / 2, PM_DOT, PM_DOT), visible=0)["guid"]
         for suf, argb in (("H", HEALTHY), ("U", HUNGRY), ("S", SICK)):
             b.ellipse(f"pmDot{k}{suf}", d, b.fill(), argb, 255)
+    vd = b.group("pmVerdict", rs, b.tl(0, 0, W, H), visible=0)["guid"]       # t2r-ext pm_result: shown when the clan died / survived the 12 weeks
+    b.rect("pmVdBg", vd, b.tl(nr.L0, PM_VD_Y, nr.R1 - nr.L0, PM_VD_H), 0xFF000000, 110)
+    b.rect("pmVdBar", vd, b.tl(nr.L0, PM_VD_Y, 12, PM_VD_H), PM_VD_RED, 255)
+    b.rect("pmVdBarA", vd, b.tl(nr.L0, PM_VD_Y, 12, PM_VD_H), F13_CYAN, 255, visible=0)
+    b.text("pmVdTx", vd, nr.lm(nr.L0 + 80, PM_VD_Y + 27, nr.R1 - nr.L0 - 160, 110), "YOUR CLAN DIED", nr.pt(40), nr.WHITE, face="Alternate", tracking=10)
+    b.text("pmVdSub", vd, nr.lm(nr.L0 + 82, PM_VD_Y + 120, nr.R1 - nr.L0 - 160, 60), "DAYS SURVIVED: 10", nr.pt(20), nr.GREY, tracking=4)
+    ml = b.group("pmMisLine", rs, b.tl(0, 0, W, H))["guid"]      # the daily mission (t2r-ext pm_mission), shown only when there is something to say
+    nr.section(b, ml, "pmMsec", PM_RX0, PM_RX1, PM_MIS_Y, "MISSION", "")
+    b.text("pmMis0", rs, nr.lm(PM_RX0, PM_MIS_Y + 60, PM_RX1 - PM_RX0, 80), "", nr.pt(26), nr.WHITE, tracking=3)
+    b.text("pmMis1", rs, nr.lm(PM_RX0, PM_MIS_Y + 140, PM_RX1 - PM_RX0, 70), "", nr.pt(22), nr.GREY, tracking=3)
+    b.text("pmMis2", rs, nr.lm(PM_RX0, PM_MIS_Y + 210, PM_RX1 - PM_RX0, 70), "", nr.pt(22), nr.GREY, tracking=3)
+    b.rect("pmDivR", rs, b.tl((PM_LX1 + PM_RX0) / 2 - nr.HAIR / 2, PM_SEC_Y - 20, nr.HAIR, PM_VD_Y - 60 - PM_SEC_Y), nr.WHITE, 60)   # 2013: the hairline between the columns
 
-    # --- prompt (NEXT while counting through, CONTINUE on the last stage)
-    b.image("pmNextIcon", a, b.tl(3330, 1898, 56, 56), "menu:select", 0xFFFFFFFF)
-    b.text("pmNextText", a, b.tl(3410, 1890, 300, 70), "NEXT", 46, PM_TEXT, tracking=4)
-    b.image("pmContIcon", a, b.tl(3200, 1898, 56, 56), "menu:select", 0xFFFFFFFF, visible=0)
-    b.text("pmContText", a, b.tl(3280, 1890, 400, 70), "CONTINUE", 46, PM_TEXT, tracking=4, visible=0)
-    if ui_r2_widgets.on("post"):        # UI round 2 (C2): itemised list + framed hero total
-        ui_r2_widgets.postmatch(b)
+    # --- stage 3: what the match unlocked (only when something is new; t2r-ext pmu_fill)
+    un = b.group("unlocks", a, b.tl(0, 0, W, H), visible=0)["guid"]
+    nr.section(b, un, "pmSecUa", PM_LX0, PM_LX1, PM_SEC_Y, "ACHIEVEMENTS", "2")
+    nr.section(b, un, "pmSecUc", PM_RX0, PM_RX1, PM_SEC_Y, "NEW UNLOCKS", "2")
+    b.rect("pmDivU", un, b.tl((PM_LX1 + PM_RX0) / 2 - nr.HAIR / 2, PM_SEC_Y - 20, nr.HAIR, PM_VD_Y - 60 - PM_SEC_Y), nr.WHITE, 60)
+    demo_a = [("HAMMER TIME", "50 Special Executions with a hammer in your hand.", "se_hammer"),
+              ("FIRST RAID", "Finish your first match.", "raid_1")]
+    demo_c = [("PATROL CAP", "WLF  |  HEADWEAR", "THE LONG ROAD", "czc-militia-male-hat-08"),
+              ("FIELD CAP", "WLF  |  HEADWEAR", "VETERAN", "czc-militia-male-hat-14")]
+    for k in range(PM_U_ROWS):
+        y = PM_U_Y0 + k * PM_U_DY
+        x0, tw = PM_LX0, PM_LX1 - PM_LX0 - PM_U_TX - 50
+        g = b.group(f"pmUa{k}", un, b.tl(0, 0, W, H), visible=int(k < len(demo_a)))["guid"]
+        ti, ds, ic = demo_a[k] if k < len(demo_a) else ("", "", "hidden")
+        tile(g, f"pmUa{k}Bg", x0, y, PM_LX1 - x0, PM_U_H)
+        b.rect(f"pmUa{k}Bar", g, b.tl(x0, y, 8, PM_U_H), nr.ACC, 255, visible=0)
+        b.image(f"pmUa{k}Ic", g, b.tl(x0 + 50, y + (PM_U_H - PM_U_IC) / 2, PM_U_IC, PM_U_IC), f"streaming/t2r/ach/{ic}.png", 0xFFFFFFFF, 255,
+                scaleMode="StretchAspect")
+        b.frame(f"pmUa{k}Rim", g, b.tl(x0 + 50 - 14, y + (PM_U_H - PM_U_IC) / 2 - 14, PM_U_IC + 28, PM_U_IC + 28), nr.ACC, 170, 3.0)
+        b.text(f"pmUa{k}Ti", g, nr.lm(x0 + PM_U_TX, y + 30, tw, 64), ti, nr.pt(26), nr.WHITE, tracking=2)
+        b.text(f"pmUa{k}Ds", g, b.tl(x0 + PM_U_TX, y + 96, tw, 110), ds, nr.pt(20), nr.GREY, multiline=1, valign=0, tracking=1)
+        x0, tw = PM_RX0, PM_RX1 - PM_RX0 - PM_U_TX - 50
+        g = b.group(f"pmUc{k}", un, b.tl(0, 0, W, H), visible=int(k < len(demo_c)))["guid"]
+        ti, sb, ch, pic = demo_c[k] if k < len(demo_c) else ("", "", "", "cz-hat")
+        tile(g, f"pmUc{k}Bg", x0, y, PM_RX1 - x0, PM_U_H)
+        b.rect(f"pmUc{k}Bar", g, b.tl(x0, y, 8, PM_U_H), nr.ACC, 255, visible=0)
+        b.image(f"pmUc{k}Glow", g, b.ctr(x0 + 30 + PM_U_PW / 2, y + PM_U_H / 2, PM_U_PW * 1.7, PM_U_PH * 1.4), "hud/player-menu/gradient/radial-gradient.png",
+                0xFFD8E4EA, 40)
+        b.image(f"pmUc{k}Pic", g, b.tl(x0 + 30, y + (PM_U_H - PM_U_PH) / 2, PM_U_PW, PM_U_PH), f"streaming/t2r/icons/{pic}.png", 0xFFFFFFFF, 255)
+        b.image(f"pmUc{k}Ic", g, b.tl(x0 + 30 + (PM_U_PW - 120) / 2, y + (PM_U_H - 120) / 2, 120, 120), "streaming/t2r/icons/cz-hat.png",
+                0xFFFFFFFF, 255, scaleMode="StretchAspect", visible=0)       # (an item without a card picture: its category icon)
+        b.text(f"pmUc{k}Ti", g, nr.lm(x0 + PM_U_TX, y + 30, tw - 160, 64), ti, nr.pt(26), nr.WHITE, tracking=2)
+        b.text(f"pmUc{k}New", g, nr.lm(PM_RX1 - 20 - 300, y + 30, 300, 64, right=1), "NEW", nr.pt(16), F13_CYAN, align=2, tracking=6)
+        b.text(f"pmUc{k}Sub", g, nr.lm(x0 + PM_U_TX, y + 98, tw, 52), sb, nr.pt(20), nr.GREY, tracking=3)
+        icon(g, f"pmUc{k}ChCog", GEAR_ICON, x0 + PM_U_TX, y + 176, 34, nr.ACC)
+        b.text(f"pmUc{k}Ch", g, nr.lm(x0 + PM_U_TX + 50, y + 150, tw - 50, 52), ch, nr.pt(20), nr.ACC, tracking=3)
+    b.text("pmUaNone", un, nr.lm(PM_LX0, PM_U_Y0, PM_LX1 - PM_LX0, 80), "NO NEW ACHIEVEMENTS THIS MATCH", nr.pt(22), nr.GREY, tracking=3, visible=0)
+    b.text("pmUcNone", un, nr.lm(PM_RX0, PM_U_Y0, PM_RX1 - PM_RX0, 80), "NO NEW UNLOCKS THIS MATCH", nr.pt(22), nr.GREY, tracking=3, visible=0)
+    b.text("pmUaMore", un, nr.lm(PM_LX0, PM_U_FOOT_Y, PM_LX1 - PM_LX0, 60), "+2 MORE IN CLAN | ACHIEVEMENTS", nr.pt(20), nr.GREY, tracking=3, visible=0)
+    b.text("pmUcFoot", un, nr.lm(PM_RX0, PM_U_FOOT_Y, PM_RX1 - PM_RX0, 60), "EQUIP THEM IN CUSTOMIZE", nr.pt(20), nr.GREY, tracking=3)
 
     w = {k: copy.deepcopy(v) for k, v in main.items() if k != "items"}
     w["items"] = b.items
@@ -1155,17 +1288,36 @@ def build_postmatch_page(main):
 # IN THE ...", "[A] NEW MEMBERS JOINED THE CLAN"). One page of ours serves both; t2r-ext ev_tick fills it.
 EV_PAGE = "clan-event"
 EV_DOTS, EV_ACTORS = 60, 24
-EV_FRAME = (1070, 590, 1700, 660)        # the picture frame (x, y, w, h)
+EV_FRAME = (1420, 1370, 420, 420)        # the dot circle's box in the left column (x, y, w, h)
 EV_CIRCLE = 420                          # the camp circle in the picture
 EV_DOT, EV_ACT = 22, 28
-EV_ENEMY = 0xFFD8402F                    # the raiders (enemy red)
-EV_FRIEND = 0xFFDCEEF6                   # allies / hostages / friendly survivors (white with a cold cast)
-EV_CREAM = 0xFFE9E4CE                    # the 2013 picture-card border (loading tip card)
-EV_CHIP_X = (1020, 1920, 2820)           # tier chip centres
+# the dot picture (events without key art) in the page's palette (STYLE.md: white, grey, one accent): the clan = white dots (hungry
+# grey, sick / fallen dark grey), raiders = white rings, the people who may join = the accent (its "new" meaning)
+EV_DOT_H, EV_DOT_U, EV_DOT_S = HEALTHY, HUNGRY, SICK      # the 2013 colours (at risk / fallen = red)
+EV_ENEMY = NR.WHITE                      # the raiders: hollow rings
+EV_FRIEND = NR.ACC                       # allies / hostages / friendly survivors
+EV_TXT_Y = 1380                          # top of the description (the band's torn edge is at 1341)
+EV_COL_W = 1180                          # the description's width (the dot circle sits right of it)
+EV_TIER_X = 2020                         # the right column (tier rows): 2020 .. R1 (= t2r-ext EV_TIER_X)
+EV_TIER_Y, EV_TIER_H, EV_TIER_GAP = 1450, 104, 12
+EV_TIER_BIG_X = 330                      # a row's goal text (after "TIER n")
+EV_TIER_TAG_R = 1680 - 10 - 420          # right edge of the row's REACHED label (left of the effect text)
+# style A (build_event_page): the band of key art 244 .. 1341 (plate13_ship TOP_H / BOT_Y0 / TEAR_Y x 3), the title on its lower edge
+EV13_BAND_Y0, EV13_BOT_Y0 = 244, 942
+EV13_TITLE_Y, EV13_RISK_Y = 1080, 1196    # centre lines
+EV13_COL_Y0, EV13_COL_Y1 = 1390, 1950     # the two columns under the band; the hairline between them at EV13_DIV_X
+EV13_DIV_X = 1920
+EV13_STAT_Y = 1840                        # the stat block's centre line (= t2r-ext EV13_STAT_Y)
+EV13_LINE0_Y, EV13_LINE1_Y = 1880, 2000
+# the event key art (re/clan-events-1117.md): five parallax layers per event and faction, 2560 x 1080 px each (far L4 .. near L0),
+# drawn 5120 x 2160 units behind the page. t2r-ext ev_fill picks the images (ev-<key>-<wlf|ser>-L<i>), ev_tick moves them.
+EV_ART_TEX = "streaming/t2r/clanev/ev-%s-%s-L%d.png"
+EV_ART_KEYS = ("horde", "raid", "trespass", "spoil", "sick", "friends", "rescue")
 
 
 def build_event_page(main):
-    """to1/clan-event.widget.json content."""
+    """to1/clan-event.widget.json content (the 2013 frame, style A - f13_header, the plate, the key art as a band with a torn lower edge,
+    the title on the art, the description + the stat block + the dot circle left, the tiers right with cog bullets)."""
     t, root0, anim0 = _templates(main)
     b = Builder(t)
     root = copy.deepcopy(root0); root.update(guid=t2guid.guid())
@@ -1173,93 +1325,115 @@ def build_event_page(main):
     b.items += [root]
     a = anim["guid"]
     # the backdrop is its own group (opaque from frame 1, faded only when the page goes out), the content fades in
-    bg = b.group("evBg", root["guid"], b.bleed())["guid"]
-    b.image("evBlur", bg, b.bleed(), "general-textures/blur-background.png", 0xFFFFFFFF, 255)
-    b.rect("evDark", bg, b.bleed(), 0xFF0B0C0D, 255)
-    b.image("evLight", bg, b.ctr(1920, 980, 3600, 2200), "hud/player-menu/gradient/radial-gradient.png", 0xFFFFFFFF, 26)
+    bg = b.group("evBg", root["guid"], b.bleed())
+    f13_plate(b, bg)
+    bg = bg["guid"]
+    # --- the event key art (hidden until t2r-ext has an art key for the event): 5 layers, a cool mute over them (the 2013 desaturated still),
+    # then the plate again above the band (under the header) and below it (a torn edge with a dark fade above it: the title reads).
+    # (evBg is a bleed group: its rect starts one canvas up and left of the screen, so canvas coordinates are + (W, H) in it.)
+    art = b.group("evArt", bg, b.tl(W, H, W, H), visible=0)["guid"]
+    for i in (4, 3, 2, 1, 0):                         # far first (drawn under)
+        b.image("evL%d" % i, art, b.ctr(1920, 1080, 5120, 2160), EV_ART_TEX % ("horde", "wlf", i))
+    b.rect("evArtMute", art, b.tl(0, 0, W, H), 0xFF10161C, 64)
+    b.image("evArtVig", art, b.tl(0, 0, W, H), "streaming/t2r/clanend/ce-vig.png")
+    b.image("evArtTopP", art, b.tl(0, 0, W, EV13_BAND_Y0), PLATE_TOP_TEX, 0xFFFFFFFF, 255)
+    b.image("evArtBotP", art, b.tl(0, EV13_BOT_Y0, W, H - EV13_BOT_Y0), PLATE_EVBOT_TEX, 0xFFFFFFFF, 255)
     anim["depth"] = float(len(b.items)) * 0.01
     b.items.append(anim)
 
-    # --- header (the same as the post-match page: emblem, WEEK n: DAY d, faction, line)
-    for key, col in (("W", WLF_COL), ("S", SER_COL)):
-        b.image(f"evEmblem{key}", a, b.tl(318, 158, 66, 137), FIG_IMG[key], col, 210, visible=int(key == "W"))
-    b.text("evTitle", a, b.tl(450, 150, 2200, 150), "WEEK 1: DAY 1", 86, PM_TEXT, tracking=6)
-    b.text("evFaction", a, b.tl(2600, 118, 976, 60), "WASHINGTON LIBERATION FRONT", 34, PM_DIM, align=2, tracking=4)
-    b.line("evTitleLine", a, 264, 305, 3576, 305, 0xFFFFFFFF, 120, 2.0)
+    f13_header(b, a, "INCOMING EVENT")
 
-    # --- EVENT_TITLE (+ what kind of screen: incoming / result) and the risk / buff on the right
-    b.text("evKind", a, b.tl(300, 335, 1600, 60), "INCOMING EVENT", 36, PM_DIM, tracking=6)
-    b.text("evName", a, b.tl(290, 380, 2500, 190), "SERAPHITE ATTACK", 112, PM_TEXT, tracking=8)
-    b.text("evRisk", a, b.tl(2300, 420, 1276, 110), "", 54, PM_TEXT, align=2, tracking=3)
+    # --- EVENT_TITLE on the art's lower edge, the risk / buff / tier reached under it
+    b.text("evName", a, NR.lm(NR.L0, EV13_TITLE_Y - 75, 3400, 150), "SERAPHITE ATTACK", NR.pt(76), NR.WHITE, face="Alternate", tracking=4)
+    b.text("evRisk", a, NR.lm(NR.L0 + 4, EV13_RISK_Y - 35, 2900, 70), "", NR.pt(22), NR.WHITE, tracking=4)
 
-    # --- EVENT_IMAGE: the picture. 2013 had one painted still per event; ours is the camp circle of survivor dots
-    # (the clan panel's own language) with the event happening around it: raiders closing in, friends / hostages / allies
-    # walking in. Card border in the 2013 tip-card cream.
+    # --- the clan's dot circle (the 2013 survivors circle; the clan panel's own language): who is at risk (red) on an attack's announcement,
+    # the fallen flashing red then gone / the new members walking in on a result (t2r-ext ev_scene). Soft light: grey, the raid's red, the
+    # friends' cyan. (evAct* = the old picture's raiders / friends: kept for the ext's handles, never shown.)
     fx, fy, fw, fh = EV_FRAME
     sc = b.group("evScene", a, b.tl(fx, fy, fw, fh))["guid"]
-    b.rect("evPic", sc, b.fill(), 0xFF0F1113, 255)
-    b.image("evPicLight", sc, b.ctr(fw / 2, fh / 2, fw * 1.1, fh * 1.5), "hud/player-menu/gradient/radial-gradient.png",
-            0xFFFFFFFF, 40)
-    b.image("evGlowEnemy", sc, b.ctr(fw / 2, fh / 2, fw * 1.05, fh * 1.45), "hud/player-menu/gradient/radial-gradient.png",
-            EV_ENEMY, 255)           # (t2r-ext sets the widget alpha: the glow's strength)
-    b.image("evGlowFriend", sc, b.ctr(fw / 2, fh / 2, fw * 1.05, fh * 1.45), "hud/player-menu/gradient/radial-gradient.png",
-            HEALTHY, 255)
+    b.rect("evPic", sc, b.fill(), 0xFF0F1113, 255, visible=0)
+    b.image("evPicLight", sc, b.ctr(fw / 2, fh / 2, fw * 1.6, fh * 1.6), "hud/player-menu/gradient/radial-gradient.png", 0xFFFFFFFF, 18)
+    b.image("evGlowEnemy", sc, b.ctr(fw / 2, fh / 2, fw * 2.0, fh * 2.0), "hud/player-menu/gradient/radial-gradient.png", SICK, 255)
+    b.image("evGlowFriend", sc, b.ctr(fw / 2, fh / 2, fw * 2.0, fh * 2.0), "hud/player-menu/gradient/radial-gradient.png", HEALTHY, 255)
     cg = b.group("evCircle", sc, b.ctr(fw / 2, fh / 2, EV_CIRCLE, EV_CIRCLE))["guid"]
     b.image("evCircleSoft", cg, b.ctr(EV_CIRCLE / 2, EV_CIRCLE / 2, EV_CIRCLE * 1.3, EV_CIRCLE * 1.3),
-            "hud/player-menu/gradient/radial-gradient.png", 0xFF9A9A9A, 100)
-    b.ellipse("evCircleBg", cg, b.ctr(EV_CIRCLE / 2, EV_CIRCLE / 2, EV_CIRCLE, EV_CIRCLE), 0xFF6E6E6E, 64)
+            "hud/player-menu/gradient/radial-gradient.png", 0xFF9A9A9A, 40)
+    b.ellipse("evCircleBg", cg, b.ctr(EV_CIRCLE / 2, EV_CIRCLE / 2, EV_CIRCLE, EV_CIRCLE), 0xFFFFFFFF, 12)
     for k in range(EV_DOTS):
         d = b.group(f"evDot{k}", cg, b.ctr(EV_CIRCLE / 2, EV_CIRCLE / 2, EV_DOT, EV_DOT), visible=0)["guid"]
-        for suf, argb in (("H", HEALTHY), ("U", HUNGRY), ("S", SICK)):
+        for suf, argb in (("H", EV_DOT_H), ("U", EV_DOT_U), ("S", EV_DOT_S)):
             b.ellipse(f"evDot{k}{suf}", d, b.fill(), argb, 255)
     for k in range(EV_ACTORS):
         d = b.group(f"evAct{k}", sc, b.ctr(fw / 2, fh / 2, EV_ACT, EV_ACT), visible=0)["guid"]
-        for suf, argb in (("R", EV_ENEMY), ("W", EV_FRIEND), ("G", HUNGRY)):
+        b.ellipse(f"evAct{k}R", d, b.fill(), EV_ENEMY, 255, filled=0, width=5.0)
+        for suf, argb in (("W", EV_FRIEND), ("G", NR.GREY)):
             b.ellipse(f"evAct{k}{suf}", d, b.fill(), argb, 255)
-    b.frame("evFrame", a, b.tl(fx, fy, fw, fh), EV_CREAM, 255, 6.0)
+    b.frame("evFrame", a, b.tl(fx, fy, fw, fh), NR.WHITE, 70, 2.0, visible=0)
 
-    # --- NET_BLURB: the 2013 description / the tier text of the result
-    b.text("evBlurb", a, b.tl(520, 1290, 2800, 220), "", 52, PM_TEXT, align=1, multiline=1, valign=0, tracking=2)
+    # --- NET_BLURB: the 2013 description / the tier text of the result, the left column
+    b.text("evBlurb", a, b.tl(NR.L0, EV_TXT_Y, EV_COL_W, 380), "", NR.pt(23), 0xFFD2D2D2, multiline=1, valign=0, tracking=1)
+    # --- the stat block under it: 60% AT RISK / -5 CLAN MEMBERS DIED / +3 MAY JOIN (t2r-ext ev13_stat: the number's colour by font tag, the
+    # pictogram after the number: red or cyan, the ext moves it and the two lines after the number's width)
+    st = b.group("evStat", a, b.tl(0, 0, W, H))["guid"]
+    b.text("evBig", st, NR.lm(NR.L0, EV13_STAT_Y - 95, 900, 190), "60%", NR.pt(92), NR.WHITE, face="Alternate", tracking=2)
+    for k, col in (("R", SICK), ("C", HEALTHY)):
+        b.image("evBigIc" + k, st, b.tl(NR.L0 + 380, EV13_STAT_Y - 70, 140 * 120 / 260, 140), PERSON_ICON, col, 255, visible=int(k == "R"))
+    b.text("evBigL1", st, NR.lm(NR.L0 + 470, EV13_STAT_Y - 30 - 32, 1300, 64), "AT RISK", NR.pt(22), NR.WHITE, tracking=4)
+    b.text("evBigL2", st, NR.lm(NR.L0 + 470, EV13_STAT_Y + 30 - 28, 1300, 56), "", NR.pt(20), NR.GREY, tracking=3)
+    b.rect("evDiv", a, b.tl(EV13_DIV_X - NR.HAIR / 2, EV13_COL_Y0, NR.HAIR, EV13_COL_Y1 - EV13_COL_Y0), NR.WHITE, 70)
 
-    # --- the three tiers (the mission block of the 2013 loading screen: goal, % ), the reached one lit on the result
+    # --- the three tiers: rows over hairlines in the right column (the cog, grey TIER n, the goal cyan, the effect red / cyan right aligned).
+    # On the result the reached one has a cyan outline over a faint cyan fill and REACHED, the others are dimmed (t2r-ext ev_tick).
+    NR.section(b, a, "evTiers", EV_TIER_X, NR.R1, EV13_COL_Y0 + 20, "TIERS")
+    tw = NR.R1 - EV_TIER_X
     for k in range(3):
-        cx = EV_CHIP_X[k]
-        c = b.group(f"evChip{k}", a, b.tl(cx - 400, 1530, 800, 270))["guid"]
-        b.frame(f"evChip{k}Frame", c, b.fill(), EV_CREAM, 255, 4.0, visible=0)    # lit on the result page (the tier reached)
-        b.text(f"evChip{k}Tier", c, b.tl(0, 18, 800, 50), f"TIER {k + 1}", 32, PM_DIM, align=1, tracking=6)
-        b.text(f"evChip{k}Big", c, b.tl(0, 66, 800, 110), "3 DOWNS", 80, PM_TEXT, align=1, tracking=4)
-        b.text(f"evChip{k}Pct", c, b.tl(0, 186, 800, 70), "LOSE 40%", 46, HEALTHY, align=1, tracking=4)
-    b.line("evChipLine0", a, 1470, 1560, 1470, 1770, 0xFFFFFFFF, 90, 2.0)
-    b.line("evChipLine1", a, 2370, 1560, 2370, 1770, 0xFFFFFFFF, 90, 2.0)
+        c = b.group(f"evChip{k}", a, b.tl(EV_TIER_X, EV_TIER_Y + k * (EV_TIER_H + EV_TIER_GAP), tw, EV_TIER_H))["guid"]
+        b.rect(f"evChip{k}Bg", c, b.tl(0, EV_TIER_H + EV_TIER_GAP / 2 - NR.HAIR / 2, tw, NR.HAIR), F13_HAIR, 255, visible=int(k < 2))
+        b.rect(f"evChip{k}Hi", c, b.tl(-20, 0, tw + 40, EV_TIER_H), HEALTHY, 26, visible=0)
+        b.frame(f"evChip{k}Frame", c, b.tl(-20, 0, tw + 40, EV_TIER_H), HEALTHY, 210, 4.0, visible=0)    # the tier reached (result page)
+        b.image(f"evChip{k}Cog", c, b.tl(6, (EV_TIER_H - 50) / 2, 50, 50), GEAR_ICON, F13_COG, 255, scaleMode="StretchAspect")
+        b.text(f"evChip{k}Tier", c, NR.lm(84, 0, 280, EV_TIER_H), f"TIER {k + 1}", NR.pt(18), NR.GREY, tracking=3)
+        b.text(f"evChip{k}Big", c, NR.lm(EV_TIER_BIG_X, 0, 760, EV_TIER_H), "3 DOWNS", NR.pt(30), HEALTHY, tracking=2)
+        b.text(f"evChip{k}Pct", c, NR.lm(tw - 10 - 620, 0, 620, EV_TIER_H, right=1), "LOSE 40%", NR.pt(24), SICK, align=2,
+               tracking=3)
+        tg = b.group(f"evChip{k}Tag", c, b.fill(), visible=0)["guid"]
+        b.text(f"evChip{k}TagTx", tg, NR.lm(EV_TIER_TAG_R - 400, 0, 400, EV_TIER_H, right=1), "REACHED", NR.pt(16), HEALTHY, align=2, tracking=5)
 
-    # --- result lines under the tiers (outcome page): "[A] CLAN MEMBERS DIED IN THE ... ATTACK"
-    b.text("evLine0", a, b.tl(300, 1830, 2900, 80), "", 54, SICK, align=1, tracking=4)
-    b.text("evLine1", a, b.tl(300, 1915, 2900, 70), "", 42, PM_DIM, align=1, tracking=3)
+    # --- under the tiers: the event's bonus (amber, with the cog) / the result line (white); the hint bottom left (grey, small)
+    b.image("evLine0Ic", a, b.tl(EV_TIER_X, EV13_LINE0_Y - 22, 44, 44), GEAR_ICON, NR.ACC, 255, scaleMode="StretchAspect", visible=0)
+    b.text("evLine0", a, NR.lm(EV_TIER_X + 64, EV13_LINE0_Y - 32, tw - 64, 64), "", NR.pt(19), NR.WHITE, tracking=3)
+    b.text("evLine1", a, NR.lm(NR.L0, EV13_LINE1_Y - 28, 2900, 56), "", NR.pt(15), NR.GREY, tracking=3)
 
-    # --- prompt (CONTINUE)
-    b.image("evContIcon", a, b.tl(3200, 1898, 56, 56), "menu:select", 0xFFFFFFFF)
-    b.text("evContText", a, b.tl(3280, 1890, 400, 70), "CONTINUE", 46, PM_TEXT, tracking=4)
+    # --- prompt: [key] CONTINUE in a box, bottom right (all NR.NPROMPT slots: nrui.c nr_prompts walks every one)
+    NR.prompt_slots(b, a)
 
     w = {k: copy.deepcopy(v) for k, v in main.items() if k != "items"}
     w["items"] = b.items
     return w
 
 
-def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivors=25, phase=1.0):
-    """The event page set up the way t2r-ext ev_tick fills it, for widget_preview.
-    mode 'announce' / 'result'; kind 'attack' / 'growth'; phase 0..1 = how far the picture's action is."""
+def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivors=25, phase=1.0, name=None, art=None):
+    """The event page set up the way t2r-ext ev_fill / ev_nr_fill fill it, for widget_preview.
+    mode 'announce' / 'result'; kind 'attack' / 'growth'; phase 0..1 = how far the picture's action is.
+    name: attack 1 = INFECTED HORDE; growth 0..5 (clan.py GROWTH_NAMES_ALL), default the calendar's (day // 5) % 5.
+    art: an EV_ART_KEYS key = the key art behind the page (the dot picture hidden), None = the dots."""
     import math
     import random
     w = copy.deepcopy(page)
     by = {i["name"]: i for i in w["items"]}
     vis = lambda n, on: by[n].update(visible=int(bool(on)))
-    txt = lambda n, s, col=None: (by[n].update(text=s), col is not None and by[n].update({"tint.start": col, "tint.end": col}))
+    txt = lambda n, s: by[n].update(text=s)
+    grey = lambda s: '<font color="#8C8C8C">%s</font>' % s
     wk, dw = day // 7 + 1, day % 7 + 1
-    txt("evTitle", f"WEEK {wk}: DAY {dw}")
+    f13_demo(by, fac, "INCOMING EVENT" if mode == "announce" else "EVENT RESULT", day, day)
+    NR.demo_prompts(by, [("", "CONTINUE", 1, "menu:select")])
+    NR.demo_section(by, "evTiers", EV_TIER_X, NR.R1, "TIERS")
+    red = lambda s: '<font color="#fd6d51">%s</font>' % s
+    cyan = lambda s: '<font color="#5dc0dc">%s</font>' % s
+    amber = lambda s: '<font color="#d9d86a">%s</font>' % s
     foe = "SERAPHITE" if fac == 1 else "WLF"
     foes = "Seraphites" if fac == 1 else "WLF"
-    vis("evEmblemW", fac == 1); vis("evEmblemS", fac == 2)
-    txt("evFaction", "WASHINGTON LIBERATION FRONT" if fac == 1 else "SERAPHITES")
     loss = (60, 40, 20, 10) if day in (15, 30) else (100, 60, 40, 20)
     cx = EV_CIRCLE / 2
     rng = random.Random(7)
@@ -1268,11 +1442,17 @@ def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivor
     lost_d = min(dn - 1, max(1 if lost else 0, round(lost * dn / max(1, n)))) if lost else 0
     join_d = min(EV_DOTS - dn, max(1 if join else 0, round(join * dn / max(1, n)))) if join else 0
     if kind == "attack":
-        txt("evName", f"{foe} ATTACK" if mode == "announce" else f"THE {foes.upper()} ATTACKED")
-        txt("evKind", "INCOMING EVENT" if mode == "announce" else "EVENT RESULT")
+        horde = name == 1
+        if horde:
+            foe, foes = "HORDE", "infected"
+            txt("evName", "INFECTED HORDE" if mode == "announce" else "THE HORDE ATTACKED")
+        else:
+            txt("evName", f"{foe} ATTACK" if mode == "announce" else f"THE {foes.upper()} ATTACKED")
         if mode == "announce":
-            txt("evRisk", f'RISK: <font color="#e04848">{loss[0]}%</font> OF POPULATION')
-            txt("evBlurb", f"Scouts have picked up a large group of {foes} massing nearby for an attack. Improve the "
+            txt("evRisk", red("RISK") + f"  {loss[0]}% OF POPULATION")
+            txt("evBlurb", "A large horde of infected is moving toward our camp. Improve the training of the group to help us "
+                           "survive the attack." if horde else
+                           f"Scouts have picked up a large group of {foes} massing nearby for an attack. Improve the "
                            "training of the group to help us survive the attack.")
         else:
             txt("evRisk", "")
@@ -1287,25 +1467,37 @@ def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivor
         goals = ("3 DOWNS", "6 DOWNS", "9 DOWNS")
         for k in range(3):
             txt(f"evChip{k}Big", goals[k])
-            txt(f"evChip{k}Pct", f"LOSE {loss[k + 1]}%", SICK)
+            txt(f"evChip{k}Pct", f"LOSE {loss[k + 1]}%")
         by["evGlowEnemy"]["color.a"] = 90
         by["evGlowFriend"]["color.a"] = 0     # (preview: the ext drives these by widget alpha)
         act_kind = "R"
     else:
-        names = ("FRIENDLY SURVIVORS", "HOSTAGES TAKEN", "RESCUE ALLIES")
+        names = ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES", "MARAUDER ATTACK", "SPOILED SUPPLIES")
+        res_names = ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES ATTEMPTED", "MARAUDER ATTACK REPELLED",
+                     "SPOILED SUPPLIES")
         blurbs = ("Some friendly survivors have been located nearby. If we can protect them from the %s they'll join our "
                   "clan." % foes,
-                  "Some of our people have been taken hostage by the %s. Improve the training of the group to mount a "
-                  "rescue mission." % foes,
+                  "Dysentery is spreading rapidly in the area. The %s have a supply of antibiotics. Improve the training of "
+                  "the group so we can mount an attack and steal it." % foes,
+                  "An outbreak of malaria is spreading rapidly throughout the area. The %s have a supply of antibiotics. "
+                  "Improve the training of the group so we can mount an attack and steal it." % foes,
                   "A group of allies trying to reach our camp were captured by the %s. Improve the training of the "
-                  "group so we can mount a rescue mission." % foes)
-        res_names = ("FRIENDLY SURVIVORS", "HOSTAGE RESCUE", "RESCUE ALLIES ATTEMPTED")
-        gi = (day // 5) % 3
+                  "group so we can mount a rescue operation." % foes,
+                  "Marauders have been raiding camps in the area and are heading our way. Improve the training of the group "
+                  "to repel the attack.",
+                  "A nearby camp has lost its supplies to damp and rot. Improve the training of the group so we can bring its "
+                  "people in before the %s find them." % foes)
+        gi = (day // 5) % 5 if name is None else name
         txt("evName", names[gi] if mode == "announce" else res_names[gi])
-        txt("evKind", "INCOMING EVENT" if mode == "announce" else "EVENT RESULT")
-        txt("evRisk", 'EVENT BUFF: <font color="#5dc0dc">NEW SURVIVORS</font>' if mode == "announce" else "")
+        txt("evRisk", cyan("EVENT BUFF") + "  NEW SURVIVORS" if mode == "announce" else "")
         if mode == "announce":
             txt("evBlurb", blurbs[gi])
+        elif gi == 5:
+            txt("evBlurb", ["You were not able to improve the training of your clan in time. The people of the spoiled camp went elsewhere.",
+                            "You were able to partially improve the training of your clan. Some people of the spoiled camp joined your clan.",
+                            "You were able to partially improve the training of your clan. Some people of the spoiled camp joined your clan.",
+                            "You were able to dramatically improve the training of your clan. The people of the spoiled camp joined your "
+                            "clan."][tier])
         else:
             txt("evBlurb", ["You were not able to protect any friendly survivors. No one joined your clan.",
                             "You were able to partially improve the training of your clan and protect some friendlies. "
@@ -1314,42 +1506,56 @@ def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivor
                             "Some new members joined your clan.",
                             "You were able to dramatically improve the training of your clan and protect the friendly "
                             "survivors. All the friendlies joined your clan."][tier])
-        for k, (big, pct) in enumerate((("FED", "+5%"), ("25% SPARE", "+7.5%"), ("50% SPARE", "+10%"))):
+        for k, (big, pct) in enumerate((("FED", "+5%"), ("25% SPARE", "+7%"), ("50% SPARE", "+10%"))):
             txt(f"evChip{k}Big", big)
-            txt(f"evChip{k}Pct", f"{pct} JOIN", HEALTHY)
+            txt(f"evChip{k}Pct", cyan(f"{pct} JOIN"))
         by["evGlowEnemy"]["color.a"] = 0
         by["evGlowFriend"]["color.a"] = 70
         act_kind = "W"
-    for k in range(3):                                       # the reached tier lit on the result page
-        vis(f"evChip{k}Frame", mode == "result" and tier == k + 1)
-        dim = mode == "result" and tier != k + 1
-        for s in ("Tier", "Big", "Pct"):
-            by[f"evChip{k}{s}"]["color.a"] = 90 if dim else 255
+    for k in range(3):                                       # the reached tier: cyan outline + fill + REACHED; the others dimmed
+        hit = mode == "result" and tier == k + 1
+        vis(f"evChip{k}Frame", hit)
+        vis(f"evChip{k}Hi", hit)
+        vis(f"evChip{k}Tag", hit)
+        by[f"evChip{k}"]["color.a"] = 100 if mode == "result" and not hit else 255
+    if mode == "result":
+        txt("evRisk", cyan(f"REACHED TIER {tier}") if tier else grey("NO TIER REACHED"))
     if mode == "result":
         if kind == "attack":
-            txt("evLine0", f"{lost} CLAN MEMBERS DIED IN THE {foe} ATTACK" if lost else "NO ONE WAS LOST", SICK if lost else HEALTHY)
-            txt("evLine1", f"{n - lost} SURVIVORS LEFT" if survivors - lost > 0 else "YOUR CLAN WAS WIPED OUT")
+            txt("evLine0", (f"{lost} CLAN MEMBERS DIED IN THE {foe} ATTACK" if lost else "NO ONE WAS LOST"))
+            txt("evLine1", "")                                  # (the survivors left are in the stat block)
         else:
-            txt("evLine0", f"{join} NEW MEMBERS JOINED THE CLAN" if join else "NO ONE JOINED THE CLAN", HEALTHY if join else PM_DIM)
-            txt("evLine1", f"{n + join} SURVIVORS")
+            txt("evLine0", f"{join} NEW MEMBERS JOINED THE CLAN" if join else "NO ONE JOINED THE CLAN")
+            txt("evLine1", "")
     else:
-        txt("evLine0", "")
-        txt("evLine1", "DOWN ENEMIES IN YOUR NEXT MATCH - THE MORE YOU DOWN, THE FEWER SURVIVORS FALL" if kind == "attack" else
-            "FEED THE CLAN IN YOUR NEXT MATCH - THE MORE SPARE SUPPLIES, THE MORE SURVIVORS JOIN")
-    # picture: camp dots (+ lost ones red on the result), actors around / converging
+        txt("evLine0", amber("DURING THIS EVENT YOU GAIN 10% MORE PARTS") if kind == "attack" else "")
+        txt("evLine1", "PICK A MISSION TO TRAIN FOR IT - THE FURTHER YOU GET IN 3 MATCHES, THE FEWER SURVIVORS FALL" if kind == "attack" else
+            "PICK A MISSION TO TRAIN FOR IT - THE FURTHER YOU GET IN 3 MATCHES, THE MORE SURVIVORS JOIN")
+    vis("evLine0Ic", mode == "announce" and kind == "attack")
+    # the stat block (= t2r-ext ev13_stat)
+    big, l1, l2, red_ic = _ev13_stat(mode, kind, n, lost, join, loss[0])
+    txt("evBig", big); txt("evBigL1", l1); txt("evBigL2", l2)
+    vis("evBigIcR", red_ic); vis("evBigIcC", not red_ic)
+    x_ic = NR.L0 + NR.est(big.split(">")[1].split("<")[0] if "<" in big else big, NR.pt(92)) * 1.15 + 30
+    by["evBigIcR"]["pivotAs.x"] = by["evBigIcC"]["pivotAs.x"] = float(x_ic)
+    by["evBigL1"]["pivotAs.x"] = by["evBigL2"]["pivotAs.x"] = float(x_ic + 90)
+    if art:                                                  # the key art: its five layers at rest, the dot picture and its frame off
+        vis("evArt", 1)
+        for i in range(5):
+            by["evL%d" % i]["path"] = EV_ART_TEX % (art, "ser" if fac == 2 else "wlf", i)
+    # picture: camp dots (at risk red on an attack's announcement, the lost ones red on the result); the actors are never shown
+    risk_d = round(dn * loss[0] / 100) if mode == "announce" and kind == "attack" else 0
     shown = dn + (join_d if mode == "result" and phase >= 0.7 else 0)
     for k in range(EV_DOTS):
         on = k < shown
         a, r = rng.uniform(0, 6.2832), 165 * rng.random() ** 0.5
         by[f"evDot{k}"].update(visible=int(on), **{"pivotAs.x": cx + r * math.cos(a), "pivotAs.y": cx + r * math.sin(a)})
-        st = "S" if (mode == "result" and kind == "attack" and k >= dn - lost_d and k < dn and phase < 0.9) else "H"
+        st = "S" if ((mode == "result" and kind == "attack" and k >= dn - lost_d and k < dn and phase < 0.9) or dn - risk_d <= k < dn) else "H"
         for suf in "HUS":
             vis(f"evDot{k}{suf}", suf == st)
         if mode == "result" and kind == "attack" and k >= dn - lost_d and k < dn and phase >= 0.9:
             vis(f"evDot{k}", 0)
-    na = 12 if kind == "attack" else 7
-    if mode == "result" and kind == "growth":
-        na = max(1, join_d) if join else 0
+    na = 0
     fw, fh = EV_FRAME[2], EV_FRAME[3]
     for k in range(EV_ACTORS):
         on = k < na
@@ -1367,11 +1573,45 @@ def event_demo(page, mode, kind, fac=1, day=14, tier=0, lost=0, join=0, survivor
     return w
 
 
+def _ev13_stat(mode, kind, n, lost, join, risk_pct, grow=None):
+    """the event page's stat block: (big number with its font tag, line 1, line 2, red pictogram?) = t2r-ext ev13_stat"""
+    red = lambda s: '<font color="#fd6d51">%s</font>' % s
+    cyan = lambda s: '<font color="#5dc0dc">%s</font>' % s
+    if kind == "attack" and mode == "announce":
+        r = round(n * risk_pct / 100)
+        return red(f"{risk_pct}%"), red("AT RISK"), f"{r} OF {n} SURVIVORS", 1
+    if kind == "attack":
+        if n - lost <= 0:
+            return red(f"-{lost}"), red("CLAN MEMBERS DIED"), "YOUR CLAN WAS WIPED OUT", 1
+        return red(f"-{lost}"), red("CLAN MEMBERS DIED"), cyan(f"{n - lost} SURVIVORS LEFT"), 1
+    if mode == "announce":
+        g = grow if grow is not None else max(1, round(n * 0.10))
+        return cyan(f"+{g}"), cyan("MAY JOIN"), f"{n} SURVIVORS NOW", 0
+    if join:
+        return cyan(f"+{join}"), cyan("NEW MEMBERS JOINED"), f"{n + join} SURVIVORS", 0
+    return "0", "NO ONE JOINED", f"{n} SURVIVORS", 0
+
+
+def _f13_prev_tex():
+    """the plate textures for widget_preview (generated by plate13_ship into the temp dir; streaming/t2r/clan/ points there while
+    these pages are drawn: they use no other clan art)"""
+    import sys
+    import tempfile
+    import widget_preview
+    d = os.path.join(tempfile.gettempdir(), "t2r-plate13")
+    if not os.path.exists(os.path.join(d, "plate13-evbot.png")):
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models", "figures"))
+        import plate13_ship
+        plate13_ship.main(d)
+    widget_preview.STREAMING["streaming/t2r/clan/"] = d
+
+
 def preview_event(wdir, out_dir):
     import widget_preview
     import tempfile
     main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
     page = build_event_page(main)
+    _f13_prev_tex()
     shots = (("event-1-attack-announce", dict(mode="announce", kind="attack", day=15, survivors=25)),
              ("event-2-attack-result-t0", dict(mode="result", kind="attack", day=15, survivors=25, tier=0, lost=15, phase=0.5)),
              ("event-3-attack-result-t3", dict(mode="result", kind="attack", day=15, survivors=25, tier=3, lost=3, phase=0.5, fac=2)),
@@ -1382,6 +1622,49 @@ def preview_event(wdir, out_dir):
         tmp = os.path.join(tempfile.gettempdir(), "t2r-" + name + ".widget.json")
         json.dump(event_demo(page, **kw), open(tmp, "w", encoding="utf-8"))
         print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png")))
+
+
+# which event each key art stands behind (t2r-ext ev_art_key) -> the demo that shows it
+EV_ART_DEMO = {"horde": dict(kind="attack", name=1, day=30), "raid": dict(kind="attack", day=15),
+               "trespass": dict(kind="growth", name=4, day=20), "spoil": dict(kind="growth", name=5, day=45),
+               "sick": dict(kind="growth", name=1, day=5), "friends": dict(kind="growth", name=0, day=25),
+               "rescue": dict(kind="growth", name=3, day=40)}
+
+
+def preview_event_art(wdir, out_dir=None):
+    """The real event page (this widget, the game's menu face) over the shipped key art, per event and faction:
+    re/clan-events-1117/previews/<key>-<fac>.jpg, three result / no-art samples (page-*.jpg) and sheet.jpg."""
+    import widget_preview
+    from PIL import Image
+    root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+    out_dir = out_dir or os.path.join(root, "re", "clan-events-1117", "previews")
+    widget_preview.STREAMING["streaming/t2r/clanev/"] = os.path.join(root, "re", "clan-events-1117", "tex")
+    widget_preview.STREAMING["streaming/t2r/clanend/"] = os.path.join(root, "re", "clan-end", "tex")
+    _f13_prev_tex()
+    main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
+    page = build_event_page(main)
+    os.makedirs(out_dir, exist_ok=True)
+    tmp = os.path.join(out_dir, "_tmp.png")
+
+    def shot(out_name, **kw):
+        widget_preview.render(event_demo(page, **kw), tmp)
+        im = Image.open(tmp).convert("RGB")
+        im.save(os.path.join(out_dir, out_name + ".jpg"), quality=90)
+        print(os.path.join(out_dir, out_name + ".jpg"))
+        return im
+    thumbs = []
+    for key in EV_ART_KEYS:
+        for fk, fac in (("wlf", 1), ("ser", 2)):
+            im = shot("%s-%s" % (key, fk), mode="announce", fac=fac, survivors=25, art=key, **EV_ART_DEMO[key])
+            thumbs.append(im.resize((960, 540), Image.LANCZOS))
+    shot("page-result-attack", mode="result", fac=1, survivors=25, tier=2, lost=5, art="raid", kind="attack", day=15)
+    shot("page-result-growth", mode="result", fac=2, survivors=19, tier=3, join=2, art="spoil", kind="growth", name=5, day=45)
+    shot("page-no-art", mode="announce", fac=1, survivors=19, kind="growth", name=0, day=25)
+    sh = Image.new("RGB", (960 * 2, 540 * ((len(thumbs) + 1) // 2)), (10, 10, 10))
+    for k, t in enumerate(thumbs):
+        sh.paste(t, ((k % 2) * 960, (k // 2) * 540))
+    sh.save(os.path.join(out_dir, "sheet.jpg"), quality=88)
+    os.remove(tmp)
 
 
 def add_clan_ui(wdir):
@@ -1419,74 +1702,189 @@ def add_clan_ui(wdir):
 
 # ------------------------------------------------------------------ offline previews
 def postmatch_demo(page, stage, day=None):
-    """A copy of the post-match page set up the way t2r-ext fills it (pm_tick), for widget_preview.
+    """A copy of the post-match page set up the way t2r-ext fills it (pm_fill / pm_tick / pm_result), for widget_preview.
     stage 0 / 1 / 2; day = dict of the 0xE1 l* fields + clan counts (a fed day of 21 if None)."""
-    import random
     d = dict(day or {})
     w = copy.deepcopy(page)
     by = {i["name"]: i for i in w["items"]}
     vis = lambda n, on: by[n].update(visible=int(bool(on)))
     rows = d.get("rows", [("DOWNED ENEMY", 6, 600), ("EXECUTION", 4, 200), ("REVIVE", 2, 200), ("HEADSHOT", 5, 250)])
-    first = PM_ROWS - len(rows)
     for k in range(PM_ROWS):
-        vis(f"pmRow{k}", k >= first)
-        if k >= first:
-            lab, cnt, pts = rows[k - first]
+        vis(f"pmRow{k}", k < len(rows))
+        if k < len(rows):
+            lab, cnt, pts = rows[k]
             by[f"pmRow{k}Label"]["text"], by[f"pmRow{k}Count"]["text"], by[f"pmRow{k}Num"]["text"] = lab, f"x{cnt}", str(pts)
     parts = sum(r[2] for r in rows)
     sup = 0 if d.get("lleft") else parts // 50
+    wk, dw = (d.get("day", 0) // 7 + 1, d.get("day", 0) % 7 + 1)
+    fac = 2 if d.get("fac") == 2 else 1
+    f13_demo(by, fac, "SUPPLIES", d.get("day", 0), d.get("day", 0) + 1)
     by["pmPartsNum"]["text"] = str(parts if stage == 0 else 0)
     by["pmConvNum"]["text"] = str(sup)
+    nr.demo_section(by, "pmSecA", PM_LX0, PM_LX1, "AWARDS", "PARTS")
+    nr.demo_section(by, "pmSecP", PM_RX0, PM_RX1, "PARTS EARNED", "")
+    nr.demo_section(by, "pmSecC", PM_RX0, PM_RX1, "CONVERTED", "")
     vis("earned", stage < 2); vis("convert", stage == 1); vis("result", stage == 2)
-    by["rows"]["color.a"] = 255 if stage == 0 else 80
     vis("pmLeft", stage == 1 and d.get("lleft"))
-    vis("pmNextIcon", stage < 2); vis("pmNextText", stage < 2)
-    vis("pmContIcon", stage == 2); vis("pmContText", stage == 2)
-    if d.get("fac") == 2:
-        vis("pmEmblemW", 0); vis("pmEmblemS", 1); by["pmFaction"]["text"] = "SERAPHITES"
+    nr.demo_prompts(by, [("", "NEXT" if stage < 2 else "CONTINUE", True, "menu:select")])
     h, hu, s, need = d.get("h", 19), d.get("hu", 2), d.get("s", 0), d.get("lneed", 22)
     diff = sup - need
     by["pmDailyNum"]["text"] = f"+{diff}" if diff >= 0 else str(diff)
-    by["pmDailyNum"]["tint.start"] = by["pmDailyNum"]["tint.end"] = SUPPLY_BLUE if diff >= 0 else RED_TEXT
-    by["pmGathered"]["text"] = f'SUPPLIES GATHERED: <font color="#3fa9f5">{sup}</font>'
-    by["pmNeeded"]["text"] = f'NEEDED PER DAY: <font color="#3fa9f5">{need}</font>'
-    for k, (txt, col) in enumerate((d.get("out") or [("THE CLAN IS FED", HEALTHY), ("2 RECOVERED", HEALTHY)])
-                                   + [("", PM_TEXT)] * PM_OUT_ROWS):
-        if k < PM_OUT_ROWS:
-            by[f"pmOut{k}"].update({"text": txt, "tint.start": col, "tint.end": col})
-    by["pmGainNum"]["text"] = str(d.get("lgain", 0))
-    by["pmCount"]["text"] = f"{h + hu + s} SURVIVORS"
-    by["pmHealthy"]["text"], by["pmHungry"]["text"], by["pmSick"]["text"] = f"HEALTHY: {h}", f"HUNGRY: {hu}", f"SICK: {s}"
-    rng = random.Random(2013)
+    by["pmDailyNum"]["tint.start"] = by["pmDailyNum"]["tint.end"] = F13_CYAN if diff >= 0 else F13_RED
+    by["pmGathered"]["text"] = str(sup)
+    by["pmNeeded"]["text"] = str(need)
+    outs = d.get("out") or ["THE CLAN IS FED", "2 RECOVERED"]
+    outs = list(outs) + [""] * PM_OUT_ROWS
+    for k in range(PM_OUT_ROWS):
+        by[f"pmOut{k}"]["text"] = outs[k]
+        vis(f"pmOutBg{k}", outs[k])
+    gain = d.get("lgain", 0)
+    by["pmGainNum"]["text"] = str(gain)
+    by["pmGainNum"]["tint.start"] = by["pmGainNum"]["tint.end"] = F13_CYAN if gain > 0 else nr.WHITE
     n = h + hu + s
-    for k in range(min(n, MAX_DOTS)):
-        st = "H" if k < h else "U" if k < h + hu else "S"
-        a, r = rng.uniform(0, 6.2832), 190 * rng.random() ** 0.5
-        import math
-        by[f"pmDot{k}"].update(visible=1, **{"pivotAs.x": PM_CIRCLE / 2 + r * math.cos(a),
-                                             "pivotAs.y": PM_CIRCLE / 2 + r * math.sin(a)})
-        for suf in "HUS":
-            vis(f"pmDot{k}{suf}", suf == st)
+    nr.demo_section(by, "pmSecD", PM_LX0, PM_LX1, "DAILY SUPPLIES", "")
+    nr.demo_section(by, "pmSecO", PM_LX0, PM_LX1, "OUTCOME", "")
+    nr.demo_section(by, "pmSecS", PM_RX0, PM_RX1, "SURVIVORS GAINED", "")
+    nr.demo_section(by, "pmSecH", PM_RX0, PM_RX1, "SURVIVORS", str(n))
+    nr.demo_section(by, "pmMsec", PM_RX0, PM_RX1, "MISSION", "")
+    for nm, v in (("pmHealthy", h), ("pmHungry", hu), ("pmSick", s)):
+        by[nm + "N"]["text"] = str(v)
+    _demo_dots(by, "pmDot", h, hu, s, PM_CIRCLE, 178)
+    vd = d.get("verdict")                              # (2 = died, 3 = survived the 12 weeks)
+    vis("pmVerdict", vd in (2, 3))
+    if vd in (2, 3):
+        by["pmVdTx"]["text"] = "YOUR CLAN DIED" if vd == 2 else "YOUR CLAN SURVIVED 12 WEEKS"
+        by["pmVdSub"]["text"] = "DAYS SURVIVED: %s" % by["f13Sv"]["text"].split()[2]   # (= the header's number, as in game: both c->day)
+        vis("pmVdBar", vd == 2); vis("pmVdBarA", vd == 3)
+    ms = d.get("mis", ("MISSION: 3 / 6 DOWNS", "MARK REACHED", ""))
+    for k in range(3):
+        by[f"pmMis{k}"]["text"] = ms[k]
+    vis("pmMisLine", ms[0])
+    vis("unlocks", stage == 3)
+    if stage == 3:                                     # = t2r-ext pmu_fill: d["ach"] = [(title, desc, icon id)], d["gear"] = [(name, sub, challenge, pic)]
+        vis("earned", 0); vis("result", 0)
+        f13_demo(by, fac, "UNLOCKS", d.get("day", 0), d.get("day", 0) + 1)
+        nr.demo_prompts(by, [("", "CONTINUE", True, "menu:select")])
+        ach, gear = d.get("ach", []), d.get("gear", [])
+        nr.demo_section(by, "pmSecUa", PM_LX0, PM_LX1, "ACHIEVEMENTS", str(len(ach)) if ach else "")
+        nr.demo_section(by, "pmSecUc", PM_RX0, PM_RX1, "NEW UNLOCKS", str(len(gear)) if gear else "")
+        for k in range(PM_U_ROWS):
+            vis(f"pmUa{k}", k < len(ach))
+            if k < len(ach):
+                by[f"pmUa{k}Ti"]["text"], by[f"pmUa{k}Ds"]["text"] = ach[k][0], ach[k][1]
+                by[f"pmUa{k}Ic"]["path"] = f"streaming/t2r/ach/{ach[k][2]}.png"
+            vis(f"pmUc{k}", k < len(gear))
+            if k < len(gear):
+                by[f"pmUc{k}Ti"]["text"], by[f"pmUc{k}Sub"]["text"], by[f"pmUc{k}Ch"]["text"] = gear[k][:3]
+                by[f"pmUc{k}Pic"]["path"] = f"streaming/t2r/icons/{gear[k][3]}.png"
+        vis("pmUaNone", not ach); vis("pmUcNone", not gear)
+        vis("pmUaMore", len(ach) > PM_U_ROWS)
+        by["pmUaMore"]["text"] = f"+{len(ach) - PM_U_ROWS} MORE IN CLAN | ACHIEVEMENTS"
+        vis("pmUcFoot", gear)
+        if len(gear) > PM_U_ROWS:
+            by["pmUcFoot"]["text"] = f"+{len(gear) - PM_U_ROWS} MORE  |  EQUIP THEM IN CUSTOMIZE"
+        by["pmUcFoot"]["pivotAs.y"] = float(PM_U_Y0 + min(len(gear), PM_U_ROWS) * PM_U_DY + 20 + 30)   # (= pmu_fill: under the last tile)
     return w
 
 
+def _demo_dots(by, prefix, h, hu, s, size, r, seed=7, n_max=MAX_DOTS):
+    """= t2r-ext clan_dots at rest: one dot per survivor (up to n_max), healthy / hungry / sick, spread over the circle"""
+    import math
+    import random
+    rng = random.Random(seed)
+    n = h + hu + s
+    dn = min(n, n_max)
+    dh = round(h * dn / n) if n else 0
+    du = min(dn - dh, round(hu * dn / n)) if n else 0
+    if s and dh + du >= dn and dn:
+        if du:
+            du -= 1
+        else:
+            dh -= 1
+    pts = []
+    for k in range(n_max):
+        st = -1 if k >= dn else 0 if k < dh else 1 if k < dh + du else 2
+        by[f"{prefix}{k}"]["visible"] = int(st >= 0)
+        if st < 0:
+            continue
+        for _ in range(60):
+            a, rr = rng.uniform(0, 6.2832), r * rng.random() ** 0.5
+            x, y = rr * math.cos(a), rr * math.sin(a)
+            if all((x - px) ** 2 + (y - py) ** 2 > (size * 0.06) ** 2 for px, py in pts):
+                break
+        pts.append((x, y))
+        by[f"{prefix}{k}"]["pivotAs.x"], by[f"{prefix}{k}"]["pivotAs.y"] = size / 2 + x, size / 2 + y
+        for j, suf in enumerate("HUS"):
+            by[f"{prefix}{k}{suf}"]["visible"] = int(st == j)
+
+
+PM_U_DEMO_ACH = [("HAMMER TIME", "50 Special Executions with a hammer in your hand.", "se_hammer"),
+                 ("FIRST RAID", "Finish your first match.", "raid_1"), ("NO ONE LEFT BEHIND", "Revive 50 teammates.", "revive_50"),
+                 ("FIELD MEDIC", "Heal teammates 100 times.", "heal_50"), ("TOP DOG", "Win 50 matches.", "win_50"),
+                 ("SHIV HAPPENS", "75 shiv kills.", "shiv_25")]
+PM_U_DEMO_GEAR = [("PATROL CAP", "WLF  |  HEADWEAR", "THE LONG ROAD", "czc-militia-male-hat-08"),
+                  ("FIELD CAP", "WLF  |  HEADWEAR", "VETERAN", "czc-militia-male-hat-14"),
+                  ("FIELD JACKET", "WLF  |  TORSO", "FIRST BLOOD", "czc-militia-male-02-kit-skip-head-grp-militia-male-02-jacket-cloth")]
+
+
+def _pm_prev_page(pg):
+    for it in pg["items"]:
+        if it["name"] == "bgBlur":
+            it["visible"] = 0                     # (the engine's live blur: the preview draws the blurred launcher art under the page instead)
+    return pg
+
+
+def _pm_prev_icons():
+    """the stage 3 pictures for widget_preview: achievement icons (re/achievements-1117/tex) and the CUSTOMIZE card pictures"""
+    import sys
+    from PIL import Image
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "models"))
+    import real_icons
+    import customize_icons
+    if getattr(real_icons, "_pm_u", 0):
+        return
+    real_icons._pm_u = 1
+    real_icons.MOD_DIRS.append(customize_icons.CARDS)
+    tex = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "re", "achievements-1117", "tex")
+    get0 = real_icons.get
+
+    def get(path):
+        if path.startswith("streaming/t2r/ach/"):
+            f = os.path.join(tex, path[len("streaming/t2r/ach/"):])
+            if path not in real_icons._cache:
+                real_icons._cache[path] = Image.open(f).convert("RGBA") if os.path.exists(f) else None
+            return real_icons._cache[path]
+        return get0(path)
+    real_icons.get = get
+
+
 def preview_postmatch(wdir, out_dir):
-    """python clan_widgets.py <extracted widget dir> <out dir>: re/factions2013/preview/postmatch-*.png"""
+    """python clan_widgets.py <extracted widget dir> <out dir>: postmatch-*.png on the NR backdrop"""
     import widget_preview
     import tempfile
     main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
-    page = build_postmatch_page(main)
-    hungry_day = {"rows": [("DOWNED ENEMY", 2, 200), ("HEADSHOT", 1, 50), ("KILL ASSIST", 1, 25)],
+    page = _pm_prev_page(build_postmatch_page(main))
+    bg = nr.preview_bg(os.path.join(tempfile.gettempdir(), "t2r-nr-bg.png"))
+    _pm_prev_icons()
+    _f13_prev_tex()
+    hungry_day = {"rows": [("DOWNED ENEMY", 2, 200), ("HEADSHOT", 1, 50), ("KILL ASSIST", 1, 25)], "day": 9,
                   "fac": 2, "h": 14, "hu": 5, "s": 2, "lneed": 22, "lgain": 0,
-                  "out": [("SHORT BY 17 SUPPLIES", RED_TEXT), ("5 WENT HUNGRY", HUNGRY), ("2 FELL SICK", SICK),
-                          ("1 DIED", SICK)]}
-    shots = (("postmatch-1-parts", 0, None), ("postmatch-2-convert", 1, None), ("postmatch-3-day", 2, None),
-             ("postmatch-4-hungry-day", 2, hungry_day))
+                  "out": ["SHORT BY 17 SUPPLIES", "1 SURVIVORS DIED", "2 SURVIVORS GOT SICK", "5 SURVIVORS GOT HUNGRY"],
+                  "mis": ("NO MISSION TODAY", "NEXT EVENT: WEEK 3: DAY 2", "CHOOSE ITS MISSION WHEN IT IS ANNOUNCED")}
+    fed = {"day": 15, "lgain": 2, "out": ["THE CLAN IS FED", "2 SURVIVORS GOT HEALTHY"]}
+    shots = (("postmatch-1-parts", 0, {"day": 15}), ("postmatch-2-convert", 1, {"day": 15}), ("postmatch-3-day", 2, fed),
+             ("postmatch-4-hungry-day", 2, hungry_day), ("postmatch-5-left-early", 1, {"day": 15, "lleft": 1}),
+             ("postmatch-6-clan-died", 2, dict(hungry_day, verdict=2, h=0, hu=0, s=0, out=["SHORT BY 17 SUPPLIES", "21 SURVIVORS DIED"])),
+             ("postmatch-7-clan-survived", 2, dict(fed, day=84, verdict=3)),
+             ("postmatch-8-unlocks", 3, dict(fed, ach=PM_U_DEMO_ACH[:2], gear=PM_U_DEMO_GEAR[:3])),
+             ("postmatch-9-unlocks-full", 3, dict(hungry_day, ach=PM_U_DEMO_ACH, gear=PM_U_DEMO_GEAR[:1])),
+             ("postmatch-10-gear-only", 3, dict(fed, ach=[], gear=PM_U_DEMO_GEAR[:2])))
     os.makedirs(out_dir, exist_ok=True)
     for name, stage, day in shots:
         tmp = os.path.join(tempfile.gettempdir(), "t2r-" + name + ".widget.json")
         json.dump(postmatch_demo(page, stage, day), open(tmp, "w", encoding="utf-8"))
-        print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png")))
+        print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png"), scale=0.5, bg=bg))
+    print(f"widgets: clan-postmatch {len(page['items'])} (gui2 limit 1024)")
 
 
 def postmatch_anim_frame(page, ms, rows):
@@ -1497,49 +1895,31 @@ def postmatch_anim_frame(page, ms, rows):
     cdur = min(1800, max(700, parts * 15))
     clamp = lambda x: max(0.0, min(1.0, x))
     f = clamp((ms - 2200) / cdur)
-    w = postmatch_demo(page, 1, {"rows": rows})
+    w = postmatch_demo(page, 1, {"rows": rows, "day": 15})
     by = {i["name"]: i for i in w["items"]}
     by["pmPartsNum"]["text"] = str(parts - int(parts * f + 0.5))
     by["pmConvNum"]["text"] = str(int(parts // 50 * f + 0.5))
-    by["rows"]["color.a"] = 255
     by["anim-group"]["color.a"] = int(255 * clamp(ms / 1200))
-    for n in ("pmEarnLine", "pmPartsGear", "pmPartsLabel", "pmPartsNum", "pmPartsIcon"):
+    for n in ("pmSecPTx", "pmSecPRl", "pmPartsTile", "pmPartsCap", "pmPartsNum", "pmPartsPic"):
         by[n]["color.a"] = int(by[n].get("color.a", 255) * clamp((ms - 1400) / 600))
     by["convert"]["color.a"] = int(255 * clamp((ms - 1900) / 300))
     return w
 
 
-def preview_postmatch_bg(wdir, out_dir):
-    """The backdrop is opaque from the first frame, only the content fades in; going out both fade in 0.3 s."""
-    import widget_preview
-    import tempfile
-    main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
-    page = build_postmatch_page(main)
-    rows = [("DOWNED ENEMY", 3, 75), ("HEADSHOT", 2, 25), ("EXECUTION", 4, 20)]
-    for name, ms, out in (("postmatch-bg-0-first-frame", 0, None), ("postmatch-bg-1-text-fading-in", 800, None),
-                          ("postmatch-bg-2-full", 4300, None), ("postmatch-bg-3-out-150ms", 4300, 0.5),
-                          ("postmatch-bg-4-out-300ms", 4300, 0.0)):
-        w = postmatch_anim_frame(page, ms, rows)
-        by = {i["name"]: i for i in w["items"]}
-        if out is not None:
-            by["pmBg"]["color.a"] = int(255 * out)
-            by["anim-group"]["color.a"] = int(255 * out)
-        tmp = os.path.join(tempfile.gettempdir(), "t2r-" + name + ".widget.json")
-        json.dump(w, open(tmp, "w", encoding="utf-8"))
-        print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png")))
-
-
 def preview_postmatch_anim(wdir, out_dir):
+    """the count-up at a few moments (mid count: parts ticking down, supplies up)"""
     import widget_preview
     import tempfile
     main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
-    page = build_postmatch_page(main)
-    rows = [("DOWNED ENEMY", 3, 75), ("HEADSHOT", 2, 25), ("EXECUTION", 4, 20)]    # 120 parts -> 2 supplies
-    for ms in (500, 1000, 1700, 2100, 2800, 3300, 4000, 4300):
+    page = _pm_prev_page(build_postmatch_page(main))
+    bg = nr.preview_bg(os.path.join(tempfile.gettempdir(), "t2r-nr-bg.png"))
+    _f13_prev_tex()
+    rows = [("DOWNED ENEMY", 9, 900), ("HEADSHOT", 4, 200), ("EXECUTION", 4, 400), ("REVIVE", 2, 200)]    # 1700 parts -> 34 supplies
+    for ms in (1000, 2000, 2900, 3300, 5200):
         name = f"postmatch-anim-{ms:04d}ms"
         tmp = os.path.join(tempfile.gettempdir(), "t2r-" + name + ".widget.json")
         json.dump(postmatch_anim_frame(page, ms, rows), open(tmp, "w", encoding="utf-8"))
-        print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png")))
+        print(widget_preview.render(tmp, os.path.join(out_dir, name + ".png"), scale=0.5, bg=bg))
 
 
 if __name__ == "__main__":
@@ -1549,4 +1929,3 @@ if __name__ == "__main__":
         sys.exit(0)
     preview_postmatch(sys.argv[1], sys.argv[2])
     preview_postmatch_anim(sys.argv[1], sys.argv[2])
-    preview_postmatch_bg(sys.argv[1], sys.argv[2])

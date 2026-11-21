@@ -95,7 +95,7 @@ for it in a_items:
     assert le.hc.encode_t2(m2, it.tag) == it.raw
 print("level_edit part 2a (remove) OK")
 
-# rotate 90 deg about the hinge, twice: in place (the default: same keys, same tagfile size) and the old remove + re-add
+# rotate 90 deg about the hinge, twice: in place (default: same keys, same tagfile size) and the old remove + re-add
 # path ("inplace": false: new sections, the page grew).  Both: the 32 triangles come back rotated, tags / material bits kept.
 def bits3(blob, key):
     b = np.unpackbits(np.frombuffer(blob, np.uint8), bitorder="little")
@@ -209,7 +209,7 @@ import runpy  # noqa: E402
 runpy.run_path(os.path.join(HERE, "test_level_morph.py"), run_name="test_level_morph")
 
 # ---------------------------------------------------------------- part 3: Bookstore garage door (cut_index)
-# Remove the garage door in front of one of the spawns - the rolling door is submesh 243 of hun-checkpoint-bookstore-rear and 292 of
+# The garage door in front of one of the spawns is removed - the rolling door is submesh 243 of hun-checkpoint-bookstore-rear and 292 of
 # hun-alley-courtyard (converted Part I paks have no submesh names, so the spec cuts by index).  The spec part needs no game files.
 _maps = json.load(open(os.path.join(TOOLS, "maps", "sp_maps.json"), encoding="utf-8"))["maps"]
 _bk = [m for m in _maps if m["key"] == "p1-bookstore"][0]

@@ -1,5 +1,5 @@
 ﻿<#
-Twelve Weeks - client launcher.
+TLOU2 Multiplayer Revival - client launcher.
 
 Play.bat is the only thing to run. First run: finds the game, installs the mod files and
 makes a desktop shortcut (asks only if the game folder can't be found). Every run: reads
@@ -233,6 +233,33 @@ function Set-DllTarget([string]$dll, [string]$ip, [int]$port) {
     return $true
 }
 
+function Get-StaleMaps([string]$game) {
+    # t2r-maps\** beside winmm.dll: the mod data (main\t2r-data.bin, which winmm.dll needs to start at all) and the Part I map data.
+    # Copy-Item keeps the write time, so size + write time tell a current copy from an older build's or a damaged one.
+    $root = Join-Path $Here "t2r-maps"
+    $stale = @()
+    if (-not (Test-Path $root)) { return $stale }
+    foreach ($f in Get-ChildItem $root -Recurse -File) {
+        $rel = $f.FullName.Substring($root.Length).TrimStart('\')
+        $p = Join-Path (Join-Path $game "t2r-maps") $rel
+        $g = Get-Item $p -ErrorAction SilentlyContinue
+        if (-not $g -or $g.Length -ne $f.Length -or $g.LastWriteTimeUtc -ne $f.LastWriteTimeUtc) { $stale += $rel }
+    }
+    return $stale
+}
+
+function Sync-ModMaps([string]$game) {
+    $root = Join-Path $Here "t2r-maps"
+    foreach ($rel in Get-StaleMaps $game) {
+        $p = Join-Path (Join-Path $game "t2r-maps") $rel
+        New-Item -ItemType Directory -Force (Split-Path $p) | Out-Null
+        Write-Host "Copying t2r-maps\$rel ..." -ForegroundColor Cyan
+        Remove-Item $p -Force -ErrorAction SilentlyContinue      # never write through a hard link
+        Copy-Item (Join-Path $root $rel) $p -Force
+        Write-Log ("t2r-maps\$rel copied: " + (Describe-File $p))
+    }
+}
+
 function Install-Mod($cfg) {
     $game = $cfg.game_dir
     $dst = Join-Path $game "winmm.dll"
@@ -268,6 +295,7 @@ function Install-Mod($cfg) {
     New-Item -ItemType Directory -Force (Join-Path $game "tlou-ii-mp") | Out-Null
     Copy-Item (Join-Path $Here "tlou-ii-mp\*") (Join-Path $game "tlou-ii-mp") -Force
     Write-Log ("tlou-ii-mp\: {0} files copied" -f @(Get-ChildItem (Join-Path $game "tlou-ii-mp") -File -ErrorAction SilentlyContinue).Count)
+    Sync-ModMaps $game
     $ver = Join-Path $Here "version.txt"
     if (Test-Path $ver) { Copy-Item $ver (Join-Path $game "t2r-version.txt") -Force }
     # UC4 downed animations flag (only in builds that bake the clips in)
@@ -295,6 +323,8 @@ function Test-ModCurrent($cfg) {
         if (-not (Test-Path $gameExt)) { Write-Log "mod check: t2r-ext.dll missing in the game folder (removed by an antivirus?) -> install"; return $false }
         if ((Get-Item $shipExt).Length -ne (Get-Item $gameExt).Length) { Write-Log "mod check: t2r-ext.dll differs from the shipped one -> install"; return $false }
     }
+    $stale = @(Get-StaleMaps $cfg.game_dir)
+    if ($stale.Count) { Write-Log ("mod check: t2r-maps files missing or not the shipped ones (" + ($stale -join ', ') + ") -> install"); return $false }
     if (-not (Test-Path $ver)) { return $true }
     if (-not (Test-Path $installed)) { return $false }
     return (Get-Content $ver -Raw).Trim() -eq (Get-Content $installed -Raw).Trim()
@@ -325,6 +355,7 @@ function Confirm-ModFiles($cfg, [string]$when) {
     $game = $cfg.game_dir
     $need = @("winmm.dll")
     if (Test-Path (Join-Path $Here "t2r-ext.dll")) { $need += "t2r-ext.dll" }
+    if (Test-Path (Join-Path $Here "t2r-maps\main\t2r-data.bin")) { $need += "t2r-maps\main\t2r-data.bin" }
     $missing = @()
     foreach ($f in $need) {
         $p = Join-Path $game $f
@@ -336,6 +367,12 @@ function Confirm-ModFiles($cfg, [string]$when) {
     if ((Test-Path $shipExt) -and (Test-Path $gameExt) -and ((Get-Item $shipExt).Length -ne (Get-Item $gameExt).Length)) {
         Write-Log "[$when] t2r-ext.dll size differs from the shipped one (truncated by an antivirus, or copy failed)"
         $missing += "t2r-ext.dll (damaged)"
+    }
+    $shipData = Join-Path $Here "t2r-maps\main\t2r-data.bin"
+    $gameData = Join-Path $game "t2r-maps\main\t2r-data.bin"
+    if ((Test-Path $shipData) -and (Test-Path $gameData) -and ((Get-Item $shipData).Length -ne (Get-Item $gameData).Length)) {
+        Write-Log "[$when] t2r-maps\main\t2r-data.bin size differs from the shipped one (copy failed or the disk is full)"
+        $missing += "t2r-maps\main\t2r-data.bin (damaged)"
     }
     if ($missing.Count) {
         try {
@@ -370,7 +407,7 @@ function Get-ServerAddress($cfg) {
 function Initialize-Client {
     # First run: find the game, install the mod, make the desktop shortcut. No questions
     # unless the game folder can't be found automatically.
-    Write-Host "=== Twelve Weeks - first run ===" -ForegroundColor Cyan
+    Write-Host "=== TLOU2 Multiplayer Revival - first run ===" -ForegroundColor Cyan
     $old = if (Test-Path $CfgPath) { Get-Content $CfgPath -Raw | ConvertFrom-Json } else { $null }
     $game = if ($old -and $old.game_dir -and (Test-Path (Join-Path $old.game_dir "tlou-ii.exe"))) { $old.game_dir } else { Select-GameDir }
     $tid = if ($old -and $old.token_id) { $old.token_id } else { New-TokenId }

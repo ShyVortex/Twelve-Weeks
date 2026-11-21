@@ -1,5 +1,5 @@
-"""Offline check of the Full-Auto Rifle / MPX-S sound split (dc_data_patches.FAR_NPC_SHOT: the MPX-S did not use its SP sounds for the
-suppressed gunshots): replays the build's weapon-art steps on a temp copy of the game's dc1 files (clone rifle-mpx5-supp + rifle-vepr-supp
+"""Offline check of the Full-Auto Rifle / MPX-S sound split (dc_data_patches.FAR_NPC_SHOT: MPX-S doesn't use its SP sounds for the
+suppressed gunshots"): replays the build's weapon-art steps on a temp copy of the game's dc1 files (clone rifle-mpx5-supp + rifle-vepr-supp
 from SUPP_WEAPONS, then the FAR's art swap) and the bank edit, then runs verify_far_mpxs.  Needs the extracted game files (re/gamebin/dc1,
 re/sound in the main checkout); skipped without them."""
 import os

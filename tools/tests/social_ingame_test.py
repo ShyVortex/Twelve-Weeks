@@ -77,7 +77,7 @@ def find_gcc():
     if g:
         return g
     for c in (os.path.join(os.path.dirname(os.path.dirname(TOOLS)), "tools", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe"),
-              os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin/gcc.exe")):
+              "./tools/win/ext/msys64/ucrt64/bin/gcc.exe"):
         if os.path.exists(c):
             return c
     return None

@@ -16,11 +16,13 @@ own init of the 4 old records is harmless).
 import struct
 
 PL_STRIDE = 0xA70
-N = 8
 CTX = 0x180135388
 
 
 def build(S):
+    from slots8 import bump
+    N = S.N
+    B = N - 1                                   # highest slot (7 for N = 8)
     pl = S.data("players", N * PL_STRIDE, init=b"".join(struct.pack("<I", j).ljust(PL_STRIDE, b"\0") for j in range(N)))
     S.relocs_note = getattr(S, "relocs_note", [])
     init_slots = "\n".join(f"    mov dword ptr [rip + D_players + {j * PL_STRIDE}], {j}" for j in range(N))
@@ -32,7 +34,7 @@ S8_plbase:
 
 # FUN_18004C030: TeamOf(ctx rcx, slot edx) -> team (the player record's +0x48, else the matchmaker roster team)
 S8_teamof:
-    cmp edx, 7
+    cmp edx, {B}
     ja 2f
     cmp byte ptr [rcx + 0x2cc0], 0
     jne 1f
@@ -50,7 +52,7 @@ S8_teamof:
     mov ecx, edx
     jmp V_180058a00
 
-# FUN_180050FD0: BySlot(slot) -> record (slot clamped to 0..7)
+# FUN_180050FD0: BySlot(slot) -> record (slot clamped to 0..N-1)
 S8_byslot:
     push rsi
     sub rsp, 0x20
@@ -61,8 +63,8 @@ S8_byslot:
     xor eax, eax
     test esi, esi
     cmovg eax, esi
-    mov esi, 7
-    cmp eax, 7
+    mov esi, {B}
+    cmp eax, {B}
     cmovb esi, eax
     imul rcx, rsi, {PL_STRIDE}
     lea rax, [rip + D_players]
@@ -230,19 +232,21 @@ S8_countteam:
     S.retarget_calls([0x180051BA6], 0x18004BF70, "S8_plbase", "NetPlayers::OnPeerDropped context")
     S.retarget_calls([0x18005144E], 0x18004BF70, "S8_plbase", "NetPlayers iterator Advance context")
     # --- bounds ---------------------------------------------------------------------------------------------------------
-    S.patch(0x1800515B6, "48 81 ff aa 35 00 00", "48 81 ff 6a 5f 00 00", "Reset: loop end 4 -> 8 records (0xBEA + 8*0xA70)")
-    S.patch(0x180051662, "83 f8 03", "83 f8 07", "SetupLocal: slot clamp 3 -> 7")
-    S.patch(0x180051665, "41 be 03 00 00 00", "41 be 07 00 00 00", "SetupLocal: clamp value 3 -> 7")
-    S.patch(0x180051784, "48 83 fe 03", "48 83 fe 07", "ApplyRoster: entry slot bound 3 -> 7")
-    S.patch(0x180051890, "49 83 fd 02", "49 83 fd 06", "ApplyRoster: entry count 4 -> 8")
-    S.patch(0x180051B9B, "83 f8 03", "83 f8 07", "OnPeerDropped: slot clamp 3 -> 7")
-    S.patch(0x180051B9E, "bf 03 00 00 00", "bf 07 00 00 00", "OnPeerDropped: clamp value 3 -> 7")
-    S.patch(0x180051419, "83 fb 03", "83 fb 07", "iterator Advance: already-at-end test 3 -> 7")
-    S.patch(0x180051437, "83 f8 03", "83 f8 07", "iterator Advance: last entry 3 -> 7")
-    S.patch(0x180051026, "83 f9 03", "83 f9 07", "SlotIsFriendly: slot bound 3 -> 7")
-    # range-for sentinel (Remotes()/active loops): `call 0x180051410 ; mov ecx,[it] ; cmp ecx, 4` -> 8
+    b3, b2, b4 = bump(N, 3), bump(N, 2), bump(N, 4)
+    S.patch(0x1800515B6, "48 81 ff aa 35 00 00", bytes([0x48, 0x81, 0xff]) + struct.pack("<I", 0xBEA + N * PL_STRIDE),
+            f"Reset: loop end 4 -> {N} records (0xBEA + {N}*0xA70)")
+    S.patch(0x180051662, "83 f8 03", bytes([0x83, 0xf8, b3]), f"SetupLocal: slot clamp 3 -> {b3}")
+    S.patch(0x180051665, "41 be 03 00 00 00", bytes([0x41, 0xbe, b3, 0, 0, 0]), f"SetupLocal: clamp value 3 -> {b3}")
+    S.patch(0x180051784, "48 83 fe 03", bytes([0x48, 0x83, 0xfe, b3]), f"ApplyRoster: entry slot bound 3 -> {b3}")
+    S.patch(0x180051890, "49 83 fd 02", bytes([0x49, 0x83, 0xfd, b2]), f"ApplyRoster: entry count 4 -> {N}")
+    S.patch(0x180051B9B, "83 f8 03", bytes([0x83, 0xf8, b3]), f"OnPeerDropped: slot clamp 3 -> {b3}")
+    S.patch(0x180051B9E, "bf 03 00 00 00", bytes([0xbf, b3, 0, 0, 0]), f"OnPeerDropped: clamp value 3 -> {b3}")
+    S.patch(0x180051419, "83 fb 03", bytes([0x83, 0xfb, b3]), f"iterator Advance: already-at-end test 3 -> {b3}")
+    S.patch(0x180051437, "83 f8 03", bytes([0x83, 0xf8, b3]), f"iterator Advance: last entry 3 -> {b3}")
+    S.patch(0x180051026, "83 f9 03", bytes([0x83, 0xf9, b3]), f"SlotIsFriendly: slot bound 3 -> {b3}")
+    # range-for sentinel (Remotes()/active loops): `call 0x180051410 ; mov ecx,[it] ; cmp ecx, 4` -> N
     for va in ITER_END:
-        S.patch(va, "83 f9 04", "83 f9 08", "iterator end sentinel 4 -> 8")
+        S.patch(va, "83 f9 04", bytes([0x83, 0xf9, b4]), f"iterator end sentinel 4 -> {N}")
 
 
 # `cmp ecx, 4` after NetPlayers' iterator Advance (FUN_180051410): the end() value

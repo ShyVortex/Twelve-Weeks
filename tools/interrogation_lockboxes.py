@@ -35,10 +35,10 @@ MAP_PAKS = ["forest", "gas-station", "school", "shipyard", "resort", "seraphite-
 # index (= daemon MAPS / ext MF_MAPS index) -> (key, source). 7 = the Hospital slot (to1-custom-map-1), now the Ellie ground-floor map
 # (T2R_HOSPITAL_OLD=1 hosts keep the old NR hospital: its row below is replaced, Interrogation on that rarely used switch uses the Ellie spots)
 SP_ROWS = {7: "hospital-ellie", 12: "train-station", 13: "downtown", 15: "jackson-suburbs", 16: "outpost", 17: "p1-bookstore",
-           18: "wilds-houses", 19: "capitol-shops", 20: "into-the-city", 21: "overpass", 22: "chase", 23: "jackson-market"}
+           18: "wilds-houses", 19: "capitol-shops", 20: "into-the-city", 21: "overpass", 22: "chase", 23: "jackson-market", 24: "p1-plaza"}
 # base maps 0..6 -> key of their hand placed data/<key>-lockboxes.json (SceneEditor, editor_stock.py); used instead of the generated row when present
 BASE_KEYS = ["forest", "gas-station", "school", "shipyard", "resort", "seraphite-camp", "houses"]
-LB_MAPS = 24
+LB_MAPS = 25
 DATA = os.path.join(HERE, "maps", "data")
 MAX_CAND = 6                  # was 3 - Hospital / Capitol Hill have 5-6 hand-placed safes per team
 MIN_FROM_INTRO = 4.0

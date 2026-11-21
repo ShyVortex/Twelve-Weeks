@@ -11,7 +11,7 @@ static void imm_rszl_tick(int in_match) {
     static uint64_t at, full_at, nf_a; static float prev[RSZL_N]; static int have, nf_v;
     if (!in_match) { have = 0; return; }
     uint64_t t = GetTickCount64();
-    if (t - at < 250 || imm_noflag("t2r-no-rszl.txt", &nf_a, &nf_v)) return;
+    if (t - at < 250 || !rsdiag_on() || imm_noflag("t2r-no-rszl.txt", &nf_a, &nf_v)) return;
     at = t;
     float cp[3], cd[3];
     if (!cam_pos_dir(cp, cd)) return;

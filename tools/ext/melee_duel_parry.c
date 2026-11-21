@@ -13,7 +13,7 @@
 //         estimate, B's weapon set). A (attacker-decides, like beat 1's contact) re-checks the same gate on its OWN swing timeline, then holds its contact, places and
 //         path-gates the pair and starts it: A's swing is cancelled, the parry pair (swinger half on A, parrier half on B) replaces the -hit pair: no damage, the
 //         blow is pushed off (the SP shove ~1 m at +0.75 s), hand-off at MDP_END_S, A's presses are blocked 300 ms longer than B's (B gets the initiative).
-//         The pairs, the exit point, the approach and the initiative follow SP's pattern - see the ps28 block below (t2r-parry-ps27.txt = this text).
+//         ps28: the pairs, the exit point, the approach and the initiative follow SP's pattern - see the ps28 block below (t2r-parry-ps27.txt = this text).
 //  CLASH  both press within MDP_CLASH_MS (220 ms) of each other: the same pair, the LOWER SLOT is the initiator and plays the swinger half (no authority round trip:
 //         mex_self() is the same on both screens, like melee_exchange's "the lower slot attacks"); both come out at the duel spacing, nobody gets the initiative.
 //  A claim that fails the gate (late, cooldown, out of reach, not facing, pair clips not loaded, path blocked) costs nothing: the swing goes on as a normal duel blow.

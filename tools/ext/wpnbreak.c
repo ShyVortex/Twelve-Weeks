@@ -107,12 +107,27 @@ static void wb_take_out(uint64_t w, const char *why) {
     if (has != ~0ULL && (has & 0xff)) r1 = dc_call(fnv64("remove-player-weapon"), 1, &w);
     uint64_t has2 = dc_call(fnv64("has-weapon?"), 1, &w), hm = dc_call(SID_HAS_MELEE_WEAPON, 0, &none);
     if (g_keep_melee && base_weapon(g_keep_melee) == base_weapon(w)) g_keep_melee = 0;
-    if (g_last_melee && base_weapon(g_last_melee) == base_weapon(w)) g_last_melee = 0;
+    if (g_last_melee && base_weapon(g_last_melee) == base_weapon(w)) melee_track_forget();
     xlog("wpnbreak: %s - broken %llx out of the hand (%s: holster-player-weapon-instantly %llx, held %llx -> %llx) and the inventory (has-weapon? %llx -> remove-player-weapon %llx -> has-weapon? %llx%s); any melee item left %llx - the fists are up",
          why, (unsigned long long)w, held ? "it was held" : "not in the hand", (unsigned long long)r0, (unsigned long long)cw, (unsigned long long)cw2,
          (unsigned long long)has, (unsigned long long)r1, (unsigned long long)has2, has2 != ~0ULL && (has2 & 0xff) ? " - REFUSED: the 0-point item stays in the inventory" : "",
          (unsigned long long)hm);
     nae_break_latch(w, cw2);      // ps43 L2: no engine auto-equip of the sidearm after the break
+}
+// (melee_duel_pin.c mpn_go_unarmed): the pin goes on with unarmed blows right after a break - no drop-broken gesture over the pin's pairs, the broken
+// item leaves the hand now (health 0, hidden, instant holster + out of the inventory) and the other screens get the drop message (flag 2: a puppet in a paired
+// move hides the item WB_DROP_MS later, no gesture over the pair)
+static void wb_send(int flags, uint64_t w);
+static void wb_drop_now(const char *why) {
+    if (!g_wb.pend) return;
+    uint64_t w = g_wb.w; int two = g_wb.two;
+    wb_zero(why);
+    uint8_t *me = bp_me(), *pw = me && !IsBadReadPtr(me + 0x2f60, 8) ? player_weapon(me) : NULL;
+    int ok = wb_hide(pw, w);
+    wb_take_out(w, why);
+    wb_send(2 | (two ? 4 : 0), w);
+    g_wb.pend = 0;
+    xlog("wpnbreak: %s - broken %llx %s now, %d ms after the break (no gesture)", why, (unsigned long long)w, ok ? "hidden" : "already gone", (int)(GetTickCount64() - g_wb.t0_ms));
 }
 // melee_duel.c's ledger: the point lent for w (1) - its blows take the lend over (the ledger sets the true value)
 static int wb_lent(uint64_t w) { return g_wb.lend && g_wb.lend_w == w; }

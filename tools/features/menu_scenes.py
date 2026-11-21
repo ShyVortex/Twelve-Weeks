@@ -35,6 +35,19 @@ MENU_SET = "tsk-to1-main-menu"
 ORIG_CAMERA = (163.87762451171875, 52.58647155761719, -55.01377868652344)
 ORIG_PLAYER = (164.07000732421875, 52.117000579833984, -55.66699981689453)
 
+# menu send-off birds (re/menu-sendoff-impl-1115.md): actors / symbols added to a scene pak's pak68.txt block (all in
+# sp-common.psarc): crow / pigeon art + the bird skeleton with its takeoff / fly anims, the flee state script
+SENDOFF_ACTORS = ["bird-medium-skel-t2", "crow-t2", "pigeon-t2"]
+SENDOFF_SYMBOLS = ["pigeon-dark-t2", "ss-animal-flee"]
+# CUSTOMIZE stage poses (existing model viewer poses are used, re/customize-1117.md "The stage"): the No Return character-select
+# poses (world-game-start.psarc actor97/rogue-mode-poses.pak, 0.8 MB, single-frame clips on base-male-skel / base-female-skel: the
+# model viewer's own poses are on the story characters' skeletons); customize_stage.c holds rogue-mode-rattler-factions / -scar-archer
+POSE_ACTORS = ["rogue-mode-poses"]
+# CUSTOMIZE stage idles (the front model holds npc-mm-ambi-buddy-idle, the WLF menu's back model cap-npc-m-ambi-idle-lean-wall-loop):
+# sp-common anim packs that are in no MP level (13.9 + 22.9 MB), loaded with the scene like the send-off actors. No script native loads an
+# actor (A/B: load-actor / is-actor-loaded? do not exist), so the scene's actor list is the only way. customize_stage.c spose lines.
+POSE_ANIM_ACTORS = ["anim-npc-m-buddy-ambi", "anim-npc-ambi-caps"]
+
 MENU_SCENES = [
     {   # no clan yet / no side: Ellie's Seattle day 1 opening, the forest ride with Dina
         # (tsk-sea-approach-forest-start, world-patrol-departure.psarc). The intro cinematic's
@@ -65,6 +78,9 @@ MENU_SCENES = [
         # terrace view needs - main + stands; no fx / far wide LOD (audio kept: tiny, the original menu sets had it)
         "levels": ["fob-const", "fob-const-texture-adjust", "fob-stadium-const-render", "fob-const-audio",
                    "fob-stadium-audio", "fob-stadium-main", "fob-stadium-stands", "sky-act2-day-1-fob-stadium"],
+        # menu send-off (re/menu-sendoff-impl-1115.md): the bird actors for the ext's flock after the horn
+        # (no FlockingBird data anywhere near the stadium)
+        "actors": SENDOFF_ACTORS + POSE_ACTORS + POSE_ANIM_ACTORS, "symbols": SENDOFF_SYMBOLS,
     },
     {   # Seraphites: "an outward look on the Haven island" (reference scarmenu.png, Abby day 3): the
         # forest trail on the Scar island's west coast looking across the strait at the capital (the
@@ -84,7 +100,11 @@ MENU_SCENES = [
                    "sle-scar-island-forest-trail", "sle-scar-island-forest-trail-water",
                    "sle-scar-island-landing-water", "sle-scar-island-landing-wide",
                    "sle-scar-island-landing-wide-ocean", "sle-scar-island-landing-wide-water",
-                   "sle-scar-island-landing-scar-capital-wide"],   # (VRAM: no landing main / logging camp / scripts / blockmesh)
+                   "sle-scar-island-landing-scar-capital-wide",
+                   # menu send-off: the trail's script level = the game's own pigeon flocks (61 FlockingBird
+                   # spawners flee-sle-bird-lookout-* / -forest-* with their splines; the ext force-flees them after the horn)
+                   "sle-scar-island-forest-trail-script"],   # (VRAM: no landing main / logging camp / blockmesh)
+        "actors": SENDOFF_ACTORS + POSE_ACTORS + POSE_ANIM_ACTORS, "symbols": SENDOFF_SYMBOLS,
     },
 ]
 
@@ -213,31 +233,59 @@ def check_tasks(path, scenes=MENU_SCENES):
         assert struct.unpack_from("<Q", d, arr)[0] == fnv(sc["set"]), (sc["subnode"], "level set sid")
 
 
+def _with_extras(block, sc):
+    """the block with the scene's extra actor / symbol lines, each after the last line of its kind (the stock order:
+    level-name, level-id, package, particle-module, actor..., symbol...)"""
+    out = list(block)
+    for kind, names in (("actor", sc.get("actors", [])), ("symbol", sc.get("symbols", []))):
+        for nm in names:
+            ln = f"{kind} {nm}"
+            if ln in out:
+                continue
+            at = max([i for i, l in enumerate(out) if l.startswith(kind + " ")] or
+                     [i for i, l in enumerate(out) if l.startswith(("package ", "particle-module ", "actor "))] or [len(out) - 1])
+            out.insert(at + 1, ln)
+    return out
+
+
 def patch_registry(path, scenes=MENU_SCENES):
-    """pak68.txt: each scene pak = a copy of the to1-main-menu block (its actors / symbols)."""
+    """pak68.txt: each scene pak = a copy of the to1-main-menu block (its actors / symbols) + the scene's extra
+    actors / symbols (the send-off birds)."""
     lines = open(path, encoding="latin1").read().split("\n")
-    i = lines.index("level-name to1-main-menu")
-    j = i + 1
-    while j < len(lines) and not lines[j].startswith("level-name "):
-        j += 1
+    def span(name):
+        i = lines.index(f"level-name {name}")
+        j = i + 1
+        while j < len(lines) and not lines[j].startswith("level-name "):
+            j += 1
+        while j > i + 1 and not lines[j - 1]:
+            j -= 1
+        return i, j
+    i, j = span("to1-main-menu")
     block = lines[i:j]
-    while block and not block[-1]:
-        block.pop()
+    changed = False
     add = []
     for sc in scenes:
-        if f"level-name {sc['pak']}" in lines:
+        if f"level-name {sc['pak']}" in lines:       # (a staged tree from an earlier run: make sure the extras are in its block)
+            i, j = span(sc["pak"])
+            nb = _with_extras(lines[i:j], sc)
+            if nb != lines[i:j]:
+                lines[i:j] = nb
+                changed = True
             continue
+        cp = []
         for ln in block:
             k, _, v = ln.partition(" ")
             if k in ("level-name", "level-id"):
                 ln = f"{k} {sc['pak']}"
             elif k == "package":
                 ln = f"package {sc['pak']}-ingame"
-            add.append(ln)
+            cp.append(ln)
+        add += _with_extras(cp, sc)
     if add:
         while lines and not lines[-1]:
             lines.pop()
         lines += add + [""]
+    if add or changed:
         open(path, "w", encoding="latin1", newline="\n").write("\n".join(lines))
 
 

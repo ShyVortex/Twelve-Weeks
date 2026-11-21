@@ -1,4 +1,4 @@
-// immersion.c - TLOU2 single-player breath / effort voice for OUR player.
+// immersion.c - TLOU2 single-player breath / effort voice for OUR player (re/immersion-ideas-1014.md).
 // Included by t2r-ext.c after feel.c (uses feel_flag, local_hp, g_wg_max, match_substate, dc_call, SID_PLAYER). Log prefix "immersion:".
 //
 // The SP player is never silent between fights: she pants after a sprint, breathes hard when hurt, exhales after a heal, holds her
@@ -12,7 +12,7 @@
 //   t2r-no-stealth-breath.txt  quiet breaths while crouched and still (breath-stealth-mouth-closed / -open)
 //   t2r-no-throw-effort.txt    a short effort grunt on our own throw (effort-sml)
 // One breath at a time (IMM_GAP_MS between any two); the heal exhale and the throw grunt always play. Female looks are skipped: the
-// generic events resolve in the speaker's own bank, which for the female looks is not proven (fem_effort_sid).
+// generic events resolve in the speaker's own bank, which for the female looks is not proven (fem_effort_sid, re/female-characters.md).
 // An event whose bank is not loaded is silent at worst (say returns a handle anyway); the first lines log what `say` answered.
 
 #define IMM_GAP_MS 2600
@@ -61,7 +61,7 @@ extern const int16_t sh_blob[];
 // ---- SP-feel pass, each its own opt-out file next to the exe (feel_flag, polled ~3 s), log prefix "immersion:":
 //   t2r-no-near-miss.txt    an enemy's shot that passes within ~1.5 m of us without hitting: TLOU2's bullet pass-by whizz from the side it passed (waves of
 //                           gbl-bullet.bnk bullet-pass-by-NN through the PCM mixer, tools/rip_t2_bullet_by.py) + a very small camera flinch
-//   t2r-no-health-screen.txt  TLOU2's cut multiplayer render presets *zgame-mp-player-health-02-low* (red vignette, grain, aberration) by health band,
+//   t2r-no-health-screen.txt  TLOU2's cut MP render presets *zgame-mp-player-health-02-low* (red vignette, grain, aberration) by health band,
 //                           blended in / out, plus *zgame-mp-player-pain-kill* as a short pulse when we are hurt; cleared at once off-live
 //   t2r-no-blast-muffle.txt a close blast (<= 5 m): the world is ducked for 1.5 s by the mix snapshot mix-listen-mode-abbie-ellie-fight (rewritten by
 //                           dc_data_patches.patch_blast_muffle), under the tinnitus (PCM voices are outside the game's mix)
@@ -151,7 +151,7 @@ static void imm_heartbeat(float hp, float mx, int on) {
 static void imm_muffle_tick(int live, int stunned) {
     static int nl, ns; static uint64_t sid;
     uint64_t now = GetTickCount64();
-    // a stunned player gets a guaranteed audio blur - the shock effect, hearing everything muffled: the same snapshot for the
+    // a stunned player gets a guaranteed audio blur (the shock effect, everything muffled): the same snapshot for the
     // whole stun lock, burst near or far (set-per-frame: gone the frame the stun ends)
     if (stunned && IMM_MF_ON()) {
         // the 9..16 dB blast duck was not heard as a stun. Own snapshot, 24..28 dB deep (mix-tut-slowdown, rewritten by
@@ -170,7 +170,7 @@ static void imm_muffle_tick(int live, int stunned) {
     if (nl < 6) { nl++; xlog("immersion: blast muffle snapshot applied, %llu ms into the window (set-per-frame-mixer-override -> %llx)", (unsigned long long)(now - g_imm_mf_from), (unsigned long long)r); }
 }
 
-// ---- low-health screen: the cut multiplayer render presets of render-settings/zgame.bin, applied with the SP native
+// ---- low-health screen: the cut MP render presets of render-settings/zgame.bin, applied with the SP native
 // override-render-settings(rs, blend-in, blend-out, 0, priority, 0, 1, 0, strength) (9 values; SP's workbench / Jackson-workbench state scripts call it in
 // their update block every frame with (sid, 1.0, -1.0 | 0, 0, 32767, 0, 1, 0, 1.0); winmm's menu lock every frame with priority 1000). The presets are
 // SPARSE (only post:* keys: *-02-low* = red vignette + grain + chromatic aberration; *-00-high* and *-01-mid* hold no keys at all, so "mid" is the
@@ -269,7 +269,7 @@ static void imm_screen_tick(int live) {
     }
 }
 
-// ---- stun blur (a blur effect that fades in and slowly fades out over the stun, being 0 around 0.1 s before the character gets back
+// ---- stun blur (a blur that fades in and slowly out over the stun, 0 around 0.1 s before the character gets back
 // input). Engine route: the same override-render-settings call as the health screen, with SP's depth-of-field presets of zgame.bin (keys decoded
 // with the sidbase; the record holds {sid, f32 value, i32 -1} per key):
 //   *zgame-player-approach-mortal-state*  post:enable-depth-of-field, dof-focus-plane-dist 1.3 m, dof-background-blur-scale 7.0 - everything beyond 1.3 m
@@ -277,7 +277,7 @@ static void imm_screen_tick(int live) {
 //   *zgame-player-damage-punch*           the SP punched-in-the-face daze: dof-foreground-blur-scale 1, f/11, focal 38, focus 1.8 m, mblur-blur-scale 2,
 //                                         saturation 0.185, fisheye -0.095, grain 0.83, chromatic aberration 0.006; at 0.4 x the envelope, priority 1001
 // Envelope: in over 0.2 s, held to 0.8 s, then a raised-cosine fade to exactly 0 at STUN_SECONDS - 0.1 s (the lock ends at g_stun_until = input back).
-// The first version showed nothing visible: the priorities were 1001 / 1002. SP's own calls of these presets (every melee-hit script of
+// The priorities were first 1001 / 1002 and nothing was visible. SP's own calls of these presets (every melee-hit script of
 // melee/npc-*.dcpl: override-render-settings(*zgame-player-damage-punch*, 0, 4, 0, 32767, 0, 1, 2, 1.0)) use the engine maximum 32767, i.e. they
 // outrank every level / MP render-settings layer that tunes the same dof / saturation / mblur keys; a level layer above 1002 would hide ours (the
 // health vignette keys sit in no level layer, which is why those rendered at 1000). Now punch = 32767, mortal-state = 32766 (its focus plane 1.3 m
@@ -316,7 +316,7 @@ extern const int16_t sb_blob[];
 static int spp_snd_hook_install(void);                                       // sp_parity.c
 static uint8_t *spp_handle_obj(const uint8_t *h);                           // sp_parity.c
 // class: 0 pistol / smg, 1 rifle, 2 shotgun (heavy), 3 magnum / bolt / lever (heavy-ish)
-// being shot = any damaging hit on us in the last 3 s: no gunfire shake then (the render camera moving off the aim cost fights; blasts keep theirs)
+// being shot = any damaging hit on us in the last 3 s: no gunfire shake then (the render camera moving off the aim cost a player fights; blasts keep theirs)
 static int imm_being_shot(uint64_t now) {
     for (int i = 0; i < T2R_MAX_PEERS; i++) if (g_hit_by_ms[i] && now - g_hit_by_ms[i] < 3000) return 1;
     return 0;
@@ -353,7 +353,7 @@ static void imm_snd_probe(uint64_t sid, uint64_t r8) {                       // 
     g_imm_ring[k].sid = sid; g_imm_ring[k].cls = (uint32_t)c; g_imm_ring[k].ms = GetTickCount64(); g_imm_ring[k].obj = (volatile uint8_t *)spp_handle_obj((const uint8_t *)r8);
     g_imm_ring[k].seq = (uint32_t)i;
 }
-// ---- REAL SHOT LINES (whizz-bys for NPC bullet trails). The old near miss INFERRED the line from the shooter's body facing and
+// ---- REAL SHOT LINES (bullet whizz-bys were wanted). The old near miss INFERRED the line from the shooter's body facing and
 // fired 0 times in a night of A/B logs. Now the shooter's own client sends the line it really shot along: MSG_SHOTRAY 0xAF, 17 bytes
 //   [u8 0 reserved][f32 x3 origin][i8 x3 direction * 127][u8 length in metres, 0 = unknown (the receiver uses 120 m)].
 // Sender: the shot is the held gun's magazine count going DOWN (same weapon, player-is-firing? seen in the last 300 ms: a reload / weapon swap never counts);
@@ -427,6 +427,59 @@ static void imm_sray_send_tick(int live, uint64_t now) {
     g_send_tramp(MSG_SHOTRAY, m, sizeof m, 0xff);
     last_send = now;
     if (LOGCAP(nsent, 16)) xlog("shotray: sent - weapon %llx clip %d, origin (%.1f %.1f %.1f) dir (%.2f %.2f %.2f)", (unsigned long long)w, clip, (double)o[0], (double)o[1], (double)o[2], (double)d[0], (double)d[1], (double)d[2]);
+}
+// FIRE DIAG (reports: the weapon fires once and no more, every gun, every life, even after a re-log; not reproduced on A/B with
+// that loadout + skills through the pad path: Enforcer 8 shots, rifle 4 shots + reloads). The logs only carry the shots that happened, not the presses
+// that did nothing. Logged here, read-only, capped: (1) a fire press (the engine reading its fire-press command as held - padinject.c's reader hook counts those reads - or the left mouse button while focused) with a
+// round in the clip and no shot within 400 ms, with the state the engine reports (firing / reloading / aiming / fire-hold); (2) player-is-firing?
+// held true for 2 s with a round in the clip (a fire state that never ends = a semi-auto gun that cannot fire again); (3) the first mouse clicks that
+// the engine did not read as fire-press. Shots are counted the way shotray counts them (clip down while firing).
+static void imm_fire_diag_tick(int live, uint64_t now) {
+    static int nlog, nstuck, nmouse, prev_clip = -1, was_cmd, was_mouse, stuck_logged;
+    static uint64_t press_ms, press_w, fire_since, shot_ms, mouse_ms, cmd_ms; static int press_clip, press_src;
+    if (!live) { prev_clip = -1; press_ms = 0; fire_since = 0; stuck_logged = 0; was_cmd = was_mouse = 0; return; }
+    uint64_t w = current_weapon();
+    if (!w || w == ~0ULL || !base_weapon_is_gun(base_weapon(w))) { prev_clip = -1; press_ms = 0; fire_since = 0; return; }
+    uint64_t none = 0;
+    uint64_t rf = dc_call(fnv64("player-is-firing?"), 0, &none);
+    int firing = rf != ~0ULL && (rf & 0xff);
+    static unsigned fp_seen, fh_seen; static uint64_t fp_on_frame;  // the engine's own reads of fire-press / fire-hold that answered "held" (padinject.c reader hook)
+    unsigned fpt = padinj_reads_true("fire-press"), fht = padinj_reads_true("fire-hold");
+    if (fpt != fp_seen) fp_on_frame = g_frame;
+    int cmd = fp_on_frame && g_frame - fp_on_frame <= 1, hold = fht != fh_seen;
+    fp_seen = fpt; fh_seen = fht;
+    int mouse = game_focused() && (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+    int clip = held_clip_rounds();
+    if (prev_clip >= 0 && clip >= 0 && clip < prev_clip) shot_ms = now;
+    prev_clip = clip;
+    if (cmd && !was_cmd) cmd_ms = now;
+    int edge_cmd = cmd && !was_cmd, edge_mouse = mouse && !was_mouse;
+    was_cmd = cmd; was_mouse = mouse;
+    if (edge_mouse) mouse_ms = now;
+#ifndef T2R_RELEASE
+    { static int ne; if (edge_cmd && LOGCAP(ne, 12)) xlog("fire diag (dev): fire-press read held (reads %u) with %llx clip %d firing %d", fpt, (unsigned long long)w, clip, firing); }
+#endif
+    if (mouse_ms && now - mouse_ms > 250 && now - mouse_ms < 300 && !(cmd_ms && cmd_ms + 250 >= mouse_ms && cmd_ms <= mouse_ms + 250)) {
+        mouse_ms = 0;
+        if (LOGCAP(nmouse, 8)) xlog("fire diag: left mouse click in a match with %llx held, the engine's fire-press command never came on within 250 ms (clip %d, firing %d)",
+                                    (unsigned long long)w, clip, firing);
+    }
+    if ((edge_cmd || edge_mouse) && !press_ms && clip > 0) { press_ms = now; press_w = w; press_clip = clip; press_src = edge_cmd ? 1 : 2; }
+    if (press_ms && (shot_ms >= press_ms || w != press_w)) press_ms = 0;
+    else if (press_ms && now - press_ms > 400) {
+        uint64_t rl = dc_call(fnv64("player-is-reloading?"), 0, &none), am = dc_call(fnv64("player-is-aiming?"), 0, &none);
+        if (LOGCAP(nlog, 30))
+            xlog("fire diag: %s press with %llx (clip %d) and no shot in 400 ms - firing %d (for %llu ms), reloading %d, aiming %d, fire-press %d fire-hold %d, mouse %d, last shot %llu ms ago",
+                 press_src == 1 ? "fire-press" : "mouse-only", (unsigned long long)press_w, press_clip, firing, (unsigned long long)(fire_since ? now - fire_since : 0),
+                 rl != ~0ULL && (rl & 0xff), am != ~0ULL && (am & 0xff), cmd, hold, mouse, (unsigned long long)(shot_ms ? now - shot_ms : 0));
+        press_ms = 0;
+    }
+    if (firing) { if (!fire_since) fire_since = now; } else { fire_since = 0; stuck_logged = 0; }
+    if (fire_since && now - fire_since > 2000 && clip > 0 && !stuck_logged) {
+        stuck_logged = 1;
+        if (LOGCAP(nstuck, 10)) xlog("fire diag: player-is-firing? true for %llu ms with %llx (clip %d) - fire-press %d, mouse %d",
+                                     (unsigned long long)(now - fire_since), (unsigned long long)w, clip, cmd, mouse);
+    }
 }
 // TRACERS: not implemented. tracer-smoke-basic / tracer-smoke-tommy (t2r-ext.c CFX_DRESSING) are compute RIBBON groups the engine's bullet path drives
 // (and they occupy the 23-entry compute table that the blood / gore code already fights over); the only world spawns the ext has are spawn-particles-at-joint /
@@ -601,7 +654,7 @@ static int imm_fight(uint64_t now) { return g_ms_tier > 0 || (g_mus_contact_ms &
 static volatile uint64_t g_imm_own_sid, g_imm_own_ms;      // our last throw (send_hook, type 2): handled by imm_calls on the next poll, never from inside the send hook
 static void imm_note_own_throw(uint64_t sid) { g_imm_own_sid = sid; g_imm_own_ms = GetTickCount64(); }
 static int imm_call_on(int k) { return !feel_flag(IMM_CALL_SWITCH[k], &g_imm_call_at[k], &g_imm_call_off[k], 180); }
-// ---- throwable reactions with perception (opt-out t2r-no-vox-rules.txt = the old instant warning below):
+// ---- throwable reactions with perception (re/vox-audit.md; opt-out t2r-no-vox-rules.txt = the old instant warning below):
 // a thrown molotov / bomb is reacted to only when it could be perceived - after it LANDS (the copy comes to rest, or is gone = burst), within 8 m of us - and
 // after a human delay of 0.4-0.9 s, never at throw time (the old bark came the frame the throw message arrived and told the target to run). Our own team's
 // throwable is silent unless it lands within 4.5 m of us (then the same reaction). One voice: only the teammate nearest the landing point speaks (lowest slot on a tie).
@@ -657,8 +710,8 @@ static void imm_throw_react(uint64_t now) {
                 float mx = l[0] - g_imm_tw[t].pos[0], my = l[1] - g_imm_tw[t].pos[1], mz = l[2] - g_imm_tw[t].pos[2];
                 if (mx * mx + my * my + mz * mz < 0.0025f && age > 250) g_imm_tw[t].still++; else g_imm_tw[t].still = 0;
                 memcpy(g_imm_tw[t].pos, l, 12);
-                // (the stunned player shouted "watch out, smoke!" after she finished coughing, when she should be shouting
-                // that on seeing the bomb fly): a throwable we can SEE in flight (on screen, within 12 m - 4.5 m for our own team's) is called at once,
+                // the stunned player shouted "watch out, smoke!" only after she finished coughing, not on seeing the bomb fly:
+                // a throwable we can SEE in flight (on screen, within 12 m - 4.5 m for our own team's) is called at once,
                 // after a 0.2-0.4 s human delay, instead of waiting for it to land / burst
                 float cp[3], cf[3];
                 if (mp && age >= 250 && rcam_get(cp, cf)) {
@@ -720,7 +773,7 @@ static void imm_calls(uint64_t now) {
         if (dry && !dry_was && imm_call_on(1) && imm_team_near(25.0f)) vx_event(VX_NOAMMO, "gun dry, no reserve");
         dry_was = dry;
     }
-    // ENEMY throws (molotov lines must actually play): every new remote throwable of a non-teammate within range gets its warning bark
+    // ENEMY throws (molotov lines must play): every new remote throwable of a non-teammate within range gets its warning bark
     // (molotov: see-mltv "Molotov!" / "Fire bomb!"; smoke: see-smoke-bmb "Smoke, watch it!"; pipe / nail / stun: the warn-ally barks, kind bomb). It is in
     // range when it LANDS within 14 m of us (the thrower's target point) or leaves the hand within 10 m. A warning is urgent, so it skips the 2.5 s any-kind
     // gap (force) and only keeps its own per-kind cooldown; every decision is logged (the old single log budget of vx_event hid them all).
@@ -787,7 +840,7 @@ static void imm_end_duck(void) {
 }
 
 // ---- Part I Bookstore exposure: the converted Part I levels sit outside every render-settings region the engine gathers (the 23 regions of
-// hun-checkpoint-bookstore-rs are logged into the region manager but the camera probe still reads the defaults), so the
+// hun-checkpoint-bookstore-rs are logged into the region manager but the camera probe still reads the defaults, re/part1/bookstore-dark-1014.md), so the
 // baked interior renders ~2^4 too dark. Region-free route: the same per-frame native the health screen uses, override-render-settings(sym, 0, 0, 0, prio, 0, 1, 0, 1.0), with
 // Part I's own symbols (registered by the map's t1x module: *t1-rs-hun-const-base* = whole city, *hun-rs-hun-checkpoint-bookstore-base* = the interior;
 // tonemap light range 4 .. 4.85, set point 1.558, sun, sky). Only while hun-checkpoint-bookstore is loaded and the match runs.
@@ -811,17 +864,49 @@ static void imm_p1_probe(int *n) {
     }
     xlog("immersion: P1 rs probe #%d:%s", ++*n, out);
 }
-// the same per-frame override for other pack levels that need it (lvl 1 = the winter Supermarket, pat-jackson-supermarket: SP lights
+// The same per-frame override for other pack levels that need it (lvl 1 = the winter Supermarket, pat-jackson-supermarket: SP lights
 // its interior with Ellie's flashlight, MP has none). Layers come from t2r-rs-override-<level>.txt (same format); a level with no defaults and
 // no file gets no override.
 #include "sp_lighting.h"        // GENERATED (tools/maps/sp_lighting.py header): per SP map the pack level, interior boxes, forced EVs, override layers (sp_maps.json "sp_lighting")
-#include "p1_lighting.h"        // GENERATED (tools/part1/p1_trace_zones.py header): Part I Bookstore render-settings regions (exact volumes, prio, blend) for imm_p1_regions_tick
-static const char *const IMM_RS_LEVELS[] = {"hun-checkpoint-bookstore" SPL_LEVEL_ITEMS};      // [0] Part I Bookstore, [1 + k] = g_spl[k].level
+static unsigned g_p1_epoch;   // +1 at every match end - every once-per-process guard of the Bookstore / Part I paths re-arms on it (match 2 had none of match 1's diag lines)
+// Every Part I map of the build has its tables here (g_p1m[], P1M_N entries, picked by the loaded level). A build with Part I maps gets them from
+// sp_maps_built.h (tools/part1/p1_lighting_multi.py ext_define); without, the default header (or -DP1L_HEADER=\"p1_lighting_<key>.h\") is the one-entry table.
+#ifndef P1M_N
+#ifndef P1L_HEADER
+#define P1L_HEADER "p1_lighting.h"     // per map build: -DP1L_HEADER=\"p1_lighting_<key>.h\" (PORTING.md s15)
+#endif
+#define g_p1l_vol g_p1l_vol_0
+#define g_p1l_reg g_p1l_reg_0
+#include P1L_HEADER        // GENERATED (tools/part1/p1_trace_zones.py header): the Part I map's render-settings regions (exact volumes, prio, blend) for imm_p1_regions_tick
+#ifndef P1M_BASE_SYM
+#define P1M_BASE_SYM "*hun-rs-" P1L_LEVEL "-base*"     // the Bookstore; a Part I map with another base symbol defines it in its lighting header (cfg ext.base_sym)
+#endif
+enum { P1M_NREG_0 = P1L_NREG, P1M_NVOL_0 = P1L_NVOL };
+static const char g_p1m_level_0[] = P1L_LEVEL;
+static const char g_p1m_base_0[] = P1M_BASE_SYM;
+static const char g_p1m_const_0[] = "*t1-rs-hun-const-base*";
+typedef struct { const char *level; int nreg, nvol; const void *vol, *reg; const char *base_sym, *const_sym; } p1m_map;
+static const p1m_map g_p1m[] = {{g_p1m_level_0, P1M_NREG_0, P1M_NVOL_0, g_p1l_vol_0, g_p1l_reg_0, g_p1m_base_0, g_p1m_const_0}};
+#define P1M_N 1
+enum { P1L_NREG_MAX = P1M_NREG_0 };
+#define P1M_LEVEL_ITEMS g_p1m_level_0      // (SPL_LEVEL_ITEMS follows with its own leading commas)
+#define P1M_DEF_ROWS {g_p1m_const_0, g_p1m_base_0, "*t2r-p1-ambient-fill*"},
+#undef P1L_LEVEL
+#undef P1L_NREG
+#undef P1L_NVOL
+#undef P1M_KEY_LEVEL
+#undef P1M_PART_LEVELS
+#undef P1M_BASE_SYM
+#undef g_p1l_vol
+#undef g_p1l_reg
+#endif
+static const p1m_map *g_p1m_cur;       // the Part I map whose level is loaded (NULL: none), set by imm_p1_bookstore_tick
+static const char *const IMM_RS_LEVELS[] = {P1M_LEVEL_ITEMS SPL_LEVEL_ITEMS};      // [0 .. P1M_N-1] the Part I maps (g_p1m[k].level), [P1M_N + k] = g_spl[k].level
 // third layer = *t2r-p1-ambient-fill* (sp_maps_build, T2R_P1_FILL=0 drops it): ambient fill + tonemap-exposure-method 1 (auto). Part I's symbols leave the
 // method unset and the engine default is 0 = manual EV 0 (exe+13f92fa), i.e. black and deaf to force-exposure-value; this layer fixes that without a reconvert.
-static const char *const IMM_RS_DEF[][3] = {{"*t1-rs-hun-const-base*", "*hun-rs-hun-checkpoint-bookstore-base*", "*t2r-p1-ambient-fill*"}, {0, 0, 0}};
+static const char *const IMM_RS_DEF[][3] = {P1M_DEF_ROWS {0, 0, 0}};      // one row per Part I map, same index as IMM_RS_LEVELS
 static int g_imm_rs_level = -1;     // index into IMM_RS_LEVELS of the loaded pack level (-1 none), set by imm_p1_bookstore_tick
-// Winter Supermarket: SP lights the store interior with Ellie's flashlight; in MP it is near black under auto exposure, and
+// Winter Supermarket (A/B): SP lights the store interior with Ellie's flashlight; in MP it is near black under auto exposure, and
 // override-render-settings symbols of the pat set do not move the tonemap range. force-exposure-value (absolute EV, latched by the engine
 // until released, see imm_exposure_release) does: 0.0 looks like auto exposure in the snow lot, 4.0 makes the store and the post office readable. So while the level is up we force
 // it every frame, blended over ~0.8 s (eye adaptation) by whether the camera is inside the store block. Tuning: t2r-winter-exposure.txt =
@@ -835,7 +920,7 @@ static void imm_exposure_release(void) {
 }
 // The forced-EV volume is the map's INTERIOR only (sp_maps.json "sp_lighting".interior = SP's own building regions, 3D boxes): the first version was one
 // x/z rectangle around the whole building block (x -540..-495, z 234..322) which also held the lot's front strip and the courtyard, so those outdoor spots
-// went white at EV 4 (blinding white in front of the store, ~10 m, and in the open area behind it). t2r-winter-exposure.txt still replaces
+// went white at EV 4 (blinding white in front of the store for ~10 m, and in the open area behind it). t2r-winter-exposure.txt still replaces
 // the boxes by one x/z rectangle (any height) for tuning.
 static int imm_spl_inside(const spl_map *s, const float *R, int use_file, const float *cp) {
     if (use_file) return cp[0] >= R[0] && cp[0] <= R[1] && cp[2] >= R[2] && cp[2] <= R[3];
@@ -937,9 +1022,9 @@ static void imm_spl_regions_tick(int k, const float *cp) {
     }
     // wind: the region symbols' joint-wind-speed / flutter-speed are TIME SCALES (phase = time x speed): every change of them jumps the wind phase by time x delta = a violent
     // shake while they ramp (SP interior regions ramp speed to 0 and back; the blizzard 3.8 -> 1.8). Held constant (1.8 / 1.0, the storm's final values) on every region symbol of
-    // the map and on the blizzard symbol - always on. Optional restores of the old extras: t2r-spl-windhold.txt, t2r-spl-gustcap.txt.
+    // the map and on the blizzard symbol - always on (user-approved fix). Optional restores of the old extras: t2r-spl-windhold.txt, t2r-spl-gustcap.txt.
     {
-        static uint64_t ww_a, gc_a, gc_t, gf_t; static int ww_v, gc_v, wh_n, gc_n; static float cap = 8.0f;
+        static uint64_t wh_a, ww_a, gc_a, gc_t, gf_t; static int wh_v, ww_v, gc_v, wh_n, gc_n; static float cap = 8.0f;
         uint64_t fn = fnv64("change-render-setting-value-float"), gnow = GetTickCount64();
         int wind = imm_noflag("t2r-spl-windhold.txt", &ww_a, &ww_v);
         float wv = 1.0f, cv = 1.0f; uint32_t wb, cb, sb, fb; float sv = 1.8f, fv = 1.0f;
@@ -969,7 +1054,7 @@ static void imm_spl_regions_tick(int k, const float *cp) {
             for (int i = 0; i < 2; i++) { float c2 = i ? 1.0f : 1.8f; uint32_t vb; memcpy(&vb, &c2, 4); uint64_t a[3] = {g, fnv64(i ? "wind:joint-wind-flutter-speed" : "wind:joint-wind-speed"), vb}; dc_call(fn, 3, a); }
         }
     }
-    // door sun (a deviation from SP): three openings we made that SP keeps shut - (1) the post office door that was covered by snow, (2) the boarded
+    // door sun (a deliberate deviation from SP): three openings we made that SP keeps shut - (1) the post office door that was covered by snow, (2) the boarded
     // supermarket -> courtyard door, (3) the supermarket garage / loading door. The rooms that see out through them (door volumes: main-bld-low-1 store, main-bld-4 dock,
     // side-blds-1 post office; the hunting store and every other door stay pure SP) switch sun / fog / cloud shadows camera-globally in SP, so the yard seen through the opening
     // would lose its sun. While the camera is in those volumes (and 2 s after, the engine's 1 s zone blend) the zone symbols carry the OUTDOOR value of those keys
@@ -989,7 +1074,7 @@ static void imm_spl_regions_tick(int k, const float *cp) {
         }
         if (din) ds_in_t = t;
         int want = !off && (din || (ds_in_t && t - ds_in_t < 2000));
-        // storm: the outdoor value of a key is the storm layers' value at the storm strength (hs entries, sp_lighting.py STORM_LAYERS) - with
+        // storm : the outdoor value of a key is the storm layers' value at the storm strength (hs entries, sp_lighting.py STORM_LAYERS) - with
         // the clear-weather values the yard / courtyard seen from the door rooms stayed sunlit (sun 2.8 inside, 0 outside) while the storm was on; rewritten every
         // 0.5 s while the camera is in a door room, so the 20 s storm ramp follows
         static float ds_storm = -1.0f;
@@ -1063,7 +1148,7 @@ static void imm_winter_exposure_tick(int in_match) {
     uint64_t a = imm_f2u(ev);
     dc_call(fnv64("force-exposure-value"), 1, &a);
 }
-// Part I's own per-zone lighting. The p1tracer walk of the Part I Bookstore (outside, ground floor, top floor) showed that Part I's
+// Part I's own per-zone lighting (re/p1_bookstore_1104/NOTES.md). The p1tracer walk of the Part I Bookstore (outside, ground floor, top floor) showed that Part I's
 // renderer at the camera = exactly its hun-const render-settings regions (camera inside the region's convex volumes, highest priority wins per key, region blend
 // times): 97 % of every logged float key predicted, the rest are blends / death-camera frames. Those are the 23 regions of our rs level (gating dropped), whose symbols
 // the map's t1x module registers. The engine does not apply them natively here (camera probe = defaults), so the ext replays them the way the region manager
@@ -1073,7 +1158,7 @@ static void imm_winter_exposure_tick(int in_match) {
 // The ambient-fill layer is OFF in replay mode: the rs level is reconverted so every Part I symbol carries tonemap-exposure-method = auto
 // (p1_rsenv.with_auto_exposure; TLOU2's default 0 = manual EV 0 was the fill's other job) and the build no longer adds the fill symbol (sp_maps_build.fill_on,
 // T2R_P1_FILL=1 = old). t2r-p1-fill.txt re-adds the layer (prio 200; needs a T2R_P1_FILL=1 build). A t2r-p1-rs-override.txt still wins over both.
-// Test: the replay's override calls are made (rslog) but the live tonemap / sun stay at the engine default (-5 / 5 / 0, dir 0,-0.82,-0.57),
+// A/B: the replay's override calls are made (rslog) but the live tonemap / sun stay at the engine default (-5 / 5 / 0, dir 0,-0.82,-0.57),
 // so neither the native region tree of hun-checkpoint-bookstore-rs nor our overrides take a single t1x symbol. Diagnostic: is the symbol bound in the
 // loaded DC data (exe+0x1357750 = the DC symbol lookup skills.c / the arc art params use)? "p1 sym" lines: pointer + first words of the object.
 static int imm_dc_bound(uint64_t sid) {        // the DC symbol is bound in the loaded data (exe+0x1356d60 slot non-NULL and filled)
@@ -1082,7 +1167,8 @@ static int imm_dc_bound(uint64_t sid) {        // the DC symbol is bound in the 
     return slot && !IsBadReadPtr(slot, 8) && *slot;
 }
 static void imm_p1_sym_diag(void) {
-    static int n; static uint64_t last;
+    static int n; static uint64_t last; static unsigned ep;
+    if (ep != g_p1_epoch) { ep = g_p1_epoch; n = 0; last = 0; }
     uint64_t t = GetTickCount64();
     if (n >= 4 || (last && t - last < 10000)) return;
     last = t; n++;
@@ -1118,7 +1204,7 @@ static void imm_p1_selftest(void) {
     static const uint64_t SID[4] = {0x7f841655d2b206a8ULL, 0x403a3259d39c40faULL, 0x3616fb1faa20b723ULL, 0x1123f1700c784e2ULL};
     static const char *const NM[4] = {"base-2", "t1-const-base", "stock-t1x0", "stock-sea0"};
     if (done) return;
-    // Flat light, then a white fog burst ~20 s into every Bookstore match: this self-test forced four lighting sets
+    // (clip 00-42-34: flat light, then a white fog burst ~20 s into every Bookstore match): this self-test forced four lighting sets
     // on screen for 2 s each in every match. Dev only now: t2r-p1-selftest.txt next to the exe.
     // The four sets on screen are what brings the Part I sun in (all 1234 logged render values are identical
     // before and after, so it is engine state the full-symbol overrides kick, not a value). So the sequence runs at once when the level is loaded, 150 ms
@@ -1129,7 +1215,7 @@ static void imm_p1_selftest(void) {
     uint64_t t = GetTickCount64();
     if (!t0) { g_p1pr_t0 = t; xlog("immersion: p1 prime: %s (delay %llu ms, %llu ms per set)", slow ? "on-screen self-test" : "at level load", (unsigned long long)delay, (unsigned long long)step); return; }
     if (t - t0 < delay) return;
-    // (flat light again, log "base-2" then "stock-t1x0" 2 ms apart): the phase came from the clock, so a level-load hitch over 150 ms
+    // (A/B: flat light again, log "base-2" then "stock-t1x0" 2 ms apart): the phase came from the clock, so a level-load hitch over 150 ms
     // skipped t1-const-base. Now the sets run in order: the next one starts only after the current one ran >= step ms AND >= 6 frames.
     static uint64_t ph_t; static int ph_n;
     int ph = phase;
@@ -1153,16 +1239,30 @@ static void imm_p1_selftest(void) {
         if (ph == 4) g_p1pr_done = 1;
     }
     if (ph < 4) ph_n++;
-    if (ph < 4 && imm_dc_bound(SID[ph])) imm_rs_call(SID[ph], 32766, 1.0f);
+    // (two Part I maps in one build, A/B Plaza frames half as bright as the Plaza-only build): base-2 is the Bookstore's interior set and
+    // the city base is per map (a later map stages its own renamed copy, p1m_map.const_sym). With both maps the Bookstore's base-2 and city base
+    // are bound while Plaza is loaded, and the prime pushed them onto Plaza. Base-2 now only on the Bookstore, phase 1 = the loaded map's city base.
+    const p1m_map *pm = g_p1m_cur;
+    uint64_t psid = ph < 4 ? SID[ph] : 0;
+    if (ph == 0 && !(pm && pm->level && strstr(pm->level, "bookstore"))) psid = 0;
+    if (ph == 1 && pm && pm->const_sym) psid = fnv64(pm->const_sym);
+    if (ph < 4 && psid && imm_dc_bound(psid)) imm_rs_call(psid, 32766, 1.0f);
 }
 static void imm_p1_regions_tick(void) {
-    static float env[P1L_NREG]; static uint64_t sid[P1L_NREG], last_t; static uint8_t was[P1L_NREG]; static float last_cp[3]; static int have_cp, nl, init;
-    static uint8_t bound[P1L_NREG]; static uint64_t bound_at;
-    if (!init) { init = 1; for (int i = 0; i < P1L_NREG; i++) sid[i] = fnv64(g_p1l_reg[i].sym); }
+    static float env[P1L_NREG_MAX]; static uint64_t sid[P1L_NREG_MAX], last_t; static uint8_t was[P1L_NREG_MAX]; static float last_cp[3]; static int have_cp, nl;
+    static uint8_t bound[P1L_NREG_MAX], inf[P1L_NREG_MAX], outg[P1L_NREG_MAX]; static uint64_t bound_at;
+    static unsigned ep; static const p1m_map *init;
+    const p1m_map *pm = g_p1m_cur; if (!pm) return;
+    const int nreg_ = pm->nreg, nvol_ = pm->nvol; const p1l_reg *g_p1l_reg = (const p1l_reg *)pm->reg; const p1l_vol *g_p1l_vol = (const p1l_vol *)pm->vol;
+    if (ep != g_p1_epoch) { ep = g_p1_epoch; nl = 0; bound_at = 0; have_cp = 0; last_t = 0; memset(outg, 0, sizeof outg); memset(was, 0, sizeof was); }       // a new match = a new level instance: re-bind, settle at once
+    if (init != pm) {         // first use or the loaded Part I map changed: per-map state starts over
+        init = pm; bound_at = 0; have_cp = 0; last_t = 0; memset(env, 0, sizeof env); memset(outg, 0, sizeof outg); memset(was, 0, sizeof was); memset(bound, 0, sizeof bound); memset(inf, 0, sizeof inf);
+        for (int i = 0; i < nreg_; i++) sid[i] = fnv64(g_p1l_reg[i].sym);
+    }
     if (!bound_at || GetTickCount64() - bound_at >= 3000) {          // re-test every 3 s: only bound symbols are overridden (night60)
         int nb = 0; bound_at = GetTickCount64();
-        for (int i = 0; i < P1L_NREG; i++) { bound[i] = (uint8_t)imm_dc_bound(sid[i]); nb += bound[i]; }
-        static int lb = -1; if (nb != lb && nl < 80) { nl++; lb = nb; xlog("immersion: p1 regions: %d of %d region symbols bound in the DC data (unbound ones skipped)", nb, P1L_NREG); }
+        for (int i = 0; i < nreg_; i++) { bound[i] = (uint8_t)imm_dc_bound(sid[i]); nb += bound[i]; }
+        static int lb = -1; if (nb != lb && nl < 80) { nl++; lb = nb; xlog("immersion: p1 regions (%s): %d of %d region symbols bound in the DC data (unbound ones skipped)", pm->level, nb, nreg_); }
     }
     float cp[3], cd[3];
     if (!cam_pos_dir(cp, cd)) return;
@@ -1172,10 +1272,10 @@ static void imm_p1_regions_tick(void) {
     int jump = !last_t || t - last_t >= 500 || !have_cp || dx * dx + dy * dy + dz * dz > 8.0f * 8.0f;     // respawn / match start: settle at once (Part I snaps on a load too)
     last_cp[0] = cp[0]; last_cp[1] = cp[1]; last_cp[2] = cp[2]; have_cp = 1; last_t = t;
     char names[400]; size_t at = 0; int changed = 0; names[0] = 0;
-    for (int i = 0; i < P1L_NREG; i++) {
+    for (int i = 0; i < nreg_; i++) {
         const p1l_reg *r = &g_p1l_reg[i];
         int in = r->always;
-        for (int q = r->v0; !in && q < r->v0 + r->nv && q < P1L_NVOL; q++) {
+        for (int q = r->v0; !in && q < r->v0 + r->nv && q < nvol_; q++) {
             const p1l_vol *v = &g_p1l_vol[q]; int ok = 1;
             for (int f = 0; f < (int)(sizeof v->f / sizeof v->f[0]) && ok; f++)
                 if (v->f[f][0] * cp[0] + v->f[f][1] * cp[1] + v->f[f][2] * cp[2] > v->f[f][3]) ok = 0;
@@ -1184,15 +1284,36 @@ static void imm_p1_regions_tick(void) {
         float bl = in ? r->blend : r->blend_out;
         if (jump || r->always || bl < 0.02f) env[i] = in ? 1.0f : 0.0f;
         else { env[i] += (in ? dt : -dt) / bl; if (env[i] > 1.0f) env[i] = 1.0f; else if (env[i] < 0.0f) env[i] = 0.0f; }
-        if (env[i] > 0.001f && bound[i]) imm_rs_call(sid[i], g_p1_prio_add + r->prio, env[i]);
+        inf[i] = (uint8_t)in;
+        if (in) outg[i] = 0; else if (was[i]) outg[i] = 1;      // outg = leaving (kept alive while a higher region is still coming in)
         if (in != was[i]) { changed = 1; was[i] = (uint8_t)in; }
         if (in && !r->always && at < sizeof names - 48) at += snprintf(names + at, sizeof names - at, " %s[%d]", r->name + (strncmp(r->name, "rr-hun-", 7) ? 0 : 7), r->prio);
     }
+    // cross-fade (the sky/sun turned on at every zone change, A/B logs: sun dir-x 0.755 -> 0.586 -> 0.755 at a region border while both regions set 0.755).  The override layers
+    // are blended lerp(below, layer, strength) in priority order, so two regions fading the opposite way (A out at 1-t, B in at t) leave only A(1-t)^2 + B t and the missing part
+    // falls to the const base's engine default (sun dir 0 = the dip).  A region under a HIGHER one that is still ramping (in or out) keeps full strength until that one is done
+    // (out: held while a higher region is still coming in; in: present at once while a higher region is still fading out), so the pair is a true cross-fade lerp(A, B, t).
+    for (int i = 0; i < nreg_; i++) {
+        const p1l_reg *r = &g_p1l_reg[i];
+        float eff = env[i];
+        if (!r->always && ((inf[i] && eff < 1.0f) || outg[i])) {
+            int hold = 0;
+            for (int j = 0; j < nreg_ && !hold; j++) {
+                const p1l_reg *q = &g_p1l_reg[j];
+                if (q->always || q->prio <= r->prio) continue;
+                int ramp_in = inf[j] && env[j] < 1.0f, fade_out = outg[j] && !inf[j];
+                hold = inf[i] ? fade_out : ramp_in;
+            }
+            if (hold) eff = 1.0f;
+            else if (outg[i] && eff <= 0.001f) outg[i] = 0;
+        }
+        if (eff > 0.001f && bound[i]) imm_rs_call(sid[i], g_p1_prio_add + r->prio, eff);
+    }
     if (changed && nl < 80) { nl++; xlog("immersion: p1 regions at camera %.1f %.1f %.1f:%s", (double)cp[0], (double)cp[1], (double)cp[2], at ? names : " (city base only)"); }
 }
-// 2nd-floor barrel "orange ball" (bisected in game, t2r-rs-test.txt on every Bookstore region + *t1-rs-hun-const-base*): fog density 0 removed it,
-// then new-volumetrics:fog-run-time-light-contribution 0 alone removed it with the fog kept; the fire light's own volumetric word
-// (+0x4c 0 in the light record) did not. So every Bookstore region gets that key at 0 (the stored region
+// 2nd-floor barrel "orange ball" (bisect in game, t2r-rs-test.txt on every Bookstore region + *t1-rs-hun-const-base*): fog density 0 removed it,
+// then new-volumetrics:fog-run-time-light-contribution 0 alone removed it with the fog kept (ball gone); the fire light's own volumetric word
+// (+0x4c 0 in the light record) did not (170 build: the orange ball came back). So every Bookstore region gets that key at 0 (the stored region
 // value, no extra override layer: our region replay carries it), re-applied every 2 s. t2r-p1-fog-rtlight.txt next to the exe = Part I's value (1).
 static void imm_p1_fog_rtl_tick(void) {
     static uint64_t last; uint64_t now = GetTickCount64();
@@ -1202,18 +1323,20 @@ static void imm_p1_fog_rtl_tick(void) {
     const uint64_t key = fnv64("new-volumetrics:fog-run-time-light-contribution"), fn = fnv64("change-render-setting-value-float");
     float z = 0.0f; uint32_t zb; memcpy(&zb, &z, 4);
     int n = 0;
-    for (int i = 0; i <= P1L_NREG; i++) {
-        const char *sym = i < P1L_NREG ? g_p1l_reg[i].sym : "*t1-rs-hun-const-base*";
+    const p1m_map *pm = g_p1m_cur; if (!pm) return;
+    const int nreg_ = pm->nreg; const p1l_reg *g_p1l_reg = (const p1l_reg *)pm->reg;
+    for (int i = 0; i <= nreg_; i++) {
+        const char *sym = i < nreg_ ? g_p1l_reg[i].sym : pm->const_sym;      // (a later Part I map stages its own copy of the city base)
         uint64_t a3[3] = {fnv64(sym), key, zb};
         if (dc_call(fn, 3, a3) != ~0ULL) n++;
     }
     static int logged; if (logged < 3) { logged++; uint64_t kk = key, br = dc_call(fnv64("get-render-setting-value-float"), 1, &kk); uint32_t bu = (uint32_t)br; float bf; memcpy(&bf, &bu, 4);
-        xlog("immersion: p1 fog: runtime-light contribution 0 in %d / %d Bookstore regions, live value now %g", n, P1L_NREG + 1, (double)bf); }
+        xlog("immersion: p1 fog: runtime-light contribution 0 in %d / %d %s regions, live value now %g", n, nreg_ + 1, pm->level, (double)bf); }
 }
 static void imm_p1_bookstore_tick(int in_match) {
     static int loaded = -1; static unsigned fr; static int nl, ncall, nprobe;
     static imm_p1_layer L[8]; static int nL; static uint64_t last_cfg, last_probe; static int replay;
-    if (!in_match) { loaded = -1; g_imm_rs_level = -1; fr = 0; nL = 0; last_cfg = 0; nprobe = 0; g_p1pr_t0 = 0; g_p1pr_phase = -1; g_p1pr_done = 0; return; }
+    if (!in_match) { loaded = -1; g_imm_rs_level = -1; g_p1m_cur = NULL; fr = 0; nL = 0; last_cfg = 0; nprobe = 0; g_p1pr_t0 = 0; g_p1pr_phase = -1; g_p1pr_done = 0; return; }
     if (imm_noflag("t2r-no-p1-rs-override.txt", &g_p1o_a, &g_p1o_v)) return;
     if ((fr++ % 60) == 0) {
         int now = -1;
@@ -1223,7 +1346,7 @@ static void imm_p1_bookstore_tick(int in_match) {
         }
         if (now != loaded && nl < 8) { nl++; xlog("immersion: rs override level %s (%s)", now >= 0 ? IMM_RS_LEVELS[now] : "none", now >= 0 ? "on" : "off"); }
         if (now != loaded) { nL = 0; last_cfg = 0; }
-        loaded = now; g_imm_rs_level = now;
+        loaded = now; g_imm_rs_level = now; g_p1m_cur = now >= 0 && now < P1M_N ? &g_p1m[now] : NULL;
     }
     if (loaded < 0) return;
     uint64_t tnow = GetTickCount64();
@@ -1232,7 +1355,7 @@ static void imm_p1_bookstore_tick(int in_match) {
         imm_p1_layer N[8]; int nN = 0;
         char fn[96]; snprintf(fn, sizeof fn, "t2r-rs-override-%s.txt", IMM_RS_LEVELS[loaded]);
         FILE *f = fopen(fn, "rb");
-        if (!f && loaded == 0) f = fopen("t2r-p1-rs-override.txt", "rb");
+        if (!f && loaded < P1M_N) f = fopen("t2r-p1-rs-override.txt", "rb");
         if (f) {
             char ln[160];
             while (nN < 8 && fgets(ln, sizeof ln, f)) {
@@ -1243,10 +1366,10 @@ static void imm_p1_bookstore_tick(int in_match) {
             }
             fclose(f);
         }
-        if (!nN && loaded >= 1 && loaded <= SPL_N) {         // the map's own layers from sp_maps.json "sp_lighting".layers
-            for (int k = 0; k < g_spl[loaded - 1].nlayer && nN < 8; k++) {
-                snprintf(N[nN].name, sizeof N[nN].name, "%s", g_spl[loaded - 1].layer[k].sym); N[nN].sid = fnv64(N[nN].name);
-                N[nN].prio = g_spl[loaded - 1].layer[k].prio; N[nN].str = g_spl[loaded - 1].layer[k].str; nN++;
+        if (!nN && loaded >= P1M_N && loaded - P1M_N < SPL_N) {         // the map's own layers from sp_maps.json "sp_lighting".layers
+            for (int k = 0; k < g_spl[loaded - P1M_N].nlayer && nN < 8; k++) {
+                snprintf(N[nN].name, sizeof N[nN].name, "%s", g_spl[loaded - P1M_N].layer[k].sym); N[nN].sid = fnv64(N[nN].name);
+                N[nN].prio = g_spl[loaded - P1M_N].layer[k].prio; N[nN].str = g_spl[loaded - P1M_N].layer[k].str; nN++;
             }
         }
         {
@@ -1256,14 +1379,14 @@ static void imm_p1_bookstore_tick(int in_match) {
         }
         static uint64_t rp_a, nf_a; static int rp_v, nf_v;
         replay = 0;
-        if (!nN && loaded == 0 && !imm_noflag("t2r-no-p1-regions.txt", &rp_a, &rp_v)) {      // Part I's per-zone regions (imm_p1_regions_tick) + the ambient fill
+        if (!nN && loaded < P1M_N && !imm_noflag("t2r-no-p1-regions.txt", &rp_a, &rp_v)) {      // Part I's per-zone regions (imm_p1_regions_tick) + the ambient fill
             replay = 1;
             if (imm_noflag("t2r-p1-fill.txt", &nf_a, &nf_v)) {          // no fill by default (Part I ambient 1.0); the file re-adds it (build with T2R_P1_FILL=1)
                 snprintf(N[0].name, sizeof N[0].name, "%s", IMM_RS_DEF[loaded][2]); N[0].prio = 200; N[0].str = 1.0f; N[0].sid = fnv64(N[0].name); nN = 1;
             }
-            static int rl; if (rl++ < 4) xlog("immersion: Part I Bookstore: Part I region replay on (%d regions)%s", P1L_NREG, nN ? " + ambient fill" : ", no fill");
+            static int rl; static unsigned rl_ep; if (rl_ep != g_p1_epoch) { rl_ep = g_p1_epoch; rl = 0; } if (rl++ < 4) xlog("immersion: Part I %s: Part I region replay on (%d regions)%s", IMM_RS_LEVELS[loaded], g_p1m[loaded].nreg, nN ? " + ambient fill" : ", no fill");
         }
-        if (!nN && !replay && loaded == 0 && IMM_RS_DEF[loaded][0]) {
+        if (!nN && !replay && loaded < P1M_N && IMM_RS_DEF[loaded][0]) {
             snprintf(N[0].name, sizeof N[0].name, "%s", IMM_RS_DEF[loaded][0]); N[0].prio = 50; N[0].str = 1.0f;
             snprintf(N[1].name, sizeof N[1].name, "%s", IMM_RS_DEF[loaded][1]); N[1].prio = 100; N[1].str = 1.0f;
             snprintf(N[2].name, sizeof N[2].name, "%s", IMM_RS_DEF[loaded][2]); N[2].prio = 200; N[2].str = 1.0f;
@@ -1273,21 +1396,21 @@ static void imm_p1_bookstore_tick(int in_match) {
         for (int i = 0; same && i < nN; i++) same = N[i].sid == L[i].sid && N[i].prio == L[i].prio && N[i].str == L[i].str;
         if (!same) {
             memcpy(L, N, sizeof N); nL = nN;
-            for (int i = 0; i < nL; i++) xlog("immersion: Part I Bookstore override layer %d: %s prio %d strength %.2f", i, L[i].name, L[i].prio, (double)L[i].str);
+            for (int i = 0; i < nL; i++) xlog("immersion: Part I %s override layer %d: %s prio %d strength %.2f", IMM_RS_LEVELS[loaded], i, L[i].name, L[i].prio, (double)L[i].str);
         }
     }
     uint64_t r[8] = {0};
     static uint8_t lb_ok[8]; static uint64_t lb_at;
     if (!lb_at || tnow - lb_at >= 3000) { lb_at = tnow; for (int i = 0; i < nL; i++) lb_ok[i] = (uint8_t)imm_dc_bound(L[i].sid); }
     for (int i = 0; i < nL; i++) if (lb_ok[i]) r[i] = imm_rs_call(L[i].sid, L[i].prio, L[i].str);
-    if (replay && loaded == 0) imm_p1_regions_tick();
-    if (loaded == 0) { imm_p1_sym_diag(); imm_p1_selftest(); }
-    if (loaded == 0) imm_p1_fog_rtl_tick();
-    if (ncall < 4) { ncall++; xlog("immersion: Part I Bookstore override-render-settings -> %llx %llx %llx %llx (%d layers)", (unsigned long long)r[0], (unsigned long long)r[1], (unsigned long long)r[2], (unsigned long long)r[3], nL); }
+    if (replay && loaded < P1M_N) imm_p1_regions_tick();
+    if (loaded < P1M_N) { imm_p1_sym_diag(); imm_p1_selftest(); }
+    if (loaded < P1M_N) imm_p1_fog_rtl_tick();
+    if (ncall < 4) { ncall++; xlog("immersion: Part I %s override-render-settings -> %llx %llx %llx %llx (%d layers)", IMM_RS_LEVELS[loaded], (unsigned long long)r[0], (unsigned long long)r[1], (unsigned long long)r[2], (unsigned long long)r[3], nL); }
     if (nprobe < 12 && tnow - last_probe >= 2000) { last_probe = tnow; imm_p1_probe(&nprobe); }
 }
 
-// dev (tuning): t2r-dc-dev.txt next to the exe = one native call per line, made EVERY match frame: "<fn-name> [arg ...]".
+// dev (A/B tuning): t2r-dc-dev.txt next to the exe = one native call per line, made EVERY match frame: "<fn-name> [arg ...]".
 // Arg: "s:name" = symbol fnv64(name), a number with '.' = float bits, other numbers = int. Re-read every 2 s; the return value is logged on change.
 // e.g. "force-exposure-value 2.5" or "change-render-setting-value-float s:*pat-rs-pat* s:tonemap:final-exposure-bias 1.0". Compiled out in release.
 #ifndef T2R_RELEASE
@@ -1330,14 +1453,14 @@ static void imm_dc_dev_tick(int in_match) {
 static void imm_dc_dev_tick(int in_match) { (void)in_match; }
 #endif
 
-// dev (localisation of the leftover dark patches where props were removed): t2r-rs-test.txt next to the exe = render-setting overrides, one per
+// dev (A/B localisation of the leftover dark patches where props were removed): t2r-rs-test.txt next to the exe = render-setting overrides, one per
 // line "<render-setting key> <float> [region]" (e.g. "lighting:ssao-intensity-scale 0"); optional line "region <symbol>" = the default region for the lines without
 // one (a file without it uses *pat-rs-pat-cloudy*). change-render-setting-value-float only EDITS A ROW THE REGION ALREADY HAS (the engine has no set-render-setting-
 // value-float native: not in the exe's name table): *pat-rs-pat-cloudy* defines only sun-light / sun-shadow-cast-distance, *pat-rs-pat* (the level default; measured in
 // pat.bin) defines lighting:ambient-shadow-intensity (1.0) and many symbols define ssao-intensity-scale, so a key the base region lacks needs its own region: "lighting:
 // ambient-shadow-intensity 0 *pat-rs-pat*". Side effect to expect: that region is re-applied as a whole layer, so its other rows (sun direction -0.611 -0.504 0.610,
 // sky rotation -105) override the cloudy ones while the line is in the file. Every used region is re-applied EVERY FRAME with override-render-settings(region, 0, 0, 0,
-// prio 32766, 0, 1, 0, 1.0) (sun rgbi-i, sun-shadow-cast-distance, probe-occlusion, ssct APPLIED this way). File re-read every 2 s; each new / changed
+// prio 32766, 0, 1, 0, 1.0) (A/B: sun rgbi-i, sun-shadow-cast-distance, probe-occlusion, ssct APPLIED this way). File re-read every 2 s; each new / changed
 // line is logged with the value before, both return codes and a read-back 0.5 s later (APPLIED / NOT applied). Delete the file to stop. Compiled out in release.
 #ifndef T2R_RELEASE
 #define RST_DEF_REGION "*pat-rs-pat-cloudy*"
@@ -1392,7 +1515,7 @@ static void imm_rs_test_tick(int in_match) { (void)in_match; }
 #endif
 
 // ---- RSZ: the SP sandbox's lighting / weather zone tracker (tools/sp-sandbox/t2r-sp.c rsz_tick), same keys and line format, so an MP run can be
-// diffed against the SP reference at the same camera positions. Every 250 ms in a match: the renderer's live render settings at the camera
+// diffed against the SP reference re/sp_rsz_1103 at the same camera positions. Every 250 ms in a match: the renderer's live render settings at the camera
 // (get-render-setting-value-float); "RSZ" in t2r-ext.log when a value changed, "RSZFULL" every 5 s. Opt-out: t2r-no-rsz.txt.
 static const char *const IMM_RSZ_KEYS[] = {
     "tonemap:tonemap-light-range-min", "tonemap:tonemap-light-range-max", "tonemap:tonemap-set-point", "tonemap:final-exposure-bias", "tonemap:hdr-exposure-bias",
@@ -1415,7 +1538,7 @@ static void imm_rsz_tick(int in_match) {
     static uint64_t at, full_at, nf_a, sids[IMM_RSZ_N]; static float prev[IMM_RSZ_N]; static int have, nf_v;
     if (!in_match) { have = 0; return; }
     uint64_t t = GetTickCount64();
-    if (t - at < 250 || imm_noflag("t2r-no-rsz.txt", &nf_a, &nf_v)) return;
+    if (t - at < 250 || !rsdiag_on() || imm_noflag("t2r-no-rsz.txt", &nf_a, &nf_v)) return;
     at = t;
     float cp[3], cd[3];
     if (!cam_pos_dir(cp, cd)) return;
@@ -1471,6 +1594,7 @@ static void immersion_tick(void) {
     mhfx_tick(live || (in_match && g_mhfx_dc_until && now < g_mhfx_dc_until && !g_down_dying), stun_on);   // (a counter's concussion plays through the pair)
     imm_nm_tick(live, now);
     imm_sray_send_tick(live, now);
+    imm_fire_diag_tick(live, now);
     if (!live) { sprint_since = still_since = 0; was_sprint = 0; prev_hp = -1.0f; hp_low = 0; return; }
     if (now - last_poll < 100) return;
     last_poll = now;
@@ -1549,7 +1673,7 @@ static struct { uint64_t end_tick; int done; int n; char who[4][32]; char name[4
 static const char *const HON_TITLE[4] = {"MOST DOWNS", "MOST EXECUTIONS", "MOST REVIVES", "MOST PARTS"};
 static int imm_roster_name(uint32_t slot, char *out, size_t on) {
     typedef uint8_t *(*fn_obj)(void);
-    // the scoreboard showed PLAYER 0-8: the lobby roster is often emptied by the time the match ends, so every honour read
+    // (the scoreboard still showed PLAYER 0-8): the lobby roster is often emptied by the time the match ends, so every honour read
     // 'PLAYER n'. First the name the kill card / nametags use (the net player record, peer+6), our own from t2r-name, then the roster.
     if (slot == *(uint32_t *)VMA(0x180138090)) { char ln[16], lt[6]; if (ne_local_load(ln, lt) && ln[0]) { snprintf(out, on, "%.15s", ln); return 1; } }
     else if (slot < T2R_MAX_PEERS) { typedef uint8_t *(*fn_peer_)(uint32_t); uint8_t *p = ((fn_peer_)t2r_peer)(slot);

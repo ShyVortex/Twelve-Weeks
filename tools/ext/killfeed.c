@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------- kill feed as icons: "KILLER [weapon icon] VICTIM"
 // Included by t2r-ext.c right after death_ui.c (one translation unit; uses its du_weapon icon table). Log prefix 'killfeed:'.
-// Off: t2r-old-killfeed.txt next to the exe (polled every 2 s) = the client's debug-draw text feed ("X killed Y" / "X died") as before.
+// Off: t2r-old-killfeed.txt next to the exe (polled every 2 s) = the base client's debug-draw text feed ("X killed Y" / "X died") as before.
 //
 // Capture (no new network traffic): winmm's death handler ApplyConfirmedDeath (FUN_1800379b0: ecx victim slot, edx killer slot,
 // r8 weapon SID, r9d headshot) is hooked only to remember the weapon SID for the duration of its call; the two feed entry points it
@@ -21,7 +21,7 @@
 #define KF_LIFE_MS   6000
 #define KF_FADEIN_MS 150
 #define KF_FADEOUT_MS 1000
-#define KF_TOP       150.0f      // canvas units (3840 x 2160): 50 px of the 1280 x 720 text space, as the client's feed
+#define KF_TOP       150.0f      // canvas units (3840 x 2160): 50 px of the 1280 x 720 text space, as the base client's feed
 #define ROW_H_UNITS  78.0f      // = killfeed_widgets.ROW_H
 #define KF_PITCH     84.0f       // 28 px
 // backdrop geometry = killfeed_widgets.py (ICX 3075, ICON_W 270, GAP 20, VICTIM_W 520, killer box 1100, SH_Y / SH_CAP / SH_MID_W0)
@@ -102,11 +102,11 @@ static int kf_resolve(void) {
     uint64_t g[1] = {g_kfw[0][KFW_GRP]};
     uint64_t xf = g[0] ? dc_call(SID_GUI2_GET_WIDGET_TRANSFORM, 1, g) : 0;
     if (!xf || xf == ~0ULL || IsBadReadPtr((void *)(uintptr_t)xf, 0x28)) {
-        static int nl; if (LOGCAP(nl, 3)) xlog("killfeed: t2rKf0 not in hud-root (older gui2-widgets.pak) - the stock text feed stays");
+        static int nl; if (LOGCAP(nl, 3)) xlog("killfeed: t2rKf0 not in hud-root (older gui2-widgets.pak) - spec's text feed stays");
         return 0;
     }
     g_kf_ok = 1; g_kf_fi_ok = g_kfw[0][KFW_FI] != 0;
-    xlog("killfeed: widgets found (%d rows, status icon %s) - icon feed on, stock text feed suppressed", KF_ROWS, g_kf_fi_ok ? "yes" : "NO (older pak: no down entries)");
+    xlog("killfeed: widgets found (%d rows, status icon %s) - icon feed on, spec's text feed suppressed", KF_ROWS, g_kf_fi_ok ? "yes" : "NO (older pak: no down entries)");
     return 1;
 }
 static int kf_use_old(void) {
@@ -181,6 +181,7 @@ static void kf_down_local(uint32_t downer, uint64_t w) {
     if (g_kf_dn_ms[me] && now - g_kf_dn_ms[me] < 500) return;
     g_kf_dn_ms[me] = now;
     if (!w && g_dk.down == (int)downer) w = g_dk.down_w;
+    ach_own_down(downer, me, w);                     // achievements: our own molotov (achieve.c)
     bk_weapon(me, w);                                // t2r-ext.c: molotov / nail bomb kill bonus (the downer is known: award_down ran first)
     if (g_send_tramp && w) { uint8_t m[10]; m[0] = (uint8_t)me; memcpy(m + 1, &w, 8); m[9] = MSG_KFWEAPON_DOWN; g_send_tramp(MSG_KFWEAPON, m, sizeof m, 0xff); }
     kf_down_push((int)me, (int)downer, w, 0);
@@ -233,7 +234,7 @@ static void install_killfeed(void) {
     static const uint8_t died[18] = {0x55, 0x56, 0x57, 0x48, 0x81, 0xec, 0x60, 0x01, 0, 0, 0x48, 0x8d, 0xac, 0x24, 0x80, 0, 0, 0};
     // all three checked before any is patched: a half-installed feed (weapon known, entries not hooked or the reverse) is harmless but pointless
     if (memcmp((void *)VMA(0x1800379B0), acd, sizeof acd) || memcmp((void *)VMA(0x1800606D0), kill, sizeof kill) ||
-        memcmp((void *)VMA(0x180060910), died, sizeof died)) { hook_miss((void *)VMA(0x180060910), sizeof died, "killfeed: winmm prologues differ, not installed (stock text feed)"); return; }
+        memcmp((void *)VMA(0x180060910), died, sizeof died)) { hook_miss((void *)VMA(0x180060910), sizeof died, "killfeed: winmm prologues differ, not installed (spec's text feed)"); return; }
     g_kf_acd_tramp = kf_patch(0x1800379B0, acd, sizeof acd, (void *)kf_acd_hook, "ApplyConfirmedDeath", (void **)&g_kf_acd_tramp);
     g_kf_kill_tramp = kf_patch(0x1800606D0, kill, sizeof kill, (void *)kf_kill_hook, "AddKillFeedEntry", (void **)&g_kf_kill_tramp);
     g_kf_died_tramp = kf_patch(0x180060910, died, sizeof died, (void *)kf_died_hook, "AddDeathFeedEntry", (void **)&g_kf_died_tramp);
@@ -275,6 +276,7 @@ static void kf_show_event(const kf_ev_t *e, uint64_t now) {
     if (r < 0) { r = 0; for (int i = 1; i < KF_ROWS; i++) if (g_kfs[i].seq < g_kfs[r].seq) r = i; }   // full: the oldest gives way
     w_visible(g_kfw[r][KFW_GRP], 0);
     uint64_t *w = g_kfw[r];
+    int kb = e->have_killer && e->kf, kr = e->have_killer && !e->kf, vb = e->vf, vr = !e->vf;
     // names are drawn with the nametags' own text routine (winmm FUN_1800039d0: same font + built-in outline) from the HUD draw
     // hook (feature_killfeed_draw), not with gui2 text widgets - the name / shadow widgets stay hidden and unused. Only the icon is a widget.
     ((fn_settext_t)VMA(0x180068260))(w[KFW_IC], e->icon);

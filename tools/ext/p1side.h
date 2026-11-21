@@ -187,7 +187,9 @@ static void p1s_scan(void) {
 }
 static int p1s_ok(void) { if (g_p1s_ok < 0) p1s_scan(); return g_p1s_ok; }
 
-#if T2R_P1_SIDE_BUILT == 2
+// (P1S_HARNESS: the offline harness has no ext around it - exe_side_open, VMA, hook_fail, alloc_near, g_winmm - so it gets the stubs
+// even when a build left p1side_built.h at layout 2.)
+#if T2R_P1_SIDE_BUILT == 2 && !defined(P1S_HARNESS)
 // Live 170 (reports of massive stutters on Bookstore): the engine reads part1.dat through the memory-mapped view
 // (winmm's chunk hook memcpy), so every first touch is a 4 KB demand page fault = a small synchronous disk read (Part I itself streams the
 // same data with big async file reads). Measured page faults per 10 s: Supermarket 2-50k, Bookstore 200k-2M (16 GB RAM: the whole match;

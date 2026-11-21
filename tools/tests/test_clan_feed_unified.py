@@ -1,4 +1,4 @@
-"""The launcher's clan notifications must be the game's. One source of truth: clan_story.menu_lines is a pure function of
+""" the launcher's clan notifications must be the game's. One source of truth: clan_story.menu_lines is a pure function of
 (clan key, clan state, time slot, language); the daemon (op 0xB4) and the update server (/clanfeed.json "menu") both serve it.
 This test makes a clan the way the game does (token with a Steam id -> key "s:<id>"), then asks BOTH paths at the same instant and requires the same
 ids and texts, in English and Polish, across several time slots, with stored events, with a lazily created roster, and for a clan the daemon never touched.

@@ -1,7 +1,7 @@
 """Match end without the host's op 0x12 (re/match-end-fallback-1019.md): the daemon closes the match from the clients' 0xE2 end-reports (flags bit 1),
 never double-closes with a late 0x12, never closes a match somebody still plays (JIP joiner, a player that did not report), and every ext request
 refreshes presence. Offline, temp DB, no sockets.  Run: python tools/tests/test_match_end_reports.py"""
-import os, sys, tempfile, time
+import os, sys, tempfile, time, struct
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -143,7 +143,7 @@ for op, extra in ((0xE0, b""), (0xBA, b"\x01\x00"), (0xDE, b"\x00"), (0xCA, b"\x
     try:
         daemon.handle_batch(_C(), ("9.9.9.9", 1), {"token": None, "name": "PLAYER", "authed": False, "session": False, "is_bridge": False},
                             [(op, t.encode("latin1") + extra)])
-    except Exception:                                           # noqa: BLE001 - the reply path may need more state; presence is touched first
+    except Exception as e:                                           # noqa: BLE001 - the reply path may need more state; presence is touched first
         pass
     check(daemon.silence(t, time.time()) < 5, "op 0x%02x refreshes presence" % op)
 daemon.handle_batch(_C(), ("9.9.9.9", 1), {"token": None, "name": "PLAYER", "authed": False, "session": False, "is_bridge": False},

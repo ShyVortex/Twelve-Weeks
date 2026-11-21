@@ -1,14 +1,14 @@
-// melee_drop.c (v5-dis4: pin deaths and other forms of dying also drop the melee weapon, so a not triggered disarm still allows the
-// killer to take the weapon; an enemy with a melee weapon, when punched, takes it out).
+// melee_drop.c (v5-dis4, A/B: pin deaths and other forms of dying should also drop the melee, so a disarm that did not trigger still lets the
+// killer take the weapon; an enemy with a melee weapon did not take it out when punched).
 //
-// ROOT CAUSES (from test logs):
+// ROOT CAUSES (A/B logs, t2r-ext.log):
 //  1. No killed player ever dropped a melee weapon: the only killed-player melee drop was drop_melee_pickup(g_peer_melee[slot]) inside the post-death
 //     sweep, and g_peer_melee[slot] is set only when THAT slot had finished US with a melee finisher (msg 0x10) - a random weapon of that style's pool,
 //     never the weapon the dead player carried, never its durability. Both logs: 0 "melee drop: killed player drops" lines over 15 deaths of melee
-//     carriers (log 49118: a player died holding 7919a42b after a pin; log 39713 / 45927 ...), and the sweep itself never logged "died: clearing" once.
+//     carriers (A 49118: A died holding 7919a42b after B's pin; B 39713 / 45927 ...), and the sweep itself never logged "died: clearing" once.
 //  2. The disarm finisher read only the weapon IN the victim's hand (winmm's peer record +0x91). A victim carrying its melee weapon stowed (a gun in
-//     the hand, or emptied hands for the hit pair) got the plain fist kill: log 45378 fist-nose-break-kill (the victim's red crowbar on its
-//     backpack, the pistol in its hand; log 38587 "our gun put away for it", 39150 "wpose: no weapon"), POOL = the 5 plain fist kills only.
+//     the hand, or emptied hands for the hit pair) got the plain fist kill: A 45378 fist-nose-break-kill on B (clip: B's red crowbar on its
+//     backpack, the pistol in its hand; B 38587 "our gun put away for it", 39150 "wpose: no weapon"), POOL = the 5 plain fist kills only.
 //
 // FIX:
 //  - MSG_MOWN 0xA6 [u8 ver 1][u64 carried melee weapon (MELEE_TAB base id, 0 = none)][i16 durability, -1 unknown][u8 seq]: every client tells the
@@ -51,10 +51,10 @@ static int mown_sweep_off(void) { static int v = -1; static uint64_t at; return 
 static int mown_sweep_hold(int s) { return s >= 0 && s < T2R_MAX_PEERS && g_mown[s].hold && !mown_sweep_off(); }
 static void mown_swept(int s) { if (s >= 0 && s < T2R_MAX_PEERS) g_mown[s].swept_t60 = g_t60; }
 
-// ---- v5-mown2: pickup durability ledger (weapons were forced to full durability after pickup because they spawn at
-// 1 dura). The engine ignores spawn-item-pickup's count for a melee weapon: every melee pickup is taken at health 1 (log 17560 / 14860 / 36520
+// ---- v5-mown2: pickup durability ledger (pickups were forced to full durability although they spawn at 1).
+// The engine ignores spawn-item-pickup's count for a melee weapon: every melee pickup is taken at health 1 (A 17560 / B 14860 / B 36520
 // "full-condition: health 1" for x10 box spawns), and feature_melee_full_condition then set EVERY pickup to the class max - also a disarmed weapon
-// whose durability the disarm had just set (log 44435 "durability 10 -> 5 (the victim's)", 44440 "health 5 -> set 10"). Now each melee pickup WE spawn
+// whose durability the disarm had just set (A 44435 "durability 10 -> 5 (the victim's)", A 44440 "health 5 -> set 10"). Now each melee pickup WE spawn
 // is written down with the durability it stands for (box / item spot = the class max, a death drop = the dead player's weapon's), and a disarm hand-off
 // names the victim's; at the pickup edge full-condition sets THAT durability (pdur_pick: the hand-off first, else the vanished ledger pickup of the
 // same weapon nearest to us, else the class max as before). t2r-no-pickup-dur.txt = always the class max (old rule). Log: "pickup dur:".

@@ -1,4 +1,4 @@
-"""Interrogation voice slots (see lines.md): which real TLOU2 enemy take plays in which beat of the interrogation, per faction,
+"""Interrogation voice slots (lines.md): which real TLOU2 enemy take plays in which beat of the interrogation, per faction,
 and the three PCM tricks the engine's `say` cannot do (it plays a whole stream):
   tail      the second half of the Seraphite "Damn cowards, where are they?" = "Where are they?" alone (the clause after the comma pause)
   pre+tail  "Easy, friend." / "Hello, friend." followed by that tail = "Easy, friend, where are they?"
@@ -9,7 +9,7 @@ the generator prints every voice's point (cut / tail start / last-word onset) fo
 
 Slots (kind): 8 fist demand 1 (starter), 9 victim first line, 10 fist demand 2 (after the slam), 11 victim second line, 12 victim plea cut by the finishing blow,
 13 shiv demand, 14 victim shiv answer, 15 interrogator line before the kill swing, 16 interrogator line ON the kill blow."""
-import os, re, subprocess, wave
+import os, re, subprocess, tempfile, wave
 import numpy as np
 
 # (category hint, text, mode, flag). flag 1 = "Fuck you!": first OR second line of one interrogation, never both. mode: '' say, 'tail', 'pre+tail:<cat>|<text>', 'trim', 'align'
@@ -17,7 +17,7 @@ EASY = ("mtshld-grbbed-confident", "Easy, friend.")
 HELLO = ("grb-plyr-start", "Hello, friend.")
 TAIL = ("srch-check-in-frstrtd-mod-awr-plrl", "Damn cowards, where are they?")
 SLOTS = {
-    # An interrogation needs a QUESTION: the 0a4df980/8313e365 pools had lost "Where are they?!" (starter "Get up, fucker!" / "Hold still!", victim "Get off me, filth!").
+    # an interrogation needs a QUESTION - the 0a4df980/8313e365 pools had lost "Where are they?!" (starter "Get up, fucker!" / "Hold still!", victim "Get off me, filth!").
     # Now: the interrogator QUESTIONS in every beat (8 starter, 10 after the slam), the victim answers in one short line (9), then a threat before the kill (15); shiv: a question (13) + a refusal (14).
     # Some interrogations open calm in one breath ("Easy, friend... Where are they?" = a prefix take + the question, mode pre+full), others just the question; random per interrogation
     8: {0: [("prst-trgt-gone-plrl-solo", "Where are they?!", "", 0), ("prst-trgt-gone-sp", "Where's the Wolf?!", "", 0), ("invstgt-ally-mssng-reactn-addtnl-solo", "Where are the others?", "", 0),
@@ -26,7 +26,7 @@ SLOTS = {
             ("enmy-rspns-confident-1x-sp", "Easy.", "pre+full", 0)]},
     # 2 interrogator + 2 victim lines per fist interrogation: Q1 (8) | the victim's first answer (9: defiant, "Fuck you!") | slam | "Where?!" (10) | the victim's
     # desperate answer (11: "Oh god, wait--!") | the interrogator's heavy grunt on the final smash (an effort event, intvox.c). No threat line (15 dropped).
-    # The VICTIM pools are wide and varied (the plain answers were too uniform) - reply 1 (9) defiant curse /
+    # The VICTIM pools are wide and varied - reply 1 (9) defiant curse /
     # insult ("Fuck you..", "Leggo, bitch!"), reply 2 after the slam (11) scared / breaking ("No, please--!", "Oh god, wait--!"); Seraphite equivalents (no "girl" lines: any body can be the
     # interrogator). The prayer lines ("She'll protect me...") are one row of 13 (rare), "Coward!" / "Savage!" two of 18. Full list per beat: re/interrogation-lines-1104.md.
     9: {0: [("mtshld-grbbed-spj", "Get off me, filth!", "", 0), ("mtshld-grbbed-spj", "Hands off, Wolf!", "", 0), ("mtshld-grbbed-spj", "Wretch, let go!", "", 0),

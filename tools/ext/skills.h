@@ -11,6 +11,11 @@
 #pragma once
 #define SK_TAG 0x4000000000000000ULL
 #define SK_V(id, lv) (SK_TAG | ((uint64_t)(id) << 40) | ((uint64_t)(lv) << 36))
+// The bodyshield stays out of the public release: the skill is built only with -DT2R_BODYSHIELD=1 (no picker row, no grab, no
+// launcher row; bodyshield.c stays compiled but inert)
+#ifndef T2R_BODYSHIELD
+#define T2R_BODYSHIELD 0
+#endif
 enum {
     SK_NONE,
     // 2013 basic skills
@@ -22,6 +27,9 @@ enum {
     // melee skills (re/melee-skills-1102.md): built on the duel / dodge counter / pin / pull-out / blade-down mechanics
     SK_RIPOSTE, SK_GRIP, SK_BLADE, SK_HEAVY, SK_STEADY,
     SK_FOOTWORK,                   // Boxer's Footwork - shorter dodge cooldown
+#if T2R_BODYSHIELD
+    SK_BODYSHIELD,                 // grab an enemy player, choke / stab or hold them as a human shield (bodyshield.c, re/bodyshield-1117.md)
+#endif
     SK_COUNT
 };
 #define SK_PICKER_ROWS 32          // rows Skill0..Skill31 in to1/picker-skill (widgets_patch.py add_skill_ui)
@@ -72,7 +80,7 @@ static int sk_counter_window_ms(void);          // Counter Fighter: dcounter.c w
 static int sk_counter_cool_ms(void);            // Counter Fighter II: dodge counter cooldown (2200 ms base, 1500 ms)
 static int sk_counter_late(void);               // Counter Fighter II: a late (not perfect) dodge also arms the counter
 static int sk_iron_win_ms(int base);            // Iron Grip: the pull-out / pin escape window x1.5 (our own escape, judged on our screen)
-static int sk_iron_free(const char *what);      // Iron Grip II: 1 once per life - the first pin / pull-out on us is broken for free
+static int sk_iron_free(const char *what);      // Iron Grip II: 1 once per life - the first pin / pull-out / body shield grab on us is broken for free
 static int sk_blade_bonus(uint64_t w);          // Blade Discipline: +1 durability on a 1h blade weapon w (0 = none)
 static int g_sk_blade_kit_dur;                  // Blade Discipline II: the durability the spawn-kit hatchet gets when its pickup is processed (0 = none pending)
 static float sk_heavy_bleed_mul(void);          // Heavy Hands: bleed-out x0.7 when our downer (a synced peer) hit us with fists / a blunt weapon

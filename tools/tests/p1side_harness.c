@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #define P1S_LOG(...) (printf(__VA_ARGS__), printf("\n"))
+#define P1S_HARNESS                     // (ext-only read hooks stay out: p1side.h)
 #include "../ext/p1side.h"
 
 int main(int argc, char **argv) {

@@ -1,6 +1,6 @@
 """Clan member status updates (tools/clan_status.py): delta maths on a simulated clan, payload (launcher public view + wire text), daemon round trip.
 Temp DB only. Run: python tools/tests/test_clan_status.py"""
-import os, sys, tempfile
+import os, sys, tempfile, json
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401
 TOOLS = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, TOOLS)

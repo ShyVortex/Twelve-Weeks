@@ -1,6 +1,6 @@
 """Length of a TLOU2 speech stream (speech1/english.psarc, key = md5 of the stream id): active voice time in ms (first to last sound above 5 % of the peak).
 Used by vox_lines.py genbeg to chain the dismemberment scream takes back to back. vgmstream-cli: $T2R_VGMSTREAM or tools/local/vgmstream (this or the main checkout)."""
-import hashlib, os, struct, subprocess, wave, zlib
+import hashlib, os, struct, subprocess, tempfile, wave, zlib
 import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))

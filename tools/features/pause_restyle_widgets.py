@@ -11,12 +11,14 @@ t2r-ext: pauseTimer.pzTime(B), pauseMission.pmMis1/2 + pmBarFill/Bg, pause_items
       writes into pzAlly / pzEnemy (pause_mission_tick)
   pzRules (hairlines), pzClockLabel, pzFoot (small labels)
 Widget space 3840 x 2160, y down.   python pause_restyle_widgets.py <extracted widget dir> <out png> [A|B|C|before]   renders a preview."""
+import copy
 import json
 import os
 import sys
 
 import t2guid  # noqa: F401  (Builder uses it)
 from clan_widgets import Builder, _templates
+import nr_style as nr
 
 W, H = 3840, 2160
 CREAM, DIM, FAINT = 0xFFE6DFCF, 0xFFA8A292, 0xFF6F6B60
@@ -196,7 +198,7 @@ def restyle_pause(wdir, variant="A"):
 
 
 # ------------------------------------------------------------------ preview (PIL): reads the JSON it renders
-NAMES = (("SERAPHITES", ["Ellis", "Jordan", "Lena", "Marek"]), ("WLF", ["Tommy", "Kasia", "Dina", "Owen"]))
+NAMES = (("SERAPHITES", ["Ellis", "Brandon", "Lena", "Marek"]), ("WLF", ["Tommy", "Kasia", "Dina", "Owen"]))
 STATS = [("1325", "6", "2", "3", "1"), ("980", "4", "1", "4", "0"), ("640", "2", "0", "5", "2"), ("310", "1", "0", "6", "0")]
 
 
@@ -204,7 +206,7 @@ MOCK_OVERRIDE = {}           # preview only: texts the engine / t2r-ext write at
 
 
 def _scene(size):
-    from PIL import Image, ImageDraw
+    from PIL import Image, ImageDraw, ImageFilter
     img = Image.new("RGB", size, (40, 40, 38))
     d = ImageDraw.Draw(img)
     for y in range(size[1]):
@@ -350,7 +352,363 @@ def _spaced(s, n):
     return s
 
 
+# ================================================================== UI redesign: the in-match pages in the No Return frame
+# to1/pause-menu (the Esc page: MENU, match clock, mission, CLAN NEWS, the two team blocks) and to1/scoreboard (the scoreboard page) wear the frame of
+# PLAYER STATS (clan13_widgets.build_stats_page): backdrop, breadcrumb <MODE> | MENU / SCOREBOARD, one grey column head line, US / THE ENEMY section rows with
+# team totals, flat tile rows, the own row = accent edge bar + YOU tag, rank badges (rank_badge_widgets.add_scoreboards), numbers right aligned.
+# Everything winmm / t2r-ext writes keeps its name and kind (teamN_name, teamN_row<r>_name / parts / downs / executions / deaths / revives / ping / input / bg, the
+# column heads teamN_col_*, menuList, scoreBanner, pauseTimer.pzTime, pauseMission.pmMis1 / pmMis2 / pmBarBg / pmBarFill, pauseStatus.pst0-3): only place, size,
+# colour change. New (named for t2r-ext sbteam.c / clancard.c): per block teamN_tag (US / THE ENEMY), teamN_rl (rule), teamN_tot_<col> (team totals); per row
+# teamN_row<r>_me (accent edge bar) + _tag (YOU); sbLvA / sbLvE (+ labels) the lives; sbBlue / sbRed thin team edge bars (by PLACE: our team is the upper
+# block); the page frame (bgDim / bgVig / bgBlur, hdPar / hdDiv / hdPage / hdRule, pbar boxed prompts on the pause page); pmSec* / psSec* section rows.
+PNR_X0, PNR_X1 = nr.L0, nr.R1
+PNR_RH, PNR_P, PNR_SEC = 96, 104, 56            # a row: height, pitch; the first row starts PNR_SEC under the section row's centre
+PNR_D = 520                                     # block 1 = block 0 + PNR_D (sbteam.c swaps the blocks by the distance of the two team name widgets)
+PNR_PT = nr.pt(26)                              # names / numbers
+PNR_NAME_BOX = 900                              # the name's room (sbteam.c fits a longer one by scaling about its left end)
+PNR_BADGE_X = PNR_X0 + 36
+PNR_COLW = 330
+PNR_COL_R = {"downs": PNR_X1 - 24 - 4 * 360, "executions": PNR_X1 - 24 - 3 * 360, "revives": PNR_X1 - 24 - 2 * 360, "deaths": PNR_X1 - 24 - 360,
+             "parts": PNR_X1 - 24}
+PNR_COL_ORDER = ("downs", "executions", "revives", "deaths", "parts")
+PNR_PING_R, PNR_INPUT_X = 1860, 1560
+PNR_RULE_X0, PNR_RULE_END = PNR_X0 + 700, 1400  # a section rule: the static start (sbteam.c places it after the team name + tag), its end (the lives sit after it)
+PNR_LV_NUM_R, PNR_LV_LAB_R = 1800, 1730          # lives: number right edge, label right edge
+PNR_BLUE, PNR_RED = 0xFF4A8FC2, 0xFFC24A4A
+PNR_PAGES = {"pause-menu": dict(hd=780, s0=868), "scoreboard": dict(hd=528, s0=616)}
+PNR_HIDE = ("scrim", "title", "footerLine", "buttonLegend", "cardBlur", "cardBg", "cardLineTop", "cardLineBottom", "versionText",
+            "colsep0", "colsep1", "colsep2", "colsep3", "colsep4", "team0_band", "team1_band")
+PNR_MENU = (PNR_X0, 300)                        # the native button list (pause page)
+PNR_MIS = (1480, 400, 1060)                     # pauseMission: x, y, width (local coordinates inside it: section row at y 30)
+PNR_NEWS = (2640, 400, 1060)                    # pauseStatus
+PNR_CLK = (PNR_X1 - 900, 215, 900, 160)         # pauseTimer: right aligned at R1
+PNR_SECROW_Y = 30                               # the section row of pauseMission / pauseStatus (local y)
+
+
+def pnr_name_x():
+    """x of a player's name after the rank badge (rank_badge_widgets.add_scoreboards shifts the name right by reserved(): t2r-ext sbteam.c SBT_NAME_X = this)."""
+    import rank_badge_widgets as rb
+    return PNR_BADGE_X + rb.reserved(PNR_PT, 64)
+
+
+def _pnr_place(it, x, y, w, h, right=0, pt=None, argb=None, tracking=None):
+    it.update(nr.lm(x, y, w, h, right))
+    it.update({"alignH": 2 if right else 0, "alignV": 1, "effect": "Regular", "visible": 1})
+    if pt is not None:
+        it["pointSize"] = pt
+    if argb is not None:
+        it["tint.start"] = it["tint.end"] = argb
+        it["color.a"] = 255
+    if tracking is not None:
+        it["tracking.x"] = float(tracking)
+
+
+def _pnr_text(it, text):
+    """A static label whose English text is (re)set: the loc pass (loc_widgets.apply) moves it to a cipher again."""
+    it["text"] = text
+    if str(it.get("cipherId", "")).startswith("T2RL_"):
+        it["cipherId"] = ""
+
+
+def _pnr_rule_scale(it, x0, x1):
+    """A rule built at RULE_W0 whose real length t2r-ext sets at run time: start with the right one (no flash of a 1000 long rule)."""
+    it["pivotAs.x"] = float(x0)
+    it["scale.x"] = float(max(2.0, x1 - x0) / nr.RULE_W0)
+
+
+LQ_W, LQ_H = 1500, 520                   # the LEAVE GAME confirm box (add_pause_nr lqBox)
+LQ_RED = 0xFFC0473D
+
+
+def add_pause_nr(wdir):
+    """Restyle to1/pause-menu and to1/scoreboard. Idempotent. Returns the number of widgets added (both pages)."""
+    import rank_badge_widgets as rb
+    total = 0
+    main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
+    t, _, _ = _templates(main)
+    for page, cfg in PNR_PAGES.items():
+        path = os.path.join(wdir, "to1", page + ".widget.json")
+        if not os.path.exists(path):
+            continue
+        w = json.load(open(path, encoding="utf-8"))
+        items = w["items"]
+        if any(i["name"] == "hdPar" for i in items):
+            continue
+        by = {i["name"]: i for i in items}
+        if "team0_row0_name" not in by:
+            continue
+        pause = page == "pause-menu"
+        anim = by["anim-group"]
+        sbg = by["scoreboard"]["guid"]
+        hd, s0 = cfg["hd"], cfg["s0"]
+        for nm in PNR_HIDE:
+            if nm in by:
+                by[nm]["visible"] = 0
+        if "scoreBanner" in by:
+            by["scoreBanner"]["pivotAs.y"] = -4000.0          # parked: winmm / t2r-ext keep writing its texts, sbteam.c shows the lives in the section rows
+        items[:] = [i for i in items if i["name"] not in ("sbBlue", "sbRed")]       # (sbteam_widgets' bands by colour: replaced by the thin edge bars below)
+        if "resultText" in by:                                # VICTORY / DEFEAT (winmm writes it): the big white line at the right, like the week block
+            _pnr_place(by["resultText"], nr.R1 - 1400, 270 - 40, 1400, 80, 1, nr.pt(30), nr.WHITE, 3)
+        # ---- the two blocks, in place
+        name_x = pnr_name_x()
+        reserved = rb.reserved(PNR_PT, 64)
+        for tm in (0, 1):
+            sy = s0 + tm * PNR_D
+            _pnr_place(by["team%d_name" % tm], PNR_X0, sy - 34, 1100, 68, 0, PNR_PT, nr.WHITE, 3)
+            for r in range(4):
+                top = sy + PNR_SEC + r * PNR_P
+                bg = by["team%d_row%d_bg" % (tm, r)]
+                bg.update(Builder.tl(PNR_X0, top, PNR_X1 - PNR_X0, PNR_RH))
+                bg["tint.start"] = bg["tint.end"] = nr.TILE
+                bg["color.a"] = nr.TILE_A
+                _pnr_place(by["team%d_row%d_name" % (tm, r)], PNR_BADGE_X, top + (PNR_RH - 64) / 2.0, PNR_NAME_BOX + reserved, 64, 0, PNR_PT, nr.WHITE, 1)
+                for col in PNR_COL_ORDER:
+                    _pnr_place(by["team%d_row%d_%s" % (tm, r, col)], PNR_COL_R[col] - PNR_COLW, top + (PNR_RH - 64) / 2.0, PNR_COLW, 64, 1, PNR_PT, nr.WHITE, 2)
+                _pnr_place(by["team%d_row%d_ping" % (tm, r)], PNR_PING_R - 220, top + (PNR_RH - 40) / 2.0, 220, 40, 1, nr.pt(17), nr.GREY, 2)
+                ic = by["team%d_row%d_input" % (tm, r)]
+                ic.update(Builder.tl(PNR_INPUT_X, top + (PNR_RH - 36) / 2.0, 72, 36))
+                ic["color.a"] = 150
+            for col in PNR_COL_ORDER:                          # ONE column head line (team 0's labels); team 1's are hidden
+                c = by["team%d_col_%s" % (tm, col)]
+                if tm == 0:
+                    _pnr_place(c, PNR_COL_R[col] - PNR_COLW, hd - 22, PNR_COLW, 44, 1, nr.pt(15), nr.GREY, 2)
+                    _pnr_text(c, col.upper())
+                else:
+                    c["visible"] = 0
+        # ---- the stock chrome of the pause page
+        if pause:
+            by["menuList"].update(Builder.tl(PNR_MENU[0], PNR_MENU[1], 1000, 320))
+            items[:] = [i for i in items if i["name"] not in ("pzBlur", "pzBg", "pzLineL", "pzLineR", "pmBlur", "pmBg", "pmLineL", "pmLineR", "pmHead", "pmLine1",
+                                                              "psBlur", "psBg", "psLineL", "psLineR", "psHead", "psRule")]
+            by = {i["name"]: i for i in items}
+            cx, cy, cw, ch = PNR_CLK
+            by["pauseTimer"].update(Builder.tl(cx, cy, cw, ch))
+            for nm in ("pzTime", "pzTimeB"):
+                _pnr_place(by[nm], 0, 0, cw, 100, 1, nr.pt(40), nr.WHITE, 3)
+            by["pzTimeB"]["visible"] = 0                      # (the twin t2r-ext swaps in when the second changes)
+            mx, my, mw = PNR_MIS
+            by["pauseMission"].update(Builder.tl(mx, my, mw, 250))
+            _pnr_place(by["pmMis1"], 0, 84, mw, 56, 0, nr.pt(24), nr.WHITE, 2)
+            _pnr_place(by["pmMis2"], 0, 142, mw, 48, 0, nr.pt(20), nr.GREY, 2)
+            for nm, al in (("pmBarBg", 40), ("pmBarFill", 255)):
+                by[nm].update(Builder.tl(0, 214, mw, 6))
+                by[nm]["tint.start"] = by[nm]["tint.end"] = nr.WHITE
+                by[nm]["color.a"] = al
+            nx, ny, nw = PNR_NEWS
+            by["pauseStatus"].update(Builder.tl(nx, ny, nw, 330))
+            for k in range(4):
+                _pnr_place(by["pst%d" % k], 0, 84 + k * 56, nw, 56, 0, nr.pt(22), nr.WHITE, 2)
+        # ---- new items
+        b = Builder(t)
+        b.items = []
+        a = anim["guid"]
+        if pause:
+            nr.backdrop(b, a)
+        else:                                                  # the scoreboard: no scene blur, a dim + the left vignette
+            b.rect("bgDim", a, b.bleed(), nr.BLACK, 150)
+            b.image("bgVig", a, b.tl(nr.VIG_X0, -2160, nr.VIG_W, 2160 * 3), nr.VIG_IMG, 0xFFFFFFFF, 200)
+        back = list(b.items)
+        b.items = []
+        nr.header(b, a, "TWELVE WEEKS", "MENU" if pause else "SCOREBOARD")
+        if pause:
+            nr.prompt_slots(b, a, 2)
+        for k, (nm, col) in enumerate((("sbBlue", PNR_BLUE), ("sbRed", PNR_RED))):         # thin team edge bars by PLACE: our team is the upper block
+            top = s0 + k * PNR_D + PNR_SEC
+            b.rect(nm, sbg, b.tl(PNR_X0, top, 6, 3 * PNR_P + PNR_RH), col, 230)
+        b.text("pnrChPl", sbg, nr.lm(name_x, hd - 22, 600, 44), "PLAYER", nr.pt(15), nr.GREY, tracking=3)
+        for tm in (0, 1):
+            sy = s0 + tm * PNR_D
+            b.text("team%d_tag" % tm, sbg, nr.lm(PNR_X0 + 300, sy - 24, 600, 48), "US" if tm == 0 else "THE ENEMY", nr.pt(18), nr.GREY, tracking=3)
+            b.rect("team%d_rl" % tm, sbg, nr.lpiv(PNR_RULE_X0, sy - nr.HAIR / 2, nr.RULE_W0, nr.HAIR), nr.WHITE, 40)
+            for col in PNR_COL_ORDER:
+                b.text("team%d_tot_%s" % (tm, col), sbg, nr.lm(PNR_COL_R[col] - PNR_COLW, sy - 26, PNR_COLW, 52, right=1), "", nr.pt(22), nr.GREY, align=2,
+                       tracking=2)
+            for r in range(4):
+                top = sy + PNR_SEC + r * PNR_P
+                b.rect("team%d_row%d_me" % (tm, r), sbg, b.tl(PNR_X0, top, 6, PNR_RH), nr.ACC, 255, visible=0)
+                b.text("team%d_row%d_tag" % (tm, r), sbg, nr.lm(name_x + 300, top + PNR_RH / 2.0 - 20, 200, 40), "", nr.pt(16), nr.GREY, tracking=3, visible=0)
+        for k, (lv, lab) in enumerate((("sbLvA", "sbLvAl"), ("sbLvE", "sbLvEl"))):       # lives (sbteam.c): ally = the upper block
+            sy = s0 + k * PNR_D
+            b.text(lab, sbg, nr.lm(PNR_LV_LAB_R - 300, sy - 20, 300, 40, right=1), "LIVES", nr.pt(16), nr.GREY, align=2, tracking=3, visible=0)
+            b.text(lv, sbg, nr.lm(PNR_LV_NUM_R - 100, sy - 26, 100, 52, right=1), "", nr.pt(22), nr.GREY, align=2, tracking=2, visible=0)
+        if pause:
+            by = {i["name"]: i for i in items}
+            mx, my, mw = PNR_MIS
+            nx, ny, nw = PNR_NEWS
+            xa, xb = nr.section(b, by["pauseMission"]["guid"], "pmSec", 0, mw, PNR_SECROW_Y, "MISSION", "")
+            xa2, xb2 = nr.section(b, by["pauseStatus"]["guid"], "psSec", 0, nw, PNR_SECROW_Y, "CLAN NEWS", "")
+            b.text("pzCap", by["pauseTimer"]["guid"], nr.lm(0, 104, PNR_CLK[2], 44, right=1), "MATCH TIME", nr.pt(20), nr.GREY, align=2, tracking=3)
+            # LEAVE GAME's ARE YOU SURE box (t2r-ext lq_tick shows it while the leave is held): a dim over the page, a centred tile
+            lq = b.group("lqBox", a, b.tl(0, 0, W, H), visible=0)["guid"]
+            b.rect("lqDim", lq, b.bleed(), nr.BLACK, 170)
+            bx, by_, bw, bh = (W - LQ_W) / 2, (H - LQ_H) / 2, LQ_W, LQ_H
+            b.rect("lqBg", lq, b.tl(bx, by_, bw, bh), nr.TILE, 245)
+            b.rect("lqBar", lq, b.tl(bx, by_, 12, bh), LQ_RED, 255)
+            b.text("lqTitle", lq, nr.lm(bx + 90, by_ + 120, bw - 180, 100), "LEAVE THE MATCH?", nr.pt(36), nr.WHITE, face="Alternate", tracking=8)
+            b.text("lqBody", lq, nr.lm(bx + 92, by_ + 220, bw - 180, 60), "LEAVING NOW MEANS NO SUPPLIES FOR YOUR CLAN TODAY.", nr.pt(20), nr.GREY, tracking=3)
+            for k, (glyph, lab) in enumerate((("menu:select", "LEAVE"), ("menu:back", "STAY"))):
+                y = by_ + 320 + k * 80
+                b.image("lqKey%d" % k, lq, b.tl(bx + 92, y, 60, 60), glyph, nr.WHITE, 255)
+                b.text("lqKey%dTx" % k, lq, nr.lm(bx + 180, y + 2, bw - 280, 56), lab, nr.pt(20), nr.WHITE, tracking=3)
+            for it in b.items:
+                if it["name"] == "pmSecRl":
+                    _pnr_rule_scale(it, xa, xb)
+                elif it["name"] == "psSecRl":
+                    _pnr_rule_scale(it, xa2, xb2)
+        for it in b.items:
+            if it["name"] in ("team0_rl", "team1_rl"):
+                _pnr_rule_scale(it, PNR_RULE_X0, PNR_RULE_END)
+            elif it["name"] == "hdRule":
+                _pnr_rule_scale(it, it["pivotAs.x"], nr.R1)
+        for k, it in enumerate(back):
+            it["depth"] = k * 0.01                              # (gui2 draws in list order; the previews sort by depth: backdrop lowest, the new frame / marks above every stock item)
+        for k, it in enumerate(b.items):
+            it["depth"] = 9.0 + k * 0.001
+        lq_ids = {i["guid"] for i in b.items if i["name"] == "lqBox"}
+        for k, it in enumerate(i for i in b.items if i["name"] == "lqBox" or i.get("parent") in lq_ids):
+            it["depth"] = 30.0 + k * 0.001                     # (the LEAVE GAME box over everything; it is also last in the list)
+        for it in back + b.items:
+            it.setdefault("animation", {"keyframes": {}})
+        at = items.index(anim) + 1                              # gui2 draws in item-list order: the backdrop in front of every stock item, the frame on top
+        items[at:at] = back
+        lq_ids = {i["guid"] for i in b.items if i["name"] == "lqBox"}
+        b.items = [i for i in b.items if not (i["name"] == "lqBox" or i.get("parent") in lq_ids)] + [i for i in b.items if i["name"] == "lqBox" or i.get("parent") in lq_ids]
+        items.extend(b.items)
+        json.dump(w, open(path, "w", encoding="utf-8"), indent=4)
+        total += len(back) + len(b.items)
+    return total
+
+
+# ------------------------------------------------------------------ offline previews of the two pages (filled the way sbteam.c / clancard.c / pause_mission_tick fill them)
+PNR_SAMPLE = (("WLF", [("Vex", (5, 1, 2, 1, 140), 1, 31, 4), ("Tal", (3, 0, 1, 2, 90), 0, 48, 2), ("Rook", (2, 2, 0, 1, 60), 0, 95, 0), ("June", (1, 0, 3, 3, 40), 0, 142, 1)]),
+              ("SERAPHITES", [("Mara", (6, 1, 0, 1, 120), 0, 28, 3), ("Ilsa", (2, 0, 1, 2, 70), 0, 61, 1), ("Zażółć Gęślą Jaźń Wojciech", (1, 0, 0, 3, 30), 0, 77, 0),
+                              ("Kit", (0, 0, 0, 4, 10), 0, 233, 5)]))
+
+
+def pnr_demo(page, which, sample=PNR_SAMPLE, lives=("12", "9"), clock="07:42"):
+    """A copy of the page (pause-menu / scoreboard json) set up as t2r-ext + winmm fill it. sample = ((team name, [(name, (downs, execs, revives, deaths, parts), me, ping, rank)] ) x 2)."""
+    w = copy.deepcopy(page)
+    by = {i["name"]: i for i in w["items"]}
+    pause = which == "pause-menu"
+    for it in w["items"]:
+        if it["name"] == "bgBlur":
+            it["visible"] = 0                              # (the engine's live blur: the preview draws the blurred art under the page)
+    for k in list(by):
+        if k.startswith("pb") and k[2:3].isdigit():
+            pass
+    nr.demo_header(by, "SUPPLY RAID", "MENU" if pause else "SCOREBOARD")
+    if "resultText" in by:
+        by["resultText"]["text"] = "VICTORY"
+    if pause:
+        nr.demo_prompts(by, [("menu:select", "SELECT", True, "menu:select"), ("menu:back", "BACK", True, "menu:back")])
+    by["team0_col_downs"]["visible"] = 1
+    nr.demo_rule(by, "hdRule", by["hdRule"]["pivotAs.x"], nr.R1)
+    by["hdRule"]["scale.x"] = 1.0
+    heads = {"downs": "DOWNS", "executions": "EXECUTIONS", "revives": "REVIVES", "deaths": "DEATHS", "parts": "PARTS"}
+    for col, tx in heads.items():
+        by["team0_col_" + col]["text"] = tx
+    sums = []
+    for tm, (tname, rows) in enumerate(sample):
+        by["team%d_name" % tm]["text"] = tname
+        tag = "US" if tm == 0 else "THE ENEMY"
+        by["team%d_tag" % tm]["text"] = tag
+        xt = PNR_X0 + nr.est(tname, PNR_PT) * 1.06 + 36
+        by["team%d_tag" % tm]["pivotAs.x"] = float(xt)
+        xr = xt + nr.est(tag, nr.pt(18)) * 1.06 + 40
+        by["team%d_rl" % tm]["scale.x"] = 1.0
+        nr.demo_rule(by, "team%d_rl" % tm, xr, PNR_RULE_END)
+        tot = [0] * 5
+        for r, (nm, st, me, ping, rk) in enumerate(rows):
+            n = by["team%d_row%d_name" % (tm, r)]
+            n["text"] = nm
+            est = nr.est(nm, PNR_PT) * 1.06
+            box = PNR_NAME_BOX
+            sc = min(1.0, box / est) if est else 1.0
+            sc = max(sc, 0.6)
+            if sc < 1.0:
+                n["pointSize"] = max(8, int(round(PNR_PT * sc)))
+            ex = pnr_name_x() + est * sc
+            for ci, col in enumerate(PNR_COL_ORDER):
+                v = st[ci] if col != "parts" else st[4]
+                v = (st[0], st[1], st[2], st[3], st[4])[ci]
+                by["team%d_row%d_%s" % (tm, r, col)]["text"] = str(v)
+                tot[ci] += v
+            by["team%d_row%d_ping" % (tm, r)]["text"] = "%d ms" % ping
+            by["team%d_row%d_me" % (tm, r)]["visible"] = me
+            by["team%d_row%d_tag" % (tm, r)]["visible"] = me
+            by["team%d_row%d_tag" % (tm, r)]["text"] = '<font color="#D9D86A">YOU</font>' if me else ""
+            by["team%d_row%d_tag" % (tm, r)]["pivotAs.x"] = float(ex + 28)
+            by["team%d_row%d_bg" % (tm, r)]["color.a"] = nr.TILE_FA if me else nr.TILE_A
+            for k, v in (("rkIcon", 1), ("rkNum", 1)):
+                it = by.get("team%d_row%d_%s" % (tm, r, k))
+                if it:
+                    it["visible"] = v
+                    if k == "rkNum":
+                        it["text"] = str(rk + 3)
+        for ci, col in enumerate(PNR_COL_ORDER):
+            by["team%d_tot_%s" % (tm, col)]["text"] = str(tot[ci])
+        sums.append(tot)
+    by["sbLvA"]["text"], by["sbLvE"]["text"] = lives
+    for k in ("sbLvA", "sbLvE", "sbLvAl", "sbLvEl"):
+        by[k]["visible"] = 1
+    if pause:
+        by["pauseTimer"]["visible"] = 1
+        by["pzTime"]["text"] = clock
+        by["pauseMission"]["visible"] = 1
+        by["pmMis1"]["text"] = "4/10 Down enemies"
+        by["pmMis2"]["text"] = "Day 2/3"
+        by["pmBarFill"]["rectSizeDelta.width"] = float(by["pmBarBg"]["rectSizeDelta.width"] * 0.4)
+        nr.demo_section(by, "pmSec", 0, PNR_MIS[2], "MISSION", "")
+        by["pmSecRl"]["scale.x"] = 1.0
+        by["pauseStatus"]["visible"] = 1
+        news = (("#9CA6B5", "CLAN SUPPLY", "Mara"), ("#F0B429", "HUNGRY", "Tal"), ("#6C9BF2", "GRIEVING", "Bo"))
+        for k, (c, wd, nm) in enumerate(news):
+            by["pst%d" % k]["text"] = '<font color="#8C8C8C">%s</font>  %s' % (wd, nm)
+        nr.demo_section(by, "psSec", 0, PNR_NEWS[2], "CLAN NEWS", "")
+        by["psSecRl"]["scale.x"] = 1.0
+    return w
+
+
+def nr_preview(wdir, out_dir):
+    import shutil
+    import tempfile
+    import widget_preview
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    import t2rtmp  # noqa: F401
+    import rank_badge_widgets
+    os.makedirs(out_dir, exist_ok=True)
+    tmp = tempfile.mkdtemp()
+    os.makedirs(os.path.join(tmp, "to1"))
+    for f in ("main-menu", "pause-menu", "scoreboard"):
+        shutil.copy(os.path.join(wdir, "to1", f + ".widget.json"), os.path.join(tmp, "to1"))
+    print("widgets added:", add_pause_nr(tmp), "| rank badges:", rank_badge_widgets.add_scoreboards(tmp))
+    bg = nr.preview_bg(os.path.join(out_dir, "_bg.png"))
+    out = {}
+    for which in ("pause-menu", "scoreboard"):
+        page = json.load(open(os.path.join(tmp, "to1", which + ".widget.json"), encoding="utf-8"))
+        vis = [i for i in page["items"] if i.get("visible", 1)]
+        print(which, "items:", len(page["items"]), "| visible images:", sum(1 for i in vis if i.get("class") == "Image"), "| texts:", sum(1 for i in vis if i.get("class") == "Text"))
+        out[which] = page
+    longn = (PNR_SAMPLE[0], ("SERAPHITES", [("Zażółć Gęślą Jaźń Wojciech-Kowalski", (6, 1, 0, 1, 120), 0, 28, 3), ("Ilsa", (2, 0, 1, 2, 70), 0, 61, 1), ("Bo", (1, 0, 0, 3, 30), 0, 77, 0),
+                                              ("Kit", (0, 0, 0, 4, 10), 0, 233, 5)]))
+    cases = [("pause-menu", "pause-4v4", {}), ("scoreboard", "scoreboard-4v4", {}), ("scoreboard", "scoreboard-long-name", dict(sample=longn, lives=("3", "0"))),
+             ("pause-menu", "pause-clock-low", dict(clock="00:28")), ("pause-menu", "pause-leave-confirm", {})]
+    for which, name, kw in cases:
+        f = os.path.join(tempfile.gettempdir(), "t2r-pnr-" + name + ".widget.json")
+        d = pnr_demo(out[which], which, **kw)
+        if name == "pause-leave-confirm":                      # the LEAVE GAME box up (t2r-ext lq_tick)
+            for it in d["items"]:
+                if it["name"] == "lqBox":
+                    it["visible"] = 1
+        json.dump(d, open(f, "w", encoding="utf-8"))
+        print(widget_preview.render(f, os.path.join(out_dir, name + ".png"), scale=0.5, bg=bg))
+    shutil.rmtree(tmp, ignore_errors=True)
+
+
 if __name__ == "__main__":
+    if sys.argv[1] == "nr":
+        nr_preview(sys.argv[2], sys.argv[3])
+        sys.exit(0)
     var = sys.argv[3] if len(sys.argv) > 3 else "A"
     if var != "before":
         restyle_pause(sys.argv[1], var)

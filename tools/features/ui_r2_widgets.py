@@ -139,7 +139,7 @@ def loading(b, g):
     n["ldDark"]["color.a"] = 60
     n["mapBg"]["color.a"] = 255
     n["mapShade"]["color.a"] = 105
-    for k in ("ldPic", "ldPicBack", "ldPicFrame"):          # the framed picture goes (the map is the picture now)
+    for k in ("ldPic", "ldPicOld", "ldPicShade", "ldPicBack", "ldPicFrame"):          # the framed picture goes (the map is the picture now)
         n[k]["visible"] = 0
     top = b.rect("r2LdTop", ld, b.tl(0, 0, W, 330), INK, 150)
     under(top, n["ldTitle"])

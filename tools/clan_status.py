@@ -27,7 +27,7 @@ EV_DAYS = 3
 EV_MAX = 6
 LINES = {
     "en": {HUNGRY: "%s has gone hungry. The rations did not stretch.", SAD: "%s is grieving and barely speaks.", SICK: "%s has fallen sick.", DEAD: "%s did not make it.",
-           INJURED: "%s is hurt and on light duty.", RECOVERED: "%s is back on their feet.", NEW: "%s has joined the clan.",
+           INJURED: "%s is hurt and on light duty.", RECOVERED: ("%s is back on his feet.", "%s is back on her feet."), NEW: "%s has joined the clan.",
            DEPRESSED: "%s has withdrawn completely and no longer eats at the fire.", SHOCK: "%s is in shock after the loss."},
     "pl": {HUNGRY: ("%s jest głodny. Racji nie starczyło.", "%s jest głodna. Racji nie starczyło."),
            SAD: ("%s pogrążył się w żałobie i prawie się nie odzywa.", "%s pogrążyła się w żałobie i prawie się nie odzywa."), SICK: ("%s zachorował.", "%s zachorowała."),

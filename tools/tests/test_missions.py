@@ -41,7 +41,32 @@ check(clan.GROWTH == (0.0, 0.05, 0.07, 0.10) and clan.TIER_PCT == (0.05, 0.07, 0
 check(clan.tier_reward(2, 100) == (7, 1), "tier 2 of 100 survivors = 7")
 check(clan.GROWTH_NAMES == ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES", "MARAUDER ATTACK"),
       "the five growth events of missions.md")
-check({clan.event_today(d)[1] for d in range(5, 81, 5) if clan.event_today(d)[0] == clan.EV_GROWTH} == {0, 1, 2, 3, 4}, "every growth event name comes up in the calendar")
+check({clan.event_today(d)[1] for d in range(5, 81, 5) if clan.event_today(d)[0] == clan.EV_GROWTH} == {0, 1, 2, 3, 4, 5},
+      "every growth event name comes up in the calendar (with SPOILED SUPPLIES, name 5)")
+# ---- (re/clan-events-1117.md): INFECTED HORDE and SPOILED SUPPLIES are stories on the 2013 calendar: default on, no number moves
+os.environ.pop("T2R_CLAN_NEW_EVENTS", None)
+check(clan.new_events() is True, "the horde / spoiled supplies stories are on by default")
+check([d for d in range(0, 85) if clan.event_today(d) == (clan.EV_ATTACK, clan.AN_HORDE)] == [30, 65], "INFECTED HORDE: the story attacks of days 30 and 65")
+check([d for d in range(0, 85) if clan.event_today(d) == (clan.EV_GROWTH, clan.GN_SPOIL)] == [45, 70], "SPOILED SUPPLIES: the growth events of days 45 and 70")
+check(clan.EVENT_DAYS[30] == ("attack", clan.ATTACK_EARLY) and clan.EVENT_DAYS[65] == ("attack", clan.ATTACK) and clan.EVENT_DAYS[45] == clan.EVENT_DAYS[70] == ("growth", clan.GROWTH),
+      "their numbers are the calendar's: horde 60/40/20/10 % (day 30) and 100/60/40/20 % (day 65) lost, spoiled supplies +5/7/10 %")
+check(clan.event_name(clan.EV_ATTACK, clan.AN_HORDE) == "INFECTED HORDE" and clan.event_name(clan.EV_GROWTH, clan.GN_SPOIL) == "SPOILED SUPPLIES"
+      and clan.event_name(clan.EV_ATTACK, 0) == "ATTACK" and clan.event_name(clan.EV_GROWTH, 4) == "MARAUDER ATTACK", "event names")
+_cal_on = [(d, clan.event_today(d)[0]) for d in range(0, 85)]
+os.environ["T2R_CLAN_NEW_EVENTS"] = "0"
+check(clan.new_events() is False and all(clan.event_today(d)[1] != clan.AN_HORDE for d in (30, 65)) and clan.event_today(45) == (clan.EV_GROWTH, 4)
+      and clan.event_today(70) == (clan.EV_GROWTH, 4), "switched off (env T2R_CLAN_NEW_EVENTS=0): the 2013 names on those days")
+check(_cal_on == [(d, clan.event_today(d)[0]) for d in range(0, 85)], "on or off: the same event kind on every day")
+os.environ.pop("T2R_CLAN_NEW_EVENTS", None)
+import tempfile as _tf
+_d = _tf.mkdtemp(prefix="t2r-tmp-newev-")
+_f0 = clan.NEW_EVENTS_FILE
+clan.NEW_EVENTS_FILE = os.path.join(_d, "clan_events.txt"); clan._ne.update(mtime=None, val=True)
+open(clan.NEW_EVENTS_FILE, "w").write("off\n")
+check(clan.new_events() is False, "switched off by the file tools/clan_events.txt")
+clan.NEW_EVENTS_FILE = _f0; clan._ne.update(mtime=None, val=True)
+check(clan.attack_story(32) == clan.AN_HORDE and clan.attack_story(33) == clan.AN_HORDE and clan.attack_story(37) == clan.AN_ENEMY and clan.attack_story(12) == clan.AN_ENEMY,
+      "a death's day tells which attack it was")
 check(clan.ATTACK_PARTS_BONUS == 0.10, "attack event: +10 % parts")
 src = open(os.path.join(TOOLS, "ext", "t2r-ext.c"), encoding="utf-8", errors="replace").read()
 check('award(ab, slot, "Attack Bonus")' in src and "ev_attack_now()" in src and src.count('strcmp(lab, "Attack Bonus")') >= 3,

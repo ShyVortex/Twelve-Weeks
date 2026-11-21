@@ -179,9 +179,9 @@ def region_pool(players, region, steamid, pair, pins=None, everyone=None):
     forces its region; else the majority region (tie: lower combined ping inside the region; a tie that ping cannot break =
     no region rule); else (too many unknown / nobody of that region) everybody. `everyone` = every player of the match when
     `players` is only the allowed candidates (no-host players are left out of the candidates but they count for the majority
-    and for the worst-case ping). Note: a 1 EU / 1 NA tie was broken ALPHABETICALLY ('EU' < 'NA-east')
+    and for the worst-case ping). A 1 EU / 1 NA tie was broken ALPHABETICALLY ('EU' < 'NA-east')
     and the region then overrode the pings: an EU host with 205 / 272 ms to the NA players although the NA player had 83 / 205.
-    The region rule now never costs more than REGION_GUARD_MS of worst-case ping (the pin stays absolute)."""
+    The region rule now never costs more than REGION_GUARD_MS of worst-case ping (the pin stays absolute: owner decision)."""
     pins = PINS if pins is None else pins
     everyone = list(everyone) if everyone else list(players)
     for t in players:
@@ -252,7 +252,7 @@ class HostMigration:
         self.bridge_grace = bridge_grace  # a helper link down this long (and not back) counts as 'host helper gone' (a link flap alone never migrates)
         self.collect = collect          # a lost host's successor is picked this long after the loss (every survivor that asks in time is a candidate), or when all asked
         self.unknown_keep_going = unknown_keep_going  # a poll for a token with no record (daemon restarted mid-match) = 'keep going', never 'give up'
-        # Match 07a228ac: the host had ONE 2.09 s frame stall; both clients' ext report silence after 1.5 s (HM_SILENT), 'all players report
+        # The host had ONE 2.09 s frame stall; both clients' ext report silence after 1.5 s (HM_SILENT), 'all players report
         # silence' fired 1 s later and the host was replaced at once - its ext then heard 'give up' and left the match. A host whose link to the
         # server is still up (session socket, Steam helper) is only replaced on silence reports once the silence has lasted min_silent s (the
         # clients hold winmm's timeout for 15 s, HM_HOLD_MS). A host that is confirmed gone (left, session socket lost, helper gone) is not waited for.
@@ -540,7 +540,7 @@ class HostMigration:
         # trouble must not move the host); players that never report (crashed too, ext off)
         # are covered by lone_wait, a host whose Steam helper went away by bridge_gone
         all_silent = bool(others) and all(s in m["silent"] for s in others)
-        # Match a01884cd (1v1, both on one PC): the client's ext reported the host silent 3 s into the match (its link stamp was stale from the
+        # In a 1v1 with both on one PC the client's ext reported the host silent 3 s into the match (its link stamp was stale from the
         # level load) and 'all players' was that ONE report -> the live host (still polling every 2 s) was replaced and the client won
         # instantly. A host whose own ext polled within the alive window is alive: its silence reports alone cannot replace it when that would
         # leave a single player (instant win) or in the first START_GRACE s of the match (links still coming up). Real loss still goes through
@@ -581,7 +581,7 @@ class HostMigration:
 
     def _stale(self, m, now):
         """(stale, loading): alive slots whose ext is not polling. loading = joined in progress < JIP_LOAD_S ago and not polled since
-        (its ext arms only in the match). Match 82599fb6: the JIP joiner (slot 2) never polled after a daemon restart, its session was lost
+        (its ext arms only in the match). The JIP joiner (slot 2) never polled after a daemon restart, its session was lost
         40 s later - and 'slot 2 not polling' held the whole re-pick of a lagging host."""
         stale, loading = set(), set()
         for s in range(len(m["players"])):
@@ -724,7 +724,7 @@ class HostMigration:
         m.pop("min_silent_logged", None)
         m["lost"] = None
         m["migrated_at"] = now
-        # Match fd7cb037: a successor with nobody else alive ends the match on its side at once (ext hm_migrate: 'alone in the match - ending
+        # A successor with nobody else alive ends the match on its side at once (ext hm_migrate: 'alone in the match - ending
         # it'), so the match is over even though no 0x12 reached us yet: join in progress must not send anyone into it
         if len(left) == 1:
             m["alone"] = True
@@ -780,14 +780,23 @@ REPICK_MIN_LEFT = _envi("T2R_HOST_REPICK_MIN_LEFT_S", 90)   # never with less th
 REPICK_MIN_GAIN_MS = _envi("T2R_HOST_REPICK_GAIN_MS", 40)   # the best host's worst ping must be this much lower ...
 REPICK_MIN_GAIN_FRAC = _envi("T2R_HOST_REPICK_GAIN_PCT", 20) / 100.0    # ... and this fraction lower than the current host's
 REPICK_CONFIRM = _envi("T2R_HOST_REPICK_CONFIRM", 2)        # same target on this many consecutive checks
+REPICK_CONFIRM_GAP_S = _envi("T2R_HOST_REPICK_CONFIRM_GAP_S", 30)  # after a 'would migrate' the confirming check comes this soon (not a full interval)
+# (a player in South America hosted two players in Europe; worst ping 315 -> 274 ms with one of them = 13 %, under the 20 % rule,
+# so it stayed although the two European players talked through South America, 585 ms instead of 155): with one far player the worst ping is the
+# far player's link whoever hosts. A host whose worst ping is not worse and whose TOTAL is clearly lower also wins.
+REPICK_TOTAL_GAIN_MS = _envi("T2R_HOST_REPICK_TOTAL_GAIN_MS", 100)    # the total ping must drop by this much ...
+REPICK_TOTAL_GAIN_FRAC = _envi("T2R_HOST_REPICK_TOTAL_GAIN_PCT", 20) / 100.0    # ... and this fraction of the current host's total
+REPICK_TOTAL_GAIN_PER_MS = _envi("T2R_HOST_REPICK_TOTAL_GAIN_PER_MS", 25)    # ... and on average this much per other player (100 ms over 7 links = 14 ms each: not noticeable)
 REPICK_GAP_S = _envi("T2R_HOST_REPICK_GAP_S", 180)          # a 2nd migration needs this long since the 1st
 REPICK_MAX = _envi("T2R_HOST_REPICK_MAX", 2)                # per match; the 2nd only when the roster changed since the 1st
-# Capacity override (match 82599fb6: a ~1 Mbit host saturated, every ping to it 83 -> 790-970 ms, nothing handed over: the ping score
+# Capacity override (a ~1 Mbit host saturated, every ping to it 83 -> 790-970 ms, nothing handed over: the ping score
 # cannot show it - every candidate's worst ping IS its ping to the saturated host). The daemon passes cap={'host_bad': why, 'rank': {slot: 0|1|2},
 # 'max_rank': highest target rank allowed}: a host that lagged below the needed upload (hostcap, in this match) or whose link is saturated is
 # replaced by the best candidate (proven capacity first, then the ping key), even when the ping rule alone would hold. Same guards as above.
-REPICK_CAP_CONFIRM = _envi("T2R_HOST_REPICK_CAP_CONFIRM", 1)        # hostcap's lag verdict already needed 2 lossy reports in a row
-REPICK_CAP_MAX_WORSE_MS = _envi("T2R_HOST_REPICK_CAP_WORSE_MS", 150)  # the target's worst ping may be at most this much above the lagging host's
+# (live handover on: a host change only for a clear gain): the capacity target is confirmed on a second check (30 s later) and its worst
+# ping may not be worse than the lagging host's (was 1 check, up to 150 ms worse).
+REPICK_CAP_CONFIRM = _envi("T2R_HOST_REPICK_CAP_CONFIRM", 2)        # same capacity target on this many consecutive checks
+REPICK_CAP_MAX_WORSE_MS = _envi("T2R_HOST_REPICK_CAP_WORSE_MS", 0)  # the target's worst ping may be at most this much above the lagging host's
 # A PING-only handover ("a better connection") in an 8 player lobby put the match on a host whose upload could not carry
 # the ~2.3 MB/s the relay needs there: five peers fell silent within seconds, the server counted them gone and the match emptied. In a lobby this big a
 # handover that is only about ping goes to a target hostcap has PROVEN (rank 0) for this size; the capacity override above is unchanged.
@@ -946,12 +955,16 @@ class HostRepick:
                 n = n + 1 if tgt == ("cap", best) else 1
                 r["streak"] = (("cap", best), n)
                 lab = (labels or {}).get(best, best)
+                need = 1 if cap.get("saturated") else REPICK_CAP_CONFIRM      # a saturated link (pings 3x up NOW) moves at once; a lag record is confirmed
                 text = "host %s: migrate to %s (%s), worst %s -> %d ms, check %d of %d" % (
                     cap["host_bad"], lab, (cap.get("text") or {}).get(best, "rank %d" % rank.get(best, 1)), "?" if cur is None else cur[0],
-                    cands[best][0], n, REPICK_CAP_CONFIRM)
-                self._d = ("would", "cap" if n < REPICK_CAP_CONFIRM else "capgo", best, n)
+                    cands[best][0], n, need)
+                self._d = ("would", "cap" if n < need else "capgo", best, n)
                 self._say(mid, text)
-                return ("hold", text) if n < REPICK_CAP_CONFIRM else ("migrate", best)
+                if n < need:
+                    r["next"] = min(r["next"], now + REPICK_CONFIRM_GAP_S)
+                    return "hold", text
+                return "migrate", best
             self._say(mid, "host %s, but no candidate with enough upload and a known ping" % cap["host_bad"])
         if cur is None or not cands:
             r["streak"] = (None, 0)
@@ -971,7 +984,11 @@ class HostRepick:
             self._d = ("guard", "total", best)
             self._say(mid, "hold: host is fine (worst %d ms, best other has a higher total %d > %d ms)" % (cur[0], cands[best][1], cur[1]))
             return "hold", "total worse"
-        if best == host or cands[best][0] > cur[0] - REPICK_MIN_GAIN_MS or cands[best][0] > cur[0] * (1 - REPICK_MIN_GAIN_FRAC):
+        worst_gain = best != host and cands[best][0] <= cur[0] - REPICK_MIN_GAIN_MS and cands[best][0] <= cur[0] * (1 - REPICK_MIN_GAIN_FRAC)
+        total_gain = (best != host and cands[best][0] <= cur[0]
+                      and cur[1] - cands[best][1] >= max(REPICK_TOTAL_GAIN_MS, REPICK_TOTAL_GAIN_PER_MS * (len(roster) - 1))
+                      and cands[best][1] <= cur[1] * (1 - REPICK_TOTAL_GAIN_FRAC))
+        if not (worst_gain or total_gain):
             r["streak"] = (None, 0)
             self._d = ("stay", "best" if best == host else "small", best)
             self._say(mid, "hold: host is fine (worst %d ms%s)" % (cur[0], "" if best == host else ", best other %d ms - not worth it" % cands[best][0]))
@@ -984,10 +1001,12 @@ class HostRepick:
         n = n + 1 if tgt == best else 1
         r["streak"] = (best, n)
         lab = (labels or {}).get(best, best)
-        text = "would migrate to %s: worst %d -> %d ms (total %d -> %d), check %d of %d" % (lab, cur[0], cands[best][0], cur[1], cands[best][1], n, REPICK_CONFIRM)
+        text = "would migrate to %s: worst %d -> %d ms (total %d -> %d%s), check %d of %d" % (lab, cur[0], cands[best][0], cur[1], cands[best][1],
+                                                                                    "" if worst_gain else ", total rule", n, REPICK_CONFIRM)
         self._d = ("would", "confirm" if n < REPICK_CONFIRM else "go", best, n)
         self._say(mid, text)
         if n < REPICK_CONFIRM:
+            r["next"] = min(r["next"], now + REPICK_CONFIRM_GAP_S)
             return "hold", text
         return "migrate", best
 

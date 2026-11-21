@@ -19,6 +19,7 @@ guns by more than a punchier shot should be.
 """
 import glob
 import os
+import struct
 import sys
 import wave
 

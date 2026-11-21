@@ -1,4 +1,4 @@
-"""More team voice lines (the same few lines were heard constantly).
+"""More team voice lines (the same few lines were heard constantly in v1.08).
 
 How a team line plays (re/vox-lines.md): winmm FUN_18004b800(kind, slot, line) runs the DC native `say`
 ("player" or the speaker's puppet, line) and sends msg 10 [slot][line] to the teammates; `say` resolves the
@@ -1067,11 +1067,125 @@ def downed_records():
     return [(r["id"], r["speech"]) for r in json.load(open(DNDATA))]
 
 
+# ------------------------------------------------------------------------------------------------ faction pick voice
+# CHOOSE YOUR SIDE (tools/ext/choose.c): focusing a camp plays ONE real TLOU2 enemy take of that faction through the engine's own `say` (the active voice
+# language, no subtitle, so it follows the language). Each take = one stream suffix, one record per voice
+# set (militia / scar x male / female x a..d = 8 voices); a record without a stream in a language is flagged 0 there (a missing one would be played from
+# English: skipped at runtime). REQUIRED takes: the Seraphite "No matter what... you're going to hell." and its WLF counterpart (the same
+# defiant-last-words weight, WLF terms: "Doesn't matter how far you run... we'll find you...").
+KEPT = os.path.join(ROOT, "re", "choose-1115", "vox_kept_user_1115.txt")
+
+
+def pick_kept():
+    """the (faction, take #, gender, voice) pairs the user kept in the audition (re/choose-1115/vox_kept_user_1115.txt, 'WLF: 02 text - female a'); None = no file (all)"""
+    if not os.path.exists(KEPT):
+        return None
+    out = set()
+    for ln in open(KEPT, encoding="utf-8"):
+        m = re.match(r"^(WLF|Seraphites):\s*(\d+)\s.*-\s*(male|female)\s+([a-d])\s*$", ln.strip())
+        if m:
+            out.add(("mlt" if m.group(1) == "WLF" else "scr", int(m.group(2)), m.group(3)[0], m.group(4)))
+    return out
+
+
+PDATA = os.path.join(HERE, "data", "vox_pick.json")
+PHEADER = os.path.join(ROOT, "tools", "ext", "vox_pick.h")
+PICKS = {
+    "scr": [("gen-enmy-cmbt-enmy-last-words-defiant-sp-007", 1), ("gam-sle-scar-village-logging-camp-enemy-convo-4-spj-004", 0),
+            ("gam-fob-on-foot-defend-enemy-convo-3-pr-003", 0), ("gen-enmy-pryrs-confident-mod-sp-008", 0),
+            ("gen-enmy-srch-start-rspns-confident-1x-sp-006", 0), ("gen-enmy-cmbt-callout-attack-plyr-cmd-plrl-cpr-009", 0)],
+    "mlt": [("gam-afm-wlf-last-words-defiant-sp-001", 1), ("gam-afm-horse-chase-scar-wlf-fight-pr-003", 0), ("gam-afm-horse-chase-scar-wlf-fight-pr-006", 0),
+            ("gam-afm-burning-village-callouts-pr-001", 0), ("gam-afm-brewery-gate-lifted-spj-005", 0), ("gen-enmy-cmbt-callout-attack-plyr-cmd-plrl-cpr-012", 0)],
+}
+
+
+def pick_ms(text):
+    """a take's length from its subtitle (no stream decode here): ~62 ms a letter / space, 280 ms an ellipsis, 160 ms other pauses, + the attack"""
+    t = re.sub(r"\{[^}]*\}", "", text)
+    return int(300 + 62 * len(re.sub(r"[^A-Za-z' ]", "", t)) + 280 * t.count("...") + 160 * len(re.findall(r"[,.!?;]", t.replace("...", ""))))
+
+
+def gen_pick():
+    """(needs the game's speech1 archives + re/gamebin subtitles) -> data/vox_pick.json + ../ext/vox_pick.h"""
+    sd = os.path.join(GAME, "build", "pc", "main", "speech1")
+    idx = json.load(open(os.path.join(sd, "english.xvag-index.json")))
+    texts = all_texts(idx)
+    eng = psarc_names(os.path.join(sd, "english.psarc"))
+    kept = pick_kept()
+    recs, takes = [], []
+    for fi, fac in enumerate(FACTIONS):
+        for ti, (suffix, req) in enumerate(PICKS[fac]):
+            if kept is not None and not any(k[0] == fac and k[1] == ti + 1 for k in kept):
+                continue                                                  # a take the user deleted completely (WLF 1 / 5 / 6, Seraphites 6)
+            text = None
+            for g in "mf":
+                for v in VOICES:
+                    if kept is not None and (fac, ti + 1, g, v) not in kept:
+                        continue                                          # a (line, voice) the user deleted in the audition
+                    key = "%s%s%s-%s" % (fac, g, v, suffix)
+                    if text is None and key in texts:
+                        text = texts[key].strip()
+                    if key not in idx or idx[key][0] not in eng:
+                        print("  no english stream:", key)
+                        continue
+                    recs.append({"fac": fac, "take": ti, "req": req, "g": g, "v": v, "speech": key, "id": "t2r-vox-pick-%s-%02d-%s%s" % (fac, ti + 1, g, v)})
+            assert text, suffix
+            takes.append({"fac": fac, "take": ti, "req": req, "suffix": suffix, "text": text, "ms": pick_ms(text)})
+    order = {}
+    for t in takes:                                                       # take numbers = positions among the KEPT takes of the faction (0-based, the original order)
+        order[(t["fac"], t["take"])] = sum(1 for u in takes if u["fac"] == t["fac"] and u["take"] < t["take"])
+    for t in takes:
+        t["take"] = order[(t["fac"], t["take"])]
+    for r in recs:
+        r["take"] = order[(r["fac"], r["take"])]
+        r["id"] = "t2r-vox-pick-%s-%02d-%s%s" % (r["fac"], r["take"] + 1, r["g"], r["v"])
+    json.dump({"takes": takes, "records": recs}, open(PDATA, "w"), indent=1)
+    o = ["// GENERATED by tools/features/vox_lines.py genpick - do not edit. CHOOSE YOUR SIDE voice (tools/ext/choose.c): real TLOU2 enemy takes of each faction, played",
+         "// through `say` in the active voice language. VXP_REC[i] = {fnv64 id of a vox-info record (dc_data_patches.patch_vox_pick), faction (0 Seraphite / 1 WLF),",
+         "// take, gender (0 male / 1 female), voice a..d, REQUIRED}; VXP_TAKE[faction][take] = {text, length ms (estimated from the text), REQUIRED};",
+         "// VXP_AVAIL_<LANG>[i] = the record's stream exists in speech1/<language>.psarc.",
+         "typedef struct { uint64_t id; uint8_t fac, take, g, v, req; } vxp_rec_t;",
+         "static const vxp_rec_t VXP_REC[] = {"]
+    for r in recs:
+        o.append("    {0x%016xULL, %d, %d, %d, %d, %d},   // %s <- %s" % (fnv(r["id"]), FACTIONS.index(r["fac"]), r["take"], "mf".index(r["g"]), VOICES.index(r["v"]), r["req"], r["id"], r["speech"]))
+    o.append("};")
+    o.append("#define VXP_NREC %d" % len(recs))
+    o.append("#define VXP_NTAKE %d" % max(sum(1 for t in takes if t["fac"] == f) for f in FACTIONS))
+    o.append("static const struct { const char *text; uint16_t ms; uint8_t req; } VXP_TAKE[2][VXP_NTAKE] = {")
+    for fac in FACTIONS:
+        o.append("    {%s}," % ", ".join('{"%s", %d, %d}' % (t["text"].replace('"', "'"), t["ms"], t["req"]) for t in takes if t["fac"] == fac))
+    o.append("};")
+    o.append("static const uint8_t VXP_NTAKES[2] = {%s};" % ", ".join(str(sum(1 for t in takes if t["fac"] == f)) for f in FACTIONS))
+    langs = []
+    for fn in ["english.psarc"] + [x for x in sorted(os.listdir(sd)) if x.endswith(".psarc") and x != "english.psarc"]:
+        lang = os.path.splitext(fn)[0]
+        have = eng if lang == "english" else psarc_names(os.path.join(sd, fn))
+        vals = [1 if (r["speech"] in idx and idx[r["speech"]][0] in have) else 0 for r in recs]
+        langs.append((lang, vals))
+        o.append("static const uint8_t VXP_AVAIL_%s[] = {%s};" % (lang.upper(), ",".join(map(str, vals))))
+    o.append("static const struct { const char *name; const uint8_t *tab; } VXP_LANGS[] = {")
+    for lang, _ in langs:
+        o.append('    {"%s", VXP_AVAIL_%s},' % (lang, lang.upper()))
+    o.append("};")
+    open(PHEADER, "w", newline="\n").write("\n".join(o) + "\n")
+    for t in takes:
+        print("%s take %d%s  %5d ms  %s  (%s)" % (t["fac"], t["take"] + 1, " REQUIRED" if t["req"] else "", t["ms"], t["text"], t["suffix"]))
+    for lang, vals in langs:
+        print("  %s: %d of %d pick records have a stream" % (lang, sum(vals), len(vals)))
+    print("pick: %d records -> %s, %s" % (len(recs), PDATA, PHEADER))
+
+
+def pick_records():
+    return [(r["id"], r["speech"]) for r in json.load(open(PDATA))["records"]]
+
+
 if __name__ == "__main__":
     if sys.argv[1:] == ["genbeg"]:   # execution begging (needs the game)
         gen_beg()
     elif sys.argv[1:] == ["gendowned"]:   # downed groans (needs the game index only)
         gen_downed()
+    elif sys.argv[1:] == ["genpick"]:   # CHOOSE YOUR SIDE voice takes (needs the game speech archives + re/gamebin)
+        gen_pick()
     elif sys.argv[1:] == ["genburn"]:   # burning-death screams (needs the game index only)
         gen_burn()
     elif sys.argv[1:] == ["genavail"]:   # per-language audio availability -> ext/vox_avail.h (needs the game)

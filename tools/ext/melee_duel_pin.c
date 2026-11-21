@@ -16,13 +16,13 @@
 //  CHARACTER SP authored fists for Abby only, the knife for Ellie only, every 1h / 2h melee weapon for Ellie only: male fists = Abby's pins, female (her fists are the knife) =
 //           Ellie's knife pins, a held melee weapon = Ellie's weapon pins for both (mpn_ellie_set).
 #include "mduel_pins.h"
-// (ESCAPE only worked for a short time after it appeared, and pressing it after that did nothing although it was still on screen;
+// v5-qte4 (ESCAPE only worked for a short time after it appeared, and pressing it after that did nothing although it was still on screen;
 // log 20288-20482 + a clip at 30 fps): the press window was open+160 .. open+450 ms (PRESS logged at 171 ms, window closed 27
 // frames after the open) = 290 ms, but "ESCAPE!" stayed on screen ~600 ms (clip frames 9..26, id 1; ~430 ms past the close for id 3): the engine's
 // InteractableIcon keeps its last label up ~300-430 ms after the requests stop, then fades. Now the prompt switches to "Too late" the frame the window
 // closes (requested MPN_LATE_MS, so the engine's linger shows "Too late", never a dead "ESCAPE!"), and the window is longer: WIN 420 -> 480, RING 260 -> 330
 // = PRESS 150 .. 510 ms (360 ms pressable, WAIT 150 ms as before); the windup slows to the new contact (333 ms SP swing: x0.79 -> x0.69).
-// (hit reactions in pins were delayed: 'PIN blow 2/99 QTE
+// ps28 (hit reactions in pins were delayed, the first iterations felt more responsive; uc3 A [104936]-[105066]: 'PIN blow 2/99 QTE
 // OPEN ... contact in 480 ms (SP 267 ms, windup slowed x0.56)' - the slow-down was a set-animation-speed, which the engine's own swing ignores (ps20 readback):
 // the punch played in 267 ms and the reaction came 213 ms after it landed). The window is the light swings' pace (380 ms; a longer clip keeps its own time) and
 // the wind-up is DRIVEN: the swing clip's phase is written each frame along the duel's wind-up profile (wup_ct), so the fist arrives on the contact frame.
@@ -55,6 +55,26 @@ static struct { uint64_t clip, t0; float tc, x, len; } g_mpn_wup;
 #define MDPO_BLOW 8               // attacker -> victim: {id, win_ms lo, hi}
 #define MDPO_ESC 9                // victim -> attacker: {id, rel_ms lo, hi}
 #define MDPO_END 10
+// (t2r-ext.log frames 165410-165830): the pin blow's windup swing went only to the victim (mdu_send is unicast to g_mdu.slot, mpn_recv wants g_mdu.slot == slot) - a bystander
+// got the pair STARTs alone, half N played until the next START cut it and the puppet snapped into the next blow's contact pose with no windup, crossfading 0.18-0.20 s from a pose 82-120 deg
+// off. The same blow info now also goes to every other connected peer as MDPO_BYST (sub-op 7; older clients ignore it in mdu_recv's op >= 6 route), and a bystander plays the windup
+// swing on the pinner's puppet like the victim does (mpn_vic_swing, crossfade PS45_PIN_SW_BLEND). The pin pair STARTs a bystander watches take the same longer entry blend when the drawn
+// body stands > 60 deg off the half's first frame (paired.c ps_take_blend40). t2r-no-pin-byst-windup.txt = the old behaviour (neither is sent, received or lengthened).
+static int g_mpn_byst;     // mpn_vic_swing: 1 = the call is a bystander's copy (not a blow on us)
+static int mpn_byst_off(void) {
+    static int v = -1; static uint64_t at; uint64_t n = GetTickCount64();
+    if (v < 0 || n - at > 2000) { at = n; int o = GetFileAttributesA("t2r-no-pin-byst-windup.txt") != INVALID_FILE_ATTRIBUTES;
+        if (o != v) { xlog("pin: bystander windup %s", o ? "OFF (t2r-no-pin-byst-windup.txt): bystanders get the pair STARTs only" : "ON - the pin blow's windup also goes to the other peers (MDPO_BYST), longer entry blend on the pin pair half"); }
+        v = o; }
+    return v;
+}
+// paired.c ps_take_blend40: a wall / low-cover pin blow pair (mp-*-wall-attack-* / mp-*-cover-attack-*) of a pair a bystander watches (role 3), t2r-no-pin-byst-windup.txt aware
+static int mpn_byst_pair(uint64_t move) {
+    if (mpn_byst_off()) return 0;
+    int cd = cd_pair_of_move(move); if (cd < 0) return 0;
+    const char *n = CD_PAIRS[cd].name;
+    return !strncmp(n, "mp-", 3) && (strstr(n, "wall-attack") || strstr(n, "cover-attack"));
+}
 // v5-dmg the pin's blows follow the melee table (was a flat 20 x weapon factor capped 1.7): every pin blow = one blow of the pinner's class
 // (the weapon put away for the pin still counts: its class, with its upgrade), the push being one of them - fists = push + 6 blows (7 hits), 1h blunt push + 4,
 // 1h blade push + 3, 2h / machete push + 2. The blows cycle the wall steps (mpn_row_step) until the lethal one plays its takedown.
@@ -148,7 +168,7 @@ static int mpn_holster_file(void) {
 static int mpn_unarmed_set(int set) {
     if (set == MDU_FIST || set == MDU_KNIFE || mpn_keep_weapon()) return set;
     if ((set == MDU_1HBLUNT || set == MDU_1HBLADE) && !mpn_holster_file()) return set;      // v5-wpnpin: the 1h weapon pins itself
-    return own_female() ? MDU_KNIFE : MDU_FIST;
+    return own_knife() ? MDU_KNIFE : MDU_FIST;
 }
 static struct { uint64_t w, end_ms, at; int pend, tries; } g_mpn_stow;     // the melee weapon put away for the running pin; pend = draw it back after the pin
 static uint64_t mpn_weapon(void) {   // the pin's weapon: the fists while ours is put away / broken
@@ -190,10 +210,15 @@ static void mpn_stow_tick(uint64_t now) {
     xr_finish("duel pin over: the melee weapon put away for it");
     DULOG("DUEL: PIN over %llu ms ago: stowed weapon %llx drawn back (held now %llx)", (unsigned long long)(now - g_mpn_stow.end_ms), (unsigned long long)w, (unsigned long long)dc_call(fnv64("get-player-weapon-id"), 0, &none0));
 }
+// a row of another weapon's set borrowed into this one (gen_duel_pins.py: the hatchet / machete low-cover steps 2..4 = the knife's low-cover blows; SP has one
+// 1h-blade low-cover blow, so a long pin repeated it). t2r-no-pin-borrow.txt = SP's rows only.
+static int mpn_borrow_off(void) { static int off = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (off < 0 || n - at > 2000) { at = n; off = GetFileAttributesA("t2r-no-pin-borrow.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
+static int mpn_row_borrowed(size_t i) { return MPN_ROWS[i].set != MDU_KNIFE && !strncmp(MPN_ROWS[i].move, "switchblade-", 12); }
 static int mpn_rows(int set, int surf, int kind, int step, int *out, int max) {
     mpn_init(); int n = 0;
     for (size_t i = 0; i < MPN_ROWS_N && n < max; i++)
-        if (MPN_ROWS[i].set == set && MPN_ROWS[i].surf == surf && MPN_ROWS[i].kind == kind && (kind == MPN_ENTER || MPN_ROWS[i].step == step) && g_mpn.row_cd[i] >= 0 && cd_pair_loaded(g_mpn.row_cd[i])) out[n++] = (int)i;
+        if (MPN_ROWS[i].set == set && MPN_ROWS[i].surf == surf && MPN_ROWS[i].kind == kind && (kind == MPN_ENTER || MPN_ROWS[i].step == step) && g_mpn.row_cd[i] >= 0 && cd_pair_loaded(g_mpn.row_cd[i]) &&
+            !(mpn_row_borrowed(i) && mpn_borrow_off())) out[n++] = (int)i;
     return n;
 }
 static int mpn_max_step(int set, int surf) { int m = 0; for (int s = 1; s <= 4; s++) { int r[1]; if (mpn_rows(set, surf, MPN_BLOW, s, r, 1)) m = s; else break; } return m; }
@@ -219,6 +244,7 @@ static void mpn_fin_save(void) {
 }
 // the saved plan back into ctxdown's plan (bodies as they stand now; cd_try re-checks them)
 static void mpn_fin_plan(int slot, uint64_t vh) {
+    g_cd_pin_fin_frame = g_frame ? g_frame : 1;      // cd_try of this frame starts the pin's finisher past the push segment
     float vb[16], mb[16]; const float *vl = vh ? puppet_locator(vh, vb) : NULL, *me = player_locator(mb);
     g_cd.plan_ok = 1; g_cd.plan_frame = g_frame; g_cd.plan_slot = slot; g_cd.plan_pair = g_mpn_fin.pair; g_cd.plan_src = g_mpn_fin.src; g_cd.plan_kind = g_mpn_fin.kind;
     g_cd.plan_step = g_mpn_fin.step; g_cd.plan_p0 = g_mpn_fin.p0; g_cd.plan_top = g_mpn_fin.top; g_cd.plan_fit = g_mpn_fin.fit; memcpy(g_cd.plan_ap, g_mpn_fin.ap, sizeof g_mpn_fin.ap);
@@ -321,7 +347,7 @@ static void mpn_deliver(int s, int k, const char *why) {
     { uint64_t pw = mpn_weapon(); if (pw != fnv64("abby-unarmed") && melee_dur_w(pw)) {   // v5-pinfix3 3: a weapon pin blow wears it
         int h0 = wb_hold(); mdw_blow("pin blow", 400);
         // v5-wpnpin: SP's wrench dur 1 -> 0 on strike-1-hit: break sfx now, drop gesture after this -hit pair (wpnbreak.c), THAT pin is over (mpn_blow_contact sees wbroke)
-        if (!h0 && wb_hold() && g_mpn.on && g_mpn.wpn) { g_mpn.wbroke = 1; DULOG("DUEL: PIN WEAPON BROKE on blow %d (%llx): the break sfx plays now, the drop-broken gesture after this pair (wpnbreak.c); this weapon pin is over, the next press re-pins unarmed", k + 1, (unsigned long long)pw); }
+        if (!h0 && wb_hold() && g_mpn.on && g_mpn.wpn) { g_mpn.wbroke = 1; DULOG("DUEL: PIN WEAPON BROKE on blow %d (%llx): the break sfx plays now; the next press goes on with unarmed blows (the broken item leaves the hand then), no press = the drop-broken gesture after this pair", k + 1, (unsigned long long)pw); }
     } }
     ev_hit_note((uint32_t)s);
     DULOG("DUEL: PIN damage %.0f (blow %d, the melee table's value for the pinner's class) to slot %d (%s)", (double)dmg, k + 1, s, why);
@@ -446,6 +472,7 @@ static int mpn_contact(uint64_t now, int set, int s, uint64_t h, const float *vl
     return 1;
 }
 static int mpn_hold_att(void) { return g_mpn.on; }
+static int mpn_pin_recent(void) { return g_mpn.on || (g_mpn_end_ms && GetTickCount64() - g_mpn_end_ms < 6000); }      // t2r-ext.c pinh_note (pin holster fix)
 // v5-pinpress 2: the next press is awaited until the running pin pair's hand-off + MPN_AFTER_MS (at least MPN_PRESS_WAIT_MS after the blow)
 static uint64_t mpn_win_end(uint64_t now) { uint64_t a = now + MPN_PRESS_WAIT_MS, b = g_mpn_pair_end + MPN_AFTER_MS; return b > a ? b : a; }
 // t2r-ext.c adelta_hook: the pin blow swing window (its start .. 300 ms past its contact), when the per-frame step guard applies
@@ -465,7 +492,7 @@ static int mpn_row_step(int k) {
 // the break plays the unarmed push on the still-pinned victim from the same wall frame and the pin goes on as a fist / knife pin (k restarts, the weapon is gone).
 // 1 = started. 0 = refused (the caller ends the pin).
 static int mpn_repin(uint64_t now) {
-    int s = g_mpn.slot, uset = own_female() ? MDU_KNIFE : MDU_FIST;
+    int s = g_mpn.slot, uset = own_knife() ? MDU_KNIFE : MDU_FIST;
     uint64_t h = puppet_handle((uint32_t)s);
     float vb[16], mb[16]; const float *vl = h ? puppet_locator(h, vb) : NULL, *me = player_locator(mb);
     if (!h || !vl || !me || !mdu_partner_ok(s) || !ps_loc_ok(vl) || !ps_loc_ok(me)) { DULOG("DUEL: PIN RE-PIN refused: partner / locators gone"); return 0; }
@@ -487,6 +514,30 @@ static int mpn_repin(uint64_t now) {
     g_mdu.next_move = 0; g_mdu.win_end = 0; g_mdu.lock_until = 0;
     DULOG("DUEL: PIN RE-PIN on slot %d after the weapon broke: %s set (%s), push %s (victim carried %.2f m, we %.2f m), the unarmed chain goes on", s, uset == MDU_KNIFE ? "knife" : "fists", own_female() ? "female life" : "male life",
           MPN_ROWS[bi].name, (double)bmv, (double)bda);
+    return 1;
+}
+// (two reports: the weapon broke in his pin, he pressed melee again and again, nothing happened, the pin timed out and the victim
+// walked out and hit him): "A pin where the weapon breaks should just continue normally with unarmed pin hits seamlessly". The v5-wpnpin rule re-pinned with the
+// unarmed PUSH on the first press after the break and ended the pin when that push was refused - every press made inside the break's own -hit pair was refused
+// ("the break's -hit pair is still running"), as was any press when no push variant fit the staggered victim - and the duel then dropped every press while the
+// drop-broken gesture waited behind the paired moves (melee_duel.c wb_pending, up to 4 s). Now the press after a break is buffered like any other pin press (it
+// fires MPN_NEXT_MS after the blow) and starts the NEXT BLOW of the unarmed set (fists / Ellie's knife) from the same wall frame: the pin, its QTE and its count go
+// on, and the broken item leaves the hand at that moment (wpnbreak.c wb_drop_now: no gesture over the pin's pairs, the other screens hide it on the drop message).
+// The unarmed push (mpn_repin) is only the fallback when the unarmed set has no blow rows for this surface. t2r-pin-break-repin.txt = the v5-wpnpin rule.
+static void wb_drop_now(const char *why);   // wpnbreak.c
+static void mpn_blow_start(uint64_t now);
+static int mpn_break_repin_old(void) {
+    static int v = -1; static uint64_t at; uint64_t now = GetTickCount64();
+    if (v < 0 || now - at >= 2000) { at = now ? now : 1; v = GetFileAttributesA("t2r-pin-break-repin.txt") != INVALID_FILE_ATTRIBUTES; }
+    return v;
+}
+static int mpn_go_unarmed(uint64_t now) {
+    int uset = own_knife() ? MDU_KNIFE : MDU_FIST, ms = mpn_max_step(uset, g_mpn.surf), set0 = g_mpn.set, k0 = g_mpn.k;
+    if (ms < 1) { DULOG("DUEL: PIN the weapon broke: no unarmed %s blow rows for style %d - the unarmed push instead", g_mpn.surf == MPN_WALL ? "wall" : "cover", uset); return 0; }
+    g_mpn.set = uset; g_mpn.k = 1; g_mpn.maxb = 99; g_mpn.wpn = 0; g_mpn.wbroke = 0;
+    wb_drop_now("the pin goes on unarmed");
+    DULOG("DUEL: PIN goes on UNARMED after the weapon broke (set %d -> %s, %d weapon blow(s) landed): the next blow is unarmed blow 1 from the same wall frame", set0, uset == MDU_KNIFE ? "Ellie's knife set" : "Abby's fist set", k0 - 1);
+    mpn_blow_start(now);
     return 1;
 }
 // ---- the attacker: a press starts the next blow
@@ -567,6 +618,12 @@ static void mpn_blow_start(uint64_t now) {
     uint8_t p[12] = {(uint8_t)g_mpn.id, (uint8_t)winv, (uint8_t)(winv >> 8), (uint8_t)(ret[0] ? bl[0] : 0xff)};
     { uint64_t sc = ret[0] ? mpn_swing_clip(r, mv) : 0; memcpy(p + 4, &sc, 8); }
     mdu_send(MDPO_BLOW, p, 12);
+    if (!mpn_byst_off() && g_send_tramp && g_mdu.slot >= 0) {      // the same windup to every other peer (bystanders)
+        uint8_t b[16] = {5, MDPO_BYST, (uint8_t)g_mdu.uid, (uint8_t)(g_mdu.uid >> 8)}; memcpy(b + 4, p, 12);
+        uint32_t self = psync_self(); int ns = 0;
+        for (uint32_t s = 0; s < T2R_MAX_PEERS; s++) { if (s == self || (int)s == g_mdu.slot || !puppet_handle(s)) continue; g_send_tramp(MSG_MEX, b, 16, (uint64_t)s); ns++; }
+        static int nlb; if (LOGCAP(nlb, 200)) DULOG("DUEL: PIN blow %d windup also sent to %d bystander(s) (MDPO_BYST; t2r-no-pin-byst-windup.txt = victim only)", g_mpn.k + 1, ns);
+    }
     DULOG("DUEL: PIN blow %d/%d QTE OPEN (id %d): %s swing %s (%s), contact in %d ms (SP %d ms, windup slowed x%.2f), victim prompt Dodge", g_mpn.k + 1, g_mpn.maxb, g_mpn.id, r->name,
           r->move, ret[0] ? "started" : "refused - no visible windup", MPN_WIN_MS, r->tc_ms, r->tc_ms > 0 ? (double)r->tc_ms / MPN_WIN_MS : 1.0);
 }
@@ -589,7 +646,7 @@ static void mpn_blow_contact(uint64_t now) {
     if (!mpn_play(bl[0], s, h, ap, tag)) { mpn_deliver(s, step, "psync refused"); }
     else mpn_deliver(s, step, "QTE missed");
     g_mdu.hit_ms = now; g_mpn.last_hit = now; g_mpn.win_end = mpn_win_end(now); g_mpn.k++;
-    if (g_mpn.wbroke) { DULOG("DUEL: PIN blow %d broke the weapon: the weapon pin is over - the next press (within reach of the staggered victim) re-pins with %s", step + 1, own_female() ? "the knife" : "fists"); return; }
+    if (g_mpn.wbroke) { DULOG("DUEL: PIN blow %d broke the weapon: the next press goes on with %s blows", step + 1, own_knife() ? "knife" : "fist"); return; }
     DULOG("DUEL: PIN blow %d landed (QTE missed / not pressed in time), %s", step + 1, g_mpn.k >= g_mpn.maxb || g_mpn.k > mpn_max_step(g_mpn.set, g_mpn.surf) ? "next press = shove off" : "next press = next blow");
 }
 // v5-pinpress (on a CONTROLLER the follow-through after the first hit failed in a wall and a low cover pin; every pin of that log ended "PIN END (no press)"
@@ -651,6 +708,7 @@ static void mpn_vic_swing(uint32_t slot, const mpn_row_t *r, int win, uint64_t s
     if (full) ph = 0.0f;
     float bl45 = full ? 0.18f : 0.12f;
     if (over_half45 && dtl_partner(slot)) bl45 = PS45_PIN_SW_BLEND;       // ps45 item 2
+    if (g_mpn_byst) bl45 = PS45_PIN_SW_BLEND;                              // a bystander's copy crossfades over the held pair half like the victim's
     uint64_t res = mhr_animate(ent, clip, ph, bl45);
     if (over_half45) DULOG("DUEL: PIN swing replica (ps45): crossfade %.2f s off the held pair half (old 0.18 s)", (double)bl45);
     for (int l = 0; l < 4; l++) { uint64_t a[4] = {ent, 0, (uint64_t)l, clip}; memcpy(&a[1], &sp, 4); mo_rate_dc(a, MO_SRC("pin.swing_replica_rate")); }
@@ -659,6 +717,28 @@ static void mpn_vic_swing(uint32_t slot, const mpn_row_t *r, int win, uint64_t s
     if (full) dtl_catchup(ent, clip, mct_on() ? 0.0f : age, win > 0 ? (float)win / 2000.0f : dur * 0.25f, sp, "pin swing replica");
     g_mhr.pd[slot].ent = ent; g_mhr.pd[slot].sid = clip; g_mhr.pd[slot].end = GetTickCount64() + (uint64_t)win + 250;   // the contact pair takes the puppet over before this
     DULOG("DUEL: PIN swing %s on slot %u's puppet (clip %llx at phase %.2f, speed x%.2f) -> %llx", r->move, slot, (unsigned long long)clip, (double)ph, (double)sp, (unsigned long long)res);
+}
+// (brawl clips X4): the windup replica of a pin blow we watch (mpn_byst_recv) is running on that attacker's puppet from the arrival to about the window's end + 0.5 s.
+// While it runs, the blow's pair START on the puppet (role 3) is the replica's contact frame: paired.c ps_pup_att_blend crossfades the -hit half in over 0.05 s like the
+// victim's screen does (melee_duel_contact.c mct_pup_blend) and psync_begin_remote starts the half at the sender's move time without the x1.2 catch-up (the replica
+// covered the lead-in). Without a replica fix1116c's 0.30 s blend and the catch-up stay. t2r-no-pin-byst-windup.txt = off (mpn_byst_off).
+static struct { uint64_t t; int win, row; } g_mpn_byst_rep[T2R_MAX_PEERS];
+static int mpn_byst_replica(int slot) {
+    if (slot < 0 || slot >= T2R_MAX_PEERS || mpn_byst_off() || !g_mpn_byst_rep[slot].t) return 0;
+    uint64_t now = GetTickCount64();
+    return now >= g_mpn_byst_rep[slot].t && now - g_mpn_byst_rep[slot].t <= (uint64_t)g_mpn_byst_rep[slot].win + 500;
+}
+// MSG_MEX op 5 sub-op 7 (MDPO_BYST): slot's pin blow windup as a bystander sees it. Never a QTE / blow on us: only the swing replica on the pinner's puppet.
+static void mpn_byst_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
+    if (slot >= T2R_MAX_PEERS || !buf || len < 8 || mpn_off() || mpn_byst_off() || slot == psync_self()) return;
+    uint64_t now = GetTickCount64();
+    if ((g_mpn.on && g_mpn.slot == (int)slot) || (g_ps.role == 2 && g_ps.att == (int)slot) || (g_mpn.vq_slot == (int)slot && g_mpn.vq_end && now <= g_mpn.vq_end + 400)) return;   // we are its pin's victim / pinner: the real path owns it
+    int win = buf[5] | (buf[6] << 8);
+    if (buf[7] >= MPN_ROWS_N || win < 100 || win > 1500) return;
+    uint64_t sc = 0; if (len >= 16) memcpy(&sc, buf + 8, 8);
+    g_mpn_byst = 1; mpn_vic_swing(slot, &MPN_ROWS[buf[7]], win, sc); g_mpn_byst = 0;
+    g_mpn_byst_rep[slot].t = now; g_mpn_byst_rep[slot].win = win; g_mpn_byst_rep[slot].row = buf[7];      // (X4): paired.c asks mpn_byst_replica at this attacker's pair START
+    static int nlr; if (LOGCAP(nlr, 200)) DULOG("DUEL: PIN windup of slot %u seen as a bystander: %s swing on its puppet, crossfade %.2f s over the held pair half (MDPO_BYST; t2r-no-pin-byst-windup.txt = off)", slot, MPN_ROWS[buf[7]].move, (double)PS45_PIN_SW_BLEND);
 }
 static int mpn_qte_open(void) { return g_mpn.vq_open && GetTickCount64() <= g_mpn.vq_end; }
 static int mpn_vic_pin(void) { return mpn_qte_open(); }
@@ -730,6 +810,7 @@ static void mpn_qte_press(uint64_t now) {
 // the escape itself (a valid press, or Iron Grip II's free escape the moment the press window opens)
 static void mpn_qte_success(uint64_t now, int rel) {
     g_mpn.vq_ok = 1; g_mpn.vq_rel = (uint16_t)rel; g_mpn.vq_open = 0; g_mpn.vq_esc_at = now; g_dc_pin_esc_ms = GetTickCount64();
+    ach_pin_escape();                                        // achievements (achieve.c)
     g_mpn.vq_drop_until = now + 900;
     int s = g_mpn.vq_slot;
     uint8_t p[3] = {(uint8_t)g_mpn.vq_id, (uint8_t)rel, (uint8_t)(rel >> 8)};
@@ -786,7 +867,7 @@ static int mpn_escape(uint64_t now) {
     mpn_init();
     int ri = -1; for (size_t i = 0; i < MPN_ROWS_N; i++) if (g_mpn.row_cd[i] == g_mpn.vq_row) { ri = (int)i; break; }
     if (ri < 0) return 0;
-    int surf = MPN_ROWS[ri].surf, set = MPN_ROWS[ri].set, wpn = (set == MDU_FIST || set == MDU_KNIFE) ? 0 : 1, want = own_female() ? 1 : 0, cd = -1;
+    int surf = MPN_ROWS[ri].surf, set = MPN_ROWS[ri].set, wpn = (set == MDU_FIST || set == MDU_KNIFE) ? 0 : 1, want = own_knife() ? 1 : 0, cd = -1;
     for (int pass = 0; pass < 2 && cd < 0; pass++)       // our own character's player half first (male = Abby, female = Ellie), then the other
         for (size_t i = 0; i < MPN_ESC_N; i++) {
             if (MPN_ESC[i].wpn != wpn || MPN_ESC[i].surf != surf || MPN_ESC[i].ch != (pass ? 1 - want : want)) continue;
@@ -828,7 +909,7 @@ static void mpn_counter(uint64_t now) {
     g_mpn.ctr_at = 0;
     if (held45 && dc_off()) pe45_end("the dodge counter is off here");
     if (dc_off()) { DULOG("DUEL: PIN escape: the dodge counter is switched off here - the escape alone"); return; }
-    if (own_female()) {   // female characters holster their weapon (not animated) at the start of a pin escape; before, they stabbed with the sidearm in hand and the knife
+    if (own_knife()) {   // female characters holster their weapon (not animated) at the start of a pin escape; before, they stabbed with the sidearm in hand and the knife
         uint64_t none0 = 0, z[2] = {0, 0}, held = dc_call(fnv64("get-player-weapon-id"), 0, &none0);
         if (held && held != ~0ULL && base_weapon_is_gun(base_weapon(held))) {
             uint64_t r = (g_holster_inst_frame = g_frame ? g_frame : 1, dc_call(fnv64("holster-player-weapon-instantly"), 2, z)), after = dc_call(fnv64("get-player-weapon-id"), 0, &none0);
@@ -945,12 +1026,16 @@ static void mpn_tick(void) {
     if (!mpn_active() || !g_mdu.on) { mpn_end("the duel is over", 0); return; }
     if (g_mpn.state == 1) { g_mdu.hold_until = now + 700; g_mdu.act_ms = now; padinj_block("melee-attack", g_mpn.win_end + 100); }
     if (g_mpn.state == 1) {
-        if (g_mpn.wbroke) {        // v5-wpnpin: the weapon broke - the next press (after the break's pair) re-pins unarmed, never a weapon blow
+        if (g_mpn.wbroke && mpn_break_repin_old()) {        // v5-wpnpin (t2r-pin-break-repin.txt): the next press re-pins with the unarmed push or the pin ends
             if (e) { g_mpn_np_used++; DULOG("DUEL: PIN press (%s) %d ms after the weapon broke: re-pin unarmed", esrc, (int)(now - g_mpn.last_hit));
                      if (mpn_repin(now)) return; mpn_end("weapon broke, no re-pin", 1); return; }
         } else if (e && now < g_mpn.last_hit + MPN_NEXT_MS) { if (!g_mpn.buf_at) { g_mpn.buf_at = now; g_mpn_np_used++; DULOG("DUEL: PIN press (%s) buffered (%d ms after the blow, fires at +%d ms)", esrc, (int)(now - g_mpn.last_hit), MPN_NEXT_MS); }
                                                       else PLOG("DUEL: PIN press (%s) %d ms after the blow REFUSED: one press is already buffered", esrc, (int)(now - g_mpn.last_hit)); }
-        else if (e || (g_mpn.buf_at && now >= g_mpn.last_hit + MPN_NEXT_MS)) { if (e) { g_mpn_np_used++; DULOG("DUEL: PIN press (%s) %d ms after the blow: next blow", esrc, (int)(now - g_mpn.last_hit)); } mpn_blow_start(now); return; }
+        else if (e || (g_mpn.buf_at && now >= g_mpn.last_hit + MPN_NEXT_MS)) { if (e) { g_mpn_np_used++; DULOG("DUEL: PIN press (%s) %d ms after the blow: next blow", esrc, (int)(now - g_mpn.last_hit)); }
+            if (g_mpn.wbroke) {   // the weapon broke on the last blow - the pin goes on with unarmed blows
+                if (mpn_go_unarmed(now) || mpn_repin(now)) return;
+                mpn_end("weapon broke, no unarmed blow or push fits", 1); return; }
+            mpn_blow_start(now); return; }
         if (now >= g_mpn.win_end) {
             DULOG("DUEL: PIN no press in the window after blow %d (%lld ms since it, to the pair's hand-off + %d ms): presses seen in this pin %d (used %d) | frames in the pin: F down %d, window unfocused %d, engine melee-attack on %d | pad melee bit %016llx on joypad %p held %d, edges %u, last edge %lld ms ago",
                   g_mpn.k, (long long)(now - g_mpn.last_hit), MPN_AFTER_MS, g_mpn_np_seen, g_mpn_np_used, g_mpn_f_frames, g_mpn_unfoc_frames, g_mpn_cmd_frames, (unsigned long long)(g_padi.mel_w ? g_padi.mel_w->mask : 0), g_padi.jp, padinj_mel_held(), padinj_mel_presses(),

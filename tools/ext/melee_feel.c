@@ -17,7 +17,7 @@
 // Skipped in: downed / dying, paired moves, executions, ctxdown cameras, finisher guard, stun.
 // Opt-out t2r-no-melee-shake.txt (victim overlay / ring / slash: t2r-no-melee-hitfx.txt, melee_hitfx.c); scale t2r-melee-shake-scale.txt (0.1 .. 3, default 1); t2r-melee-rumble-probe.txt = try native start-rumble (dev, 3 tries).
 // Log prefix "meleefeel:".
-// (measured from the SP log FXN lines + the per-frame camera of melee-prev / melee-cur):
+// ps32 (the SP sandbox log FXN lines + the per-frame camera of melee-prev / melee-cur):
 // SP's hit shake IS one additive camera animation, started by the native camera-animation-enable on the contact frame:
 //   landed blow      (melee-camera-shake,     camera-shake-melee-hit-b, 0,   S,   0.1, 1, 1.0)   S = 1.5 on every fist blow (95 calls: sprint attack, light 1-4,
 //                                                                                               stun combo, dodge attack), 1.0 on blade / blunt blows (45 calls)
@@ -29,7 +29,7 @@
 //   pitch  +0.23 S at +3..+4 (up), through 0 at +5, -1.31 S at +10 (DOWN), -0.40 S at +14, 0 by +20
 //   lens   a single dip of the lens against the root, -19 .. -36 mm x S at +6 frames, back by +10 (no oscillation)
 // = at S 1.5: view down 1.96 deg + roll 2.66 deg + lens 5 cm low, 0.17 s after the contact: 4-6 % of the frame height (the 40-70 px at 1080p seen in the clip).
-// MP before ('meleefeel: attacker kick - fist ... x0.8 of SP's 1.36 deg template'): the earlier template (peak 2 frames earlier, roll 1.43) at x0.8
+// MP before (uc2 / rec21 'meleefeel: attacker kick - fist ... x0.8 of SP's 1.36 deg template'): the earlier template (peak 2 frames earlier, roll 1.43) at x0.8
 // for fists (SP 1.5: MP showed 55 % of the pitch, 43 % of the roll), x1.1 weapons (SP 1.0), x1.6 'heavy' (SP: 1.5 fists / 1.0 weapons, 0.5 inside a finisher);
 // the roll side alternated per blow and a +-0.4 deg x amp yaw push was added (SP: neither); the victim's view snapped UP x0.7 for a blow from the front with
 // a yaw push away and a class factor 0.6-1.6 (SP: the same down-kick at 1.75 for every weapon); and a 13 / 17 Hz positional sine (52-87 mm, tau 80 ms) ran in

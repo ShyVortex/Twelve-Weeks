@@ -3,6 +3,7 @@ like clan13.c fills it, every visible text / icon / glyph gets its REAL box (the
 widget_preview) and the boxes are tested pairwise (min gap 4 units), against the box of their own cell / group (min margin 6) and against the page edge. --wide N widens every text N times
 (a language whose words are N times longer; Polish is ~1.15-1.25).
   python tools/features/clan13_overlap_check.py <extracted widget dir> [db] [--wide 1.2]      exit 1 when anything touches"""
+import copy
 import json
 import os
 import sys
@@ -10,9 +11,14 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import clan13_widgets as W
 import widget_preview as WP
+import nr_style as NR
+import re
 from PIL import ImageFont
 
 GAP, MARGIN = 3.0, 6.0
+# Redesign: a survivor tile's name / role sit under the portrait tile (outside the tile group by design), and a prompt box's
+# frame is sized at run time (nr_prompts), so its template width says nothing about the text: neither is held to its cell
+OUT_OF_CELL = re.compile(r"^(sv\d+_\d+[NW]|pb\d+\w*)$")
 
 
 def rects(w):
@@ -117,14 +123,14 @@ def audit(w, label, wide=1.0):
     for n, kind, x0, y0, x1, y1, par, it in boxes:
         if n.startswith("pre"):
             continue
-        if par and par in R and par not in ("anim-group", None):
+        if par and par in R and par not in ("anim-group", None) and not OUT_OF_CELL.match(n):
             px0, py0, px1, py1, pit, _pp = R[par]
             if pit.get("class") == "Group" or pit.get("class") is None:
                 pass
             if (px1 - px0) < 3840 and (py1 - py0) < 2160 and (px1 - px0) > 0:
                 if x0 < px0 + MARGIN - 0.1 or x1 > px1 - MARGIN + 0.1 or y0 < py0 + MARGIN - 0.1 or y1 > py1 - MARGIN + 0.1:
                     probs.append("%s: %s [%d,%d,%d,%d] is not %d units inside its cell %s [%d,%d,%d,%d]" % (label, n, x0, y0, x1, y1, MARGIN, par, px0, py0, px1, py1))
-        if x1 > 3840 - 150 + 80 or x0 < 150:
+        if x1 > NR.R1 + 0.5 or x0 < NR.L0 - 0.5:
             if not n.startswith("bg"):
                 probs.append("%s: %s [%d..%d] is outside the page margins" % (label, n, x0, x1))
         if kind == "T" and not it.get("multiline", 0):

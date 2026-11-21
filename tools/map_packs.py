@@ -22,7 +22,7 @@ import time
 
 OP_REPORT = 0xC6
 OP_REPLY = 0xC7
-PACK_BASE = 24          # first map-list index of a pack map (= t2r-ext MF_NMAPS)
+PACK_BASE = 25          # first map-list index of a pack map (= t2r-ext MF_NMAPS)
 MAX_PACKS = 11            # 1 + 11 x 4 bytes fit the ext's 48-byte request payload
 MAX_PACK_MAPS = 32        # t2r-ext PACK_MAPS_MAX
 REPORT_TTL = 6 * 3600.0   # a report older than this no longer counts (the client re-reports every few minutes)
@@ -65,7 +65,7 @@ def load_registry(path=None):
 SP_OP_REPORT = 0xC8
 SP_OP_REPLY = 0xC9
 SP_BASE = 8               # first map-list index of an SP-section map (daemon SP_MAPS order; t2r-ext MF_MAPS[8..])
-SP_MAX = 16               # mask bits
+SP_MAX = 32               # mask bits (index 24 Plaza = bit 16; the wire field is a u32)
 
 
 def sp_gating():

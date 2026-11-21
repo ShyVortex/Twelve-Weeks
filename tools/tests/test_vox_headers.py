@@ -1,5 +1,5 @@
-"""Generated voice headers: ext/vox_lines*.h, vox_words.h and vox_avail.h must match tools/features/data/vox_lines*.json (vox_avail.h was
-once stale, 635/625 entries for 649/645 lines, so t2r-ext read past the table in Polish).
+"""Generated voice headers: ext/vox_lines*.h, vox_words.h and vox_avail.h must match tools/features/data/vox_lines*.json (
+vox_avail.h was stale, 635/625 entries for 649/645 lines, so t2r-ext read past the table in Polish).
 Run: python tools/tests/test_vox_headers.py   (plain python, no game needed; vox_avail.h is only length-checked: regenerating it needs the
 game's speech archives, `python tools/features/vox_lines.py genavail`)."""
 import json, os, re, sys, tempfile

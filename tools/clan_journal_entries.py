@@ -1,4 +1,4 @@
-"""In-game journal entries.
+"""In-game journal entries (entries are drawn from many authors, each with only a few events).
 
 ROOT CAUSE: clan_ingame._journal_rows turned every story CARD of clan_story.journal() into its own journal entry, and a card is one written piece about
 one person (portrait + name = the first member named in its text) with at most two one-liners under it.  A week of camp life therefore became ~24 entries,

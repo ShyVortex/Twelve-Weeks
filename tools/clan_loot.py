@@ -21,6 +21,7 @@ Stored find (st["ch"]["log"][-1]["finds"] and the callbacks): {"k": item key, "n
 index, "pl": saga place or "", "h": hook index or -1, "ha": hook argument, "v": sentence variant, "t": tier, "d": day}.
 """
 import math
+import random
 import zlib
 
 import clan_kids as KD

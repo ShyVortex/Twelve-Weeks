@@ -1,7 +1,7 @@
-"""Offline check that the purchasable Galil keeps its stock shot: replays the build's weapon-art steps on a temp copy of the game's
+"""Offline check that the purchasable Galil keeps its stock v1.08 shot: replays the build's weapon-art steps on a temp copy of the game's
 dc1 files (clones of the suppressed rifles from SUPP_WEAPONS) and runs dc_data_patches.verify_galil_stock against the staged bank logic (the game's
 wpn-rifle-autorifle2.bnk byte for byte), and that the suppressed rifles' carrier bank equals the old modified Galil bank (rebuilt here with the
-old build's own recipe) except for the cue table (re-laid for the retargeted hash) and the header.  Negative cases: an edited Galil bank, and the old wiring (suppressed rifle on sfx-galil-player), must be
+the earlier build's own recipe) except for the cue table (re-laid for the retargeted hash) and the header.  Negative cases: an edited Galil bank, and the old wiring (suppressed rifle on sfx-galil-player), must be
 rejected.  Needs the extracted game files (re/gamebin/dc1, re/sound in the main checkout); skipped without them."""
 import os
 import shutil

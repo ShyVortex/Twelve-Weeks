@@ -134,7 +134,7 @@ EXTRA_ACTORS = ["mp-ellie-helmet-lvl-1", "mp-ellie-torso-armored-lvl-1"]
 
 
 def patch_actor_list(path):
-    """actor97.txt (mod): add the cut multiplayer's armor actor packs (sp-common.psarc
+    """actor97.txt (mod): add the Twelve Weeks armor actor packs (sp-common.psarc
     actor97/mp-ellie-*-lvl-1.pak) so spawn-object can load them (test). Appended (the list
     isn't sorted)."""
     text = open(path, encoding="latin1").read()
@@ -416,7 +416,15 @@ def patch_satchel_item_name(path):
     print("player-inventory: parts item icon -> streaming/t2r/icons/satchel-item.png")
 
 
-def patch_text_ciphers(path, add=(("TO1_BOW_ARC", "BOW AIM ARC"), ("TO1_CHANGE_NAME", "CHANGE NAME"), ("T2R_SATCHEL_NAME", "Supply Satchel"), ("TO1_MP_UI_OFF", "DISABLE MP UI"))):
+def patch_text_ciphers(path, add=(("TO1_BOW_ARC", "BOW AIM ARC"), ("TO1_CHANGE_NAME", "CHANGE NAME"), ("T2R_SATCHEL_NAME", "Supply Satchel"), ("TO1_MP_UI_OFF", "DISABLE MP UI"),
+                                     ("TO1_MP_RADAR_OFF", "DISABLE RADAR"), ("TO1_MP_LIVES_OFF", "DISABLE LIVES COUNTER"),
+                                     ("TO1_MP_SUPPLIES_OFF", "DISABLE SUPPLIES / PARTS"),
+                                     # mockup rows (greyed out until dedicated servers): labels + their values (t2r-ext bds_item_sid)
+                                     ("TO1_REGION_PREF", "REGION PREFERENCE"), ("TO1_INPUT_PREF", "INPUT PREFERENCE"), ("TO1_PREF_ANY", "ANY"),
+                                     ("TO1_REGION_NA", "NORTH AMERICA"), ("TO1_REGION_EU", "EUROPE"), ("TO1_INPUT_PAD", "CONTROLLER"),
+                                     ("TO1_INPUT_KBM", "KEYBOARD AND MOUSE"),
+                                     # PART I MAPS preference (working row): label + its two values (t2r-ext bds_item_sid)
+                                     ("TO1_P1_MAPS", "PART I MAPS"), ("TO1_P1_DEFAULT", "DEFAULT"), ("TO1_P1_ALWAYS", "ALWAYS"))):
     """text2/<lang>.common: new text ciphers (label ids used by widgets), added like the stock
     TO1_RETICLE / TO1_MENU_FPS_CAP: table = u32 count, count x (u64 sid, u64 blob offset) sorted by sid, then the string blob.
     OPTIONS > MULTIPLAYER rows BOW AIM ARC and CHANGE NAME (names_widgets.add_options_hint). Idempotent."""
@@ -582,7 +590,7 @@ def patch_weapon_upgrades(path):
     (type, level))}. Visual parts are always in the model, shown/hidden by joint scale (joint
     entry = sid, i32 1/0). Lists are EXPANDED with dcfile.DcFile (new copies appended, owners
     repointed), so nothing the game already has is replaced.
-    1. Vepr: the client showed the scope joint by default (default joints +0x4c98 = 1); back to
+    1. Vepr: the mod (v1.03) showed the scope joint by default (default joints +0x4c98 = 1); back to
        0 - the scope shows with the "scope" bundle (t2r-ext applies it at every spawn).
     (The Glock's burst lives in weapon-gameplay.bin, patch_weapon_gameplay.)"""
     from dcfile import DcFile, fnv
@@ -607,6 +615,7 @@ def patch_weapon_upgrades(path):
     #    t2r-ext's per-level table, each level shows 2 parts): every bundle's weapon-upgrade-ref-array
     #    (record +0x28: {u32 count, entries (type, level)} = its stat effect) gets count 0, except
     #    the scopes (their ref is the scope zoom itself)
+    import re as _re
     from weapon_clone import find_symbol, map_get
     mo = find_symbol(f, "*weapon-upgrade-bundles*")
     keep = {fnv("scope")}
@@ -791,6 +800,9 @@ AIM_2013 = {
     "pistol-revolver-taurus": ("pistol-revolver",  0.45, 0.3, 30, [(0, .55), (1.5, .85), (1000, .85)], [(0, 0), (5, 0), (40, .80), (1000, .80)]),
     "pistol-cz75-enforcer":   ("deagle (Enforcer)", 0.20, 0.3, 20, [(0, .23), (1.5, .60), (1000, .75)], [(0, 0), (5, 0), (40, .50), (1000, .66)]),
     "pistol-el-diablo":       ("pistol-uber",      0.30, 0.3, 30, [(0, .26), (1.5, .65), (1000, .65)], [(0, 0), (5, 0), (40, .65), (1000, .75)]),
+    # Snubby (no 2013 gun): spec "low recoil, wide spread, high ROF" - wider than the revolver at rest and moving, the same bloom per shot
+    # (the low kick keeps follow-ups on target; the spread is what keeps it a close-range gun, with t2r-ext SNUBBY_FALL past 8 m)
+    "pistol-snubby":          ("snubby (no 2013)", 0.45, 0.3, 30, [(0, .85), (1.5, 1.10), (1000, 1.10)], [(0, 0), (5, 0), (40, .90), (1000, .90)]),
     # 0f7c554d (Double Barrel): shotgun-bloom-settings 59a98 - standing .40, moving .95, camera turn 0 under 5 deg/s, 1.0 from
     # 40 deg/s (these were the Tactical Shotgun's shotgun-hunting .30 flat)
     "shotgun-baserri-over-under": ("0f7c554d", 6.0, 0.3, 30, [(0, .40), (1.5, .95), (1000, .95)], [(0, 0), (5, 0), (40, 1.0), (1000, 1.0)]),
@@ -1049,7 +1061,7 @@ FAR_NPC_SHOT = os.environ.get("T2R_FAR_NPC_SHOT", "1") != "0"
 FAR_SFX = {"sfx-rifle-mpx5-player-suppressed": "sfx-rifle-mpx5-npc"}        # base rifle-mpx5 art def: the player shot fields -> the npc event
 MPX5_SUPP_EVENT = "sfx-rifle-mpx5-player-suppressed"
 MPX5_NPC_EVENT = "sfx-rifle-mpx5-npc"
-# Suppressed rifles' shot (Vepr-S, Hunting-S, M14-S, Burst-S, Frontier-S).  The purchasable Galil plays its STOCK shot while the
+# Suppressed rifles' shot (Vepr-S, Hunting-S, M14-S, Burst-S, Frontier-S).  The purchasable Galil plays its STOCK v1.08 shot while the
 # suppressed rifles keep the mix they always had (Galil suppressed layers + Vepr thump / LFE + MPX5 suppressed thumps, SUPP_MIX_PCM / SUPP_MIX_MIX).
 # That mix used to live in the Galil's own bank (shared event sfx-galil-player), so the Galil inherited it.  Now it lives in a CARRIER: a copy of the
 # stock Galil bank with the mix, shipped as the bank of a loaded-but-unused set - the Tommy's sniper rifle (actor rifle-m14-sniper, bank wpn-rifle-tommy:
@@ -1414,7 +1426,7 @@ def armour_trimmed(name):
     return name.replace("-rigged", "-armour", 1)
 
 
-# FEMALE armoured twins (the female looks wore the old cut-multiplayer blue rigid meshes): the same Rattler helmet / plate
+# FEMALE armoured twins (the female looks wore the old blue rigid meshes): the same Rattler helmet / plate
 # carrier in their base-female-skel authoring (tools/models/armour_female.py): the King's helmet + slaver-female-01's carrier,
 # renamed copies of their kits with only the armour drawing; pushed clothes copies as for the men ('-female-' -> '-farm01-').
 # Keep in sync with armour_female.SOURCES / PROPS and the ext (ARMOR_RIG_BASES rows 12..15, ARMOR_RIG_BODY).
@@ -1645,15 +1657,43 @@ PROP_REC_SIZE = 0x128   # props.bin prop definition (tag 'prop' before it): +0x2
                         # prop's skeleton there), +0x38 settings, +0xa0 cloth joint suffix ('_jacket_cloth')
 
 
-def make_props_overlay(game_bin, overlay_dc1, props=None):
-    """props.bin (base game): a definition per cloth-prop copy (ARMOUR_UNDER_PROPS -> armour_trimmed name) in
-    the '*props*' map (sorted u64 keys + boxed pointers): a clone of the original's record with its art group
+def props_pairs(props=None, extra=None):
+    """[(original prop, its renamed copy)]: the armoured twins' pushed cloths + extra {original: copy} (the CUSTOMIZE cloth props
+    rebuilt under a scar-t2r- name: customize_items.PORT_CLOTH_SRC)"""
+    props = sorted(ARMOUR_UNDER_PROPS_ALL if props is None else props) if ARMOUR_UNDER_ON else []
+    return [(src, armour_trimmed(src), True) for src in props] + sorted(extra or [])
+
+
+def customize_prop_copies():
+    """[(original, copy, own skeleton)] of the CUSTOMIZE cloth props in this build that carry another name than their stock prop
+    (ELDER'S HOODED COAT / ISLANDER LONG COAT drew the body and the hands without the coat - their renamed raincoat cloths
+    had a look2-prop record but no props.bin definition): the rebuilt coats (customize_items.PORT_CLOTH_SRC) and the KELLIE rows'
+    props (kellie_rows.json: the row's template of a prop = the stock prop it is a renamed copy of). own skeleton = the copy's pak
+    holds skel.<copy> (the coats); a copy without one keeps its original's skeleton name (the KELLIE tail: a renamed
+    scar-female-a-jacket-cloth, whose skeleton is the stock pak scar-female-a-jacket-cloth-skel of the level)."""
+    out = [(src, cp, True) for cp, src in _czi.PORT_CLOTH_SRC.items() if cp in _czi.MOD_PROPS]
+    if _czi.KELLIE:
+        seen = set()
+        for r in _czi.KELLIE["rows"]:
+            for cp in r.get("props", ()):
+                src = r.get("templates", {}).get(cp)
+                if cp in seen or not src or src == cp:
+                    continue
+                seen.add(cp)
+                own = any(("skel." + cp).encode() in open(os.path.join(_czi.KELLIE_DIR, a + ".pak"), "rb").read() for a in r["paks"])
+                out.append((src, cp, own))
+    return out
+
+
+def make_props_overlay(game_bin, overlay_dc1, props=None, extra=None):
+    """props.bin (base game): a definition per cloth-prop copy (ARMOUR_UNDER_PROPS -> armour_trimmed name; extra {original: copy})
+    in the '*props*' map (sorted u64 keys + boxed pointers): a clone of the original's record with its art group
     and skeleton names set to the copy (the copy pak carries geo. / skel. / cloth. under that name). Without
     one the look2 prop of the armoured twin spawned nothing (Seraphite coat missing). No copies (props
     off): the overlay file is removed."""
-    props = sorted(ARMOUR_UNDER_PROPS_ALL if props is None else props) if ARMOUR_UNDER_ON else []
+    pairs = props_pairs(props, extra)
     out = os.path.join(overlay_dc1, "props.bin")
-    if not props:
+    if not pairs:
         if os.path.exists(out):
             os.remove(out)
         return None
@@ -1671,8 +1711,7 @@ def make_props_overlay(game_bin, overlay_dc1, props=None):
     assert K == sorted(K), "props map keys not sorted"
     B = [f.q(vals + 8 * k) for k in range(cnt)]
     new = []                                       # (sid, box offset, record offset, copy name)
-    for src in props:
-        cn = armour_trimmed(src)
+    for src, cn, own_skel in pairs:
         assert fnv(src) in K and fnv(cn) not in K, (src, cn)
         box = B[K.index(fnv(src))]
         rec = f.q(box)
@@ -1683,8 +1722,8 @@ def make_props_overlay(game_bin, overlay_dc1, props=None):
         r_off = f.append(blob, slots, tag="prop")
         btag = f.q(box - 8)
         b_off = f.append(struct.pack("<QQ", btag, r_off), [8]) + 8
-        new.append((fnv(cn), b_off, r_off, cn))
-    rows_ = sorted(list(zip(K, B)) + [(sid, b) for sid, b, _r, _n in new])
+        new.append((fnv(cn), b_off, r_off, cn, own_skel))
+    rows_ = sorted(list(zip(K, B)) + [(sid, b) for sid, b, _r, _n, _o in new])
     kb = struct.pack("<Q", fnv("array")) + b"".join(struct.pack("<Q", k) for k, _b in rows_)
     k_off = f.append(kb, []) + 8
     vb = struct.pack("<Q", fnv("array")) + b"".join(struct.pack("<Q", b) for _k, b in rows_)
@@ -1692,20 +1731,21 @@ def make_props_overlay(game_bin, overlay_dc1, props=None):
     struct.pack_into("<I", f.data, mp, len(rows_))
     f.set_ptr(mp + 8, k_off)
     f.set_ptr(mp + 16, v_off)
-    for _sid, _b, r_off, cn in new:              # names last (end of the string region: nothing moves)
+    for _sid, _b, r_off, cn, own_skel in new:    # names last (end of the string region: nothing moves)
         at = len(f.data)
         f.data += cn.encode() + b"\0"
         f.set_ptr(r_off + 0x20, at)
-        f.set_ptr(r_off + 0x30, at)
+        if own_skel:                             # (else: the original's skeleton name stays - the copy's pak has no skeleton)
+            f.set_ptr(r_off + 0x30, at)
     data = f.save()
     os.makedirs(overlay_dc1, exist_ok=True)
     open(out, "wb").write(data)
-    verify_props_overlay(out, props)
-    print(f"props: cloth-prop copies defined ({', '.join(armour_trimmed(x) for x in props)}), props.bin {len(data)} bytes")
+    verify_props_overlay(out, pairs)
+    print(f"props: cloth-prop copies defined ({', '.join(cn + ('' if o else ' (skeleton of ' + s_ + ')') for s_, cn, o in pairs)}), props.bin {len(data)} bytes")
     return out
 
 
-def verify_props_overlay(path, props):
+def verify_props_overlay(path, pairs):
     """Re-read: every copy resolves through the map to a 'prop' record naming the copy (art group + skeleton),
     the rest of the record equal to the original's; the original entries unchanged."""
     f = DcFile(open(path, "rb").read())
@@ -1716,13 +1756,13 @@ def verify_props_overlay(path, props):
     cnt, keys, vals = struct.unpack_from("<I", D, mp)[0], f.q(mp + 8), f.q(mp + 16)
     K = [f.q(keys + 8 * k) for k in range(cnt)]
     assert K == sorted(K)          # (the game's map has two duplicate keys of its own)
-    for src in props:
-        assert K.count(fnv(armour_trimmed(src))) == 1 and K.count(fnv(src)) == 1, src
-        cn = armour_trimmed(src)
+    for src, cn, own_skel in pairs:
+        assert K.count(fnv(cn)) == 1 and K.count(fnv(src)) == 1, src
         ro = f.q(f.q(vals + 8 * K.index(fnv(src))))
         rc = f.q(f.q(vals + 8 * K.index(fnv(cn))))
         assert f.q(rc - 8) == fnv("prop")
-        assert _cstr(f, f.q(ro + 0x20)) == src and _cstr(f, f.q(rc + 0x20)) == cn and _cstr(f, f.q(rc + 0x30)) == cn
+        assert _cstr(f, f.q(ro + 0x20)) == src and _cstr(f, f.q(rc + 0x20)) == cn
+        assert _cstr(f, f.q(rc + 0x30)) == (cn if own_skel else _cstr(f, f.q(ro + 0x30))), (cn, "skeleton name")
         for o in range(0, PROP_REC_SIZE, 8):
             if o in (0x20, 0x30):
                 continue
@@ -1971,9 +2011,84 @@ if os.environ.get("T2R_BLADE_BANKS", "1") != "0":
     FEMALE_KNIFE_ADDS += ["actor switchblade", "sound-bank wpn-melee-switchblade"]
 FEMALE_LEVEL_ADDS = ["actor " + a for a in FEMALE_LOOK_ACTORS] + \
     ["symbol " + l for side in FEMALE_LOOKS.values() for l in side] + FEMALE_VOX_BANKS + FEMALE_KNIFE_ADDS
-# Female armoured twins (they wore the old rigid blue cut-multiplayer armour; tools/models/armour_female.py): the same
+# CUSTOMIZE WLF gas masks (varied gas masks: Dina, Ellie, Abby, Lev, Eugene's): the story masks re-seated on the MP head
+# (tools/models/wlf_gasmasks.py, staged by build_dll.stage_gasmasks; = wlf_gasmasks.ACTORS, asserted there). 2.4-3.1 MB each (bong 0.9 MB).
+# T2R_GASMASKS=0 = off (the CUSTOMIZE rows then show as not in multiplayer yet).
+GASMASKS_ON = os.environ.get("T2R_GASMASKS", "1") != "0"
+GASMASK_ACTORS = {s: ["t2r-gm-%s-%s" % (s, k) for k in ("dina", "ellie", "abby", "lev")] + ["t2r-gm-%s-bong-a" % s] for s in "mf"}
+if GASMASKS_ON:
+    MP_LEVEL_ADDS += ["actor " + a for a in GASMASK_ACTORS["m"] if "actor " + a not in MP_LEVEL_ADDS]
+    FEMALE_LEVEL_ADDS += ["actor " + a for a in GASMASK_ACTORS["f"]]
+# CUSTOMIZE: the stock garments of every list (customize_items.STOCK_EXTRA: 55 sp-common paks, loaded as is; not all items
+# preview). A row whose paks are not in the level can neither be shown on the stage nor worn. T2R_CZ_STOCK=0 = off.
+import customize_items as _czi  # noqa: E402
+if _czi.STOCK_ON:
+    for _a in _czi.STOCK_EXTRA:
+        _l = FEMALE_LEVEL_ADDS if "-female-" in _a else MP_LEVEL_ADDS
+        if "actor " + _a not in _l:
+            _l.append("actor " + _a)
+# CUSTOMIZE: the hats / beanies out of NPC heads (customize_items.HATS, WLF headwear of both sexes; staged by build_dll.stage_hats)
+if _czi.HATS:
+    for _r in _czi.HATS["rows"]:
+        _l = FEMALE_LEVEL_ADDS if _r["sex"] == "f" else MP_LEVEL_ADDS
+        if "actor " + _r["pak"] not in _l:
+            _l.append("actor " + _r["pak"])
+    for _r in _czi.HATS.get("heads", ()):          # the bare-head copies of the cap-only heads (tools/models/head_fix.py) + a head's hair part
+        _l = FEMALE_LEVEL_ADDS if _r["sex"] == "f" else MP_LEVEL_ADDS
+        for _a in (_r["pak"], (_r.get("hair") or {}).get("pak")):
+            if _a and "actor " + _a not in _l:
+                _l.append("actor " + _a)
+# CUSTOMIZE: the gas masks' under-hat shapes (customize_items.MASK_UNDER; built with the masks by build_dll.stage_gasmasks)
+if GASMASKS_ON:
+    for _c in _czi.MASK_UNDER:
+        for _s in "mf":
+            _l = FEMALE_LEVEL_ADDS if _s == "f" else MP_LEVEL_ADDS
+            for _full in [_czi.GASMASK_TEMPLATE[_s]] + GASMASK_ACTORS[_s]:
+                _a = _czi.mask_under_part(_full, _s, _c)
+                if "actor " + _a not in _l:
+                    _l.append("actor " + _a)
+# CUSTOMIZE: the KELLIE rows' paks (customize_items.KELLIE, female lists of both factions; staged by build_dll.stage_kellie)
+if _czi.KELLIE:
+    for _a in _czi.KELLIE["paks"]:
+        if "actor " + _a not in FEMALE_LEVEL_ADDS:
+            FEMALE_LEVEL_ADDS.append("actor " + _a)
+# CUSTOMIZE: the hair-part faces' extra paks (customize_items.HAIRPARTS "extra_paks", per-hat hair; staged by build_dll.stage_hairparts)
+for _r in _czi.HAIRPARTS:
+    _l = FEMALE_LEVEL_ADDS if _r["sex"] == "f" else MP_LEVEL_ADDS
+    for _e in _r.get("extra_paks", ()):
+        if "actor " + _e["pak"] not in _l:
+            _l.append("actor " + _e["pak"])
+# CUSTOMIZE: the WLF tops' hand-tint copies (customize_items.HANDTINT, staged by build_dll.stage_handtint)
+for _t in (_czi.HANDTINT["tops"] if _czi.HANDTINT else ()):
+    _l = FEMALE_LEVEL_ADDS if _t["sex"] == "f" else MP_LEVEL_ADDS
+    if "actor " + _t["pak"] not in _l:
+        _l.append("actor " + _t["pak"])
+# CUSTOMIZE: the hat-fitted second parts of list faces (customize_items.FACEFIT, staged by build_dll.stage_facefit). "first": the
+# actor stands before its stock pak's in the list (the shader-zeroed test copy must log in before the pak it leans on - if the
+# list's order is the login order, that is the hard case)
+for _r in _czi.FACEFIT:
+    _l = FEMALE_LEVEL_ADDS if _r["sex"] == "f" else MP_LEVEL_ADDS
+    if "actor " + _r["pak"] in _l:
+        continue
+    if _r.get("first"):
+        assert "actor " + _r["source"] in _l, "%s: its stock pak %s is not in the level adds (cannot stand before it)" % (_r["pak"], _r["source"])
+        _l.insert(_l.index("actor " + _r["source"]), "actor " + _r["pak"])
+    else:
+        _l.append("actor " + _r["pak"])
+# CUSTOMIZE: the rebuilt Seraphite garments (customize_items.PORTED_PAKS, staged by build_dll.stage_scar_ports out of PORTS_DIR)
+if _czi.PORTS_ON:
+    for (_sx, _lb), _po in _czi.PORTED.items():
+        _l = MP_LEVEL_ADDS if _sx == "m" else FEMALE_LEVEL_ADDS
+        for _a in _po["paks"]:
+            if _a.startswith("scar-t2r-") and "actor " + _a not in _l:
+                _l.append("actor " + _a)
+    for _a in _czi.WORLD_STOCK:                 # (stock paks of world archives, shipped with them)
+        _l = FEMALE_LEVEL_ADDS if "-female-" in _a else MP_LEVEL_ADDS
+        if "actor " + _a not in _l:
+            _l.append("actor " + _a)
+# Female armoured twins (they wore the old rigid blue armour; tools/models/armour_female.py): the same
 # twin machinery as the men - base look + the Rattler helmet / plate carrier of base-female-skel + pushed clothes copies + the pushed
-# coat - so the ext shows / hides skinned parts instead of the old rigid cut-multiplayer meshes. ARMOUR_LOOK_BASES gets the 4 female looks
+# coat - so the ext shows / hides skinned parts instead of the old rigid meshes. ARMOUR_LOOK_BASES gets the 4 female looks
 # (row order = the ext's ARMOR_RIG_BASES 12..15); T2R_NO_FEMALE_ARMOUR=1 builds without (the rigid attach again).
 ARMOUR_FEMALE_BASES = [l for side in FEMALE_LOOKS.values() for l in side]
 ARMOUR_FEMALE_ACTORS = [ARMOUR_RIG_F_HELMET_ACTOR, ARMOUR_RIG_F_VEST_ACTOR]
@@ -2504,6 +2619,17 @@ def verify_vox_burn(greenlight_path, modules_path):
     return verify_vox_lines(greenlight_path, modules_path, lines=vox_lines.burn_records())
 
 
+def patch_vox_pick(greenlight_path, modules_path):
+    """the CHOOSE YOUR SIDE voice records of vox_lines.py genpick (real enemy takes of each faction, every voice set), cloned from the same template."""
+    import vox_lines
+    return patch_vox_lines(greenlight_path, modules_path, lines=vox_lines.pick_records())
+
+
+def verify_vox_pick(greenlight_path, modules_path):
+    import vox_lines
+    return verify_vox_lines(greenlight_path, modules_path, lines=vox_lines.pick_records())
+
+
 def patch_vox_downed(greenlight_path, modules_path):
     """the downed-groan records of vox_lines.py gendowned (every voice set's bleed-out groans + injured breaths), cloned from the same template."""
     import vox_lines
@@ -2726,6 +2852,8 @@ def patch_look_parts(chars_path, modules_path, swaps=None):
     return done
 
 
+# the four tint keys the engine gives slots without a key (exe+0xb0ff40..0xb10127)
+TINT_DEFAULT_KEYS = (0xd966da69624951c4, 0xd966dd69624956dd, 0xd966dc696249552a, 0xd966d76962494cab)
 LOOK2_TINT_PALETTE_SIZE = 0x18   # look2-tint-palette: +0 entry ptr array, +8 count; entry (0x18): +0 look sid,
                                  # +8 colour count, +0x10 colour array (look2 +0xe0 = palette ptr array,
                                  # +0xf0 = palette names: Seraphites 'scar-skin-palette' - skin tint by look)
@@ -2833,7 +2961,9 @@ def verify_look_patches(chars_path):
             if BACKPACK_RIG_ON:
                 assert any(p in BACKPACK_RIG.values() or "backpack" in p for p in ps), (nm, ps)
             assert not any(re.search(r"quiver|backholster|hybridholster|back-holster", p) for p in ps), (nm, ps)
-            t = tint(o, _fnv(nm))
+            # (the Seraphite palettes: an entry under the look's own name. A WLF look's palette - the tint inside the stock kits,
+            # customize_looks.patch_pool_hand_tints - has the game's 31 Seraphite sids in the look's head colour and is checked there)
+            t = tint(o, _fnv(nm)) if nm.startswith("scar-") else None
             if t is not None:
                 src = HEAD_SWAP[base][2] if base in HEAD_SWAP else base
                 ref = tint(looks[_fnv(src)], _fnv(src))
@@ -2841,6 +2971,8 @@ def verify_look_patches(chars_path):
     if SCAR_HOLSTER_ON:         # the Seraphite back holster: once in every Seraphite look and its twin, in no other look
         for o in looks.values():
             nm = _cstr(f, f.q(o + 8))
+            if nm.startswith("t2r-cz-"):      # CUSTOMIZE composable looks (customize_looks.py): every part of the pool on purpose
+                continue
             want = scar_holster_part(nm[:-len(ARMOUR_LOOK_SUFFIX)] if nm.endswith(ARMOUR_LOOK_SUFFIX) else nm)
             ps = parts(o)
             has = [p for p in ps if p in SCAR_HOLSTER_PARTS.values()]
@@ -2856,6 +2988,8 @@ def verify_look_patches(chars_path):
         allp = set(sh.values())
         for o in looks.values():
             nm = _cstr(f, f.q(o + 8))
+            if nm.startswith("t2r-cz-"):      # CUSTOMIZE composable looks (customize_looks.py): every part of the pool on purpose
+                continue
             base = nm[:-len(ARMOUR_LOOK_SUFFIX)] if nm.endswith(ARMOUR_LOOK_SUFFIX) else nm
             ps = parts(o)
             has = [p for p in ps if p in allp]
@@ -2908,6 +3042,54 @@ def patch_pak68(path, level="starlight-mp-test", adds=MP_LEVEL_ADDS):
     print(f"pak68.txt: {level} + {len(new)} entries ({', '.join(new)})")
 
 
+# THE ENGINE'S CAPS PER LEVEL (LevelDef::ReadTxtFile, exe+1ff2030 in 1.6.0: one counter per group of keywords, an assert + int3 at
+# boot when a level passes it - build #18: "Too many modules in level starlight-mp-test [Max 512]" with 560 `symbol` lines,
+# the game ended before the ext was loaded). group -> (keywords counted together, the engine's cap, the build's limit).
+LEVEL_CAPS = {
+    "modules": (("symbol", "module"), 512, 490),
+    "actors": (("actor", "cutscene"), 512, 500),
+    "sound banks": (("sound-bank", "ir-pack"), 256, 250),
+    "particle modules": (("particle-module",), 128, 124),
+    "caches": (("cache",), 128, 124),
+    "vox characters": (("vox-character",), 64, 64),
+    "render settings": (("render-settings",), 384, 380),
+}
+
+
+def level_counts(path):
+    """{level: {group: count}} of a pak68.txt"""
+    kw = {k: g for g, (ks, _cap, _lim) in LEVEL_CAPS.items() for k in ks}
+    out, cur = {}, None
+    for l in open(path, encoding="latin1").read().split("\n"):
+        if l.startswith("level-name "):
+            cur = out.setdefault(l[11:].strip(), {g: 0 for g in LEVEL_CAPS})
+        elif cur is not None:
+            g = kw.get(l.split(" ", 1)[0])
+            if g:
+                cur[g] += 1
+    return out
+
+
+def check_level_caps(path, levels=("starlight-mp-test",)):
+    """Stops the build when a level of the staged pak68.txt is over a limit of LEVEL_CAPS (the limit sits under the engine's cap:
+    room for a hotfix). Prints the named levels' counts and, per group, the fullest level."""
+    cnt = level_counts(path)
+    bad = []
+    for lv, c in cnt.items():
+        for g, (_ks, cap, lim) in LEVEL_CAPS.items():
+            if c[g] > lim:
+                bad.append(f"{lv}: {c[g]} {g} (limit {lim}, the engine's cap {cap})")
+    for lv in levels:
+        if lv in cnt:
+            print(f"level caps: {lv}: " + ", ".join(f"{cnt[lv][g]} {g} (of {cap}, {cap - cnt[lv][g]} free)" for g, (_k, cap, _l) in LEVEL_CAPS.items() if cnt[lv][g]))
+    for g, (_ks, cap, _lim) in LEVEL_CAPS.items():
+        lv = max(cnt, key=lambda k: cnt[k][g])
+        print(f"level caps: most {g}: {lv} {cnt[lv][g]} of {cap}")
+    if bad:
+        raise SystemExit("level caps: the game would stop at boot (LevelDef::ReadTxtFile asserts):\n  " + "\n  ".join(bad[:12]))
+    return cnt
+
+
 def make_ruger_sound_overlay(gamebin_dc1, overlay_dc1):
     """aud-sfx-wpn-pistol-storm.bin (Ruger sounds): the player shot's sfx-info-full gets the MPX5
     shot's mixing fields (+0x08..+0x20: category weapons-rifles, packed limits), so it can repeat
@@ -2953,7 +3135,7 @@ def patch_silencer_art(path):
 # New weapon ids (weapon_clone.py): suppressed guns, picked as the gun's suppressed level in
 # GEAR UP (2013 style). Rifles: the Galil's suppressed shot (bank wpn-rifle-autorifle2, loaded
 # in MP: the Galil is a purchasable); pistols: their banks' own suppressed events.
-# The Galil bank (wpn-rifle-autorifle2) ships byte-identical to the game's: the purchasable Galil plays its stock shot (verify_galil_stock).
+# The Galil bank (wpn-rifle-autorifle2) ships byte-identical to the game's: the purchasable Galil plays its stock v1.08 shot (verify_galil_stock).
 # The Galil actor + bank stay in MP_LEVEL_ADDS for the Galil itself.
 RIFLE_SUPP_BANK = "wpn-rifle-autorifle2"      # the Galil's own bank, shipped unchanged
 # the mix of the carrier bank (a copy of the Galil's): raw PCM layers <- (source bank, wave); then the MPX5 suppressed thumps mixed into the crack
@@ -2966,7 +3148,7 @@ SUPP_MIX_MIX = {f"wpn-suppressed-assault-rifle-shot-{k}.wav": f"wpn-rifle-mpx5-t
 
 # Suppressor can on the suppressed guns (in the gun's own model). The MPX5's can
 # (game pak, triangles z >= 0.482 minus the thin muzzle under it) is grafted into the gun's pak by
-# the pak editor's graft command (tlou2_pak_editor), per LOD: (into, from)
+# the pak editor's graft command (tlou2_pak_editor, t2r-revival branch), per LOD: (into, from)
 # submesh pairs, moved onto the gun's muzzle, skinned to the skeleton's "silencer" joint (rifle-base
 # joint 16). The gun's default joint list hides that joint, the -supp clone's own copy shows it.
 M14 = "rifle-m14-semi"          # the 2013 Semi-Auto Rifle (see M14_SFX below)
@@ -3039,6 +3221,14 @@ DBL_SPREAD = 0.5
 DBL_MUZZLE = (0.0, 0.0725, 0.535)       # bores y 0.063 - 0.082 (x +-0.006 - 0.025), barrel ends z 0.539
 if DBL_MODEL_ON:
     ART_ICONS[DBL_WEAPON] = ICON_DIR + "double-barrel.png"
+# Dragon's Buckshot (re/weapons-1117.md 3.3): Abby's over-under (the game's own model, cloned BEFORE the Double Barrel moves to the
+# side-by-side) with incendiary shells, a purchasable. Every upgrade part of the over-under is on from spawn (t2r-ext FREE_BUNDLES: stock,
+# bullet-loops, barrel; the full upgraded look of Abby's shotgun); stats = the Double Barrel's (t2r-ext base_weapon), the burn
+# is t2r-ext dragon2013.c. Icon: the game's fully upgraded over-under HUD icon in fire orange (make_icons.dragon_icon). T2R_DRAGON=0 = not built.
+DRAGON = "shotgun-dragon"
+DRAGON_ON = os.environ.get("T2R_DRAGON", "1") != "0"
+if DRAGON_ON:
+    ART_ICONS[DRAGON] = ICON_DIR + "dragon-buckshot.png"
 FAR_CAN_JOINT = 16
 FAR_MUZZLE_SHIFT = 0.187
 # suppressed rifles' muzzle flash = the MPX5's (suppressed) one, for the player and for others
@@ -3246,6 +3436,49 @@ def make_colt_hammer_overlay(gamebin_dc1, overlay_dc1):
         os.remove(stale)
     open(os.path.join(out, "aud-sfx-wpn-pistol-beretta.bin"), "wb").write(b)
     print("audio: 9mm hammer-back / -forward = the Beretta's hammer events under the pistol-colt-1911 set's names (module aud-sfx-wpn-pistol-beretta)")
+
+
+# Vintage Rifle / Military Sniper bolt-forward sound: their foley set aud-sfx-wpn-rifle-bolt-scar has ONE sfx-info-light record (+0x228) behind five
+# sfx-info events (bolt-open, bolt-close, insert-round + two more). The SP hunting rifle's set (aud-sfx-wpn-rifle-rembrandt-bolt) gives bolt-close
+# (and bolt-close-end) a record of their own (+0x320, level -8 dB beside the open's -7 dB). Fallback for a bolt-close that the A/B recording shows
+# silent although the clip's weapon-effect fires: an own record for bolt-close, a byte copy of the shared one (same level / distances: no new
+# values), appended with its sfx-info-light tag; the bolt-close event's pointer (+0x128) moves to it. It changes playback only if the engine
+# limits or steals voices per record. T2R_BOLTCLOSE_INFO=0 builds without it (and removes a stale overlay file).
+BOLTSCAR_MODULE = "aud-sfx-wpn-rifle-bolt-scar"         # = its modules.bin name (audio-sfx/weapons/aud-sfx-wpn-rifle-bolt-scar)
+BOLTCLOSE_INFO = os.environ.get("T2R_BOLTCLOSE_INFO", "1") != "0"
+
+
+def make_boltscar_close_info(gamebin_dc1, overlay_dc1):
+    """aud-sfx-wpn-rifle-bolt-scar.bin: sfx-weapon-rifle-bolt-scar-bolt-close -> an own sfx-info-light record (copy of the shared one)."""
+    from dcfile import DcFile, fnv
+    out_dir = os.path.join(overlay_dc1, "audio-sfx", "weapons")
+    dst = os.path.join(out_dir, BOLTSCAR_MODULE + ".bin")
+    if not BOLTCLOSE_INFO:
+        if os.path.exists(dst):
+            os.remove(dst)
+        return
+    d = DcFile(open(os.path.join(gamebin_dc1, "audio-sfx", "weapons", BOLTSCAR_MODULE + ".bin"), "rb").read())
+    n = struct.unpack_from("<I", d.data, 0x14)[0]
+    base = struct.unpack_from("<Q", d.data, 0x18)[0] or 0x28
+    syms = {struct.unpack_from("<Q", d.data, base + 24 * i)[0]: struct.unpack_from("<QQ", d.data, base + 24 * i + 8) for i in range(n)}
+    ev = {k: syms[fnv("sfx-weapon-rifle-bolt-scar-" + k)] for k in ("bolt-open", "bolt-close")}
+    for k, (typ, obj) in ev.items():
+        assert typ == fnv("sfx-info") and d.q(obj) == fnv("sfx-weapon-rifle-bolt-scar-" + k) and d.is_ptr(obj + 8), f"{k}: event layout changed"
+    shared = d.q(ev["bolt-close"][1] + 8)
+    assert shared == d.q(ev["bolt-open"][1] + 8) and d.q(shared - 8) == fnv("sfx-info-light"), "bolt-close no longer shares bolt-open's record"
+    size = 0x28                                         # sfx-info-light: {sid, category sid, 3 x 4 halfs} (+0x228 .. the module end 0x250)
+    rec = bytes(d.data[shared:shared + size])
+    assert len(rec) == size and not any(d.is_ptr(shared + o) for o in range(0, size, 8)), "shared record layout changed"
+    new = d.append(rec, tag="sfx-info-light")
+    d.set_ptr(ev["bolt-close"][1] + 8, new)
+    b = d.save()
+    r = DcFile(b)                                       # read back: bolt-close -> the copy, bolt-open (and the rest) -> the shared record
+    close_rec, open_rec = r.q(ev["bolt-close"][1] + 8), r.q(ev["bolt-open"][1] + 8)
+    assert close_rec != open_rec and bytes(r.data[close_rec:close_rec + size]) == rec and r.q(close_rec - 8) == fnv("sfx-info-light")
+    assert open_rec == shared and bytes(r.data[open_rec:open_rec + size]) == rec
+    os.makedirs(out_dir, exist_ok=True)
+    open(dst, "wb").write(b)
+    print(f"audio: bolt-scar bolt-close -> its own sfx-info-light record at {close_rec:#x} (copy of the shared {shared:#x}; module {len(b)} bytes)")
 
 
 def make_tac_sfx_overlay(gamebin_dc1, overlay_dc1):
@@ -3793,12 +4026,42 @@ def patch_milsniper_art(path):
 if MILSNIPER_ON:
     ART_ICONS[MILSNIPER] = ICON_DIR + "milsniper.png"
     MP_LEVEL_ADDS.append("actor " + MILSNIPER_ACTOR)
+# Vintage Rifle (re/weapons-1117.md 3.1): a scopeless bolt action = the hunting rifle's clone (its bolt clips, overlays, reload) on
+# TLOU2's NPC bolt rifle model rifle-bolt-scar (same rifle-base rig as the hunting rifle; already in the MP level: MP_LEVEL_ADDS). 2 body
+# shots to down like the Frontier, magazine 2 / 3 / 4 and a faster bolt per level (t2r-ext WEAPON_STATS / weapon_stats_apply VT_CYC). Sounds
+# (Part I gunshot, NPC reloads and bolt): the gunshot is the Part I hunting rifle's (t2r-ext vintage.c plays p1-vintage.pcm, a
+# side file staged with the Part I pack by release/build_release.py from tools/part1/p1_vintage_sound.py; without it the hunting rifle's own
+# TLOU2 shot event); bolt and reload foley = the Seraphite NPC bolt rifle's audio set (VINTAGE_AUDIO). T2R_VINTAGE=0 = not built.
+VINTAGE = "rifle-vintage"
+VINTAGE_SRC = "rifle-remington-bolt"
+VINTAGE_ACTOR = "rifle-bolt-scar"
+VINTAGE_ON = os.environ.get("T2R_VINTAGE", "1") != "0"
+# interval None = the hunting rifle's def (t2r-ext sets the per-level interval); magazine 2 (level 0); kick 115 / 115 / yaw 10 = the
+# Frontier's base (the hunting rifle's def is 130 - 150): our choice, no 2013 gun to copy
+VINTAGE_STATS = (None, 2, 115.0, 115.0, 10.0)
+# the shot events -> a name no bank has: the engine's own shot is silent for the Vintage Rifle, t2r-ext vintage.c plays the Part I shot (side file)
+# or, without it, the hunting rifle's own shot event (play-sound-at-joint; the hunting rifle's bank is loaded in MP).
+VINTAGE_SFX = {"sfx-rifle-remington-bolt-player": "sfx-rifle-vintage-shot", "sfx-rifle-remington-bolt-npc": "sfx-rifle-vintage-shot"}
+# bolt / reload foley: the Seraphite NPC bolt rifle's audio set (module aud-sfx-wpn-rifle-bolt-scar, bank wpn-rifle-bolt-scar: tkiv bolt open /
+# close + round inserts; actor + bank already in the MP level for the Military Sniper, which also plays its foley through this set on the same
+# hunting rifle clips). The Military Sniper's bank edit (MILSNIPER_WAVES) only touches the shot blooms / distant layer, not the foley.
+VINTAGE_AUDIO = "=rifle-bolt-scar"
+VINTAGE_MUZZLE_DZ = -0.10           # rifle-bolt-scar barrel ends ~0.10 m behind the hunting rifle's muzzle point (model research)
+AIM_2013[VINTAGE] = None            # the hunting rifle's own aim (no reticle-bloom-def)
+if VINTAGE_ON:
+    ART_ICONS[VINTAGE] = ICON_DIR + "vintage-rifle.png"
 if FRONTIER_ON:
     ART_ICONS[FRONTIER] = ICON_DIR + "frontier.png"
     ART_ICONS[FRONTIER + "-supp"] = ICON_DIR + "frontier-supp.png"
     MP_LEVEL_ADDS += ["actor " + FRONTIER_SUPP_ACTOR]
     MP_LEVEL_ADDS += ["actor " + FRONTIER_ACTOR, "sound-bank " + FRONTIER_BANK, "actor " + FRONTIER_NPC_ANIM_PAK,
                       *["actor " + _p for _p in FRONTIER_CARRIER_PAKS]]
+# Vintage Rifle bolt cycle per level (tools/part1/vintage_bolt.py, build_dll.stage_vintage_bolt): fps-scaled copies of the hunting rifle's
+# rechamber clips on carrier slots of anim-ellie-workbench-bow (body) / anim-npc-m-lg (gun), the Vintage's own overlay module rifle-hunting-bolt,
+# t2r-ext vbl_answer picks the level's copy for our body.  T2R_VINTAGE_BOLT=0: the hunting rifle's clips at x1 (1.97 s shot to shot at every level).
+VINTAGE_BOLT = VINTAGE_ON and os.environ.get("T2R_VINTAGE_BOLT", "1") != "0"
+if VINTAGE_BOLT:
+    MP_LEVEL_ADDS += [_a for _a in ("actor anim-ellie-workbench-bow", "actor anim-npc-m-lg") if _a not in MP_LEVEL_ADDS]
 # both OFF unless T2R_FACTION_GUNS=1 (also t2r-faction-guns.txt for the ext's picker rows)
 FACTION_GUNS = os.environ.get("T2R_FACTION_GUNS", "0") == "1"
 if FACTION_GUNS:
@@ -3809,6 +4072,28 @@ if FACTION_GUNS:
         MP_LEVEL_ADDS += ["actor pistol-ruger", "symbol pistol-ruger", "sound-bank wpn-pistol-storm",
                           "sound-bank wpn-pistol-ruger", "sound-bank wpn-pistol-revolver-357"]
     ART_ICONS.update({DIABLO: ICON_DIR + "el-diablo.png", SHORTY: ICON_DIR + "shorty.png"})
+# Snubby (pistol-snubby): a small-firearm revolver with no 2013 original - the TLOU2 revolver's clone (its firearm-art, anim type, holster,
+# ammo-revolver) on Part I's t1x-bull-66b4-revolver with J-frame sights (tools/part1/p1_guns.SNUBBY: built into the revolver's own pak, actor
+# SNUBBY_ACTOR), Part I's round-by-round .357 reload (tools/part1/p1_wire.py Snubby section: carriers in SNUBBY_PAKS + two slots of P1_ANIM_PAK,
+# overlay module pistol-revolver-66b4) and its own pistol-style shot (tools/part1/snubby_sound.py,  pick 'B4': 1911 / Dina thumps + the
+# .45 crack + El Diablo's hammer click, Browning / 1911 blooms) in the Seraphite revolver's bank (set pistol-revolver-scar: no MP gun uses it).
+# The shot event comes from that set the way the Enforcer's comes from the CZ75's (ENFORCER_SFX): the art keeps the revolver's audio set, so the
+# reload foley (open / eject / insert / close) stays the revolver's.  Stats / damage / falloff / picker / prices: t2r-ext (WEAPON_STATS row,
+# SNUBBY_FALL, T2R_SNUBBY_BUILT).  Needs the Part I install (T2R_P1_GUNS=1) and the faction guns; T2R_SNUBBY=0 builds without it.
+SNUBBY = "pistol-snubby"
+SNUBBY_ACTOR = "pistol-snubby-revolver"             # same length as pistol-revolver-taurus (rename_pak)
+SNUBBY_ON = FACTION_GUNS and P1_GUNS and os.environ.get("T2R_SNUBBY", "1") != "0"
+# (interval, magazine, pitch min / max, yaw): 0.25 s, 5 rounds, kick 70 / yaw 10 - the WEAPON_STATS level-1 row of t2r-ext
+SNUBBY_STATS = (0.25, 5, 70.0, 70.0, 10.0)
+SNUBBY_SFX = {"sfx-pistol-revolver-taurus-player": "sfx-pistol-revolver-scar-npc",
+              "sfx-pistol-revolver-taurus-npc": "sfx-pistol-revolver-scar-npc",
+              "sfx-pistol-revolver-taurus-owen-player": "sfx-pistol-revolver-scar-npc",
+              "sfx-pistol-revolver-taurus-npc-joel": "sfx-pistol-revolver-scar-npc"}
+SNUBBY_BANK = "wpn-pistol-revolver-scar"
+if SNUBBY_ON:
+    MP_LEVEL_ADDS += ["actor " + SNUBBY_ACTOR, "actor pistol-revolver-scar", "symbol pistol-revolver-scar", "sound-bank " + SNUBBY_BANK,
+                      "actor anim-ellie-player-balance", "actor anim-abby-workbench-velazquez"]   # (p1_wire.SNUBBY_PAKS)
+    ART_ICONS[SNUBBY] = ICON_DIR + "snubby.png"
 FACTION_GUNS_HEADER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ext", "faction_guns_built.h")
 
 
@@ -3824,7 +4109,10 @@ def write_faction_guns_header():
             f"#define T2R_ASSAULT_BUILT {int(ASSAULT_ON)}\n"
             f"#define T2R_EXPBOW_BUILT {int(EXPBOW_ON)}\n"
             f"#define T2R_FLAME_BUILT {int(FLAME_ON)}\n"
-            f"#define T2R_COLT_BUILT {int(P1_COLT)}\n")
+            f"#define T2R_DRAGON_BUILT {int(DRAGON_ON)}\n"
+            f"#define T2R_VINTAGE_BUILT {int(VINTAGE_ON)}\n"
+            f"#define T2R_COLT_BUILT {int(P1_COLT)}\n"
+            f"#define T2R_SNUBBY_BUILT {int(SNUBBY_ON)}\n")
     old = open(FACTION_GUNS_HEADER, encoding="utf-8").read() if os.path.exists(FACTION_GUNS_HEADER) else None
     if old != text:
         open(FACTION_GUNS_HEADER, "w", encoding="utf-8", newline="\n").write(text)
@@ -3901,7 +4189,10 @@ def patch_tac_art_reticle(path):
     old, new = fnv("reticle-throws-shotgun-basic"), fnv("reticle-throws-pistol-revolver-taurus")
     olds = {old, fnv("reticle-throws-assault-rifle-single-shot")}     # (the Frontier clone carries the hunting rifle's)
     n = 0
-    for gun in (TAC, TAC + "-supp", DBL_WEAPON) + ((FRONTIER, FRONTIER + "-supp") if FRONTIER_ON else ()):   # Double Barrel: 2013's big circle too; Frontier: ring + dot
+    # Vintage Rifle: the hunting rifle's clone shares its single-shot id = a dot; with the revolver's id (own copy, the hunting rifle keeps
+    # its own) it gets the plain circle like the other guns (its +0x58 image is already circle-reticle, the revolver's)
+    for gun in ((TAC, TAC + "-supp", DBL_WEAPON) + ((FRONTIER, FRONTIER + "-supp") if FRONTIER_ON else ())
+                + ((VINTAGE,) if VINTAGE_ON else ())):   # Double Barrel: 2013's big circle too; Frontier: ring + dot
         a = hash_get(f, mo, fnv(gun))
         for off, sub in ((0xe8, 0xa0), (0x120, 0x80)):
             src = f.q(a + off)
@@ -4583,7 +4874,7 @@ def verify_supp_carrier(root, dc1, staged_carrier, mix_reference=None):
 
 def verify_galil_stock(dc1, staged_bank=None, orig_bank=None):
     """build check (staged dc1 + bank): the purchasable Galil (rifle-galil) plays its own stock events (sfx-galil-player in its sound def at
-    /140/68, sfx-galil-npc at /140/48 /140/60) and its bank ships byte-identical to the game's (the stock sound); every suppressed rifle
+    /140/68, sfx-galil-npc at /140/48 /140/60) and its bank ships byte-identical to the game's (the v1.08 sound); every suppressed rifle
     clone fires SUPP_RIFLE_PLAYER on its own base gun's audio set (verify_supp_carrier checks the carrier bank)."""
     names = ["sfx-galil-player", "sfx-galil-npc", "sfx-galil-dryfire", MPX5_SUPP_EVENT]
     g = far_mpxs_sid_places(dc1, "rifle-galil", names)
@@ -4749,9 +5040,9 @@ def patch_listen_mode(src, dst):
     return out
 
 
-# Shipyard navmesh (climbing / "verticality" block): the client ships Shipyard's level pak
+# Shipyard navmesh (climbing / "verticality" block): the base client ships Shipyard's level pak
 # with a navmesh (NAV_MESH_1 + nav-* tiles, 1.4 MB); our spawn placement rebuilt that pak with the
-# SceneEditor writer, which keeps only spawners. Our pak (our spawns + 5 supply boxes) stays; the client's
+# SceneEditor writer, which keeps only spawners. Our pak (our spawns + 5 supply boxes) stays; the base client's
 # pak comes along as a second package of the level (to1-pvp-shipyard-nav-ingame) for its navmesh,
 # its own spawners renamed to1-* -> nv1-* (strings and name hashes) so they don't double ours.
 # OFF: the second package broke every Shipyard spawner lookup (players spawned at the
@@ -5121,7 +5412,7 @@ def swap_pistol_holster_slots(path: str):
     return n
 
 
-SIDEARM_THIGH_ONLY = ("pistol-revolver-taurus", "pistol-el-diablo", "shotgun-shorty")
+SIDEARM_THIGH_ONLY = ("pistol-revolver-taurus", "pistol-el-diablo", "shotgun-shorty", "pistol-snubby")   # (+ the Snubby: a revolver clone)
 
 
 def force_sidearm_thigh_slot(path: str, names=None):
@@ -5285,7 +5576,7 @@ def fit_sidearm_holsters(path: str, fit_path: str = HOLSTER_FIT_JSON):
     return done
 
 
-ABBY_HOLSTER_ARTS = ("pistol-revolver-taurus", "pistol-el-diablo")
+ABBY_HOLSTER_ARTS = ("pistol-revolver-taurus", "pistol-el-diablo", "pistol-snubby")   # (+ the Snubby: a revolver clone)
 
 
 def abby_holster_data_as_ellie(path: str, arts=ABBY_HOLSTER_ARTS):

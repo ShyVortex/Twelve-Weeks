@@ -1,4 +1,4 @@
-"""Offline checks of the SP-map strip step (tools/maps/collectibles.py sp_strip_collectibles_workbench: every SP map
+"""Offline checks of the SP-map strip step (tools/maps/collectibles.py sp_strip_collectibles_workbench, every SP map
 ships without collectibles and workbenches; crafting parts and normal pickups stay).  No game files needed: the classifier, the
 workbench name rules, the build hook and the committed snapshot tools/maps/data/sp-strip.json (made by
 `python collectibles.py strip <map>...`, which needs the game install)."""

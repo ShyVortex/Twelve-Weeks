@@ -19,8 +19,14 @@
 // QUICK MATCH: a third row after the real modes (index MODE_N, not in modes.json): "any mode". The daemon takes it as mode 255 and puts the
 // player in every mode's queue; it announces that with "any=1" in its 0xBD reply (an old daemon never does: the row then falls back to the default mode
 // and logs it). The match's real mode reaches the client like any other (r13_int_mode / the loading screen) - the row is only a queue preference.
-#define MK_N (MODE_N + 1)
+// PRIVATE MATCH: the fourth row (index MODE_N + 1, no player count). A pick sends no 0xBC: it opens the private lobby page (privlobby.c:
+// creates a lobby, or shows the one this player is already in). Never disabled by a forced T2R_MODE (a private lobby picks its own mode). Off with
+// t2r-no-private.txt next to the exe (the row then shows dimmed and refuses the pick) or a daemon that answers err=off.
+#define MK_N (MODE_N + 2)
+#define MK_PRIV (MODE_N + 1)
 #define MK_ANY 255
+static int pl_off(void);                        // privlobby.c
+static void pl_open(const char *why);           // privlobby.c: open the private lobby page from the mode box
 
 static struct {
     int fade_dir, open, shown, h_sel, h_back, h_l, h_u, h_d, sel, dirty, hov;
@@ -163,7 +169,10 @@ static void mk_cycle_sfx(uint64_t now) {                              // the foc
     if (now - g_mdpk.cycle_ms >= 150) { g_mdpk.cycle_ms = now; ui_sfx("sfx-cycle"); }
 }
 // a row that cannot be picked (the daemon forces another mode): 40 % and never the selected look
-static int mk_disabled(int k) { return g_mdpk.have && g_mdpk.forced && (k != g_mdpk.mode || k >= MODE_N); }   // (QUICK MATCH is off while a mode is forced)
+static int mk_disabled(int k) {
+    if (k == MK_PRIV) return pl_off();          // (a forced public mode never touches PRIVATE MATCH)
+    return g_mdpk.have && g_mdpk.forced && (k != g_mdpk.mode || k >= MODE_N);   // (QUICK MATCH is off while a mode is forced)
+}
 static void mk_close(const char *why, int refocus) {
     if (!g_mdpk.open) { if (g_mdpk.shown) mk_show(0, 1); return; }
     g_mdpk.open = 0; g_mdpk.chosen = g_mdpk.sent = 0;
@@ -174,7 +183,12 @@ static void mk_close(const char *why, int refocus) {
 static void mk_fill(void) {                                           // never blank: a count not known yet is "...", none searching is a dim "0 SEARCHING"
     char p[96], t[48];
     for (int k = 0; k < MK_N; k++) {
-        snprintf(p, sizeof p, "anim-group.modeBox.modeRow%d.mpNm%d", k, k); ui_text(p, k < MODE_N ? MODE_TAB[k].label : "QUICK MATCH");
+        snprintf(p, sizeof p, "anim-group.modeBox.modeRow%d.mpNm%d", k, k); ui_text(p, k < MODE_N ? MODE_TAB[k].label : k == MK_PRIV ? "PRIVATE MATCH" : "QUICK MATCH");
+        if (k == MK_PRIV) {                                            // no count (the widget builds the group hidden; kept hidden here too)
+            snprintf(p, sizeof p, "anim-group.modeBox.modeRow%d.mpCntG%d", k, k); ui_visible(p, 0);
+            snprintf(p, sizeof p, "anim-group.modeBox.modeRow%d", k); w_alpha(ui_w(p), mk_disabled(k) ? 0.4f : 1.0f);
+            continue;
+        }
         snprintf(p, sizeof p, "anim-group.modeBox.modeRow%d.mpCntG%d.mpCnt%d", k, k, k);     // (the number; the NR man icon sits left of it in the same group)
         if (!g_mdpk.have) snprintf(t, sizeof t, "...");
         else snprintf(t, sizeof t, "%d", k < MODE_N ? g_mdpk.q[k] : g_mdpk.qa);     // (QUICK MATCH: everybody searching)
@@ -279,7 +293,7 @@ static void feature_modepick(void) {
             return;
         }
         g_mdpk.open = 1; g_mdpk.open_frame = g_frame; g_mdpk.dirty = 1; g_mdpk.chosen = g_mdpk.sent = 0; g_mdpk.poll_at = 0; g_mdpk.hov = -1;
-        g_mdpk.sel = g_mdpk.mode >= 0 && g_mdpk.mode < MK_N ? g_mdpk.mode : 0;
+        g_mdpk.sel = g_mdpk.mode >= 0 && g_mdpk.mode < MK_PRIV ? g_mdpk.mode : 0;
         mk_fill();
         mk_show(1, 1);
         mk_sel_fade(1);
@@ -321,6 +335,12 @@ static void feature_modepick(void) {
     if ((sel || over >= 0) && over >= 0 && mk_disabled(over)) { ui_sfx("sfx-menu-error"); sel = 0; over = -1; }
     if (sel || over >= 0) {
         if (over >= 0) g_mdpk.sel = over;
+        if (g_mdpk.sel == MK_PRIV) {                                  // PRIVATE MATCH: no queue - the lobby page
+            ui_sfx("sfx-select");
+            mk_close("private match", 0);
+            pl_open("mode box");
+            return;
+        }
         g_mdpk.chosen = 1; g_mdpk.sent = 0; g_mdpk.chosen_at = now; g_mdpk.pick = g_mdpk.sel;
         // feedback within 100 ms - the sound, the picked row lit and the box on its way out in this frame; the search page follows on the server's ack
         ui_sfx("sfx-select");

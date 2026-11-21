@@ -69,7 +69,7 @@ check((T[1], mid) in daemon.AFK_KICKED, "noted once per match")
 check(b"no input for 90 seconds (AFK)" in conn.out and conn.out.endswith(daemon.msg(0x0d, b"\x01")), "kick text + 0x0d back to the menu on his session socket")
 check(conn.out.find(b"You got kicked from the match") >= 0, "the text starts like the kick text (the ext shows it as the server toast)")
 check(any(n[0] == T[1] and n[1] == "kicked" for n in notes), "the kick notice for the notice poll too")
-# kicks carry no penalty: an AFK removal is no deliberate leave and its clan day never books a deficit
+# Kicks carry no penalty: an AFK removal is no deliberate leave and its clan day never books a deficit
 check(daemon.clan_why_deliberate("left: afk (no input for 90 s)") is False, "the clan does not see a deliberate leave")
 check((T[1], mid) in daemon.CLAN_KICKED, "marked as kicked: no clan deficit for this match")
 check(any(l.startswith("afk:") and "removed from the match" in l for l in LOGS), "'afk:' log line")

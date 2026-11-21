@@ -1,6 +1,6 @@
 static int padinj_nofocus_on(void);   // padinject.c (ps47)
 static int mdg47_focus_off(void) { static int off = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (off < 0 || n - at > 2000) { at = n; off = GetFileAttributesA("t2r-dodge-focus-ps47-old.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
-// melee_dodge.c - a melee dodge for the victim of a swing (the small stagger stays; the dodge is only available when a melee hit is about to land,
+// melee_dodge.c - a melee dodge for the victim of a swing (the small stagger stays, BUT there is a dodge system - only when you are about to get meleed,
 // so it is no movement tech; balanced so you cannot dodge every hit; it uses SP's dodge system; the attacker's hit anim is extended a little for a fair window;
 // later: it balances upgraded one-shot melee, a dodged blow carries the attacker on and leaves him open, the dodger is limited too).
 // Included after melee_feel.c in t2r-ext.c. Log prefix "dodge:". Opt-out: t2r-no-melee-dodge.txt next to the exe (re-read every 2 s).
@@ -86,6 +86,7 @@ static void mdg_whiff_whoosh(uint64_t ent, uint64_t w, int slot) {
 static void mdg_dodge_ok_cue(uint64_t ent, uint32_t who, const char *why) {
     static uint64_t last[T2R_MAX_PEERS + 1]; static int nl, off = -1; static uint64_t chk;
     uint64_t now = GetTickCount64(); uint32_t k = who < T2R_MAX_PEERS ? who : T2R_MAX_PEERS;
+    if (who >= T2R_MAX_PEERS) ach_dodge();                     // achievements: one blow we dodged (achieve.c)
     if (off < 0 || now - chk > 2000) { chk = now; off = GetFileAttributesA("t2r-no-dodge-cue.txt") != INVALID_FILE_ATTRIBUTES; }
     if (off || !ent || ent == ~0ULL || now - last[k] < 600) return;
     last[k] = now;
@@ -1181,20 +1182,56 @@ static uint64_t g_md56_ctr_ms[T2R_MAX_PEERS], g_md56_dodged_ms[T2R_MAX_PEERS];
 #define MD56_CTR_MS 1800             // the counter press -> its blow / pair START (haymaker intro + contact 0.53 s, duel route contact <= 666 ms, + latency)
 #define MD56_DODGED_MS 1600          // our dodged blow -> the counter's blow: press window +734 ms + its contact (<= 666 ms) + latency; a fresh swing after the window contacts later (dodgeable)
 static int md56_off(void) { static int v = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (v < 0 || n - at > 2000) { at = n; v = GetFileAttributesA("t2r-dc-dodgeable.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
-static int md56_counter_from(uint32_t from, uint64_t now) { return from < T2R_MAX_PEERS && !md56_off() && g_md56_dodged_ms[from] && now - g_md56_dodged_ms[from] < MD56_DODGED_MS; }
+static int md56_window_from(uint32_t from, uint64_t now) { return from < T2R_MAX_PEERS && !md56_off() && g_md56_dodged_ms[from] && now - g_md56_dodged_ms[from] < MD56_DODGED_MS; }
+// (a report: melee was still hitting even after dodging; in a clip the punch looked dodged, then the kick finisher downed them): player A [170479] 'PRESS 234 ms
+// into slot 1's swing (window 480 ms)', [170487] 'ps56 pair START from slot 1 inside our i-frames accepted - its dodge counter (it dodged our blow 1219 ms ago)' cut the
+// dodge clip after 62 ms; player B's log has no dcounter line - its press came ~0.8 s after its dodge (counter window 0.6 s): a plain fist-light-attack-1. ps56 ruled by
+// time alone (any blow from the player who dodged us < MD56_DODGED_MS ago). Now only a real counter is undodgeable: its pair START is a counter pair (dc- / pe- rows,
+// the duel route's <dodge-attack>-hit pair) or its duel SWING named a dodge-attack row (md56_note_swing, melee_duel.c). A known counter swing opens no dodge window
+// and a dodge press while it is in flight is dropped - no dodge clip that the blow then cuts. t2r-md56-time-only.txt = the old time rule.
+static uint64_t g_md56_ctrsw_ms[T2R_MAX_PEERS];   // that slot's last duel SWING was a dodge-attack row (its arrival; 0 = a plain swing)
+#define MD56_CTRSW_MS 1200            // the counter's SWING -> its blow (contact <= 666 ms + one-way + the -hit pair's START)
+static int md56_time_only(void) { static int v = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (v < 0 || n - at > 2000) { at = n; v = GetFileAttributesA("t2r-md56-time-only.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
+static int md56_ctr_name(const char *n) { return n && (!strncmp(n, "dc-", 3) || !strncmp(n, "pe-", 3) || (strstr(n, "dodge-") && strstr(n, "attack"))); }
+static int md56_ctr_swing(uint32_t s, uint64_t now) { return s < T2R_MAX_PEERS && g_md56_ctrsw_ms[s] && now - g_md56_ctrsw_ms[s] < MD56_CTRSW_MS; }
+static void md56_note_swing(uint32_t s, const char *move, uint64_t now) {
+    if (s >= T2R_MAX_PEERS) return;
+    int c = md56_ctr_name(move);
+    g_md56_ctrsw_ms[s] = c ? now : 0;
+    if (c) { static int nl; if (LOGCAP(nl, 40)) xlog("dodge: ps56 slot %u's SWING %s is a dodge counter%s", s, move, md56_window_from(s, now) ? " (it dodged our blow) - undodgeable, no dodge window for it" : " (not after dodging our blow - dodgeable)"); }
+}
+static int md56_counter_from(uint32_t from, uint64_t now) { return md56_window_from(from, now) && (md56_time_only() || md56_ctr_swing(from, now)); }
+static int md56_counter_pair(uint32_t from, uint64_t now, const char *pair) { return md56_window_from(from, now) && (md56_time_only() || md56_ctr_swing(from, now) || md56_ctr_name(pair)); }
+static int md56_ctr_inflight(uint64_t now, int *slot) {   // a counter swing on us whose blow has not landed yet
+    if (md56_time_only()) return 0;
+    for (uint32_t s = 0; s < T2R_MAX_PEERS; s++)
+        if (md56_ctr_swing(s, now) && md56_window_from(s, now) && g_mdg.sw[s].landed_ms < g_md56_ctrsw_ms[s]) { if (slot) *slot = (int)s; return 1; }
+    return 0;
+}
 
+// (brawl clips: 234660 own DODGE press, i-frames 365 ms, 234692 "dodger free again (391 ms ...)", 234721 "hit received ... dmg 25" from a plain swing while the dodge clip still
+// ran (released 891 ms); the reaction was only the additive gesture): the dodged body is still travelling after its i-frames end - a plain blow that lands on it then must not hurt (SP: the
+// dodge's body is out of reach until it stops). The plain-hit gate (mdg_hit_dodged) keeps its immunity until the combat-dodge clip has landed (cmb_land_ms), same rules otherwise.
+// t2r-dodge-travel-immune-off.txt = the i-frames only.
+static int mdg_travel_immune(uint64_t now) {
+    static int off = -1; static uint64_t at;
+    if (off < 0 || now - at > 2000) { at = now; off = GetFileAttributesA("t2r-dodge-travel-immune-off.txt") != INVALID_FILE_ATTRIBUTES; }
+    return !off && g_mdg.iframe_until && g_mdg.press_ms && g_mdg.cmb_on && g_mdg.cmb_ms >= g_mdg.press_ms && now >= g_mdg.press_ms && now - g_mdg.cmb_ms < g_mdg.cmb_land_ms;
+}
 static int mdg_hit_dodged(uint64_t att, uint64_t w, float dmg) {
     mdgt_note_blow(w, dmg);
     if (dmg > 0.0f && dmg < 100000.0f && mhs_is_blow(w) && !mdg_is_thrown(w)) { int ls = mdg_slot_of_obj(att); if (ls >= 0 && (uint32_t)ls < T2R_MAX_PEERS) g_mdg.sw[ls].landed_ms = GetTickCount64(); }   // window of that swing is over (also a blow arriving inside the i-frames)
     if (!(dmg > 0.0f) || dmg >= 100000.0f || !g_mdg.iframe_until || mdg_off()) return 0;
     uint64_t now = GetTickCount64();
-    if (!mdg_iframes(now) || !mhs_is_blow(w) || mdg_is_thrown(w)) return 0;
+    int trv11 = !mdg_iframes(now) && mdg_travel_immune(now);
+    if ((!mdg_iframes(now) && !trv11) || !mhs_is_blow(w) || mdg_is_thrown(w)) return 0;
     // only the blow of the attacker whose announced swing opened this dodge's window, from a body in melee reach (a bullet / thrown item / other player's hit is never dodged)
     int as = mdg_slot_of_obj(att);
     if (as < 0) as = g_mdg.last_slot;                                          // the attacker object did not resolve (heap move): the window's slot, if its swing is recent
     if (as < 0 || (uint32_t)as >= T2R_MAX_PEERS || !mdg_recent_swing(now, (uint32_t)as, 1600)) return 0;
     if (as != g_mdg.last_slot && mdg_slot_of_obj(att) >= 0) return 0;
     if (md56_counter_from((uint32_t)as, now)) { xlog("dodge: ps56 blow from slot %d inside our i-frames lands - its dodge counter (it dodged our blow %llu ms ago; a counter cannot be dodged)", as, (unsigned long long)(now - g_md56_dodged_ms[as])); return 0; }
+    if (md56_window_from((uint32_t)as, now)) xlog("dodge: ps56 blow from slot %d %llu ms after it dodged our blow - NOT a counter (its swing named no dodge attack): dodgeable", as, (unsigned long long)(now - g_md56_dodged_ms[as]));
     if (bq_hit_forced((uint32_t)as)) { xlog("beat: blow from slot %d inside our i-frames NOT dropped - the duel owner ruled it a HIT", as); return 0; }
     if (mdg_partner_ruled((uint32_t)as)) { static int nlp; if (LOGCAP(nlp, 60)) xlog("dodge: blow from our duel partner slot %d inside our i-frames (%llu ms after the press) lands - its contact ruled it a HIT (one ruler; ps23)", as, (unsigned long long)(now - g_mdg.press_ms)); g_mdg_late_ms = now; return 0; }
     {   uint8_t *pe = mdg_peer((uint32_t)as); float pb[16], mb[16];
@@ -1216,6 +1253,7 @@ static int mdg_hit_dodged(uint64_t att, uint64_t w, float dmg) {
         if (g_mdu_late_rx[as] && now - g_mdu_late_rx[as] < 600) { xlog("dodge: slot %d ruled our press TOO LATE (MDUO_LATE) - its blow / START lands", (int)as); g_mdg_late_ms = now; return 0; }
         if (lead < 120.0f) { static int nl3; if (LOGCAP(nl3, 40)) xlog("dodge: blow from slot %d NOT dropped - our press reached its screen only ~%.0f ms before its contact (< 120 ms incl. send delay): TOO LATE, the blow lands", as, (double)lead); g_mdg_late_ms = now; return 0; }
     }
+    if (trv11) { static int ntv; if (LOGCAP(ntv, 40)) xlog("dodge: blow from slot %d (dmg %.0f) %llu ms after the press - past the i-frames but our dodge clip is still travelling (lands at %llu ms): dropped (t2r-dodge-travel-immune-off.txt = old)", as, (double)dmg, (unsigned long long)(now - g_mdg.press_ms), (unsigned long long)g_mdg.cmb_land_ms); }
     g_mdg.dodged_hits++; mdg_ok_note(now);
     mdgt_note_dodged();
     xlog("dodge: blow from slot %d (weapon %llx, dmg %.0f) dropped %llu ms into the i-frames (%d ms) - dodged, attacker told", as, (unsigned long long)w, dmg, (unsigned long long)(now - g_mdg.press_ms), MD_IFRAME_MS);
@@ -1226,12 +1264,14 @@ static int mdg_hit_dodged(uint64_t att, uint64_t w, float dmg) {
     return 1;
 }
 // paired.c: a one-shot / contextual down START from `from` arrives; 1 = refuse it (ABORT PS_AB_DODGED)
-static int mdg_pair_dodged(uint32_t from) {
+static int mdg_pair_dodged(uint32_t from, uint64_t move) {
     if (from < T2R_MAX_PEERS) g_mdg.sw[from].landed_ms = GetTickCount64();
     if (!g_mdg.iframe_until || mdg_off()) return 0;
     uint64_t now = GetTickCount64();
     if (!mdg_iframes(now) || !mdg_recent_swing(now, from, 2000)) return 0;
-    if (md56_counter_from(from, now)) { xlog("dodge: ps56 pair START from slot %u inside our i-frames accepted - its dodge counter (it dodged our blow %llu ms ago; a counter cannot be dodged)", from, (unsigned long long)(now - g_md56_dodged_ms[from])); return 0; }
+    {   int r56 = cd_pair_of_move(move); const char *pn56 = r56 >= 0 ? CD_PAIRS[r56].name : NULL;
+        if (md56_counter_pair(from, now, pn56)) { xlog("dodge: ps56 pair START %s from slot %u inside our i-frames accepted - its dodge counter (it dodged our blow %llu ms ago; a counter cannot be dodged)", pn56 ? pn56 : "?", from, (unsigned long long)(now - g_md56_dodged_ms[from])); return 0; }
+        if (md56_window_from(from, now)) xlog("dodge: ps56 pair START %s from slot %u %llu ms after it dodged our blow - NOT a counter: judged like any blow", pn56 ? pn56 : "?", from, (unsigned long long)(now - g_md56_dodged_ms[from])); }
     if (bq_hit_forced(from)) { xlog("beat: pair START from slot %u inside our i-frames accepted - the duel owner ruled a HIT", from); return 0; }
     // ps54 (md54_off above): our press was made inside the window of THIS attacker's swing, before its blow reached our screen (the START is the contact here). We
     // rule it: refused. The attacker's damage waits for our ACK (melee_duel.c verdict), so it is NO HIT there and it plays the miss. Only an explicit TOO LATE from
@@ -2283,6 +2323,9 @@ static void mdg_tick(void) {
     int esc = dc_esc_open(now);                  // dcounter.c: we are the countered attacker, inside the escape window of the counter's last DC_ESC_WIN_MS
     int slot = -1;
     if (!busy && !mpn_vic_pin() && !mdg_own_swing_blocks(now) && now >= g_mdg.cooldown_until && now >= g_mdg.miss_until && !pad_cmd_on("aim")) slot = mdg_window(now, &g_mdg.win_ms);
+    if (slot >= 0 && !md56_time_only() && md56_counter_from((uint32_t)slot, now)) {   // ps56: a dodge counter's swing opens no window / prompt (it cannot be dodged)
+        static uint64_t lsw; if (lsw != g_md56_ctrsw_ms[slot]) { lsw = g_md56_ctrsw_ms[slot]; xlog("dodge: ps56 no window for slot %d's swing - its dodge counter (SWING %llu ms ago, it dodged our blow %llu ms ago)", slot, (unsigned long long)(now - g_md56_ctrsw_ms[slot]), (unsigned long long)(now - g_md56_dodged_ms[slot])); }
+        slot = -1; }
     int open = slot >= 0;
     static int win_slot = -1; static uint64_t win_ms;              // the last window's attacker (an engine dodge that missed our press edge still dodges its blow)
     if (open) { win_slot = slot; win_ms = now; }
@@ -2354,6 +2397,9 @@ static void mdg_tick(void) {
         // ps23: ... or at the reaction's exit point when the attacker's follow-up swing is in flight and its window is open (SP: a dodge leaves a hit reaction at 650-680 ms)
         else if (open && !mpn_vic_held() && mdu_vic_dodge_exit(now)) { xlog("dodge: the press queued %llu ms ago by the -hit pair on us fires now (the reaction's exit point, a follow-up swing is in flight)", (unsigned long long)(now - g_mdg_qpress.ms)); edge = 1; g_mdg_qpress.ms = 0; }
     }
+    { int s56 = -1; if (edge && !esc && !mpn_qte_open() && md56_ctr_inflight(now, &s56)) {   // ps56: no dodge clip under a counter's blow (it would only be cut by it)
+        xlog("dodge: ps56 press dropped - slot %d's dodge counter is in flight on us (SWING %llu ms ago): it cannot be dodged, no dodge clip", s56, (unsigned long long)(now - g_md56_ctrsw_ms[s56]));
+        edge = 0; } }
     if (!esc && edge && !mpn_qte_open()) dc_esc_early_press();     // (the pin QTE's early presses are its own E presses: melee_duel_pin.c mpn_e_edge)     // dcounter.c: a press before the escape window burns it (anti-mash)
     if (esc) {                                   // the escape window: the evade command stays enabled, a press ends the counter (dc_escape) and starts the normal dodge
         int es = dc_esc_slot();

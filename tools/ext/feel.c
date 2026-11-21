@@ -397,7 +397,7 @@ static const char *const HRX_DIR_NM[4] = {"front", "behind", "left", "right"};
 static const char *hrx_clip_of(int id) { return HRX_CLIP[id] + 8; }            // the anim behind the gesture def: "gesture-" cut off
 static int hrx_heavy(uint64_t w) {
     static const char *const H[] = {"shotgun-remington-pump", "shotgun-baserri-over-under", "shotgun-tactical", "shotgun-shorty", "rifle-remington-bolt",
-                                    "rifle-milsniper", "pistol-revolver-taurus", "pistol-el-diablo", "rifle-frontier", "bow-ellie"};
+                                    "rifle-milsniper", "pistol-revolver-taurus", "pistol-el-diablo", "rifle-frontier", "bow-ellie", "rifle-vintage"};
     uint64_t b = base_weapon(w);
     for (size_t i = 0; i < sizeof H / sizeof *H; i++) if (fnv64(H[i]) == b) return 1;
     return !base_weapon_is_gun(b);
@@ -435,8 +435,11 @@ static int hrx_have(uint64_t ent, int own, int id) {
     if (was != g_hrx_have[own][id]) xlog("hitreact: clip %s (gesture %s) on %s: %s (%.2f s)", hrx_clip_of(id), HRX_CLIP[id], own ? "our body" : "a puppet", len > 0 ? "available" : "NOT available", len);
     return len > 0;
 }
+// (a recording, Forest [220598]-[220788]): psync_active() is also true for a pair we only watch (role 3). Another player's execution
+// anywhere on the map made our own body "busy": every blow on us skipped the stagger + hit reaction, both fighters swung through each other.
+// Only a pair OUR body is in (role 1 / 2) counts now.
 static int hrx_busy_own(void) {          // the layers / states a hit reaction must never touch on our body
-    return g_downed || g_down_dying || g_uc4_dying_until || (g_stun_until && g_t60 < g_stun_until) || psync_active() || (g_exec_until && g_t60 < g_exec_until) ||
+    return g_downed || g_down_dying || g_uc4_dying_until || (g_stun_until && g_t60 < g_stun_until) || psync_own() ||(g_exec_until && g_t60 < g_exec_until) ||
            finisher_guard_on() || gx_victim_active() || bp_own_phase_now() != 0 || g_rg[T2R_US].on || g_rev_by != 99 || g_xb.on || match_substate() != 6;
 }
 static int hrx_busy_peer(uint32_t sl) {

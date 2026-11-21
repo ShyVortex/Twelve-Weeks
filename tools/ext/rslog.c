@@ -21,6 +21,17 @@ static const char *const RSL_NAMES[RSL_N] = {
 static fn_dccall g_rsl_orig[RSL_N];
 static uint64_t g_rsl_sid[RSL_N];
 static int g_rsl_off = -1, g_vis_off = -1;
+// release builds (re/perf-1116.md): the lighting / level diagnostics of ..(rslog + vislog hooks, vistrace, RSZ, RSZL, rsdump) cost up to ~1600 natives
+// in one tick (rsdump: 1234 getters every 500 ms) = the 40-330 ms immersion_tick hitches of the player logs, most of them on Supermarket / Bookstore.
+// They only log, so a release build runs them only with t2r-rsdiag.txt next to the exe (rslog / vislog: present before the first match). Dev builds: always.
+static int rsdiag_on(void) {
+#ifdef T2R_RELEASE
+    static uint64_t a; static int v = -1;
+    return feel_flag("t2r-rsdiag.txt", &a, &v, 180);
+#else
+    return 1;
+#endif
+}
 typedef struct { uint64_t key, t0; int n; int slot; uint64_t last[10]; int argc; int ours; } rsl_ent;
 static rsl_ent g_rsl_tab[48];
 static volatile LONG g_rsl_lock;
@@ -188,7 +199,7 @@ static void vistrace_tick(int in_match) {
     static uint64_t at, nf_a; static int nf_v; static float prev[3] = {1e9f, 0, 0};
     if (!in_match) { prev[0] = 1e9f; return; }
     uint64_t t = GetTickCount64();
-    if (t - at < 100 || imm_noflag("t2r-no-vistrace.txt", &nf_a, &nf_v)) return;
+    if (t - at < 100 || !rsdiag_on() || imm_noflag("t2r-no-vistrace.txt", &nf_a, &nf_v)) return;
     at = t;
     float cp[3], cd[3];
     if (!cam_pos_dir(cp, cd)) return;
@@ -198,8 +209,8 @@ static void vistrace_tick(int in_match) {
 }
 static void rslog_tick(int in_match) {
     static int installed; static uint64_t last_sum;
-    if (g_rsl_off < 0) { FILE *f = exe_side_open("t2r-no-rslog.txt", "r"); g_rsl_off = f != NULL; if (f) fclose(f); xlog("rslog: %s", g_rsl_off ? "off (t2r-no-rslog.txt)" : "on (every render-settings native with its caller; t2r-no-rslog.txt = off)"); }
-    if (g_vis_off < 0) { FILE *f = exe_side_open("t2r-no-vislog.txt", "r"); g_vis_off = f != NULL; if (f) fclose(f); xlog("vislog: %s", g_vis_off ? "off (t2r-no-vislog.txt)" : "on (level load/unload/visibility natives + level-set state changes; t2r-no-vislog.txt = off)"); }
+    if (g_rsl_off < 0) { FILE *f = exe_side_open("t2r-no-rslog.txt", "r"); g_rsl_off = f != NULL || !rsdiag_on(); if (f) fclose(f); xlog("rslog: %s", g_rsl_off ? "off (t2r-no-rslog.txt)" : "on (every render-settings native with its caller; t2r-no-rslog.txt = off)"); }
+    if (g_vis_off < 0) { FILE *f = exe_side_open("t2r-no-vislog.txt", "r"); g_vis_off = f != NULL || !rsdiag_on(); if (f) fclose(f); xlog("vislog: %s", g_vis_off ? "off (t2r-no-vislog.txt)" : "on (level load/unload/visibility natives + level-set state changes; t2r-no-vislog.txt = off)"); }
     if (!in_match) return;
     if (!installed) { installed = 1; rslog_install(); }
     vislog_tick();

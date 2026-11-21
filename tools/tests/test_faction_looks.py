@@ -487,7 +487,7 @@ def scen_late_join(stale):
         check(getattr(agg, "heals", 0) > 0, f"{name}: the joiner healed puppets ({getattr(agg, 'heals', 0)} heals)")
 
 def scen_session_late():
-    """In game: the gameplay session (and our slot) only starts with the match - the intro
+    """in game: the gameplay session (and our slot) only starts with the match - the intro
     spawn, the black wait and every look message before it go nowhere. First puppet spawns then
     have no message yet: they are held up to 2.5 s for it."""
     agg = Sim(0, [1, 1, 0, 0])

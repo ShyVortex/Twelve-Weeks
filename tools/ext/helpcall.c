@@ -1,5 +1,4 @@
-// Calling a downed teammate for a revive (mark downed teammates to remind bystanding teammates that are closer to go revive them
-// with a fitting voiceline, and a button while downed, with a prompt, that shouts out for help). Included by t2r-ext.c after downed_vox.c.
+// Calling a downed teammate for a revive: a standing player marks a downed teammate to remind closer bystanders to revive them (with a fitting voice line), and a downed player has a button (with a prompt) that shouts for help. Included by t2r-ext.c after downed_vox.c.
 // MSG_HELPCALL 0x9D, one message, two kinds:
 //   HC_PING [kind 1][u8 downed slot]: a standing player pressed the MARK button (the one that marks enemies: winmm's latch 0x18013A7D0) with the reticle on
 //       a downed TEAMMATE (and no enemy under it). It says a "Man down!" line (VX_ALLYDOWN, the generic pool only) and tells the other standing teammates.
@@ -67,8 +66,8 @@ static void hc_mark_set(uint32_t downed, uint32_t by, int help) {
     g_hc_mark[downed].by = (uint8_t)by;
     g_hc_mark[downed].help = (uint8_t)help;
 }
-// skills.c sk_sprint_meter: if you mark a downed teammate and run towards them (ONLY when you run towards their direction) the stamina
-// limit is bypassed. vx / vz = our horizontal velocity; towards = within ~37 deg of the line to the body, until it is up / dead / reached.
+// skills.c sk_sprint_meter: marking a downed teammate and running towards them (only towards them) bypasses the stamina limit.
+// vx / vz = our horizontal velocity; towards = within ~37 deg of the line to the body, until it is up / dead / reached.
 static int hc_rush_towards(float vx, float vz) {
     if (g_hc_rush < 0) return 0;
     if (match_substate() != 6 || !hc_downed_mate((uint32_t)g_hc_rush)) { xlog("helpcall: rush over (%s no longer down)", hc_name((uint32_t)g_hc_rush)); g_hc_rush = -1; return 0; }
@@ -153,7 +152,7 @@ static void hc_ping_tick(uint64_t enemy_cand) {
     int edge = latch && !prev;
     prev = latch;
     if (!edge || match_substate() != 6 || hc_ping_off() || !g_send_tramp) return;
-    if (g_downed || g_down_dying || g_exec_until || g_getup_pre || g_special_exec_until > g_t60 || local_hp() <= 0.0f || !actor_can_act() || psync_active()) return;
+    if (g_downed || g_down_dying || g_exec_until || g_getup_pre || g_special_exec_until > g_t60 || local_hp() <= 0.0f || !actor_can_act() || psync_own()) return;
     (void)enemy_cand;                                                          // no blocks - an enemy near the reticle no longer eats the ping (the press may mark both); walls never blocked it
     int slot = hc_aimed_downed();
     if (slot < 0) return;
@@ -173,7 +172,7 @@ static void hc_ping_tick(uint64_t enemy_cand) {
 // ---- the call button while downed
 static int g_hc_prev_on;                                                               // the call keys were down at the last poll (while not downed: treated as down)
 static int g_hc_src;                                                                   // what saw the press: 1 key, 2 XInput A, 3 raw joypad mask, 4 engine command
-// controller compatibility: the XInput read only sees an XInput pad, and the engine disables its jump command while
+// Controller support: the XInput read only sees an XInput pad, and the engine disables its jump command while
 // downed, so a native DualSense / Steam Input pad saw nothing. The engine's own Joypad object (padinject.c: the reader hook learns the input bit the
 // jump command uses on the active scheme) is read RAW instead: its held mask (Joypad+0x138) is filled by every device and not touched by the command
 // disable. The bit is learned while the jump command is read (we probe it every 2 s in a match, so it is known before the down).
@@ -239,7 +238,7 @@ static void hc_tick(void) {
     if (!press || now - down_since < HC_FIRST_MS || now < g_hc_help_ready) return;
     g_hc_help_ready = now + HC_HELP_CD_MS;
     unsigned sent = hc_send(HC_HELP, (uint8_t)sk_me());
-    // calling for help played no voicelines (log frame 34077: 'vox: rule say kind 5 (downed: call for help)' was logged but nothing was
+    // (calling for help played no voice line; log frame 34077: 'vox: rule say kind 5 (downed: call for help)' was logged but nothing was
     // heard): the downed groan loop (downed_vox.c) says its take on the same body (SID_PLAYER, 3 s long, one 0.5 s before the call in that log) and the
     // engine keeps the line already playing on a character, so the later `say` was dropped. The groan is cut first (stop-vox) and the call follows
     // 140 ms later; the groan loop stays quiet for DV_FIRST_MS after (dv_cut resets it).

@@ -7,6 +7,7 @@ fix the race and simulates the alpha book-keeping of 10 switches within 1 s with
 import os
 import random
 import re
+import sys
 
 src = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ext", "clan13.c"), encoding="utf-8").read()
 m = re.search(r"static void cl13_set_tab\(int t, const char \*why\) \{(.*?)\n\}", src, re.S)

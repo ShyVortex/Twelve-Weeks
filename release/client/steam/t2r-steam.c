@@ -1,4 +1,4 @@
-// t2r-steam: Steam helper for Twelve Weeks.
+// t2r-steam: Steam helper for TLOU2 Multiplayer Revival.
 //
 //   t2r-steam.exe <out_file> [game_exe=tlou-ii.exe] [--server host:port] [--token file]
 //                 [--port N] [--fake-id N] [--log file]

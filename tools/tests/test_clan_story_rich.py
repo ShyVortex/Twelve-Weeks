@@ -1,6 +1,6 @@
 """The rich good-state ticker (happy members often had very short statuses without much connection or detail).
 Rows: tools/clan_story_good_rich.py (EN + PL side by side).   Run: python tools/tests/test_clan_story_rich.py   (no DB needed for most checks)."""
-import itertools, os, re, sqlite3, sys, tempfile
+import itertools, os, random, re, sqlite3, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

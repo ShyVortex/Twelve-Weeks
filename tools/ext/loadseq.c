@@ -39,7 +39,7 @@ typedef struct {
     float a_bg, a_t, a_b, a_p;
 } lds_t;
 static lds_t g_lds;
-// The entry page opened from the TITLE screen's TWELVE WEEKS button lives on the TITLE page stack (0x1f5962a2ce9803c8), not
+// (zero 'load seq' lines in a log): the entry page opened from the TITLE screen's TWELVE WEEKS button lives on the TITLE page stack (0x1f5962a2ce9803c8), not
 // the menu stack top_page() / ui_w() read, and page_id("connecting") hashes the menu stack's path - so the sequence never saw it. lds_w looks widgets up on the
 // stack the page is on (g_lds_stack); the title-stack page is detected by its t2rLoad widget (only this page has it), no page hash needed.
 static uint64_t g_lds_stack = MENU_STACK;
@@ -96,8 +96,143 @@ static int lds_world_ready(void) {    // only a real answer counts (ms_world_rea
     uint64_t r = dc_call(0x66637535ebbc34dfULL /* task-want-load-levels-fully-spawned? */, 0, a);
     return r != ~0ULL && r != 0;
 }
+// ---- the pick's reload: after CHOOSE YOUR SIDE's pick has faded to black (side_tick), the TWELVE WEEKS page goes up on the title stack and
+// runs its own sequence (black, the slow title fade-in with the stinger); once the title is in, the picked camp's menu scene is loaded (ms_fade_load: always,
+// also when that scene is already on screen); the page stays up through the load (re-pushed if the load pops it, as at boot) and fades out over the new scene
+// once ms_fade_tick has faded it in. The game's Effects stay held at 0 until then (the old level's ambience never comes back between). Log: 'pick reload:'.
+static uint64_t g_ms_pick_t, g_ms_pick_t0; static int g_ms_pick_seen, g_lds_kick;
+// dev23 (an A clip at 30 fps: the dev22 page was black at once, the title came in, then the old scene showed through it for 0.4 s and the page vanished
+// for 6 s of plain black: task-play-debug! wipes the whole menu stack and nothing can be pushed until the level is in; the screen was cut short and flashed black at random and again after the menu loads). The
+// engine draws its LOADING widget all
+// level load long, over the world, the UI and the native black, so the pick's TWELVE WEEKS screen lives THERE now (group t2rTw, load_indicator_widgets
+// add_loading_widget_tw: black, the white title, the thin bar): the ext owns the native loading screen (g_ls_own 3; the SetEnabled hook swallows the
+// engine's disable at the load end) from the end of the pick's fade to black until the new scene is in, faded up and steady (native black 0 for
+// LDS_PICK_STEADY_MS, the MP menu back), then the screen fades out (LDS_RESUME_OUT_MS) and the loading screen is switched off.
+// Engine calls during the load are kept rare (per-frame writes from the loading context stalled a match load): alphas only while they change,
+// the bar every 250 ms, the widget check every 500 ms.
+#define LDS_PICK_MIN_MS 9000         // the screen stays up at least this long from its start (the reload was too fast and cut short)
+#define LDS_PICK_HOLD_MS 1200        // the title fully in this long before the load starts
+#define LDS_PICK_STEADY_MS 1000      // the new scene's native black at 0 this long before the screen fades out (the post-load black flash stays under it)
+#define LDS_PICK_CAP_MS 60000        // the whole screen at most (a stuck load: out anyway)
+static struct { int on, out, popped_ok; uint64_t t0, out_t0, root, chk, bar_t, black0_t, ready_t; float a_t, a_g, bar; } g_pks;
+static int ms_pick_covered(void) { return g_pks.on && g_pks.root && GetTickCount64() - g_pks.t0 >= 120; }   // (side_tick pops the clan page under it)
+static void pks_apply(uint64_t r) {          // a (new) loading widget instance: our group only
+    g_pks.root = r; g_pks.a_t = g_pks.a_g = -1.0f; g_pks.bar = -1.0f;
+    w_visible(ls_w("fader"), 0);              // the stock spinner + progress text
+    w_visible(ls_w("t2r"), 0);                // the 2013 LOADING group
+    uint64_t g = ls_w("t2rTw");
+    if (!g) { static int n; if (LOGCAP(n, 3)) xlog("pick reload: loading widget %llx has no t2rTw group (old gui2-widgets data?) - plain black", (unsigned long long)r); return; }
+    w_visible(g, 1);
+    w_pivot(ls_w("t2rTw.t2rTwBar"), 0.0f, 2160.0f - LDS_BARH);
+}
+static void pks_put(const char *rel, float *last, float a) {
+    if (*last >= 0.0f && fabsf(a - *last) < 0.004f && !(a >= 1.0f && *last < 1.0f) && !(a <= 0.0f && *last > 0.0f)) return;
+    *last = a;
+    w_alpha(ls_w(rel), a < 0.0f ? 0.0f : a > 1.0f ? 1.0f : a);
+}
+static void ms_pick_start(int scene, int demo) {
+    if (scene < 1 || scene > 2) return;
+    uint64_t now = GetTickCount64();
+    g_ms_pick_scene = scene; g_ms_pick_force = scene; g_ms_pick_st = 1; g_ms_pick_t = g_ms_pick_t0 = now; g_ms_pick_seen = 0;
+    memset(&g_pks, 0, sizeof g_pks);
+    g_pks.on = 1; g_pks.t0 = now;
+    if (g_ls_own) xlog("pick reload: the loading screen is owned already (%d) - taken over", g_ls_own);
+    g_ls_own = 3;
+    if (*((uint8_t *)GetModuleHandleW(NULL) + LS_INST) && !ls_root()) ls_enable(0);   // enabled, widget torn down: respawn
+    ls_enable(1);
+    uint64_t r = ls_root();
+    if (r) pks_apply(r);
+    g_ls_calls = 0;                           // (the reload's SetEnabled calls are logged)
+    xlog("pick reload: TWELVE WEEKS screen on the engine's loading widget (%llx), then %s loads%s", (unsigned long long)r, MS_SCENE[scene].name,
+         demo ? " (demo: no side sent, the menu follows the pick this session)" : "");
+}
+static void pks_tick(uint64_t now) {
+    if (!g_pks.on) return;
+    if (now >= g_pks.chk) {                   // the widget instance (the engine may respawn it at the load begin)
+        g_pks.chk = now + (g_ms_pick_st == 2 ? 500 : 100);
+        uint64_t r = ls_root();
+        if (!r) { ls_enable(1); r = ls_root(); static int n; if (LOGCAP(n, 6)) xlog("pick reload: loading widget gone - enabled again (%llx)", (unsigned long long)r); }
+        if (r && r != g_pks.root) pks_apply(r);
+    }
+    if (!g_pks.root) return;
+    uint64_t t = now - g_pks.t0;
+    float ta = t < LDS_TITLE_AT ? 0.0f : lds_smooth((float)(t - LDS_TITLE_AT) / LDS_TITLE_MS);
+    float ba = t < LDS_BAR_AT ? 0.0f : lds_smooth((float)(t - LDS_BAR_AT) / LDS_BAR_MS);
+    float o = 1.0f;
+    if (g_pks.out) o = 1.0f - lds_smooth((float)(now - g_pks.out_t0) / (float)LDS_RESUME_OUT_MS);
+    pks_put("t2rTw.t2rTwTitle", &g_pks.a_t, ta);
+    pks_put("t2rTw", &g_pks.a_g, o);
+    // the fill: the same monotonic curve as the entry page (ease toward 92 % over the load, 100 % at the hand-off), written every 250 ms
+    float tgt = LDS_FILL_CAP * (1.0f - expf(-(float)t / LDS_FILL_TAU_MS));
+    if (g_pks.out) tgt = 1.0f;
+    float v = g_pks.bar < 0.0f ? 0.0f : g_pks.bar;
+    if (now - g_pks.bar_t >= 250 || (g_pks.out && v < 1.0f)) {
+        float dt = g_pks.bar_t ? (float)(now - g_pks.bar_t) / 1000.0f : 0.0f; if (dt > 0.5f) dt = 0.5f;
+        float step = dt * (g_pks.out ? 0.6f : 0.12f);
+        if (tgt > v) v += tgt - v < step ? tgt - v : step;
+        g_pks.bar_t = now;
+        if (g_pks.bar < 0.0f || fabsf(v - g_pks.bar) > 0.002f) {
+            g_pks.bar = v;
+            uint64_t b = ls_w("t2rTw.t2rTwBar");
+            w_scale(b, v < 0.002f ? 0.002f : v, 1.0f);
+            w_alpha(b, ba);
+        }
+    }
+    if (g_pks.out && now - g_pks.out_t0 >= (uint64_t)LDS_RESUME_OUT_MS + 50) {
+        w_visible(ls_w("t2rTw"), 0);
+        w_visible(ls_w("fader"), 1);
+        g_pks.on = 0;
+        if (g_ls_own == 3) { g_ls_own = 0; ls_enable(0); }
+        xlog("pick reload: TWELVE WEEKS screen faded out, loading screen off (%llu ms in all)", (unsigned long long)(now - g_pks.t0));
+    }
+}
+static void ms_pick_tick(void) {
+    if (!g_ms_pick_st) return;
+    uint64_t now = GetTickCount64();
+    pks_tick(now);
+    if (g_ms_pick_st <= 3) sfx_hold_tick();   // (Effects held until the screen goes)
+    uint64_t a8[8] = {0}; uint64_t bfr = dc_call(0xb55ca68cc38e541aULL /* get-black-fade */, 0, a8); float bfv = 1.0f; uint32_t bu = (uint32_t)bfr; if (bfr != ~0ULL) memcpy(&bfv, &bu, 4);
+    if (g_ms_pick_st == 1) {
+        int in = g_pks.root && now - g_pks.t0 >= LDS_TITLE_AT + LDS_TITLE_MS + LDS_PICK_HOLD_MS;
+        if (in || now - g_ms_pick_t > 8000) {
+            g_ms_pick_st = 2; g_ms_pick_t = now;
+            xlog("pick reload: %s - loading %s", in ? "title in" : "the screen never came up (8 s)", MS_SCENE[g_ms_pick_scene].name);
+            ms_fade_load(g_ms_pick_scene);
+        }
+    } else if (g_ms_pick_st == 2) {
+        if (g_ms_fade_st) g_ms_pick_seen = 1;
+        if ((g_ms_pick_seen && !g_ms_fade_st) || now - g_ms_pick_t > 60000) {
+            g_ms_pick_st = 3; g_ms_pick_t = now; g_pks.ready_t = now; g_pks.black0_t = 0;
+            xlog("pick reload: %s %s - the screen stays until the scene is up and steady", MS_SCENE[g_ms_pick_scene].name, g_ms_pick_seen ? "loaded, fading in" : "NOT seen loading after 60 s");
+        }
+    } else if (g_ms_pick_st == 3) {
+        if (bfv < 0.02f) { if (!g_pks.black0_t) g_pks.black0_t = now; }
+        else if (g_pks.black0_t) { xlog("pick reload: native black back to %.2f %llu ms after it reached 0 (still under the screen)", (double)bfv, (unsigned long long)(now - g_pks.black0_t)); g_pks.black0_t = 0; }
+        int steady = g_pks.black0_t && now - g_pks.black0_t >= LDS_PICK_STEADY_MS && !g_ms_main_pending;
+        int cap = now - g_pks.ready_t > 20000 || now - g_pks.t0 > LDS_PICK_CAP_MS;
+        if (!g_pks.out && ((steady && now - g_pks.t0 >= LDS_PICK_MIN_MS) || cap)) {
+            g_pks.out = 1; g_pks.out_t0 = now; g_ms_pick_st = 4; g_ms_pick_t = now;
+            xlog("pick reload: %s - the TWELVE WEEKS screen fades out over the new scene (%d ms, %llu ms after the start)", steady ? "scene up and steady" : "CAP reached",
+                 LDS_RESUME_OUT_MS, (unsigned long long)(now - g_pks.t0));
+        }
+    } else if (g_ms_pick_st == 4) {
+        static float last_b = -1.0f;              // (diagnostic: the native black after the hand-off - the user's post-load flash)
+        if (fabsf(bfv - last_b) > 0.05f) { xlog("pick reload: native black %.2f (%llu ms after the fade-out start)", (double)bfv, (unsigned long long)(now - g_ms_pick_t)); last_b = bfv; }
+        if (!g_pks.on && now - g_ms_pick_t > 5000) {
+            g_ms_pick_st = 0; last_b = -1.0f;
+            xlog("pick reload: done");
+        }
+    }
+    if (g_pks.on && !ms_on_menu() && g_ms_pick_st >= 1) {      // left the menu (disconnect / match): drop the screen at once
+        w_visible(ls_w("t2rTw"), 0); w_visible(ls_w("fader"), 1);
+        g_pks.on = 0; if (g_ls_own == 3) { g_ls_own = 0; ls_enable(0); }
+        g_ms_pick_st = 0;
+        xlog("pick reload: left the menu (state %d) - TWELVE WEEKS screen dropped", (int)match_substate());
+    }
+}
 static void lds_tick(void) {
     lds_t *L = &g_lds;
+    ms_pick_tick();
     if (g_lds_off < 0) {
         FILE *f = exe_side_open("t2r-no-load-seq.txt", "r");
         g_lds_off = f != NULL; if (f) fclose(f);
@@ -105,7 +240,8 @@ static void lds_tick(void) {
     }
     uint64_t now = GetTickCount64();
     static uint64_t poll, pg;
-    if (!L->on && now < poll) return;
+    if (!L->on && now < poll && !g_lds_kick) return;
+    g_lds_kick = 0;
     poll = now + (L->on || g_lds_resume ? 50 : 150);           // (idle in the MP menu: a cheap probe 6 times a second)
     if (!pg) pg = page_id("connecting");
     int up = top_page() == pg;
@@ -121,14 +257,19 @@ static void lds_tick(void) {
             float u = lds_smooth((float)(now - L->t0 - LDS_TITLE_AT) / LDS_TITLE_MS);
             xlog("load seq: page left after %llu ms (title %.0f %%, stage %d%s)", (unsigned long long)(now - L->t0), u * 100.0f, L->stage,
                  L->out ? ", faded out" : (now - L->t0 < LDS_TITLE_AT + LDS_TITLE_MS ? ", BEFORE the fade-in finished" : ""));
+            if (!L->resume && !g_lds_pick) netdiag_report(match_substate() == 1);   // "connect check:" (netdiag.c)
             L->on = 0;
             if (L->mute) { L->mute = 0; session_volume(1.0f); }
+            if (L->out && g_lds_pick) g_lds_pick = 0;                    // (the pick's page, faded out and popped)
             if (L->resume) g_lds_hold = 0;
-            else if (L->out || L->off || match_substate() != 1) g_lds_hold = 0;
-            else if (!L->out && !L->off && match_substate() == 1) {       // the engine popped the page into the menu world load: keep the title up (no second loader)
-                uint64_t a[2] = {TITLE_STACK, 0};
-                dc_call(fnv64("menu2-page-stack-enable-sounds"), 2, a);
-                ((void (*)(uint64_t, const char *))VMA(0x18000E040))(TITLE_STACK, "to1/connecting");
+            else if (L->out || L->off || (match_substate() != 1 && !g_lds_pick)) g_lds_hold = 0;
+            else if (!L->out && !L->off && (match_substate() == 1 || g_lds_pick)) {       // the engine popped the page into the menu world load: keep the title up (no second loader)
+                if (g_lds_pick && g_lds_stack == MENU_STACK) { push_page("to1/connecting"); g_lds_kick = 1; }   // (the pick's page: back on the menu stack)
+                else {
+                    uint64_t a[2] = {TITLE_STACK, 0};
+                    dc_call(fnv64("menu2-page-stack-enable-sounds"), 2, a);
+                    ((void (*)(uint64_t, const char *))VMA(0x18000E040))(TITLE_STACK, "to1/connecting");
+                }
                 g_lds_resume = 1; g_lds_hold = 1; L->rs_t0 = now;
                 xlog("load seq: resume - page pushed again on the title stack, the title stays up through the menu world load (the ring is hidden)");
             }
@@ -144,16 +285,17 @@ static void lds_tick(void) {
             L->on = 1; L->t0 = now; L->stage = 0; L->snd = 0; L->out = 0; L->off = g_lds_off; L->popped = 0;
             L->resume = g_lds_resume; g_lds_resume = 0;
             if (L->resume) { L->t0 = now - (LDS_TITLE_AT + LDS_TITLE_MS) - 100; L->snd = 1; L->stage = 1; xlog("load seq: resume - page up again (fill %.0f %%)", (double)g_lds_fill * 100.0); }
-            else { g_lds_hold = L->off ? 0 : 1; g_lds_ft0 = 0; g_lds_fill = 0.0f; }     // (hold from the first page on: the ext ring must not flash in the 2 frames between the engine's pop and the re-push)
+            else { g_lds_hold = L->off ? 0 : 1; g_lds_ft0 = 0; g_lds_fill = 0.0f; if (g_lds_pick) L->t0 = now - LDS_BLACK_MS; }   // (the pick: black at once - the clan page faded to black under it)     // (hold from the first page on: the ext ring must not flash in the 2 frames between the engine's pop and the re-push)
             L->mute = 0; L->rel_t0 = 0; L->last_t = 0;
-            // An audio click ~0.7 s BEFORE the release = the menu world's puppet foley (SfxProcess ctor pairs
+            // 165p (the click sounded before the mute): clip audio click ~0.7 s BEFORE the release = the menu world's puppet foley (SfxProcess ctor pairs
             // f5487-f5501, exe+1c307ac / 1c2fe67) starting under the black. The whole session is silent from the resume (menu world load) on, not from the release.
             if (L->resume) { L->mute = 1; L->mute_t0 = now; xlog("load seq: resume - session muted for the whole menu world load (the menu scene's first foley is the appear click)"); }
             L->fpath = 0; L->fill_w = -1.0f;
-            // The title-clipped fill never moved (winmm's value won, the bright title jumped to full at once). The default is now the plain bar along the bottom
+            // the title-clipped fill never moved (winmm's value won, the bright title jumped to full at once). The default is now the plain bar along the bottom
             // edge under the full white title, its width scaled by THIS file's monotonic value (no dependence on the progress mask); t2r-load-fill.txt = the title-clipped fill again.
             FILE *bf = exe_side_open("t2r-load-fill.txt", "r"); L->barmode = bf == NULL; if (bf) fclose(bf);
             L->bar_w = -1.0f;
+            if (!L->resume && !g_lds_pick) netdiag_mark();
             if (!L->resume) tr_open(60000);
             tr_logf("lds page up (match state %d, resume %d, bar %d)", match_substate(), L->resume, L->barmode);
             xlog("load seq: entry page up (match state %d)%s%s", match_substate(), L->off ? " - sequence off" : "", L->barmode ? " - bottom bar under the white title (default; t2r-load-fill.txt = title fill)" : " - title fill");
@@ -172,8 +314,9 @@ static void lds_tick(void) {
         // 165o trace: the native black is released at the hand-off (ent 2) but winmm re-holds it (black 1.00) until the match state flips to 2, then it drops to 0 in one frame - the page
         // faded onto black and the menu snapped in. The page now stays up (bg 1, title, bar) until the native black READS 0, and only then fades (LDS_RESUME_OUT_MS) over the live menu.
         uint64_t a8[8] = {0}; uint64_t bfr = dc_call(0xb55ca68cc38e541aULL /* get-black-fade */, 0, a8); float bfv = 1.0f; uint32_t bu = (uint32_t)bfr; if (bfr != ~0ULL) memcpy(&bfv, &bu, 4);
+        if (g_lds_pick && g_lds_pick_rel && !L->rel_t0) { L->rel_t0 = now; xlog("load seq: resume - the pick's scene is in: release"); }
         if (g_ent_st == 2 && !L->rel_t0) { L->rel_t0 = now; if (!L->mute) { L->mute = 1; L->mute_t0 = now; } xlog("load seq: resume - entry released the native black; session stays muted until the page fades"); }
-        // A client loaded into a match while the TWELVE WEEKS loading screen was stuck: the entry gave up ("first page not up
+        // (B loaded into a match while still showing the stuck TWELVE WEEKS loading screen): B's entry gave up ("first page not up
         // after 5000 ms - plain fade-in", g_ent_st back to 0) so it never reached state 2, the release above never came and the page stayed up for the 120 s cap - through
         // the vote, gear up and into the match. The entry's plain fade-in is a release too: the menu is live (state >= 2) and the native black reads 0.
         if (!L->rel_t0 && g_ent_st == 0 && bfv < 0.02f && match_substate() >= 2) { L->rel_t0 = now; xlog("load seq: resume - the entry fell back to the plain fade-in (menu live, black 0): released"); }
@@ -183,18 +326,23 @@ static void lds_tick(void) {
             L->out = 1; L->out_t0 = now;
             xlog("load seq: resume - native black reads %.2f (state %d, %llu ms after the release): the page fades out over the live menu (%d ms)", (double)bfv, (int)match_substate(), (unsigned long long)(L->rel_t0 ? now - L->rel_t0 : 0), LDS_RESUME_OUT_MS);
         }
+    } else if (g_lds_pick) {             // the pick's page (not popped by the load): out once the new scene is in, like a resume (black + title, then popped)
+        if (g_lds_pick_rel && !L->out) { L->out = 1; L->out_t0 = now; xlog("load seq: pick - the new scene is in, the page fades out (%d ms)", LDS_RESUME_OUT_MS); }
     } else if (!L->off && !L->out && t >= LDS_TITLE_AT + LDS_TITLE_MS && now >= L->leave_chk) {
         L->leave_chk = now + 250;
         if (lds_world_ready()) { L->out = 1; L->out_t0 = now + LDS_HOLD_MS; xlog("load seq: world ready after %llu ms - %d ms hold, then title and fill fade out", (unsigned long long)t, LDS_HOLD_MS); }
     }
     if (L->out && now >= L->out_t0) {
-        int om = L->resume ? LDS_RESUME_OUT_MS : LDS_OUT_MS;
+        int rs = L->resume || g_lds_pick, om = rs ? LDS_RESUME_OUT_MS : LDS_OUT_MS;
         float o = 1.0f - lds_smooth((float)(now - L->out_t0) / (float)om); ta *= o; ba *= o;
-        if (L->resume) {
+        if (rs) {
             bg *= o;
             if (now - L->out_t0 >= (uint64_t)om + 50 && !L->popped) {
-                uint64_t a[2] = {TITLE_STACK, 0};
-                L->popped = 1; g_lds_hold = 0; dc_call(0x60e80fc914dc95ceULL /* menu2-pop-page */, 2, a);
+                L->popped = 1; g_lds_hold = 0;
+                if (g_lds_stack == MENU_STACK) {     // the pick's page: pop only our page (never the lobby under it)
+                    static uint64_t pgc; if (!pgc) pgc = page_id("connecting");
+                    if (top_page() == pgc) pop_page(); else xlog("load seq: the page is not the menu stack top any more (top %llx) - not popped", (unsigned long long)top_page());
+                } else { uint64_t a[2] = {TITLE_STACK, 0}; dc_call(0x60e80fc914dc95ceULL /* menu2-pop-page */, 2, a); }
                 xlog("load seq: resume - faded out, page popped");
             }
         }
@@ -242,16 +390,16 @@ static void lds_tick(void) {
         if (L->out) { float u = lds_smooth((float)(now - L->out_t0) / (float)LDS_MUSIC_RAMP_MS); session_volume(u); if (u >= 1.0f) { L->mute = 0; session_volume(1.0f); xlog("load seq: resume - music session volume back to 1"); } }
         else session_volume(1.0f - lds_smooth((float)(now - L->mute_t0) / (float)LDS_MUTE_MS));   // fade out, never cut
     }
-    // The mute is gradual, so the Hillcrest audio fades out instead of cutting out: from the first loading page on, the game's own
+    // the title world's audio fades out gradually instead of cutting out: from the first loading page on, the game's own
     // faded under-black duck (everything but music; the stinger is waveOut, not in the engine mix) takes the title world's ambience down smoothly
     if (L->on && !L->resume && !L->off) mix_under_black();
-    if (L->resume && !L->popped) { w_visible(key, 1); w_alpha(key, 1.0f); }     // the page's own open animation may not run during the menu world load: root forced visible
+    if ((L->resume || g_lds_pick) && !L->popped) { w_visible(key, 1); w_alpha(key, 1.0f); }     // the page's own open animation may not run during the menu world load: root forced visible
     lds_put(L->bg, &L->a_bg, bg);
     lds_put(L->title, &L->a_t, ta);
     lds_put(L->prog, &L->a_p, ba);
 }
 
-// ---- 'trace:' per-frame change logger. Windows: from the entry page up (60 s) / the world hand-off (+10 s) / the event page up (+10 s)
+// ---- 'trace:' per-frame change logger (capture A-D and the click on the next run). Windows: from the entry page up (60 s) / the world hand-off (+10 s) / the event page up (+10 s)
 // / the clan event closing (+5 s); ~2000 lines (t2r-trace.txt first char 0/n/o = off, default on). One line whenever any field below changes (alphas to 0.02).
 static void tr_tick(void) {
     if (!tr_active()) return;

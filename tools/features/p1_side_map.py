@@ -49,7 +49,7 @@ OFF_PCFM, OFF_PMVF, OFF_PUMV = 0x80, 0x88, 0x90
 OFF_STR_K32, OFF_N_CFM, OFF_N_MVF, OFF_N_UMV, OFF_STR_SIDE = 0x100, 0x140, 0x160, 0x180, 0x200
 CODE_OFF = 0x400
 
-# IAT slots of the unpatched winmm the cave calls through (checked against the imports by tools/tests/test_p1_side_map.py)
+# IAT slots of the base winmm the cave calls through (checked against the imports by tools/tests/test_p1_side_map.py)
 IAT = {"CreateFileW": 0x180129520, "CloseHandle": 0x180129508, "GetFileSizeEx": 0x180129648, "GetLastError": 0x180129658,
        "GetModuleFileNameW": 0x180129668, "GetModuleHandleW": 0x180129680, "GetProcAddress": 0x180129690,
        "VirtualAlloc": 0x1801298B8, "VirtualFree": 0x1801298C0}

@@ -44,9 +44,9 @@
 #define AJ_READABLE(p, n) (!IsBadReadPtr((p), (n)))
 #define AJ_XCHG(pp, v) InterlockedExchangePointer((PVOID volatile *)(pp), (PVOID)(v))
 #include "animjob.h"
-static aj_cache g_aj[8];
-static volatile int32_t g_aj_cur[8];                        // table id of the puppet's last replay call (0 = never seen)
-static volatile uint32_t g_aj_swapped[8], g_aj_dropped[8];  // jobs swapped back from the cache / cleared for winmm to rebuild
+static aj_cache g_aj[T2R_MAX_PEERS];
+static volatile int32_t g_aj_cur[T2R_MAX_PEERS];                        // table id of the puppet's last replay call (0 = never seen)
+static volatile uint32_t g_aj_swapped[T2R_MAX_PEERS], g_aj_dropped[T2R_MAX_PEERS];  // jobs swapped back from the cache / cleared for winmm to rebuild
 
 #define NS_RING 64
 #define NS_M7 32
@@ -503,7 +503,7 @@ static void ns_log_frozen(ns_slot *s, uint32_t slot, const uint8_t *b, const uin
          (uint32_t)g_puppet_dead_here[slot], (uint32_t)g_peer_downed[slot], s->ours,
          *(void *const volatile *)(b + AJ_SLOT_JOB),
          *(void *const volatile *)(b + AJ_SLOT_JOB) && !IsBadReadPtr(*(uint8_t *const volatile *)(b + AJ_SLOT_JOB) + AJ_JOB_ID, 4) ? *(const int32_t *)(*(uint8_t *const volatile *)(b + AJ_SLOT_JOB) + AJ_JOB_ID) : 0,
-         slot < 8 ? (int)g_aj_cur[slot] : 0, slot < 8 ? g_aj_swapped[slot] : 0u, slot < 8 ? g_aj_dropped[slot] : 0u);
+         slot < T2R_MAX_PEERS ? (int)g_aj_cur[slot] : 0, slot < T2R_MAX_PEERS ? g_aj_swapped[slot] : 0u, slot < T2R_MAX_PEERS ? g_aj_dropped[slot] : 0u);
     s->st_frozen_ep++;
 }
 static void ns_note_clock(ns_slot *s, uint32_t slot, double dt, const uint8_t *peer) {

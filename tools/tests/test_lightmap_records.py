@@ -1,6 +1,7 @@
 """offline: lightmap_fix undo records are per pak (sidecar), so parallel map builds cannot lose each other's records (build-165b rerun failure:
 'already carries an injected lightmap and no undo record matches it').  Fake paks; no game data."""
 import hashlib
+import json
 import os
 import sys
 import tempfile

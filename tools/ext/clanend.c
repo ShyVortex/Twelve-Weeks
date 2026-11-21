@@ -8,7 +8,7 @@
 //   3. win: the old rank is rubbed out to a ghost, the new rank chalked in stroke by stroke (nib, dust, scrape / tap per stroke), RANK n +
 //      YOUR nTH CLAN TO SURVIVE; lost: the 12-week tally breaks at the week the clan fell, a red slash, one toll, WEEK n OF 12.
 //   4. stats, START A NEW CLAN (select: the faction pick, as before) / READ THE JOURNAL (menu-action: to1/clan13 on its journal tab).
-// Continue during an animation skips to its end (never past a waiting point); back does nothing until the stats are up.
+// Not skippable: a press during an animation does nothing; CONTINUE / the stats come when it ends. Back does nothing until the stats are up.
 // Sound through the ext PCM mixer (clanend.pcm, gen_clanend_pcm.py): the music pick per screen (ducks under the chalk), wind / fire bed.
 // Off: t2r-no-clanend.txt (the old end card). Test: t2r-ce-test.txt "win|lost wlf|ser [rank|day]" pushes the page on the MP menu with
 // demo faces. Chalk strokes reveal through disjoint pieces (clanend_seg.h; gui2 Image masks render nothing); t2r-ce-nomask.txt: whole
@@ -18,6 +18,7 @@
 #include "clanend_pcm.h"
 __asm__(".section .rdata,\"dr\"\n.balign 4\n.globl ce_blob\nce_blob:\n.incbin \"clanend.pcm\"\n.globl ce_blob_end\nce_blob_end:\n.text\n");
 extern const int16_t ce_blob[], ce_blob_end[];
+static int ch_music_live(void);                                     // choose.c
 static int cl13_ask(int sec);                                       // clan13.c (op 0xB6; section 7 = this page's roll call)
 #define CE_SEC 7                                                    // (5 = a raid's match stats, 6 = the journal's week pages)
 static int g_ent_st;                                                // (tentative: defined with the entry hand-off; 0 = no hand-off running, its t2rEnter cover is not up)
@@ -614,6 +615,7 @@ static uint64_t g_ce_lobby_tick;                                    // GetTickCo
 static int g_ce_lobby_cut;                                          // we took the lobby playlist down
 static void ce_menu_music_hold(uint64_t now) { g_ce_lobby_tick = now; }
 static int ce_music_live(void) {                                    // one of our end music voices (win / lost, both channels) still plays
+    if (ch_music_live()) return 1;                                  // (choose.c: the picker's own music)
     if (g_mix_state != 1) return 0;
     const int16_t *w0 = ce_pcm(CE_MUS_WIN_OFF), *w1 = w0 + CE_MUS_WIN_N, *l0 = ce_pcm(CE_MUS_LOST_OFF), *l1 = l0 + CE_MUS_LOST_N;
     int live = 0;
@@ -689,12 +691,9 @@ static int ce_tick(const clan_t *c) {
     }
     CE.skip_to_wait = 0;
     // input per phase
-    if (CE.ph == CE_ART && sel) {                                   // skip the title / roll call to the waiting point
-        float re = ce_roll_end() + 0.6f;
-        if (t < re) { CE.skip_to_wait = 1; CE.t0 -= (uint64_t)((re - t) * 1000.0f); t = re; }
-        CE.ph = CE_WAIT; sel = 0;
-        xlog("clanend: skipped to continue");
-    }
+    // the clan died / survived screens are not skippable - a press during the title / roll call or the rank beat does nothing;
+    // the screens move on by themselves to CONTINUE and to the stats (the old skips jumped the clock: ce_at's skip_to_wait path stays for a resume)
+    if (CE.ph == CE_ART) sel = 0;
     if (CE.ph == CE_WAIT && sel) {
         CE.tp = now; CE.ph = CE_GO; sel = 0;
         ui_sfx("sfx-select");
@@ -702,11 +701,7 @@ static int ce_tick(const clan_t *c) {
         xlog("clanend: continue at %.1f s", t);
     }
     float rt = CE.tr ? (now - CE.tr) / 1000.0f : -1.0f;
-    if ((CE.ph == CE_GO || CE.ph == CE_RANK) && sel && CE.tr) {      // skip the rank beat to the stats
-        float ts = ce_stats_t() + 1.0f;
-        if (rt < ts) { CE.skip_to_wait = 1; CE.tr -= (uint64_t)((ts - rt) * 1000.0f); rt = ts; xlog("clanend: skipped to the stats"); }
-        sel = 0;
-    }
+    if (CE.ph == CE_GO || CE.ph == CE_RANK) sel = 0;                 // (not skippable: the rank beat plays whole)
     // the art and the page
     if (CE.fade_in) {                                               // 0.45 s from the page underneath into the black, then the art comes up (ceFade)
         float fa = ce_ramp(t, 0.0f, 0.45f);

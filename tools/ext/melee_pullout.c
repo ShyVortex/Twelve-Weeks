@@ -182,7 +182,20 @@ static int pul_shortdrag_on(void) { static int v = -1; static uint64_t at; retur
 // (the enemy was just knocked down instead of dying): the 2.55 s fail hold kept the victim in the pair when the death punch's lethal 250 landed -
 // the pair aborted and the victim stayed downed. Back to the table hand-off (the death lands on the downed body as before); t2r-pullout-failhold-on.txt = the ps45 hold.
 static int pul_failhold_off(void) { static int v = -1; static uint64_t at; return !pul_flag("t2r-pullout-failhold-on.txt", &v, &at); }
+// (the pull-out victim stood up, got downed and died instead of dying in its pose; dev7 B [17550]
+// 'pair hit down: lethal melee blow 250 ... on the victim of a pair (c840afd593167ebe) - 1 hp ... down at its hand-off', [17592] '2013 down: npc-lg-cover-stand-r-hunker-idle ...
+// slide 1.74 m', [17607] 'pose pop (rise) pelvis 0.46 -> 0.89', [17670] 'downed: executed by a hit'): the B1 rule (a lethal blow on a duel pair's victim = a down at the
+// hand-off) also caught the pull-out fail pair, so the fail blow only downed, the down stood the body up into a standing fall, and the ps46 death punch then executed
+// the downed body. Now the fail blow KILLS: the victim dies at the fail pair's hand-off in the clip's end pose (t2r-ext.c, the blade finisher's kill-frame path), the other screens
+// hold its puppet as a corpse (ctxdown.c cd_row_kills40), and no death punch is sent. t2r-pullout-death-punch-old.txt = the down + death punch flow.
+static int pul_failkill_off(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-pullout-death-punch-old.txt", &v, &at); }
+static int pul_endabort_old(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-pullout-end-abort-old.txt", &v, &at); }
 static int pul_vendout_on(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-pullout-vend-out.txt", &v, &at); }
+// A player report (live): the prone victim shot the attacker down during the intro (the reach); the attacker's client got the down after the drag had started, the pull-out ran on
+// and the downed attacker killed the victim. Only the intro checked our own state (pul_att_busy); the drag / grapple / kill / verdict wait / fail pair never did. Now a down (or a
+// death / execution) on the attacker at any point before the fail blow lands ends the pull-out and aborts its pair: the victim is freed. t2r-pullout-downed-old.txt = old.
+static int pul_downed_old(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-pullout-downed-old.txt", &v, &at); }
+static int pul_att_down(void) { return g_downed || g_down_dying || g_exec_until || g_uc4_dying_until || g_down_at || local_hp() <= 0.0f; }
 static int pul_kill_male_off(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-prone-kill-male-off.txt", &v, &at); }
 static int pul_kill_row(int row) { return row >= 0 && !strncmp(CD_PAIRS[row].name, "pu-kill", 7); }
 // paired.c psync_play / ps_pup_att_blend: the crossfade a pull-out pair starts with (every client answers it from the row name)
@@ -1154,11 +1167,16 @@ static void pul_cam_end(const char *why, int normal) {     // normal = the seque
 }
 static void pul_att_end(const char *why, int notify) {
     if (g_pul.st == PUL_IDLE) return;
-    pul_cam_end(why, g_pul.st == PUL_OUT && (!strncmp(why, "countered", 9) || !strcmp(why, "the victim was downed")));
+    int killed = g_pul.st == PUL_OUT && !strcmp(why, "the victim was killed");
+    pul_cam_end(why, g_pul.st == PUL_OUT && (!strncmp(why, "countered", 9) || !strcmp(why, "the victim was downed") || killed));
     PULLOG("END (%s) in state %d on slot %d: pulls started %d, countered %d, downed %d, refused %d", why, g_pul.st, g_pul.slot, g_pul.n_started, g_pul.n_ok, g_pul.n_fail, g_pul.n_refused);
     if (g_pul.st == PUL_INTRO) mhr_stop(SID_PLAYER, fnv64_rt(pul_intro_clip(g_pul.set, g_pul.dir)), 0.15f);
     if (notify && g_pul.slot >= 0) pul_send(g_pul.slot, PUL_OP_END, g_pul.id, NULL, 0);
-    if (g_ps.role == 1 && g_pul.uid && g_ps.uid == g_pul.uid) psync_abort("pullout over", 1);
+    // The fail kill: the pair is not aborted here (that let the victim's puppet go alive one frame before its death arrived, and it stood up
+    // on the net). The contextual pair's own hand-off ends it: it waits for the death and keeps the corpse on the clip's lying pose
+    // (ctxdown.c cd_row_kills40). t2r-pullout-end-abort-old.txt = abort here as before.
+    if (g_ps.role == 1 && g_pul.uid && g_ps.uid == g_pul.uid && !(killed && !pul_endabort_old())) psync_abort("pullout over", 1);
+    else if (killed) PULLOG("END: the fail pair is left to its own hand-off - the victim's corpse keeps the clip's end pose (no alive release)");
     padinj_block("melee-attack", 0);
     g_pul.st = PUL_IDLE; g_pul.slot = -1; g_pul.uid = 0; g_pul.verdict = 0; g_pul.gate_t0 = 0; g_pul.grap = 0; g_pul.pounce = 0; g_pul.shortd = 0; g_pul.kill_at = 0; g_pul.vend_ok = 0;
     g_pul.krow = -1; g_pul.kskip = 0; g_pul.fb = 0;
@@ -1316,7 +1334,7 @@ static void pul_start_outcome(uint64_t now) {
     if (!pul_play(row, s, h, ok ? "SUCCESS" : "FAIL")) { pul_att_end("outcome pair refused", 1); return; }
     pul_cam_swap(1, s, row);
     g_pul.st = PUL_OUT; g_pul.out_t0 = now; g_pul.out_end = now + (uint64_t)(pul_dend(row) * 1000.0f); g_pul.hit_s = CD_PAIRS[row].dmax; g_pul.hit_done = 0; g_pul.kill_at = 0;
-    if (!ok && g_pul.grap && g_pul.out_end < g_pul.out_t0 + (uint64_t)(g_pul.hit_s * 1000.0f) + pul_kill_after_ms() + 100)      // (the sequence stays ours until the death punch's lethal follow-up went out; ps46: its new time)
+    if (!ok && g_pul.grap && pul_failkill_off() && g_pul.out_end < g_pul.out_t0 + (uint64_t)(g_pul.hit_s * 1000.0f) + pul_kill_after_ms() + 100)      // (the sequence stays ours until the death punch's lethal follow-up went out; ps46: its new time)
         g_pul.out_end = g_pul.out_t0 + (uint64_t)(g_pul.hit_s * 1000.0f) + pul_kill_after_ms() + 100;
     if (ok) g_pul.n_ok++; else g_pul.n_fail++;
 }
@@ -1328,7 +1346,7 @@ static void pul_fail_blow(int s) {
     directhit_hook(peer, fnv64("abby-unarmed"), 0, dmg, 0);
     g_mdu.synthing = 0; g_mdmg_authored = 0;
     ev_hit_note((uint32_t)s);
-    PULLOG("FAIL blow: %.0f damage to slot %d (net hp %.0f) - down%s", (double)dmg, s, (double)nh, g_pul.grap ? "; the death punch's lethal follow-up in 1.3 s" : "");
+    PULLOG("FAIL blow: %.0f damage to slot %d (net hp %.0f) - %s", (double)dmg, s, (double)nh, !pul_failkill_off() ? "lethal: the victim dies at the fail pair's hand-off in its end pose (no death punch)" : g_pul.grap ? "down; the death punch's lethal follow-up in 1.3 s" : "down");
 }
 // death punch: the lethal marker (250) through the normal hit path on the (now downed) victim - its downed rule executes ("downed: executed by a hit")
 static void pul_death_punch(int s) {
@@ -1515,6 +1533,15 @@ static void pul_att_tick(uint64_t now) {
         return;
     }
     if (g_pul.st == PUL_DRAG || g_pul.st == PUL_WAITRES || g_pul.st == PUL_OUT || g_pul.st == PUL_GRAP || g_pul.st == PUL_KILL) {
+        // (the note at pul_downed_old) a countered outcome is the victim's escape already; after the fail blow the victim is down / dead - only the death punch (old flow) is dropped
+        if (pul_att_down() && !pul_downed_old()) {
+            if (g_pul.st != PUL_OUT || (g_pul.verdict != 1 && !g_pul.hit_done)) {
+                PULLOG("we were downed in state %d (downed %d, dying %d, pending down %d, exec %d, hp %.1f) - the pull-out ends, the victim is freed", g_pul.st, g_downed, g_down_dying, g_down_at != 0, g_exec_until != 0, (double)local_hp());
+                g_pul.cool[g_pul.slot] = now + 2000;
+                pul_att_end("we were downed", 1); return;
+            }
+            if (g_pul.kill_at) { g_pul.kill_at = 0; PULLOG("we were downed after the fail blow - no death punch"); }
+        }
         int ours = g_ps.role == 1 && g_ps.uid == g_pul.uid;
         // pulblend (ps45: every segment): the running drag / kill victim half's pose at its hand-off, in its ap - the next segment is solved on it
         if (g_pul.grap && (g_pul.st == PUL_DRAG || g_pul.st == PUL_KILL) && ours && !g_pul.vend_ok && now + 400 >= (g_pul.st == PUL_KILL ? g_pul.kill_end : g_pul.drag_end) && !pul_blend_old()) {
@@ -1536,7 +1563,7 @@ static void pul_att_tick(uint64_t now) {
         int gone_new = GetFileAttributesA("t2r-pul-gone-old.txt") == INVALID_FILE_ATTRIBUTES;
         // grapple: the drag's hand-off starts the grapple pair once psync ended the drag pair at its own hand-off (a psync_start over a running pair would
         // abort it to the victim first); 150 ms past the hand-off it starts anyway. Its hand-off -> the verdict wait
-        // lead (the note at PUL_LEAD_MS): our drag copy ends here, locally, PUL_LEAD_MS before its pair end - the grapple START goes out while the victim's half still plays
+        // ps46b lead (the note at PUL_LEAD_MS): our drag copy ends here, locally, PUL_LEAD_MS before its pair end - the grapple START goes out while the victim's half still plays
         if (g_pul.grap && g_pul.st == PUL_DRAG && g_pul_lead_on && g_pul.var != PULV_B && ours && now >= g_pul.drag_end) {
             PULLOG("ps46b lead: drag u%08x ended locally %llu ms before its pair end (no ABORT sent: the victim's drag half plays on) - the grapple START goes out now", g_ps.uid, (unsigned long long)g_pul_lead_on);
             g_pul_lead_on = 0;
@@ -1563,11 +1590,11 @@ static void pul_att_tick(uint64_t now) {
             if (g_pul.verdict || now - g_pul.res_ms >= wait) pul_start_outcome(now);
         }
         else if (g_pul.st == PUL_OUT) {
-            if (g_pul.verdict != 1 && !g_pul.hit_done && now >= g_pul.out_t0 + (uint64_t)(g_pul.hit_s * 1000.0f)) { g_pul.hit_done = 1; pul_fail_blow(g_pul.slot); if (g_pul.grap) g_pul.kill_at = now + pul_kill_after_ms(); }
+            if (g_pul.verdict != 1 && !g_pul.hit_done && now >= g_pul.out_t0 + (uint64_t)(g_pul.hit_s * 1000.0f)) { g_pul.hit_done = 1; pul_fail_blow(g_pul.slot); if (g_pul.grap && pul_failkill_off()) g_pul.kill_at = now + pul_kill_after_ms(); }
             if (g_pul.kill_at && now >= g_pul.kill_at) { g_pul.kill_at = 0; pul_death_punch(g_pul.slot); }
             if (now >= g_pul.out_end) {
                 g_pul.cool[g_pul.slot] = now + (g_pul.verdict == 1 ? PUL_COOL_OK_MS : PUL_COOL_FAIL_MS);
-                pul_att_end(g_pul.verdict == 1 ? "countered - the victim got away" : "the victim was downed", 1);
+                pul_att_end(g_pul.verdict == 1 ? "countered - the victim got away" : pul_failkill_off() ? "the victim was downed" : "the victim was killed", 1);
             }
         }
     }

@@ -1,33 +1,30 @@
-// gearup13.c - the 2013-layout GEAR UP page (built with the in-game uis the SAME way as the map vote and loading screen,
-// keeping the style of the other two, and not a fake ui).
+// gearup13.c - the 2013-layout GEAR UP page, built the same way and in the style of the map vote and loading screen pages (a real in-game UI, not a fake one).
 // Included after skills.c / gunlimit.c (it uses their loadout helpers). The widgets are tools/features/gearup13_widgets.py (page to1/gearup13, built
 // from the same Builder as to1/matchflow); like the match flow pages this one is driven ENTIRELY from the tick - no winmm page handler runs for it -
 // and every text / icon / visibility goes through the dedup writers (ui_text, ui_image, ui_visible, w_alpha: no per-frame rewrites, no flicker).
 //
 // Two views in ONE page (a second instance of a page on the stack breaks it):
-//   LIST  the 6 custom loadouts g_lo[] + the 8 CLASSES presets, the focused loadout's gear and points on the right.
+//   LIST  the 6 custom loadouts g_lo[] + the 8 CLASSES presets, the focused loadout's gear and points on the right (2013factionsloadout4).
 //         CREATE LOADOUT under the custom loadouts adds one (up to N_CUSTOM_MAX: a name box, then the new loadout's edit view).
 //         SELECT on a class equips it; on a custom loadout it equips it and opens the edit view; pre-match (CHOOSE LOADOUT) / mid-match (CHANGE
 //         LOADOUT) it only equips (mid-match through g_lo_pending, the lobby object keeps this life's loadout: lo_snap_tick).
-//   EDIT  CUSTOM LOADOUT n: 7 slots (small, large, 4 skills, purchasable) | the focused slot's options listed at once |
+//   EDIT  CUSTOM LOADOUT n (2013factionsloadout1): 7 slots (small, large, 4 skills, purchasable) | the focused slot's options listed at once |
 //         the hovered option's details. A click / SELECT on an option equips it and STAYS in the options list (no page change); every change is
 //         written straight into the lobby object (+0x2c58 guns, sk_slot_set skills) and into g_lo[active] / t2r-loadout.txt.
 // Keys: W / S (menu-up / down) move, A / D (menu-left / right) slots <-> options (a skill's level inside the options), SELECT / left click
 // equips, menu-back / Esc / right click: options -> slots -> list -> out. Mouse: hover focuses, click equips, wheel scrolls the options.
 // t2r-no-gearup13.txt next to the exe: off (the old picker-skill flow runs unchanged). Log prefix "gearup13:".
-// The list (CREATE LOADOUT): lsRow0..5 show six custom loadouts (more than six scroll in them: G.coff, the lsSb scroll bar), the CREATE
-// LOADOUT button lsNew under them, the gap, the classes in lsRow6..13. G.lst / G.pv / g_gu_hov_lst are list POSITIONS: the custom slots 0..g_lo_n-1,
-// then CREATE LOADOUT (g_lo_n), then the classes (gu_pos_idx / gu_idx_pos map them to loadout indexes).
-#define GU_CUST_ROWS 6
-#define GU_N_ROWW (GU_CUST_ROWS + N_CLASSES)    // lsRow widgets
-#define GU_W_NEW GU_N_ROWW                       // the CREATE LOADOUT button as a "widget index" (hover / nearest)
-#define GU_SB_Y0 396.0f                          // the scroll bar's track (gearup13_widgets.py SB_*): the six custom rows
-#define GU_SB_H 510.0f
-#define GU_SB_X 1186.0f
+// The list (the old layout in the new style; gearup13_widgets.py): the old three columns in the No Return frame - a vertical
+// list (the custom loadouts + CREATE LOADOUT in a window of GU_VISC rows that scrolls, G.coff = the first shown; then the classes), the gear rows, the
+// details. lsRow0..6 are the custom window's rows, lsRow7..14 the classes. G.lst / G.pv / g_gu_hov_lst are list POSITIONS: the custom slots
+// 0..g_lo_n-1, then CREATE LOADOUT (g_lo_n), then the classes (gu_pos_idx / gu_idx_pos map them to loadout indexes; gu_pos_row / gu_pos_col to the block
+// and the row in it). Up / down = the next / previous position (wraps), left / right = the other block (the row in it kept in G.wcol). The prompts are
+// nrui.c's boxed ones (gu_prompts), the header its breadcrumb (gu_title).
+#define GU_VISC 7                                // custom rows on screen (gearup13_widgets.py LIST_VISC): the customs + CREATE LOADOUT scroll in it
+#define GU_N_ROWW (GU_VISC + 8)                  // lsRow widgets: the custom window + the 8 classes (gearup13_widgets.py LIST_W)
 #define GU_SLOTS 7
-#define GU_OPT_ROWS 10
-#define GU_HINT_W 1040.0f            // the key hint pHint (right aligned at x 3500, shrunk by gu_fit): its room left of RENAME (gearup13_widgets.py HINT_W)
-#define GU_HINT_W_REN 1250.0f        // ... and while a name is typed (RENAME hidden: the whole box)
+#define GU_OPT_ROWS 9
+#define GU_LP_TOTAL 13
 #define GU_MAX_OPT 80
 #define GU_NONE_ICON "streaming/t2r/icons/blocked.png"
 #define GU_EMPTY_ICON "hud/weapon-cross/empty-slot.svg"
@@ -45,13 +42,13 @@ static struct {
     int det_key, det_ph, det_hold, view_anim, pre_i; uint64_t det_t0, view_t0;     // animation state (gu_anim_tick)
     int pv, pv_want, pv_ph, pv_ign, pv_lasthov, pv_lastlst, pv_lastwant; float pv_a; uint64_t pv_t0, pv_chg;   // list preview: shown row / wanted row / tween phase (0 idle, 1 out, 2 in)
     int stage, closing, hv_slot, hv_opt, mm_last, h_nx, h_e;        // h_nx / h_e: menu-next / the E key (RENAME)        // mm_last / hv_*: the mouse state of the last frame (hover acts on a change)
-    int coff;                                                        // the custom slot shown in lsRow0 (more than six customs scroll)
+    int coff, cloff, wcol;                                           // the first tile column shown in row 0 / row 1 (customs + CREATE scroll sideways), the column up / down keeps
 } G;
 static struct { int ok, view, col, slot, opt, off; } g_gu_keep;    // the edit view's place, kept across the engine's own pop + our push on menu-back
 // RENAME state (the name being typed: code points, cursor, the pad's held states; see the RENAME section)
-// mode 0: RENAME on the edit view; 1: the CREATE LOADOUT name box on the list. sel: the prefilled default is selected (the first letter typed replaces it),
+// mode 0: RENAME on the edit view; 1: the CREATE LOADOUT name box on the list; 2: RENAME of the focused custom loadout on the list (slot = its custom slot; 0 uses the active one). sel: the prefilled default is selected (the first letter typed replaces it),
 // dflt: the text is still the prefilled default (saved as "" = the default label, so it follows the language)
-static struct { int on, mode, sel, dflt, n, cur, pad, h_u, h_d, h_l, h_r, h_sel, h_act, h_back, h_nx; uint32_t cp[LO_NM_MAX]; uint64_t t_u, t_d, t0, f0, click_f; } GN;
+static struct { int on, mode, sel, dflt, n, cur, pad, slot, h_u, h_d, h_l, h_r, h_sel, h_act, h_back, h_nx; uint32_t cp[LO_NM_MAX]; uint64_t t_u, t_d, t0, f0, click_f; } GN;
 static volatile LONG g_kt_on;               // 1 = a name is typed: the keyboard hook eats the keys (kt_ll_proc)
 
 static uint64_t gu13_page_id(void) { static uint64_t id; if (!id) id = page_id("gearup13"); return id; }
@@ -66,21 +63,24 @@ static int gu_idx_pos(int idx) {
     if (lo_custom(idx)) return lo_slot(idx);
     return lo_cls(idx) >= 0 ? g_lo_n + 1 + lo_cls(idx) : 0;
 }
-static int gu_wid_pos(int w) {                   // lsRow widget (GU_W_NEW: lsNew) -> list position (-1: none)
-    if (w < 0) return -1;
-    if (w < GU_CUST_ROWS) return G.coff + w < g_lo_n ? G.coff + w : -1;
-    if (w < GU_N_ROWW) return g_lo_n + 1 + w - GU_CUST_ROWS;
-    return w == GU_W_NEW ? g_lo_n : -1;
+static int gu_row_len(int row) { return row == 0 ? g_lo_n + 1 : N_CLASSES; }       // row 0: the customs + the CREATE LOADOUT tile
+static int gu_pos_row(int pos) { return pos <= g_lo_n ? 0 : 1; }
+static int gu_pos_col(int pos) { return pos <= g_lo_n ? pos : pos - g_lo_n - 1; }
+static int gu_rc_pos(int row, int col) { return row == 0 ? col : g_lo_n + 1 + col; }
+static int gu_wid_pos(int w) {                   // lsRow widget -> list position (-1: none)
+    if (w < 0 || w >= GU_N_ROWW) return -1;
+    if (w < GU_VISC) return G.coff + w <= g_lo_n ? G.coff + w : -1;
+    return w - GU_VISC < N_CLASSES ? g_lo_n + 1 + w - GU_VISC : -1;
 }
-static void gu_scroll_to(int pos) {             // keep the focused custom row inside the six (CREATE LOADOUT: the last six, the button follows them)
-    const int mx = g_lo_n > GU_CUST_ROWS ? g_lo_n - GU_CUST_ROWS : 0;
-    if (pos == g_lo_n) G.coff = mx;
-    else if (pos >= 0 && pos < g_lo_n) {
+static void gu_scroll_to(int pos) {             // keep the focused custom row inside the window of GU_VISC (the classes always fit)
+    if (pos >= 0 && gu_pos_row(pos) == 0) {
         if (pos < G.coff) G.coff = pos;
-        if (pos >= G.coff + GU_CUST_ROWS) G.coff = pos - GU_CUST_ROWS + 1;
+        if (pos >= G.coff + GU_VISC) G.coff = pos - GU_VISC + 1;
     }
+    const int mx = gu_row_len(0) > GU_VISC ? gu_row_len(0) - GU_VISC : 0;
     if (G.coff > mx) G.coff = mx;
     if (G.coff < 0) G.coff = 0;
+    G.cloff = 0;
 }
 
 // ------------------------------------------------------------------ data helpers (real tables, no mock text)
@@ -129,9 +129,8 @@ static const loadout_t *gu_list_lo(int r, loadout_t *tmp) {
     return lo_of(r);
 }
 static int gu_left_lp(const loadout_t *l) { return 13 - lo_cost(l); }
-static void gu_lp_str(char *b, size_t n, int left) {
-    if (left <= 0) snprintf(b, n, "<font color=\"#d23c32\">%d/13 Loadout Points</font>", left < 0 ? 0 : left);
-    else snprintf(b, n, "%d/13 Loadout Points", left);
+static void gu_lp_str(char *b, size_t n, int left) {      // "7 | 13": the points left | the total (No Return count style; no red any more)
+    snprintf(b, n, "%d | %d", left < 0 ? 0 : left, GU_LP_TOTAL);
 }
 
 // ------------------------------------------------------------------ the options of a slot
@@ -141,7 +140,7 @@ static void gu_add(int kind, uint32_t row, uint32_t base, int supp, int sj) {
 }
 static void gu_build_opts(int s) {
     g_gu_nopt = 0;
-    gu_add(GO_NONE, 0xffffffffu, 0, 0, -1);
+    if (s != GS_SMALL) gu_add(GO_NONE, 0xffffffffu, 0, 0, -1);    // a secondary must be picked - no NO SMALL FIREARM row (lo_fix_small)
     if (s == GS_SMALL || s == GS_LARGE) {
         int ws = gu_ws(s);
         if (ws == 0 && (!g_large_tab || !g_picker_base[0])) return;
@@ -224,6 +223,16 @@ static float gu_est(const char *t, float pt) {          // estimated width of t 
 }
 static struct { uint64_t w; float s; } g_gu_fit[192];     // per widget handle: the scale last written (cleared with the page: a rebuilt page can reuse a freed handle at scale 1)
 #define c g_gu_fit
+// w_scale with a per-handle cache (raw: re-applied on every fill, no cache hit: the option / slot names are re-asserted)
+static void gu_set_scale(uint64_t w, float sc, int raw) {
+    int k, fr = -1;
+    for (k = 0; k < 192 && c[k].w != w; k++) if (fr < 0 && !c[k].w) fr = k;
+    if (!raw && k < 192 && c[k].s == sc) return;    // already at this scale
+    if (k == 192) { k = fr >= 0 ? fr : (int)(w >> 4) % 192; c[k].w = w; }
+    c[k].s = sc;
+    w_scale(w, sc, sc);
+}
+static int g_gu_grey;      // 1: the next gu_fit writes its text in the grey (an unfocused row / tile: white and grey are the page's two text colours)
 static void gu_fit(const char *path, const char *t, float box, float pt) {
     if (!t) t = "";
     const char *tr = loc_tr(t);
@@ -244,7 +253,8 @@ static void gu_fit(const char *path, const char *t, float box, float pt) {
     if (sc < 0.6f) sc = 0.6f;
     // even at the smallest scale too wide (a long name in a narrow row): cut it with "..." so it never reaches the cost or the frame.
     // Only plain names (the coloured tags are short and never this long). The full name stays in the details panel.
-    char cut[96];
+    char cut[96], wb[260];
+    const char *fin = t;
     if (est * sc > box * 1.02f && !strchr(src, '<')) {
         float lim = box / (pt * 0.6f) - 3 * 0.80f, acc = 0.0f;   // width budget in "pt units" minus the three dots
         size_t n = 0;
@@ -256,17 +266,16 @@ static void gu_fit(const char *path, const char *t, float box, float pt) {
         if (n > 0 && ((unsigned char)cut[n - 1] & 0x80) && ((unsigned char)cut[n - 1] & 0xC0) == 0xC0) n--;
         while (n > 0 && cut[n - 1] == ' ') n--;
         memcpy(cut + n, "...", 4);
-        if (raw) ui_text_raw(path, cut); else ui_text(path, cut);
-    } else if (raw) ui_text_raw(path, t); else ui_text(path, t);
+        fin = cut;
+    }
+    if (g_gu_grey && fin[0] && !strchr(fin, '<')) { snprintf(wb, sizeof wb, "<font color=\"#8C8C8C\">%s</font>", fin); fin = wb; }
+    if (raw) ui_text_raw(path, fin); else ui_text(path, fin);
     uint64_t w = ui_w(path);
     if (!w) return;
-    int k, fr = -1;
-    for (k = 0; k < 192 && c[k].w != w; k++) if (fr < 0 && !c[k].w) fr = k;
-    if (!raw && k < 192 && c[k].s == sc) return;    // already at this scale
-    if (k == 192) { k = fr >= 0 ? fr : (int)(w >> 4) % 192; c[k].w = w; }
-    c[k].s = sc;
-    w_scale(w, sc, sc);
+    gu_set_scale(w, sc, raw);
 }
+// fit with the grey (grey != 0) or the white text colour
+static void gu_fitc(const char *path, const char *t, float box, float pt, int grey) { g_gu_grey = grey; gu_fit(path, t, box, pt); g_gu_grey = 0; }
 #undef c
 
 // ------------------------------------------------------------------ focus fades (the tick-driven page has none of the engine's focus motion)
@@ -396,7 +405,7 @@ static void gu_anim_tick(uint64_t now) {
     } else G.det_key = -1;
     // ---- list view: the right panel previews the hovered loadout (or the focused one), quick out 80 ms, in 150 ms with an 8 unit slide
     if (G.view == 0) {
-        static const char *const PV[] = {"lgIc0","lgIc1","lgIc2","lgNm0","lgNm1","lgNm2","lskIc0","lskIc1","lskIc2","lskIc3","lskNm0","lskNm1","lskNm2","lskNm3","lsName","lsDesc","lsCur","lsLP"};
+        static const char *const PV[] = {"lgIc0","lgIc1","lgIc2","lgNm0","lgNm1","lgNm2","lskIc0","lskIc1","lskIc2","lskIc3","lskNm0","lskNm1","lskNm2","lskNm3","lsName","lsDesc","lsCur","lsLP","lsPerk"};
         float a = -1.0f;
         if (G.pv < 0) G.pv = G.pv_want;
         if (G.pv_ph == 0 && G.pv_want != G.pv && now - G.pv_chg >= 60) { G.pv_ph = 1; G.pv_t0 = now; }
@@ -416,7 +425,7 @@ static void gu_anim_tick(uint64_t now) {
             for (unsigned i = 0; i < sizeof PV / sizeof PV[0]; i++) { snprintf(pp, sizeof pp, "anim-group.lst.%s", PV[i]); gu_leaf(pp, a); }
         }
     } else if (G.pv_ph) {                                    // left the list mid-tween: the panel is back to plain
-        static const char *const PV2[] = {"lgIc0","lgIc1","lgIc2","lgNm0","lgNm1","lgNm2","lskIc0","lskIc1","lskIc2","lskIc3","lskNm0","lskNm1","lskNm2","lskNm3","lsName","lsDesc","lsCur","lsLP"};
+        static const char *const PV2[] = {"lgIc0","lgIc1","lgIc2","lgNm0","lgNm1","lgNm2","lskIc0","lskIc1","lskIc2","lskIc3","lskNm0","lskNm1","lskNm2","lskNm3","lsName","lsDesc","lsCur","lsLP","lsPerk"};
         char pp[160];
         for (unsigned i = 0; i < sizeof PV2 / sizeof PV2[0]; i++) { snprintf(pp, sizeof pp, "anim-group.lst.%s", PV2[i]); gu_leaf(pp, 1.0f); }
         G.pv_ph = 0; G.pv = -1;
@@ -458,111 +467,194 @@ static void gu_preload_tick(void) {
     }
 }
 
+// ------------------------------------------------------------------ shared pieces of the redesigned page (nrui.c frame, No Return look)
+// the boxed prompts: what a click on each one does (gu13_scan_real reads it back through nr_prompt_hover)
+enum { GPA_NONE, GPA_BACK, GPA_SEL, GPA_RST, GPA_REN };
+static int g_gu_pact[NR_NPROMPT], g_gu_pon[NR_NPROMPT], g_gu_npa;
+static void gu_prompts_put(const nr_prompt_t *it, const int *act, int n) {
+    g_gu_npa = n > NR_NPROMPT ? NR_NPROMPT : n;
+    for (int k = 0; k < g_gu_npa; k++) { g_gu_pact[k] = act[k]; g_gu_pon[k] = it[k].on; }
+    nr_prompts(it, n);
+}
+// the prompts of the view in use (the device's own glyphs for the menu commands, plain key text in a white box for W / S, A / D and the like)
+static void gu_prompts(void) {
+    nr_prompt_t it[NR_NPROMPT];
+    int act[NR_NPROMPT], n = 0;
+#define GP(KB, PAD, LB, ON, A) do { it[n] = (nr_prompt_t){(KB), (PAD), (LB), (ON)}; act[n++] = (A); } while (0)
+    if (GN.on) {                                   // the name box: DELETE (a letter), SAVE / CREATE, CANCEL
+        GP("BKSP", "menu:action", "DELETE", 1, GPA_RST);
+        GP("ENTER", "menu:select", GN.mode == 1 ? "CREATE" : "SAVE", 1, GPA_SEL);
+        GP("ESC", "menu:back", "CANCEL", 1, GPA_BACK);
+    } else if (G.view == 1) {
+        const gu_opt_t *o = G.opt >= 0 && G.opt < g_gu_nopt ? &g_gu_opt[G.opt] : NULL;
+        if (G.col == 0) GP("D", "RIGHT", "OPTIONS", 1, GPA_NONE);
+        else if (o && o->kind == GO_SKILL && SK[o->row].nlv > 1) GP("A / D", "LEFT / RIGHT", "LEVEL", 1, GPA_NONE);
+        else if (o && o->kind == GO_GUN && o->sj >= 0) GP("A / D", "LEFT / RIGHT", "SUPPRESSOR", 1, GPA_NONE);
+        else GP("A", "LEFT", "SLOTS", 1, GPA_NONE);
+        GP("W / S", "D-PAD", "MOVE", 1, GPA_NONE);
+        GP("menu:next", "menu:next", "RENAME", 1, GPA_REN);
+        GP("R", "menu:action", "RESET LOADOUT", 1, GPA_RST);
+        GP("menu:select", "menu:select", G.col == 0 ? "CHOOSE" : "EQUIP", 1, GPA_SEL);
+        GP("menu:back", "menu:back", "BACK", 1, GPA_BACK);
+    } else {
+        const int idx = gu_pos_idx(G.lst), cr = G.lst == g_lo_n;
+        const int can_new = g_lo_n < N_CUSTOM_MAX && g_lo_state == LO_LIST, cust = idx >= 0 && lo_slot(idx) >= 0 && g_lo_state == LO_LIST;
+        GP("W A S D", "D-PAD", "MOVE", 1, GPA_NONE);
+        GP("menu:select", "menu:select", cr ? "CREATE" : cust ? "EDIT" : "EQUIP", cr ? can_new : 1, GPA_SEL);
+        GP("menu:next", "menu:next", "RENAME", cust, GPA_REN);
+        GP("menu:back", "menu:back", "BACK", 1, GPA_BACK);
+    }
+#undef GP
+    gu_prompts_put(it, act, n);
+}
+// an EQUIPPED chip (nr_style.chip / nrui.c nr_chip: the accent box built at NR_CHIP_W0 with a left-middle pivot): sized to its (translated) text and put at x
+// (right_edge: x is its right end), at the middle line the page template gave it
+#define GU_CHIP_PT 30.0f
+static void gu_chip(const char *base, const char *text, float x, int right_edge) {
+    char p[160];
+    snprintf(p, sizeof p, "%sBg", base); ui_visible(p, 1);
+    snprintf(p, sizeof p, "%sTx", base); ui_visible(p, 1);
+    nr_chip(base, text, right_edge ? 0.0f : x, right_edge ? x : 0.0f, GU_CHIP_PT);
+}
+static void gu_chip_off(const char *base) {
+    char p[160];
+    snprintf(p, sizeof p, "%sBg", base); ui_visible(p, 0);
+    snprintf(p, sizeof p, "%sTx", base); ui_visible(p, 0);
+}
+// a multi-line text shrunk (about its top left: the box scales with it, so the wrap stays and only the line count decides) so it ends inside avail units
+static void gu_desc_fit(const char *path, const char *t, float box_w, float pt, float avail) {
+    if (!t) t = "";
+    ui_text(path, t);
+    uint64_t w = ui_w(path);
+    if (!w) return;
+    const char *tr = loc_tr(t), *q = tr ? tr : t;
+    int lines = 0;
+    for (;;) {
+        const char *e = strchr(q, '\n');
+        char tmp[400];
+        size_t n = e ? (size_t)(e - q) : strlen(q);
+        if (n >= sizeof tmp) n = sizeof tmp - 1;
+        memcpy(tmp, q, n); tmp[n] = 0;
+        lines += n ? (int)ceilf(gu_est(tmp, pt) * 1.12f / box_w) : 1;
+        if (!e) break;
+        q = e + 1;
+    }
+    float sc = lines > 0 && avail > 0.0f ? avail / ((float)lines * pt * 1.7f) : 1.0f;
+    if (sc > 1.0f) sc = 1.0f;
+    if (sc < 0.72f) sc = 0.72f;
+    gu_set_scale(w, sc, 0);
+}
+static const char *gu_nofont(const char *s, char *o, size_t n) {         // s without its <...> tags (the gun limit's red "Too many of ..." line: white and grey only)
+    size_t k = 0;
+    int tag = 0;
+    for (; *s && k + 1 < n; s++) {
+        if (*s == '<') { tag = 1; continue; }
+        if (tag) { if (*s == '>') tag = 0; continue; }
+        o[k++] = *s;
+    }
+    o[k] = 0;
+    return o;
+}
+static void gu_nb_fill(void) {                  // the name box's hint line (the keys are boxed prompts now)
+    ui_text("anim-group.nb.nbHint", GN.pad ? "UP / DOWN  LETTER     LEFT / RIGHT  MOVE" : "TYPE A NAME");
+}
+
 // ------------------------------------------------------------------ list view
+#define GU_LX1 1180.0f                           // the list column's right edge (gearup13_widgets.py LX1)
+#define GU_LSB_X 1210.0f                         // the custom window's scroll bar: x, track top / bottom (LSB_X, ROW_Y[0], + 6 rows of 92 + 80)
+#define GU_ROW_Y0 352.0f
+#define GU_ROW_Y1 984.0f
+#define GU_GNM_W 820.0f                          // a gear row's name box (GX1 - GX0 - GTX - 40)
 static void gu_fill_list(void) {
-    char p[128], b[200], nm[48];
+    char p[160], b[240], nm[48];
     loadout_t tmp;
     gu_scroll_to(G.lst);
+    const int can_new = g_lo_n < N_CUSTOM_MAX && g_lo_state == LO_LIST;
     for (int w = 0; w < GU_N_ROWW; w++) {
-        const int pos = gu_wid_pos(w), i = gu_pos_idx(pos);
+        const int pos = gu_wid_pos(w), i = gu_pos_idx(pos), is_new = pos >= 0 && pos == g_lo_n;
         snprintf(p, sizeof p, "anim-group.lst.lsRow%d", w);
-        ui_visible(p, i >= 0);
-        if (i < 0) continue;
-        int blocked = gl_row_blocked(i, NULL);
-        int tagged = blocked || i == g_lo_active;
-        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.lsName%d", w, w); gu_fit(p, lo_name(i, nm, sizeof nm), tagged ? 420.0f : 590.0f, 44.0f);
-        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.lsTag%d", w, w);
-        ui_text(p, blocked ? "<font color=\"#d23c32\">TOO MANY</font>" : i == g_lo_active ? "EQUIPPED" : "");
-        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.lsFill%d", w, w); gu_fade(p, pos == G.lst || pos == g_gu_hov_lst);
-        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.lsFrame%d", w, w); gu_fade(p, pos == G.lst);
-        snprintf(p, sizeof p, "anim-group.lst.lsRow%d", w); w_alpha(ui_w(p), blocked ? 0.35f : 1.0f);
-    }
-    {   // CREATE LOADOUT (menu GEAR UP only: a new loadout opens the editor) + the custom rows' scroll bar
-        const int pn = g_lo_n, can = g_lo_n < N_CUSTOM_MAX && g_lo_state == LO_LIST;
-        gu_fade("anim-group.lst.lsNew.lsNewFill", pn == G.lst || pn == g_gu_hov_lst);
-        gu_fade("anim-group.lst.lsNew.lsNewFrame", pn == G.lst);
-        snprintf(b, sizeof b, "%d/%d", g_lo_n, N_CUSTOM_MAX);
-        ui_text("anim-group.lst.lsNew.lsNewTag", b);
-        w_alpha(ui_w("anim-group.lst.lsNew"), can ? 1.0f : 0.35f);
-        const int sb = g_lo_n > GU_CUST_ROWS;
-        ui_visible("anim-group.lst.lsSbTrack", sb); ui_visible("anim-group.lst.lsSbThumb", sb);
-        if (sb) {
-            static int lk = -1;
-            const int k = g_lo_n << 8 | G.coff;
-            if (k != lk) {
-                uint64_t th = ui_w("anim-group.lst.lsSbThumb");
-                if (th) {
-                    lk = k;
-                    w_scale(th, 1.0f, (float)GU_CUST_ROWS / (float)g_lo_n);
-                    w_pivot(th, GU_SB_X, GU_SB_Y0 + GU_SB_H * (float)G.coff / (float)g_lo_n);
-                }
-            }
+        ui_visible(p, pos >= 0);
+        if (pos < 0) continue;
+        const int foc = pos == G.lst;
+        int blocked = 0;
+        char pn[160], pt_[160];
+        snprintf(pn, sizeof pn, "anim-group.lst.lsRow%d.lsName%d", w, w);
+        snprintf(pt_, sizeof pt_, "anim-group.lst.lsRow%d.lsTag%d", w, w);
+        if (is_new) {                                  // the CREATE LOADOUT row: a plus and the count n | 12 (the old page's row)
+            gu_fitc(pn, "+ CREATE LOADOUT", 640.0f, 33.0f, !foc);
+            snprintf(b, sizeof b, "%d | %d", g_lo_n, N_CUSTOM_MAX);
+            ui_text(pt_, b);
+        } else if (i >= 0) {
+            blocked = gl_row_blocked(i, NULL);
+            gu_fitc(pn, lo_name(i, nm, sizeof nm), 640.0f, 33.0f, !foc);
+            if (blocked) ui_text(pt_, "<font color=\"#F0F0F0\">TOO MANY</font>");
+            else ui_text(pt_, i == g_lo_active ? "<font color=\"#D9D86A\">EQUIPPED</font>" : "");
         }
+        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.ls%dFill", w, w); gu_fade(p, pos == G.lst || pos == g_gu_hov_lst);
+        snprintf(p, sizeof p, "anim-group.lst.lsRow%d.ls%dFo", w, w); gu_fade(p, foc);
+        snprintf(p, sizeof p, "anim-group.lst.lsRow%d", w); w_alpha(ui_w(p), blocked || (is_new && !can_new) ? 0.35f : 1.0f);
     }
-    ui_visible("anim-group.nb", GN.on && GN.mode == 1);
+    nr_section("anim-group.lst.lsSecC", NR_L0, GU_LX1, 300.0f, "CUSTOM LOADOUTS", "", 36.0f);
+    nr_section("anim-group.lst.lsSecL", NR_L0, GU_LX1, 1060.0f, "CLASSES", "", 36.0f);
+    // the custom window's scroll bar (more than GU_VISC customs + CREATE LOADOUT): gearup13_widgets.py scroll_v lsSc, thumb built at 0.7 of the track
+    nr_scroll_v("anim-group.lst.lsSc", GU_LSB_X, GU_ROW_Y0, GU_ROW_Y1, (GU_ROW_Y1 - GU_ROW_Y0) * 0.7f, G.coff, GU_VISC, gu_row_len(0));
+    ui_visible("anim-group.nb", GN.on && GN.mode != 0);
+    if (GN.on) gu_nb_fill();
     const int pvp = G.pv >= 0 && G.pv < gu_npos() ? G.pv : G.lst;     // the previewed list position (hover / focus, tweened in gu_anim_tick)
     const int pv = gu_pos_idx(pvp), pv_new = pv < 0;                 // (CREATE LOADOUT: an empty loadout, its own text)
     static const loadout_t nl = {{0xffffffffu, 0, 0xffffffffu}, {0, 0, 0}};   // what CREATE LOADOUT makes (gu_create): the 9mm only
     const loadout_t *l = pv_new ? &nl : gu_list_lo(pv, &tmp);
+    // the 7 gear cells: small, large, purchasable (2013 order), then the four skills
     static const int GS3[3] = {GS_SMALL, GS_LARGE, GS_PURCH};
-    for (int k = 0; k < 3; k++) {                  // small, large | purchasable (2013 order)
+    for (int k = 0; k < 3; k++) {
         const char *ic; int cost;
         const char *n = gu_slot_item(GS3[k], l, &ic, &cost);             // (guns only: nl is no g_lo[] slot, its 4th skill would read the lobby's)
         snprintf(p, sizeof p, "anim-group.lst.lgIc%d", k); ui_image(p, n ? ic : GU_NONE_ICON);
-        snprintf(p, sizeof p, "anim-group.lst.lgNm%d", k); gu_fit(p, n ? n : gu_none_name(GS3[k]), 930.0f, 44.0f);
+        snprintf(p, sizeof p, "anim-group.lst.lgNm%d", k); gu_fit(p, n ? n : gu_none_name(GS3[k]), GU_GNM_W, 42.0f);
     }
     for (int k = 0; k < 4; k++) {
         const char *ic; int cost;
         const char *n = pv_new ? NULL : gu_slot_item(GS_SK1 + k, l, &ic, &cost);
         snprintf(p, sizeof p, "anim-group.lst.lskIc%d", k); ui_image(p, n ? ic : GU_EMPTY_ICON);
-        snprintf(p, sizeof p, "anim-group.lst.lskNm%d", k); gu_fit(p, n ? n : "", 930.0f, 40.0f);
+        snprintf(p, sizeof p, "anim-group.lst.lskNm%d", k); gu_fit(p, n ? n : "", GU_GNM_W, 39.0f);
     }
-    gu_fit("anim-group.lst.lsName", pv_new ? "CREATE LOADOUT" : lo_name(pv, nm, sizeof nm), 880.0f, 56.0f);
+    gu_fit("anim-group.lst.lsName", pv_new ? "CREATE LOADOUT" : lo_name(pv, nm, sizeof nm), 1000.0f, 60.0f);
     int n = 0;
     if (pv_new) snprintf(b, sizeof b, "%s", g_lo_n >= N_CUSTOM_MAX ? "You have the most custom loadouts there can be."
                                              : g_lo_state != LO_LIST ? "New loadouts are made in GEAR UP from the menu."
                                              : "Make a new custom loadout. SELECT to name it, then choose its gear.");
     else {
-        { char gp[120]; n += snprintf(b + n, SNLEFT(b, n), "%s", gl_detail_prefix(pv, gp, sizeof gp)); }
+        { char gp[120], gq[120]; n += snprintf(b + n, SNLEFT(b, n), "%s", gu_nofont(gl_detail_prefix(pv, gp, sizeof gp), gq, sizeof gq)); }
         snprintf(b + n, SNLEFT(b, n), "%s", lo_cls(pv) >= 0 ? CLASSES[lo_cls(pv)].desc : "Your own loadout. SELECT to change its gear.");
     }
-    {   // the clan's supply perks (clanperk.c): "YOUR CLAN SENT: medkit x2 (Tyler), ..." under the equipped loadout's description
-        const char *cpl = pv == g_lo_active ? cp_gearup_line() : "";
-        char cb[420];
-        if (cpl[0]) { snprintf(cb, sizeof cb, "%s\n\n%s", b, cpl); ui_text("anim-group.lst.lsDesc", cb); }
-        else ui_text("anim-group.lst.lsDesc", b);
-    }
-    ui_text("anim-group.lst.lsCur", pv == g_lo_active ? "This is your current loadout" : "");     // (2013: under the gear of the equipped loadout)
-    gu_lp_str(b, sizeof b, pv_new ? 13 - lo_cost(&nl) + sk4_cost(&nl) : gu_left_lp(l));
+    gu_desc_fit("anim-group.lst.lsDesc", b, 1000.0f, 36.0f, 560.0f);
+    // the clan's supply perks (clanperk.c): "YOUR CLAN SENT: medkit x2 (Tyler), ..." under the equipped loadout's gear rows (its own line)
+    gu_fit("anim-group.lst.lsPerk", pv == g_lo_active ? cp_gearup_line() : "", 1160.0f, 30.0f);
+    ui_text("anim-group.lst.lsCur", pv == g_lo_active ? "THIS IS YOUR CURRENT LOADOUT" : "");     // (2013: under the gear of the equipped loadout)
+    const int left = pv_new ? GU_LP_TOTAL - lo_cost(&nl) + sk4_cost(&nl) : gu_left_lp(l);
+    gu_lp_str(b, sizeof b, left);
     ui_text("anim-group.lst.lsLP", b);        // (no text pop: the panel tween covers the change)
-    ui_visible("anim-group.pRenIc", 0); ui_visible("anim-group.pRenTx", 0);
-    if (GN.on && GN.mode == 1) {                // the CREATE LOADOUT name box: its own prompts (CREATE / CANCEL / DELETE, the device's glyphs)
-        ui_visible("anim-group.pRstIc", 1); ui_visible("anim-group.pRstTx", 1);
-        ui_text("anim-group.pSelTx", "CREATE"); ui_text("anim-group.pBackTx", "CANCEL"); ui_text("anim-group.pRstTx", "DELETE");
-        gu_fit("anim-group.pHint", GN.pad ? "UP / DOWN  LETTER     LEFT / RIGHT  MOVE" : "TYPE A NAME     ENTER  CREATE     ESC  CANCEL", GU_HINT_W_REN, 38.0f);
-        return;
-    }
-    const int lst_i = gu_pos_idx(G.lst);
-    ui_text("anim-group.pSelTx", G.lst == g_lo_n ? "CREATE" : g_lo_state == LO_LIST && lo_slot(lst_i) >= 0 ? "EDIT" : "EQUIP");
-    gu_fit("anim-group.pHint", g_pad_mode ? "STICK / D-PAD  TO MOVE" : g_lo_state == LO_LIST && lo_slot(lst_i) >= 0 ? "W / S  TO MOVE     CLICK AGAIN TO EDIT" : "W / S  TO MOVE", GU_HINT_W, 38.0f);
-    ui_visible("anim-group.pRstIc", 0); ui_visible("anim-group.pRstTx", 0);
-    ui_text("anim-group.pBackTx", "BACK");
+    nr_bar("anim-group.lst.lsLBF", 2700.0f, 3700.0f, 1243.0f, (float)(left < 0 ? 0 : left) / (float)GU_LP_TOTAL);
+    gu_prompts();
 }
 
 // ------------------------------------------------------------------ edit view
-static void gu_fill_slots(const loadout_t *cur) {
-    char p[128], b[48];
+static void gu_fill_slots(const loadout_t *cur) {      // the ladder: rectangle thumbnails joined by a line, label / name / N LP, a thin bar under each
+    char p[160], b[48];
     for (int s = 0; s < GU_SLOTS; s++) {
         const char *ic; int cost;
         const char *n = gu_slot_item(s, cur, &ic, &cost);
-        snprintf(p, sizeof p, "anim-group.ed.sl%d.slIc%d", s, s); ui_image(p, n ? ic : GU_NONE_ICON);
-        snprintf(p, sizeof p, "anim-group.ed.sl%d.slNm%d", s, s); gu_fit(p, n ? n : gu_none_name(s), 470.0f, 40.0f);
+        const int act = s == G.slot;
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slTh%d.slIc%d", s, s, s); ui_image(p, n ? ic : GU_NONE_ICON); w_alpha(ui_w(p), act ? 1.0f : 0.6f);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slNm%d", s, s); gu_fitc(p, n ? n : gu_none_name(s), 480.0f, 45.0f, !act);
         snprintf(p, sizeof p, "anim-group.ed.sl%d.slCo%d", s, s);
-        if (n) snprintf(b, sizeof b, "%d", cost); else b[0] = 0;
-        ui_text(p, b);
-        snprintf(p, sizeof p, "anim-group.ed.sl%d.slFill%d", s, s); gu_fade(p, s == G.slot || s == g_gu_hov_slot);
-        snprintf(p, sizeof p, "anim-group.ed.sl%d.slFrame%d", s, s); gu_fade(p, s == G.slot && G.col == 0);
-        snprintf(p, sizeof p, "anim-group.ed.sl%d.slArrow%d", s, s); gu_fade(p, s == G.slot);
+        if (n && cost > 0) snprintf(b, sizeof b, "%d LP", cost); else snprintf(b, sizeof b, "FREE");
+        gu_fitc(p, b, 190.0f, 39.0f, !act);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slB%dF", s, s); nr_bar(p, 304.0f, 972.0f, 160.0f, n && cost > 0 ? (float)cost / (float)GU_LP_TOTAL : 0.0f);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slTh%d.sl%dFill", s, s, s); gu_fade(p, act || s == g_gu_hov_slot);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slTh%d.sl%dFo", s, s, s); gu_fade(p, act);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slRuT%d", s, s); gu_fade(p, act);
+        snprintf(p, sizeof p, "anim-group.ed.sl%d.slRuB%d", s, s); gu_fade(p, act);
     }
 }
 // one option row's texts: name, cost / state word, icon, equipped, dimmed
@@ -603,9 +695,15 @@ static void gu_opt_row(int s, const gu_opt_t *o, const loadout_t *cur, gu_orow_t
     }
 }
 static void gu_dump_handles(void);
+#define GU_OPT_NAME_X 236.0f         // gearup13_widgets.py OPT_NAME_X / OPT_CO_R: the option row's name left edge, cost right edge (relative to the row)
+#define GU_OPT_CO_R 1184.0f
+#define GU_OPT_H 144.0f
+#define GU_SB_X 2528.0f              // the options' scroll bar (SB_X, SB_Y0, SB_Y1): the thumb is moved + scaled
+#define GU_SB_Y0 392.0f
+#define GU_SB_Y1 1784.0f
 static void gu_fill_opts(const loadout_t *cur) {
-    char p[128];
-    ui_text("anim-group.ed.edHead", gu_head(G.slot));
+    char p[160];
+    nr_section("anim-group.ed.edHd", 1272.0f, 2500.0f, 300.0f, gu_head(G.slot), "", 45.0f);
     for (int k = 0; k < GU_OPT_ROWS; k++) {
         int i = G.off + k;
         snprintf(p, sizeof p, "anim-group.ed.op%d", k);
@@ -614,22 +712,34 @@ static void gu_fill_opts(const loadout_t *cur) {
         gu_orow_t r;
         gu_opt_row(G.slot, &g_gu_opt[i], cur, &r);
         int foc = G.col == 1 && i == G.opt;
+        char eqb[160];
+        snprintf(eqb, sizeof eqb, "anim-group.ed.op%d.opEq%d", k, k);
         snprintf(p, sizeof p, "anim-group.ed.op%d.opNm%d", k, k);
-        {   // the cost / state word is fitted first (right pivot: "ZABLOKOWANE" shrinks toward the row end), the name gets what is left of the row
-            float cw = gu_est(r.co, 36.0f);
+        {   // the cost / state word is fitted first (right pivot: "ZABLOKOWANE" shrinks toward the row end), the name gets what is left of the row;
+            // the equipped row has the EQUIPPED chip there instead (its width: the translated text at the chip's size)
+            float cw = r.eq ? nr_est("EQUIPPED", GU_CHIP_PT) * 1.06f + 32.0f : gu_est(r.co, 36.0f);
             if (cw > 250.0f) cw = 250.0f * 1.0f;
             else if (cw < 70.0f) cw = 70.0f;
-            gu_fit(p, r.nm, 882.0f - 150.0f - cw - 30.0f, 38.0f);
+            gu_fitc(p, r.nm, GU_OPT_CO_R - GU_OPT_NAME_X - cw - 30.0f, 42.0f, !foc);
         }
-        snprintf(p, sizeof p, "anim-group.ed.op%d.opCo%d", k, k); gu_fit(p, r.co, 250.0f, 36.0f); gu_pop(p, r.co);
-        snprintf(p, sizeof p, "anim-group.ed.op%d.opIc%d", k, k); ui_image(p, r.ic);
-        snprintf(p, sizeof p, "anim-group.ed.op%d.opEq%d", k, k); ui_visible(p, r.eq);
-        snprintf(p, sizeof p, "anim-group.ed.op%d.opFill%d", k, k); gu_fade(p, foc || i == g_gu_hov_opt);
-        snprintf(p, sizeof p, "anim-group.ed.op%d.opFrame%d", k, k); gu_fade(p, foc);
+        snprintf(p, sizeof p, "anim-group.ed.op%d.opCo%d", k, k); gu_fit(p, r.eq ? "" : r.co, 250.0f, 36.0f); gu_pop(p, r.co);
+        snprintf(p, sizeof p, "anim-group.ed.op%d.opIc%d", k, k); ui_image(p, r.ic); w_alpha(ui_w(p), foc ? 1.0f : 0.55f);
+        if (r.eq) gu_chip(eqb, "EQUIPPED", GU_OPT_CO_R, 1); else gu_chip_off(eqb);
+        snprintf(p, sizeof p, "anim-group.ed.op%d.op%dFill", k, k); gu_fade(p, foc || i == g_gu_hov_opt);
+        snprintf(p, sizeof p, "anim-group.ed.op%d.op%dFo", k, k); gu_fade(p, foc);
         snprintf(p, sizeof p, "anim-group.ed.op%d", k); w_alpha(ui_w(p), r.dim ? 0.45f : 1.0f);
     }
-    ui_visible("anim-group.ed.opUp", G.off > 0);
-    ui_visible("anim-group.ed.opDn", G.off + GU_OPT_ROWS < g_gu_nopt);
+    {   // the scroll bar: shown only when there are more options than rows (hairline track + a white thumb, its height / top follow the window)
+        const int sb = g_gu_nopt > GU_OPT_ROWS;
+        ui_visible("anim-group.ed.opSbT", sb); ui_visible("anim-group.ed.opSbH", sb);
+        if (sb) {
+            uint64_t th = ui_w("anim-group.ed.opSbH");
+            if (th) {
+                w_scale(th, 1.0f, (float)GU_OPT_ROWS / (float)g_gu_nopt);
+                w_pivot(th, GU_SB_X - 2.0f, GU_SB_Y0 + (GU_SB_Y1 - GU_SB_Y0) * (float)G.off / (float)g_gu_nopt);
+            }
+        }
+    }
     gu_dump_handles();
 }
 // dev (t2r-gu-trace.txt next to the exe): the 7th visible option row's name stays blank in every tab. Logs every page widget handle once
@@ -641,14 +751,14 @@ static void gu_dump_handles(void) {
     if (!f) return;
     fclose(f);
     done = 1;
-    static const char *SUB[] = {"opNm", "opCo", "opIc", "opEq", "opFill", "opFrame", "opHit"};
+    static const char *SUB[] = {"opNm", "opCo", "opIc", "opEq", "opHit"};
     char paths[96][80]; uint64_t hw[96]; int n = 0;
     for (int k = 0; k < GU_OPT_ROWS; k++) {
         snprintf(paths[n], 80, "anim-group.ed.op%d", k); hw[n] = ui_w(paths[n]); n++;
-        for (int j = 0; j < 7; j++) { snprintf(paths[n], 80, "anim-group.ed.op%d.%s%d", k, SUB[j], k); hw[n] = ui_w(paths[n]); n++; }
+        for (int j = 0; j < 5; j++) { snprintf(paths[n], 80, "anim-group.ed.op%d.%s%d", k, SUB[j], k); hw[n] = ui_w(paths[n]); n++; }
     }
     static const char *DT[] = {"anim-group.ed.dt.dtIc", "anim-group.ed.dt.dtNm", "anim-group.ed.dt.dtCo", "anim-group.ed.dt.dtDesc", "anim-group.ed.dt.dtVar",
-                               "anim-group.ed.edHead", "anim-group.ed.opUp", "anim-group.ed.opDn"};
+                               "anim-group.ed.edHdTx", "anim-group.ed.opSbH", "anim-group.ed.lpN"};
     for (int j = 0; j < 8 && n < 96; j++) { snprintf(paths[n], 80, "%s", DT[j]); hw[n] = ui_w(paths[n]); n++; }
     for (int i = 0; i < n; i++) {
         xlog("gearup13: gu trace: handle %s = %llx", paths[i], (unsigned long long)hw[i]);
@@ -718,10 +828,13 @@ static void gu_fill_details(const loadout_t *cur) {
     }
     (void)cur;
     var = vr;
+    const int deq = o && gu_opt_eq(s, o, cur);                  // the shown option is what the slot holds: the EQUIPPED chip next to the cost
     ui_image("anim-group.ed.dt.dtIc", ic);
-    gu_fit("anim-group.ed.dt.dtNm", nm, 900.0f, 52.0f);
+    gu_fit("anim-group.ed.dt.dtNm", nm, 1040.0f, 63.0f);
     ui_text("anim-group.ed.dt.dtCo", cs);
-    ui_text("anim-group.ed.dt.dtDesc", show_lv ? "" : ds);
+    if (deq) gu_chip("anim-group.ed.dt.dtEq", "EQUIPPED", 2660.0f + nr_est(cs, 42.0f) * 1.06f + 28.0f, 0); else gu_chip_off("anim-group.ed.dt.dtEq");
+    // the text must end above the next block (toggle 1080 / stats 1330 / the price block): shrunk to fit when long
+    gu_desc_fit("anim-group.ed.dt.dtDesc", show_lv ? "" : ds, 1040.0f, 39.0f, show_tg ? 200.0f : show_pu ? 420.0f : show_st ? 420.0f : 900.0f);
     ui_text("anim-group.ed.dt.dtVar", var);
     ui_visible("anim-group.ed.dt.dtSt", show_st);
     ui_visible("anim-group.ed.dt.dtTg", show_tg);
@@ -736,17 +849,20 @@ static void gu_fill_details(const loadout_t *cur) {
         ui_visible("anim-group.ed.dt.dtPu.puStLb", pu_start != 0); ui_visible("anim-group.ed.dt.dtPu.puStIc", pu_start != 0); ui_visible("anim-group.ed.dt.dtPu.puStN", pu_start != 0);
         if (pu_start) { ui_text("anim-group.ed.dt.dtPu.puStLb", "Starts with:"); ui_image("anim-group.ed.dt.dtPu.puStIc", pu_am); snprintf(nb, sizeof nb, "%u", pu_start); ui_text("anim-group.ed.dt.dtPu.puStN", nb); }
     }
-    for (int k = 0; k < 2; k++) {
-        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgNm%d", k, k); gu_fit(p, k ? "SUPPRESSED" : "UNSUPPRESSED", 320.0f, 30.0f);
+    for (int k = 0; k < 2; k++) {                 // the suppressor toggle: the chosen box framed + white, the other grey
+        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgNm%d", k, k); gu_fitc(p, k ? "SUPPRESSED" : "UNSUPPRESSED", 440.0f, 30.0f, !(show_tg && tgv == k));
         snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgCo%d", k, k); ui_text(p, tg_co[k]);
-        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgFrame%d", k, k); gu_fade(p, show_tg && tgv == k);
-        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgFill%d", k, k); gu_fade(p, show_tg && (tgv == k || g_gu_hov_tg == k));
-        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tgEq%d", k, k); ui_visible(p, show_tg && tgv == k);
+        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tg%dFo", k, k); gu_fade(p, show_tg && tgv == k);
+        snprintf(p, sizeof p, "anim-group.ed.dt.dtTg.tgB%d.tg%dFill", k, k); gu_fade(p, show_tg && (tgv == k || g_gu_hov_tg == k));
     }
     ui_visible("anim-group.ed.dt.dtLv", show_lv);
-    if (show_st)
-        for (int st = 0; st < 4; st++)
-            for (int k = 0; k < 10; k++) { snprintf(p, sizeof p, "anim-group.ed.dt.dtSt.stF%d_%d", st, k); ui_visible(p, k < v[st]); }
+    if (show_st)                                  // 4 thin bars with their N | 10 counts
+        for (int st = 0; st < 4; st++) {
+            char nb[24];
+            snprintf(nb, sizeof nb, "%d | 10", v[st]);
+            snprintf(p, sizeof p, "anim-group.ed.dt.dtSt.stN%d", st); ui_text(p, nb);
+            snprintf(p, sizeof p, "anim-group.ed.dt.dtSt.st%dF", st); nr_bar(p, 2660.0f, 3700.0f, 1352.0f + 128.0f * (float)st + 39.0f, (float)v[st] / 10.0f);
+        }
     if (show_lv) {
         int id = (int)o->row, sk = s - GS_SK1, lv = g_gu_lvl[id], in = sk_in_slot(id);
         uint64_t curv = gu_sk_val(cur, sk);
@@ -772,29 +888,13 @@ static void gu_fill_edit(void) {
     gu_fill_slots(&cur);
     gu_fill_opts(&cur);
     if (!G.det_hold) gu_fill_details(&cur);
-    gu_lp_str(b, sizeof b, gu_left_lp(&cur));
-    ui_text("anim-group.ed.edLP", b); gu_pop("anim-group.ed.edLP", b);
-    ui_visible("anim-group.pRstIc", 1); ui_visible("anim-group.pRstTx", 1);
-    ui_visible("anim-group.pRenIc", !GN.on); ui_visible("anim-group.pRenTx", !GN.on);
+    const int left = gu_left_lp(&cur);
+    gu_lp_str(b, sizeof b, left);
+    ui_text("anim-group.ed.lpN", b); gu_pop("anim-group.ed.lpN", b);
+    nr_bar("anim-group.ed.lpBF", 2660.0f, 3700.0f, 355.0f, (float)(left < 0 ? 0 : left) / (float)GU_LP_TOTAL);     // the LP bar (13 segments: its ticks are static)
     ui_visible("anim-group.nb", GN.on);          // RENAME: the NAME YOUR LOADOUT box (as CREATE LOADOUT's)
-    if (GN.on) {        // RENAME: the footer prompts are the name's (SAVE / CANCEL / DELETE, the device's own glyphs)
-        ui_text("anim-group.pSelTx", "SAVE"); ui_text("anim-group.pBackTx", "CANCEL"); ui_text("anim-group.pRstTx", "DELETE");
-        gu_fit("anim-group.pHint", GN.pad ? "UP / DOWN  LETTER     LEFT / RIGHT  MOVE" : "TYPE A NAME     ENTER  SAVE     ESC  CANCEL", GU_HINT_W_REN, 38.0f);
-        return;
-    }
-    ui_text("anim-group.pSelTx", G.col == 0 ? "CHOOSE" : "EQUIP");
-    ui_text("anim-group.pBackTx", "BACK"); ui_text("anim-group.pRstTx", "RESET LOADOUT"); ui_text("anim-group.pRenTx", "RENAME");
-    const gu_opt_t *o = G.opt >= 0 && G.opt < g_gu_nopt ? &g_gu_opt[G.opt] : NULL;
-    if (g_pad_mode)       // the pad's words (the stick / d-pad are menu-up / down / left / right)
-        gu_fit("anim-group.pHint", G.col == 0 ? "STICK / D-PAD  TO MOVE     RIGHT  OPTIONS"
-                              : o && o->kind == GO_SKILL && SK[o->row].nlv > 1 ? "STICK / D-PAD  TO MOVE     LEFT / RIGHT  LEVEL"
-                              : o && o->kind == GO_GUN && o->sj >= 0 ? "STICK / D-PAD  TO MOVE     LEFT / RIGHT  SUPPRESSOR"
-                              : "STICK / D-PAD  TO MOVE     LEFT  SLOTS", GU_HINT_W, 38.0f);
-    else
-    gu_fit("anim-group.pHint", G.col == 0 ? "W / S  TO MOVE     D  OPTIONS"
-                              : o && o->kind == GO_SKILL && SK[o->row].nlv > 1 ? "W / S  TO MOVE     A / D  LEVEL"
-                              : o && o->kind == GO_GUN && o->sj >= 0 ? "W / S  TO MOVE     A / D  SUPPRESSOR"
-                              : "W / S  TO MOVE     A  SLOTS", GU_HINT_W, 38.0f);
+    if (GN.on) gu_nb_fill();
+    gu_prompts();
 }
 
 // ------------------------------------------------------------------ equipping (real data: the lobby object, sk_slot_set, the saved loadout)
@@ -885,7 +985,7 @@ static void gu_to_edit(void) {
 }
 static void gu_to_list(const char *why) {
     G.view_anim = !gu_noanim(); G.view_t0 = GetTickCount64();
-    G.view = 0; G.col = 0; G.lst = gu_idx_pos(g_lo_active); gu_scroll_to(G.lst);
+    G.view = 0; G.col = 0; G.lst = gu_idx_pos(g_lo_active); gu_scroll_to(G.lst); G.wcol = gu_pos_col(G.lst);
     G.dirty = 1;
     ui_visible("anim-group.lst", 1);
     ui_visible("anim-group.ed", 0);
@@ -982,7 +1082,6 @@ static float gu_nearest(float cx, float cy, int *kind, int *idx, char *nm, size_
 #define GU_CAND(K, I, ...) do { snprintf(p, sizeof p, __VA_ARGS__); uint64_t w_ = ui_w(p); float x0, y0, x1, y1;         if (w_ && ui_rect_ss(w_, &x0, &y0, &x1, &y1) && x1 > x0 && y1 > y0) {             float dx = cx < x0 ? x0 - cx : cx > x1 ? cx - x1 : 0.0f, dy = cy < y0 ? y0 - cy : cy > y1 ? cy - y1 : 0.0f, d = sqrtf(dx * dx + dy * dy);             if (d < best) { best = d; *kind = (K); *idx = (I); if (nm) snprintf(nm, nmn, "%s", p); if (rc) { rc[0] = x0; rc[1] = y0; rc[2] = x1; rc[3] = y1; } } } } while (0)
     if (G.view == 0) {
         for (int w = 0; w < GU_N_ROWW; w++) if (gu_wid_pos(w) >= 0) GU_CAND(0, gu_wid_pos(w), "anim-group.lst.lsRow%d.lsHit%d", w, w);
-        GU_CAND(0, g_lo_n, "anim-group.lst.lsNew.lsNewHit");
     } else {
         for (int s_ = 0; s_ < GU_SLOTS; s_++) GU_CAND(1, s_, "anim-group.ed.sl%d.slHit%d", s_, s_);
         for (int k = 0; k < GU_OPT_ROWS && G.off + k < g_gu_nopt; k++) GU_CAND(2, G.off + k, "anim-group.ed.op%d.opHit%d", k, k);
@@ -997,10 +1096,10 @@ static int gu13_scan_real(void) {
     char p[128];
     int hit = 0;
     g_gu_hov_lst = g_gu_hov_slot = g_gu_hov_opt = g_gu_hov_lvl = -1;
-    g_gu_hov_back = ui_mouse_over("anim-group.pBackHit", 1);
-    g_gu_hov_sel = ui_mouse_over("anim-group.pSelHit", 1);
-    g_gu_hov_rst = (G.view == 1 || (GN.on && GN.mode == 1)) && ui_mouse_over("anim-group.pRstHit", 1);
-    g_gu_hov_ren = G.view == 1 && !GN.on && ui_mouse_over("anim-group.pRenHit", 1);
+    {   // the boxed prompts (nrui.c: laid out by gu_prompts): the one under the cursor. SELECT acts even while it is dimmed (CREATE LOADOUT says why it can't); the others only when available
+        const int ph = nr_prompt_hover(), pa = ph >= 0 && ph < g_gu_npa && (g_gu_pon[ph] || g_gu_pact[ph] == GPA_SEL) ? g_gu_pact[ph] : GPA_NONE;
+        g_gu_hov_back = pa == GPA_BACK; g_gu_hov_sel = pa == GPA_SEL; g_gu_hov_rst = pa == GPA_RST; g_gu_hov_ren = pa == GPA_REN;
+    }
     g_gu_hov_tg = -1;
     if (G.view == 0) {
         for (int w = 0; w < GU_N_ROWW; w++) {
@@ -1008,7 +1107,6 @@ static int gu13_scan_real(void) {
             snprintf(p, sizeof p, "anim-group.lst.lsRow%d.lsHit%d", w, w);
             if (ui_mouse_over(p, 1)) { g_gu_hov_lst = gu_wid_pos(w); break; }
         }
-        if (g_gu_hov_lst < 0 && ui_mouse_over("anim-group.lst.lsNew.lsNewHit", 1)) g_gu_hov_lst = g_lo_n;
         hit = g_gu_hov_lst >= 0;
     } else {
         for (int s = 0; s < GU_SLOTS; s++) { snprintf(p, sizeof p, "anim-group.ed.sl%d.slHit%d", s, s); if (ui_mouse_over(p, 1)) { g_gu_hov_slot = s; break; } }
@@ -1032,11 +1130,13 @@ static int gu13_scan_real(void) {
 }
 
 // ------------------------------------------------------------------ the driver
-static int gu_rep(int *held, uint64_t *t0, uint64_t sid) {      // menu action edge + key repeat (first after 400 ms, then every 110 ms)
+#define GU_REP_FIRST_MS 260      // navigation felt choppy and scrolling laggy: was 400 / 110 ms; NR's own lists repeat about this fast
+#define GU_REP_MS 75
+static int gu_rep(int *held, uint64_t *t0, uint64_t sid) {      // menu action edge + key repeat (first after GU_REP_FIRST_MS, then every GU_REP_MS)
     uint64_t now = GetTickCount64();
     int on = ((char (*)(uint64_t))VMA(0x180068AF0))(sid) != 0, fire = 0;
-    if (on && !*held) { fire = 1; *t0 = now + 400; }
-    else if (on && *held && now >= *t0) { fire = 1; *t0 = now + 110; }
+    if (on && !*held) { fire = 1; *t0 = now + GU_REP_FIRST_MS; }
+    else if (on && *held && now >= *t0) { fire = 1; *t0 = now + GU_REP_MS; }
     *held = on;
     return fire;
 }
@@ -1237,10 +1337,10 @@ static void gn_pad_letter(int dir) {          // pad up / down: the letter under
         if (gn_bytes() + w <= LO_NM_BYTES) { GN.cp[GN.cur] = c; return; }
     }
 }
-static void gn_start(int mode, const char *init, const char *how) {
+static void gn_start(int mode, int slot, const char *init, const char *how) {
     const uint8_t *p = (const uint8_t *)init;
     memset(&GN, 0, sizeof GN);
-    GN.mode = mode;
+    GN.mode = mode; GN.slot = slot;
     while (*p && GN.n < LO_NM_MAX) p = lo_nm_dec(p, &GN.cp[GN.n++]);
     GN.cur = GN.n;
     GN.sel = GN.dflt = mode == 1 && GN.n > 0;
@@ -1255,15 +1355,14 @@ static void gn_start(int mode, const char *init, const char *how) {
     ui_sfx("sfx-select");
     G.dirty = 1;
     if (mode == 1) xlog("gearup13: CREATE LOADOUT name box (custom %d, %s)", g_lo_n + 1, how);
-    else xlog("gearup13: rename custom %d started (%s)", lo_slot(g_lo_active) + 1, how);
+    else xlog("gearup13: rename custom %d started (%s)", GN.slot + 1, how);
 }
 // RENAME (naming loadouts 1-6 and CREATE LOADOUT must work the same way): RENAME used to type into the page title in place (an unnamed loadout started EMPTY, a named one appended at its end), while CREATE LOADOUT
 // (loadouts 7-12) opens the NAME YOUR LOADOUT box with the name selected. RENAME now opens the same box: prefilled with the loadout's name (an unnamed
 // one: its default label CUSTOM LOADOUT n, in the player's language), all selected - typing replaces it, Backspace empties it, the arrows keep it.
 // The default label kept untouched saves as the default (an empty name), as in CREATE LOADOUT.
-static void gn_begin(const char *how) {
+static void gn_begin(const char *how, int mode, int k) {      // mode 0: the edit view's (k = the active custom slot), 2: the list's (k = the focused custom slot)
     lo_nm_load();
-    const int k = lo_slot(g_lo_active);
     char d[32], c[LO_NM_BYTES + 2];
     const int dflt = k < 0 || !g_lo_nm[k][0];
     if (dflt) {
@@ -1271,7 +1370,7 @@ static void gn_begin(const char *how) {
         const char *tr = loc_tr(d);
         lo_nm_clean(tr ? tr : d, c, -1);
     }
-    gn_start(0, dflt ? c : g_lo_nm[k], how);
+    gn_start(mode, k, dflt ? c : g_lo_nm[k], how);
     GN.sel = GN.n > 0;
     GN.dflt = dflt && GN.n > 0;
 }
@@ -1280,7 +1379,7 @@ static void gn_create_begin(void) {              // CREATE LOADOUT: the box open
     snprintf(d, sizeof d, "CUSTOM LOADOUT %d", g_lo_n + 1);
     const char *tr = loc_tr(d);                  // (in the player's language; kept unchanged it is saved as the default label)
     lo_nm_clean(tr ? tr : d, c, -1);
-    gn_start(1, c, G.h_sel ? "menu-select" : "click");
+    gn_start(1, -1, c, G.h_sel ? "menu-select" : "click");
 }
 static void gn_unsel(int clear) {                // the prefilled default stops being selected (clear: it is replaced)
     if (!GN.sel) return;
@@ -1297,7 +1396,7 @@ static void gn_end(int save, const char *how) {
     if (GN.dflt) nm[0] = 0;                      // (the default untouched: the default label)
     if (save && mode == 1) gu_create(nm);
     else if (save) {
-        if (lo_nm_set(lo_slot(g_lo_active), nm, "gear up")) lj_user_edit();      // (t2r-loadout.json is rewritten by the next lj_tick: the launcher adopts the name)
+        if (lo_nm_set(GN.slot, nm, "gear up")) lj_user_edit();      // (t2r-loadout.json is rewritten by the next lj_tick: the launcher adopts the name)
     }
     ui_sfx("sfx-select");
     // the menu edges seen while typing belong to the name: start every held state over
@@ -1305,12 +1404,13 @@ static void gn_end(int save, const char *how) {
     G.t_u = G.t_d = ~0ULL;
     G.dirty = 1;
     if (mode == 1) xlog("gearup13: CREATE LOADOUT %s (%s)", save ? "confirmed" : "cancelled", how);
-    else xlog("gearup13: rename custom %d %s (%s)", lo_slot(g_lo_active) + 1, save ? "saved" : "cancelled", how);
+    else xlog("gearup13: rename custom %d %s (%s)", GN.slot + 1, save ? "saved" : "cancelled", how);
 }
 // one frame of typing; returns 1 while the name owns the input (the rest of the page's input is skipped)
 static int gn_tick(int click) {
     if (!GN.on) return 0;
     if (GN.mode == 0 && (G.view != 1 || g_lo_state != LO_LIST || lo_slot(g_lo_active) < 0)) { gn_end(0, "edit view left"); return 0; }
+    if (GN.mode == 2 && (G.view != 0 || g_lo_state != LO_LIST || GN.slot < 0 || GN.slot >= g_lo_n)) { gn_end(0, "list left"); return 0; }
     if (GN.mode == 1 && (G.view != 0 || g_lo_state != LO_LIST || g_lo_n >= N_CUSTOM_MAX)) { gn_end(0, "list left"); return 0; }
     kt_keepalive();
     int vk; uint32_t ch; int moved = 0;
@@ -1354,31 +1454,39 @@ static int gn_tick(int click) {
 static void gn_text(char *t, size_t tn) {      // the name with the cursor (a blinking _ at the end, the letter under it in blue; the selected default all blue)
     char a[LO_NM_BYTES * 2 + 8], c[8], z[LO_NM_BYTES * 2 + 8];
     int blink = ((GetTickCount64() - GN.t0) / 530) & 1;
-    if (GN.sel) { gn_utf8(a, 0, GN.n); snprintf(t, tn, "<font color=%c#3fa9f5%c>%s</font>%s", 34, 34, a, blink ? " " : "_"); return; }
+    if (GN.sel) { gn_utf8(a, 0, GN.n); snprintf(t, tn, "<font color=%c#8C8C8C%c>%s</font>%s", 34, 34, a, blink ? " " : "_"); return; }
     gn_utf8(a, 0, GN.cur);
     if (GN.cur < GN.n) { int n = lo_nm_put(c, 0, GN.cp[GN.cur]); c[n] = 0; gn_utf8(z, GN.cur + 1, GN.n); }
     else { snprintf(c, sizeof c, "%s", blink ? " " : "_"); z[0] = 0; }
-    snprintf(t, tn, "%s<font color=%c#3fa9f5%c>%s</font>%s", a, 34, 34, c, z);
+    snprintf(t, tn, "%s<font color=%c#8C8C8C%c>%s</font>%s", a, 34, 34, c, z);
 }
 static void gn_title(void) {                     // CREATE LOADOUT and RENAME: the NAME YOUR LOADOUT box's field
     char t[256];
     gn_text(t, sizeof t);
     ui_text_raw("anim-group.nb.nbField", t);
 }
+// the breadcrumb (nrui.c nr_header: GEAR UP | the page). It re-places the divider / rule from the measured widths, so it is written only when the text changes
+static void gu_head_set(const char *page) {
+    static char last[160]; static uint64_t lent, lfr;
+    if (!strcmp(last, page) && lent == G.enter_ms && g_frame - lfr < 90) return;
+    snprintf(last, sizeof last, "%s", page); lent = G.enter_ms; lfr = g_frame;
+    nr_header("GEAR UP", page);
+}
 static void gu_title(void) {
-    char b[64];
+    char b[96];
     if (GN.on) gn_title();                       // (the name box: the page title stays)
-    if (G.view == 1) { ui_text_db("anim-group.title", lo_name(g_lo_active, b, sizeof b)); return; }
+    if (G.view == 1) { gu_head_set(lo_name(g_lo_active, b, sizeof b)); return; }
     if (g_lo_state == LO_CHOOSE) {
         uint8_t *o = lobby_obj();
         int secs = o ? *(int *)(o + 0x1b8) : 0;
         meta_t mt = meta_get();                      // the booster stage + loading follow: MATCH STARTS IN keeps counting the real time to the level start
         int left = (secs >= 100 ? secs - 100 : secs) + (mt.ok ? mt.mf : 0);
         if (left > 99) left = 99;
-        mf_timer_text("anim-group.title", "CHOOSE LOADOUT - ", left);
+        snprintf(b, sizeof b, "CHOOSE LOADOUT - <font color=%c#F0F0F0%c>00:%02d</font>", 34, 34, left);     // (the tag keeps the words translatable)
+        gu_head_set(b);
         return;
     }
-    ui_text_db("anim-group.title", g_lo_state == LO_MATCH ? "CHANGE LOADOUT" : "GEAR UP");
+    gu_head_set(g_lo_state == LO_MATCH ? "CHANGE LOADOUT" : "CHOOSE LOADOUT");
 }
 static void gu_enter(void) {
     memset(&G, 0, sizeof G);
@@ -1397,8 +1505,7 @@ static void gu_enter(void) {
     ui_visible("anim-group.lst", 1);
     ui_visible("anim-group.ed", 0);
     ui_visible("anim-group.nb", 0);
-    ui_text("anim-group.pBackTx", "BACK");
-    ui_text("anim-group.pSelTx", "SELECT");
+    G.wcol = gu_pos_col(G.lst);
     xlog("gearup13: page up (state %d, active %d)", g_lo_state, g_lo_active);
     if (g_gu_keep.ok) {                              // pushed again after the engine's own pop on menu-back: the edit view where it was
         g_gu_keep.ok = 0;
@@ -1438,6 +1545,17 @@ static void feature_gearup13(void) {
     g_gu13_up = 0;
     if (!g_gu13) return;
     uint64_t top = top_page();
+#ifndef T2R_RELEASE
+    // dev (A/B screenshots with no input): t2r-gu-test.txt next to the exe = open GEAR UP from the MP menu ("list"), or open it on the
+    // first custom loadout's edit view ("edit"); the file is removed once used
+    static int gu_test_edit; static uint64_t gu_test_at;
+    { static uint64_t chk; uint64_t tn = GetTickCount64();
+      if (tn - chk > 1000) { chk = tn; FILE *f = exe_side_open("t2r-gu-test.txt", "r");
+        if (f) { char b[16] = {0}; if (!fgets(b, sizeof b, f)) b[0] = 0; fclose(f);
+          if (g_lo_state == LO_NONE && ms_on_menu() && top != gu13_page_id()) {
+              DeleteFileA("t2r-gu-test.txt"); gu_test_edit = !strncmp(b, "edit", 4); gu_test_at = tn; g_lo_state = LO_LIST; push_page_now(PAGE_LIST_NAME);
+              xlog("gearup13: t2r-gu-test.txt - list opened from the menu%s", gu_test_edit ? ", edit view next" : ""); } } } }
+#endif
     if (top != gu13_page_id()) {
         if (G.up) {
             G.up = 0;
@@ -1456,6 +1574,9 @@ static void feature_gearup13(void) {
     }
     g_gu13_up = 1;
     if (!G.up) gu_enter();
+#ifndef T2R_RELEASE
+    if (gu_test_edit && G.view == 0 && g_lo_state == LO_LIST && g_lo_n > 0 && GetTickCount64() - gu_test_at > 7000) { gu_test_edit = 0; xlog("gearup13: t2r-gu-test.txt - edit view of custom 1"); gu_pos_select(0, 1); }
+#endif
     uint64_t now = GetTickCount64();
     // ---- closing (a mid-match pick pops two pages: nothing more to read from this one)
     if (G.closing) return;
@@ -1480,7 +1601,12 @@ static void feature_gearup13(void) {
     const int typing = gn_tick(click);              // RENAME owns the input while a name is typed
     if (typing) sel = up = down = left = right = back = esc = lbtn_back = rst_a = rst_k = click = wn = 0;
     if (!typing && G.view == 1 && g_lo_state == LO_LIST && lo_slot(g_lo_active) >= 0 && (ren_nx || ren_k || (click && g_gu_hov_ren))) {
-        gn_begin(ren_nx ? "pad: menu-next" : click ? "click on RENAME" : "E key");
+        gn_begin(ren_nx ? "pad: menu-next" : click ? "click on RENAME" : "E key", 0, lo_slot(g_lo_active));
+        sel = up = down = left = right = back = esc = lbtn_back = rst_a = rst_k = click = wn = 0;
+    }
+    // RENAME on the list (the focused custom loadout; the prompt is dimmed on a class / the CREATE tile)
+    if (!typing && !GN.on && G.view == 0 && g_lo_state == LO_LIST && gu_pos_idx(G.lst) >= 0 && lo_slot(gu_pos_idx(G.lst)) >= 0 && (ren_nx || ren_k || (click && g_gu_hov_ren))) {
+        gn_begin(ren_nx ? "pad: menu-next" : click ? "click on RENAME" : "E key", 2, lo_slot(gu_pos_idx(G.lst)));
         sel = up = down = left = right = back = esc = lbtn_back = rst_a = rst_k = click = wn = 0;
     }
     if (back || esc || lbtn_back) {
@@ -1493,20 +1619,27 @@ static void feature_gearup13(void) {
         if (top_page() == gu13_page_id() && G.view == 0 && !G.closing) { pop_page(); G.closing = 1; xlog("gearup13: list closed"); return; }
     }
     if (G.view == 0) {
-        const int np = gu_npos();
-        if (up) { G.lst = (G.lst + np - 1) % np; gu_scroll_to(G.lst); G.dirty = 1; gu_cycle(); }
-        if (down) { G.lst = (G.lst + 1) % np; gu_scroll_to(G.lst); G.dirty = 1; gu_cycle(); }
-        if (wn && g_lo_n > GU_CUST_ROWS) {            // wheel: scroll the custom rows (the focus stays; gu_fill_list keeps a focused custom row in view)
-            int c = G.coff - wn, mx = g_lo_n - GU_CUST_ROWS;
+        // the old page's list: up / down = the previous / next position (wraps through customs, CREATE LOADOUT, classes), left / right = the other block
+        if (up || down) {
+            const int n = gu_npos();
+            G.lst = (G.lst + (down ? 1 : n - 1)) % n; G.wcol = gu_pos_col(G.lst); gu_scroll_to(G.lst); G.dirty = 1; gu_cycle();
+        }
+        if (left || right) {
+            const int row = 1 - gu_pos_row(G.lst), n = gu_row_len(row);
+            const int col = G.wcol < n ? G.wcol : n - 1;
+            G.lst = gu_rc_pos(row, col); gu_scroll_to(G.lst); G.dirty = 1; gu_cycle();
+        }
+        if (wn && gu_row_len(0) > GU_VISC) {          // wheel: scroll the custom window (the focus stays in view)
+            int c = G.coff - wn, mx = gu_row_len(0) - GU_VISC;
             G.coff = c < 0 ? 0 : c > mx ? mx : c;
-            if (G.lst < g_lo_n && (G.lst < G.coff || G.lst >= G.coff + GU_CUST_ROWS)) G.lst = G.lst < G.coff ? G.coff : G.coff + GU_CUST_ROWS - 1;
+            if (gu_pos_row(G.lst) == 0 && (G.lst < G.coff || G.lst >= G.coff + GU_VISC)) { G.lst = G.lst < G.coff ? G.coff : G.coff + GU_VISC - 1; G.wcol = G.lst; }
             G.dirty = 1;
         }
         if (click && g_gu_hov_lst >= 0 && !lbtn_back) {
             // click selects (the right panel + the chosen loadout), a click on the already chosen custom loadout opens its editor
             const int hi = gu_pos_idx(g_gu_hov_lst);
             const int again = hi >= 0 && hi == g_lo_active && g_gu_hov_lst == G.lst && lo_slot(hi) >= 0 && g_lo_state == LO_LIST;
-            G.lst = g_gu_hov_lst; G.dirty = 1; G.click_f = g_frame; sel = 0;
+            G.lst = g_gu_hov_lst; G.wcol = gu_pos_col(G.lst); G.dirty = 1; G.click_f = g_frame; sel = 0;
             xlog("gearup13: click on list row %d: %s", G.lst, G.lst == g_lo_n ? "CREATE LOADOUT" : again ? "already selected, edit" : "select");
             gu_pos_select(G.lst, again);
         }

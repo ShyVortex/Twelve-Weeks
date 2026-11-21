@@ -4,7 +4,7 @@ the file was cut after '"custom":[' and the launcher saw no loadouts) and what i
   * export: 0 / 1 / 6 populated loadouts, long / Polish / quote-backslash-control-char ids -> valid JSON (json.loads), every field round-trips,
     an id that cannot be quoted safely becomes null, an oversize body writes nothing (and leaves the old file alone), the size boundary stays valid
   * the launcher's own reader (release/launcher/lib/loadoutfile.js readGame, run in node) gets every loadout out of the game's file
-  * import: a launcher-written file is applied row for row; a cut t2r-loadout.json still yields its launcher_rev
+  * import: a launcher-written file is applied row for row; an older cut t2r-loadout.json still yields its launcher_rev
   * fuzz: garbled / truncated / oversized / deeply nested launcher files never fault (guard page behind the buffer), never apply an invalid loadout
   * mutation: the pre-fix lj_body (sizeof on a pointer) makes the export test fail, so the test would have caught it
 Run: python tools/tests/test_loadjson_c.py   (plain python + gcc + node; scratch folder only, no game files)."""

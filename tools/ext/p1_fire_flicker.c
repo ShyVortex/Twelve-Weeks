@@ -261,13 +261,13 @@ static void imm_p1_fire_tick(int in_match) {
     if (!in_match) { loaded = 0; state = -1; last_why = NULL; pts = NULL; return; }
     if (imm_noflag("t2r-no-p1-fire-flicker.txt", &g_p1ff_a, &g_p1ff_v)) return;
     if ((fr++ % 60) == 0) {
-        uint64_t sid = fnv64("hun-checkpoint-bookstore"), l = dc_call(fnv64("is-level-loaded?"), 1, &sid);
-        loaded = l && l != ~0ULL;
+        loaded = 0;                                          // any Part I map of the build (g_p1m[]); the fire light records exist in the Bookstore pak only, elsewhere the bounded walk finds none
+        for (int k = 0; k < P1M_N && !loaded; k++) { uint64_t sid = fnv64(g_p1m[k].level), l = dc_call(fnv64("is-level-loaded?"), 1, &sid); loaded = l && l != ~0ULL; }
     }
     if (!loaded) { state = -1; pts = NULL; return; }
 #ifndef T2R_RELEASE
     {   // the diagnostic (DEV builds only): once, 8 s after the level is loaded. It reads EVERY committed page of the process twice (30 GB,
-        // 100-195 s each: ws 12 -> 25 GB, 0.2-1.5 M page faults / 10 s) = the live 175 Bookstore stutter on 16 / 32 GB PCs.
+        // 100-195 s each: ws 12 -> 25 GB, 0.2-1.5 M page faults / 10 s) = the live 175 Bookstore stutter on 16 / 32 GB PCs (two reports).
         // Its only product, the light record copies, feeds the dev-only fire probe (p1fp_tick, Ctrl+F6); a release build has no use for it.
         static uint64_t t_loaded; static int started;
         uint64_t now = GetTickCount64();

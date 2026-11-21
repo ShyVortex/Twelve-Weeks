@@ -18,6 +18,7 @@ import hashlib
 import os
 import pickle
 import shutil
+import sys
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))

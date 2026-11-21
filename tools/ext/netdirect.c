@@ -1,5 +1,5 @@
 // netdirect.c - direct melee path (re/netdirect-1026.md). Included by t2r-ext.c after melee_hitreact.c (uses g_ps_rtt, xlog, VMA, HM_ROLE, exe_side_open).
-// The game's traffic is a star: a client's ext message to another client goes client -> host -> client (two Steam legs). Live: direct Steam
+// The game's traffic is a star: a client's ext message to another client goes client -> host -> client (two Steam legs). Live direct Steam
 // ping 140 ms, the melee path 181 + 88 ms. The melee-critical ext messages (hit-rel, dodge swing / press / res, hit reaction, psync START / ABORT / END)
 // are ALSO sent straight to the peer through the Steam helper (t2r-steam.c, opcodes 05 / 06 / 07 on its loopback port, which winmm's relay address
 // names: ctx+0 "127.0.0.1", ctx+0x10 port). The relay copy still goes out; the receiver keeps the first copy of each message (sender, type, bytes,

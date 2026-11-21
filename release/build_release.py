@@ -1,4 +1,4 @@
-"""Build the shareable package: dist/TwelveWeeks/ and dist/TwelveWeeks.zip.
+"""Build the shareable package: dist/TLOU2MP-Revival/ and dist/TLOU2MP-Revival.zip.
 
   python release/build_release.py [--server host:port] [--sp-maps hillcrest-stores,lodge | all] [--no-cache]
 
@@ -14,7 +14,7 @@ step for real (step cache, ext compile cache, lz4 chunk cache, slim-check marker
 
 Layout:
   client/  winmm.dll (features client, pre-pointed at 127.0.0.1 so a direct game launch
-           never dials an old server address), t2r-ext.dll, version.txt, tlou-ii-mp/, T2R-Play.ps1,
+           never dials the dead original server), t2r-ext.dll, version.txt, tlou-ii-mp/, T2R-Play.ps1,
            Play.bat (install + play, no setup step), server.txt (default server address),
            steam/ (t2r-steam.exe: Steam name + "Playing Spacewar" presence)
   host/    daemon.py, T2R-Host.ps1, Start Server.bat
@@ -41,18 +41,18 @@ import patch_winmm  # noqa: E402
 import t2rtmp  # noqa: E402  (T2R_TMP, named temp files, cleanup at exit: tools/t2rtmp.py)
 
 # What the host folder carries. The daemon imports these at start (a missing one = ImportError, the server does not start). tests/test_release_host.py imports the daemon from a folder holding exactly this list.
-HOST_FILES = ("daemon.py", "clan_journal_entries.py", "gen_modes.py", "modeq.py", "rankbadge.py", "names.py", "clan.py", "hostmig.py", "hostcap.py", "map_packs.py", "interrogation.py", "interrogation_lockboxes.json", "gunlimit.py", "notices.py", "anticheat.py",
+HOST_FILES = ("daemon.py", "clan_journal_entries.py", "gen_modes.py", "modeq.py", "rankbadge.py", "names.py", "clan.py", "hostmig.py", "hostcap.py", "map_packs.py", "interrogation.py", "interrogation_lockboxes.json", "gunlimit.py", "notices.py", "anticheat.py", "roles.py",
               "clan_story.py", "clan_story_data.py", "clan_story_lines_good.py", "clan_story_lines_dark.py",
               "clan_story_pl.py", "clan_story_pl_good.py", "clan_story_pl_dark.py", "clan_story_solo.py", "clan_story_good_rich.py",
-              "clan_alife.py", "clan_alife_lex.py", "clan_alife_text_a.py", "clan_alife_text_b.py", "clan_alife_text_c.py", "clan_alife_text_d.py", "clan_alife_text_e.py", "clan_alife_text_f.py", "clan_journal.py", "clan_journal_text.py", "clan_journal_text_pl.py", "requeue.py", "clan_reset.py",
+              "clan_alife.py", "clan_alife_lex.py", "clan_alife_text_a.py", "clan_alife_text_b.py", "clan_alife_text_c.py", "clan_alife_text_d.py", "clan_alife_text_e.py", "clan_alife_text_f.py", "clan_alife_text_g.py", "clan_journal.py", "clan_journal_text.py", "clan_journal_text_pl.py", "requeue.py", "clan_reset.py",
               # clan chronicle / saga / arcs / supply modules the daemon imports (found by tools/tests/test_release_host.py's import-graph walk)
               "clan_arcs.py", "clan_arcs_text.py", "clan_arcs_text2.py", "clan_story_spores.py", "clan_chronicle.py", "clan_status.py", "clan_perks.py", "clan_kids.py", "clan_continuity.py", "clan_ingame.py", "social.py", "clan_portraits.py", "clan_portrait_pool.py", "clan_chronicle_maps.py",
               "clan_chronicle_text.py", "clan_saga.py", "clan_saga_data.py", "clan_saga_pl.py",
               "clan_saga_pl_data.py", "clan_saga_pl_text.py", "clan_saga_pl_text2.py", "clan_saga_pl_text3.py",
               "clan_saga_pl_text4.py", "clan_saga_pl_text_sup.py", "clan_saga_text.py", "clan_saga_text2.py", "clan_saga_text3.py",
               "clan_saga_text4.py", "clan_saga_text_sup.py", "clan_supply.py",
-              "clan_loot.py", "clan_loot_data.py", "clan_loot_data2.py")      # (clan_loot: the rich findings of a raid)      # (clan_reset: admin clan wipe + backup/restore; clan_story imports the Polish twin: without it the feed is silently off; the clan A-Life (switch tools/clan_alife.txt, default off) is optional but ships)
-OPTIONAL_HOST_FILES = ("anticheat.py",)   # copied when present; the host runs without it
+              "clan_loot.py", "clan_loot_data.py", "clan_loot_data2.py",
+              "achievements.py", "private_lobby.py")      # (clan_loot: the rich findings of a raid)      # (clan_reset: admin clan wipe + backup/restore; clan_story imports the Polish twin: without it the feed is silently off; the clan A-Life (switch tools/clan_alife.txt, default off) is optional but ships)
 # Members every player zip must hold (paths inside the zip). Slim builds hold winmm.dll without the data the game provides.
 SHIP_SP_MAPS = "train-station,hospital-ellie,wilds-houses,capitol-shops,into-the-city,overpass,jackson-market"   # the SP-section maps every PT ships (Bookstore parked)
 ZIP_REQUIRED = ("client/winmm.dll", "client/t2r-ext.dll", "client/version.txt", "client/server.txt", "client/sp-maps.txt", "client/Play.bat",
@@ -60,7 +60,7 @@ ZIP_REQUIRED = ("client/winmm.dll", "client/t2r-ext.dll", "client/version.txt", 
                 "client/tlou-ii-mp/t2r-looks.txt")
 ORIG_DLL = os.path.join(ROOT, "extracted", "InstallerFiles", "winmm.dll")
 ORIG_DATA = os.path.join(ROOT, "extracted", "InstallerFiles", "tlou-ii-mp")
-OUT = os.path.join(ROOT, "dist", "TwelveWeeks")
+OUT = os.path.join(ROOT, "dist", "TLOU2MP-Revival")
 
 # ---------------------------------------------------------------------------------------------------- per-step timing
 _STEPS = []                    # (name, seconds, background)
@@ -97,6 +97,8 @@ def _gcc_paths():
 
 
 EXT_FLAGS = ["-std=gnu2x", "-O2", "-s", "-shared", "-static", "-DT2R_RELEASE", "-o", "t2r-ext.dll", "t2r-ext.c"]
+if int(os.environ.get("T2R_SLOTS", "8") or "8") != 8:      # a winmm with N != 8 net slots (tools/features/slots8.py, re/winmm-nslots.md): the ext's per-slot arrays hold N; 8 = unchanged flags
+    EXT_FLAGS.insert(EXT_FLAGS.index("-o"), "-DT2R_MAX_PEERS=%d" % int(os.environ["T2R_SLOTS"]))
 
 
 def ext_key(ext_dir, gcc, env, no_cache):
@@ -269,10 +271,10 @@ def main():
         os.environ["T2R_NO_BUILD_CACHE"] = "1"
         os.environ["T2R_PACK_CACHE"] = "0"
     no_cache = bool(os.environ.get("T2R_NO_BUILD_CACHE"))
-    # The shipped feature set (the release command line). A build made without these shipped flat TLOU2 prone downs and
+    # The shipped feature set (the release command line). A build without these shipped flat TLOU2 prone downs and
     # missing faction models (the switches also bake data into winmm.dll). They are the defaults now; an explicit value in the
-    # environment still wins (e.g. T2R_FLAME=1).
-    for k, v in (("T2R_EXPBOW", "0"), ("T2R_FLAME", "0"), ("T2R_UC4_DOWNED", "1"), ("T2R_FACTION_LOOKS", "1"), ("T2R_FACTION_GUNS", "1"),
+    # environment still wins (e.g. T2R_FLAME=0). The 2013 Flamethrower ships (GEAR UP purchasable), T2R_FLAME=0 = not built.
+    for k, v in (("T2R_EXPBOW", "0"), ("T2R_FLAME", "1"), ("T2R_UC4_DOWNED", "1"), ("T2R_FACTION_LOOKS", "1"), ("T2R_FACTION_GUNS", "1"),
                  ("T2R_P1_GUNS", "1"), ("T2R_PISTOL_THIGH_SLOT1", "1"), ("T2R_SP_REUSE_SLOTS", "1"), ("T2R_SP_EDGES", "chain"),
                  # winter Supermarket (none of these had a default, a bare release shipped no snow / an over-size image)
                  ("T2R_MP_SNOW", "1"), ("T2R_MP_SNOW_XPAK", "1"), ("T2R_MP_SNOW_XPAK_UNSAFE", "1"), ("T2R_AUTO_VIS_MAPS", "jackson-market")):
@@ -292,6 +294,13 @@ def main():
         print("release build: --p1-side: FULL client (no slim), Part I data goes to part1.dat, never into winmm.dll")
     else:
         os.environ.pop("T2R_P1_SIDE", None); os.environ.pop("T2R_P1_CONV", None)
+    # the mod data pack in a file beside winmm.dll (tools/features/pack_file.py): the image stays ~170 MB whatever the content, far from the
+    # Windows loader's ~2,000,000,000-byte edge. Default ON; T2R_PACK_FILE=0 = the old in-image pack. A slim client keeps the old pack.
+    if os.environ.get("T2R_SLIM") == "1":
+        os.environ["T2R_PACK_FILE"] = "0"
+    os.environ.setdefault("T2R_PACK_FILE", "1")
+    pack_file_on = os.environ["T2R_PACK_FILE"] == "1"
+    print("release build: mod data %s" % ("in client/t2r-maps/main/t2r-data.bin (T2R_PACK_FILE=1)" if pack_file_on else "inside winmm.dll (T2R_PACK_FILE=0)"))
     inherited = os.environ.pop("T2R_SP_MAPS", None)        # never inherited: only --sp-maps decides
     os.environ.pop("T2R_P1_LEVELS", None)                  # (isolation-build switch: never in a release)
     with step("setup (sp-maps check, staging folders, git stamp)"):
@@ -331,7 +340,7 @@ def main():
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=4)
     host_job = pool.submit(prepare_host, out, host, sp_env)          # (independent of the data build: runs beside it)
 
-    # features client: unpatched winmm.dll + feature patches/scripts (tools/features/build_dll.py)
+    # features client: original mod + feature patches/scripts (tools/features/build_dll.py)
     # + t2r-ext.dll, pointed at 127.0.0.1:7001 (Play.ps1 rewrites the address per server.txt)
     feat = os.path.join(ROOT, "tools", "local", "winmm-features-release.dll")
     slim_on = os.environ.get("T2R_SLIM") == "1"
@@ -348,11 +357,28 @@ def main():
     import pefile
     _soi = pefile.PE(feat, fast_load=True).OPTIONAL_HEADER.SizeOfImage
     print("winmm SizeOfImage 0x%x" % _soi)
-    if _soi >= 0x71A4E000:      # largest image proven to load (re: winmm-image-limit); 0x79ED5000 failed with 0xC000007B
-        raise SystemExit("winmm SizeOfImage 0x%x is over the proven-loadable 0x71A4E000: the game may not start" % _soi)
+    # largest image the players' PCs have loaded so far (re: winmm-image-limit). Probes on the dev PC (winmm padded with one more
+    # section): 0x77000000 loads, 0x77400000 does not (0xC000007B) - the edge fits 2 000 000 000 bytes. T2R_SOI_MAX (hex) raises the gate
+    # for a test build. The gate goes from 0x71A4E000 (the largest
+    # image players' PCs had loaded) to 0x75C00000 (a probed good size, about 24 MB under the edge; 0x76C00000 and
+    # 0x77000000 load here too). Above the old gate the image is proven on the dev PC only; two outside load tests are recommended
+    # (another Windows PC and a Proton player reach the main menu with the 0x75C00000 file), not a block.
+    # The edge itself is not ours to move (the Windows loader refuses the image: 0xC000007B before the window).
+    data_file = None
+    if pack_file_on:
+        data_file = os.path.splitext(feat)[0] + "-t2r-data.bin"        # (= build_dll.pack_file_path)
+        if not os.path.isfile(data_file) or os.path.getmtime(data_file) < wall_start:
+            raise SystemExit("T2R_PACK_FILE: %s was not written by this build" % data_file)
+        print("mod data file %s: %d bytes" % (data_file, os.path.getsize(data_file)))
+    # with the data file out of the image the gate is the size players' PCs are known to load
+    _max = int(os.environ.get("T2R_SOI_MAX", "0x71A4E000" if pack_file_on else "0x75C00000"), 16)
+    if _soi >= _max:
+        raise SystemExit("winmm SizeOfImage 0x%x is over the gate 0x%x (T2R_SOI_MAX; 0x71A4E000 = proven on players' PCs, 0x77000000 = the largest that loads on the dev PC): the game may not start" % (_soi, _max))
+    if _soi >= 0x71A4E000:
+        print("winmm SizeOfImage 0x%x: over 0x71A4E000: loads on the dev PC; outside load tests (other Windows PC + Proton, the 0x75C00000 file) pending" % _soi)
     with step("payload audit (the finished full DLL's archive read back: suppressed-rifle carrier bank + MP level adds)"):
         # A past build shipped silent suppressed rifles with every staging check green: this reads the FINAL packed bytes the way the game does
-        r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "features", "payload_audit.py"), feat], capture_output=True, text=True)
+        r = subprocess.run([sys.executable, os.path.join(ROOT, "tools", "features", "payload_audit.py"), data_file or feat], capture_output=True, text=True)
         print((r.stdout + r.stderr).strip()[-1500:])
         if r.returncode:
             raise SystemExit("payload audit failed (see above): the build would ship broken data")
@@ -369,6 +395,9 @@ def main():
     else:
         with step("copy winmm.dll into the client"):
             shutil.copy(feat, os.path.join(client, "winmm.dll"))
+            if data_file:      # the launcher copies client/t2r-maps/** into the game folder (by size + first/last 64 KB; the build id is in both)
+                os.makedirs(os.path.join(client, "t2r-maps", "main"))
+                shutil.copy(data_file, os.path.join(client, "t2r-maps", "main", "t2r-data.bin"))
         chk_job = None
     with step("wait for the t2r-ext dll (compiled beside the data build)"):
         ext_dll = ext_job.result()
@@ -432,6 +461,13 @@ def main():
                 "(part1.dat at the pack root; the launcher writes it to <game>/t2r-maps/part1/part1.dat. part1/t2r-maps/part1/part1.dat is the same file in the game layout)"]
         open(os.path.join(out, "part1", "part1.dat.info.txt"), "w").write(chr(10).join(info) + chr(10))
         print("part1.dat staged: %s (%.1f MB), build id %s" % (dat, len(raw) / 1e6, raw[-16:].hex()))
+        # Vintage Rifle: the Part I hunting rifle's sounds ride the same Part I download (never the player zip / winmm.dll), mixed from
+        # the Part I install by tools/part1/p1_vintage_sound.py; t2r-ext vintage.c reads <game>/t2r-maps/part1/p1-vintage.pcm. T2R_VINTAGE=0 = none.
+        if os.environ.get("T2R_VINTAGE", "1") != "0":
+            vp = os.path.join(out, "part1", "pack", "p1-vintage.pcm")
+            subprocess.run([sys.executable, os.path.join(ROOT, "tools", "part1", "p1_vintage_sound.py"), vp], check=True)
+            shutil.copy(vp, os.path.join(dst_dir, "p1-vintage.pcm"))
+            print("p1-vintage.pcm staged with part1.dat (%.1f MB)" % (os.path.getsize(vp) / 1e6))
     srv = open(os.path.join(client, "server.txt")).read().strip()
     if not re.fullmatch(r"[^:\s]+:\d{1,5}", srv):
         print("WARNING: client/server.txt is %r (no --server host:port given): players cannot connect until it is filled in" % srv)
@@ -444,7 +480,7 @@ def main():
         write_zip(tmpz, client, out)
         with zipfile.ZipFile(tmpz) as z:
             names = set(z.namelist())
-    required = [m for m in ZIP_REQUIRED if not (sid_in_dat and m == "client/tlou-ii-mp/sidbase.bin")] + (["client/t2r-slim.dat"] if sid_in_dat else [])
+    required = [m for m in ZIP_REQUIRED if not (sid_in_dat and m == "client/tlou-ii-mp/sidbase.bin")] + (["client/t2r-slim.dat"] if sid_in_dat else [])         + (["client/t2r-maps/main/t2r-data.bin"] if data_file else [])
     missing = [m for m in required if m not in names]
     size = os.path.getsize(tmpz)
     if missing or (a.max_zip_mb and size > a.max_zip_mb * 1_000_000):
@@ -532,20 +568,24 @@ def _ext_when_ready(ready, proc, no_cache):
         if proc.poll() is not None and not os.path.exists(ready):
             return None
         time.sleep(0.2)
+    # T2R_EXT_SERIAL=1 (a build run failed with "cc1.exe: out of memory" right beside the pack step's MemoryError - the -O2 compile and
+    # the pack's peak fell together): the compile waits for the data build to end. Costs the compile's 1 - 2 minutes of wall time.
+    if os.environ.get("T2R_EXT_SERIAL") == "1":
+        if proc.wait() != 0:
+            return None
+        print("t2r-ext compile: after the data build (T2R_EXT_SERIAL=1)")
     return build_ext(no_cache)
 
 
 def prepare_host(out, host, sp_env):
     """the host folder (daemon + the modules it imports) and its checks; independent of the data build"""
     with step("host folder: copy + import checks", bg=True):
-        missing = [f for f in OPTIONAL_HOST_FILES if not os.path.exists(os.path.join(ROOT, "tools", f))]
         for f in HOST_FILES:
-            if f not in missing:
-                shutil.copy(os.path.join(ROOT, "tools", f), host)
+            shutil.copy(os.path.join(ROOT, "tools", f), host)
         # clan_story_solo.py was missing from HOST_FILES, the host's "import clan_story" failed silently and the clan feed was off.
         # Every optional import of the host files must resolve inside the host folder: import them there in a clean interpreter.
         chk = subprocess.run([sys.executable, "-I", "-c", "import sys; sys.path.insert(0, sys.argv[1]); " +
-                              "; ".join("import " + m[:-3] for m in HOST_FILES if m.endswith(".py") and m != "daemon.py" and m not in missing), host],
+                              "; ".join("import " + m[:-3] for m in HOST_FILES if m.endswith(".py") and m != "daemon.py"), host],
                              capture_output=True, text=True)
         if chk.returncode:
             sys.exit("host folder is missing a module the host files import (add it to HOST_FILES): " + chk.stderr[-800:])

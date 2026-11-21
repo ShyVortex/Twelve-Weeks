@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Twelve Weeks — master server daemon.
-Reverse-engineered from winmm.dll. Central coordinator:
+TLOU2MP Revival — master server daemon.
+Reverse-engineered from winmm.dll (see project memory). Central coordinator:
 auth, presence/online-count, loadout persistence, leaderboard, matchmaking.
 Gameplay itself is P2P (Steam/Spacewar) — the daemon only coordinates.
 
@@ -68,15 +68,15 @@ PROTOCOL  (framing both dirs: [u16 len LE][u8 opcode][payload], len=len(op+paylo
   MAP PACKS (T2R_MAP_PACKS=1, t2r-ext short connection, tools/map_packs.py, re/part1/map-packs.md):
      0xC6 [64B token][u8 n][n x u32 pack hash]           the client's installed map packs
      reply 0xC7 "on=1 acc=<ids> pm<index>=<level> ..."   (on=0: packs off on this server)
-  ANTI-CHEAT (optional module, not in the public tree; T2R_AC=0 = off): 0xCC flag events + demo wishes -> 0xCD, 0xCE demo upload -> 0xCF, 0xD4 player report -> 0xD5,
-     0xD6 my last 3 matches' players -> 0xD7 (layouts at the ANTI-CHEAT block above clan_report). Without the module: 0xD5 err=unavailable, 0xD7 n=0.
+  ANTI-CHEAT (tools/anticheat.py, re/anticheat-1025.md; T2R_AC=0 = off): 0xCC flag events + demo wishes -> 0xCD, 0xCE demo upload -> 0xCF, 0xD4 player report -> 0xD5,
+     0xD6 my last 3 matches' players -> 0xD7 (layouts at the ANTI-CHEAT block above clan_report). Never bans: tools/reports/review.py writes bans.txt.
   FRIENDS + PARTIES (tools/social.py): 0xD8 [64B token][u8 ver=1][u8 lang][u8 sub][UTF-8 arg] from the launcher's FRIENDS page -> 0xD9 JSON state (friends with presence,
      pending requests, party with leader, party invites). A party queues as one unit (MatchMaker.try_form), in game its events ride the notice poll (kind p).
   SP-SECTION MAPS (always on; T2R_SP_GATE=0 turns the gating off): 0xC8 [64B token][u32 LE mask] = which SP maps (bit k = list
      index 8 + k) the client's DLL contains; reply 0xC9 "on=1 sp=<mask hex>". A match's pool / vote offers an SP map only when
-     every player reported it (old clients that never report: the stock maps only).
+     every player reported it (old clients that never report: base maps only).
 """
-import json, math, select, socket, threading, os, sqlite3, struct, secrets, collections, zlib, sys, re, contextlib
+import json, math, select, socket, threading, time, os, sqlite3, struct, secrets, collections, zlib, sys, re, contextlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # CLOCK JUMPS (soak audit): every timeout / TTL in this process (presence, queue, reaper, host migration, notices, rate limiters) reads time.time().
 # An NTP step or a manual clock change of +5 min made every player look offline for a moment (all running matches were reaped as "every player
@@ -117,6 +117,11 @@ try:
     import clan_story                         # clan members as people + the 2013-style clan feed (tools/clan_story.py); optional
 except Exception as _ex:                      # noqa: BLE001 - the clan itself must keep working without the feed
     clan_story = None
+try:
+    import achievements                       # Steam-style achievements (tools/achievements.py, re/achievements-1117/list.md); optional
+except Exception as _ex:                      # noqa: BLE001 - the clan must keep working without them
+    sys.stderr.write("achievements unavailable: %r" % (_ex,) + chr(10))
+    achievements = None
 import hostmig                                # host migration decisions (tools/hostmig.py)
 try:
     import clan_reset                         # admin "reset clan" + backup / restore (tools/clan_reset.py); optional
@@ -130,8 +135,9 @@ import gunlimit                               # per-team gun limits (tools/gunli
 import social                                 # friends + parties (tools/social.py, op 0xD8/0xD9; re: header of social.py)
 import notices                                # server notices to players: update available / planned restart / free text (tools/notices.py)
 import map_packs                              # DLC map packs (tools/map_packs.py, T2R_MAP_PACKS, re/part1/map-packs.md)
+import private_lobby                          # private matches: lobby, code, rule overrides, no clan / stats (tools/private_lobby.py, op 0xF8 / 0xF9)
 try:
-    import anticheat                          # server-side anti-cheat module (not in the public tree); optional, T2R_AC=0 = off
+    import anticheat                          # server-side anti-cheat, flag system, demos, player reports (tools/anticheat.py); optional, T2R_AC=0 = off
 except Exception as _ex:                      # noqa: BLE001 - matchmaking must keep working without it
     anticheat = None
 
@@ -167,6 +173,16 @@ JIP_REUSE_S = float(os.environ.get("T2R_JIP_REUSE_S", "10"))      # a slot whose
 JIP_PREFER_LEFT = float(os.environ.get("T2R_JIP_PREFER_LEFT", "180"))  # a running match with at least this many s left is preferred to forming a new small match from the searchers
 JIP_ACK_STALE = float(os.environ.get("T2R_JIP_ACK_STALE", "12"))     # a player whose last roster poll is older than this when the joiner is put in is not waited for
 SECOND_MATCH_MIN = int(os.environ.get("T2R_SECOND_MATCH_MIN", "6"))  # searchers needed to start a match while another one is forming / running (they queue otherwise)
+# Live (Overpass): a Linux client whose Steam helper was not running (the Linux bypass of the Steam-only gate let it
+# queue) formed a 2-player match, so the match ran over the server relay. Join in progress then filled it to 8 with players who all had a helper:
+# the whole lobby played through the relay at 375-1000 ms (psync peer rtt; direct 85-170 ms), melee pairs started late or not at all.
+# A server-relay match takes join-in-progress players WITH a Steam helper only while it has fewer than RELAY_MATCH_MAX active players; past that
+# they form / join a Steam P2P match. Players without a helper can still join it (they play over the relay anywhere). 0 = no limit (old behaviour).
+RELAY_MATCH_MAX = int(os.environ.get("T2R_RELAY_MAX", "4"))
+
+def has_helper(tok):
+    """The player's Steam helper is registered with a gameplay port and a live connection (the same test as the Steam-only gate and push_peers)."""
+    return bool(BRIDGES.steamid(tok) and BRIDGES.port(tok) and BRIDGES.conn(tok))
 # QUEUE STAYS AFTER A MATCH (tools/requeue.py, ext requeue.c; T2R_REQUEUE=0 = off): every player still in a match at its end whose ext can
 # search by itself (0xE3 flag 0x20 within REQUEUE_CAP_S of the end) gets a ticket; its ext searches again once its post-match screens are done, and the
 # next lobby of those players waits until all of them search (or went offline / cancelled), at most REQUEUE_WAIT_MAX s after the match end.
@@ -187,7 +203,7 @@ AFK_KICKED = set()       # (token, mid) removed for inactivity (once per match)
 # (no clan penalty), no requeue ticket, join in progress keeps it out of that match. Never the host itself, never while most players are high to the host
 # (then the host's link is the problem: host migration's business), not in the first PING_GRACE_S of a match, only fresh measurements (PING_FRESH_S).
 # T2R_PING_KICK_MS=0 = off.
-PING_KICK_MS = int(os.environ.get("T2R_PING_KICK_MS", "205"))      # 11-15 user: 205 (was 190)
+PING_KICK_MS = int(os.environ.get("T2R_PING_KICK_MS", "190"))
 PING_KICK_S = float(os.environ.get("T2R_PING_KICK_S", "60"))
 PING_GRACE_S = 45.0
 PING_FRESH_S = 90.0
@@ -706,7 +722,7 @@ def _bans_load():
         cm = line.split("#", 1)[1] if "#" in line else ""
         if "reason:" in cm.lower():
             reason[e if e.isdigit() else e.lower()] = cm[cm.lower().index("reason:") + 7:].strip()
-        if e.lower().startswith("token:"):             # anti-cheat review: the 64-hex name token of a banned install
+        if e.lower().startswith("token:"):             # anti-cheat review (tools/reports/review.py): the 64-hex name token of a banned install
             t = e[6:].strip().lower()
             if len(t) == 64 and all(ch in "0123456789abcdef" for ch in t):
                 tk.add(t)
@@ -1104,6 +1120,9 @@ def record_result(players, winner, skip=(), mid=None):
     `skip` = tokens that left the match before its end: they get no win / draw (the whole list, leavers and
     host-migration placeholders included, was credited - a player who quit in minute 2 of a won match got the win, and the skill
     rating that balances the teams reads wins)."""
+    if mid and PRIV.is_private_mid(mid):
+        log("RESULT private match", mid, "winner", winner, "- no wins / skill rating booked")
+        return
     if os.environ.get("T2R_ELO_NO_PERF") == "1" or not mid:
         elo_update(players, winner, skip, mid)
     else:                                                          # the players' own stats reports come after the host's result (elo_perf)
@@ -1147,7 +1166,9 @@ HOSTMIG_NOCAND_S = float(os.environ.get("T2R_HOSTMIG_NOCAND_S", "45"))   # host 
 CLAN_START_GRACE_S = float(os.environ.get("T2R_CLAN_START_GRACE", "45"))
 CLAN_END_GRACE_S = float(os.environ.get("T2R_CLAN_END_GRACE", "30"))
 CLAN_REJOIN_MAX_S = float(os.environ.get("T2R_CLAN_REJOIN_MAX", "900"))
-CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again")     # (kicks carry no penalty: an AFK removal does not count as leaving early)
+# The test server has no clan penalties: T2R_CLAN_NO_PENALTY=1 excuses every leave (no left-early day).
+CLAN_NO_PENALTY = os.environ.get("T2R_CLAN_NO_PENALTY", "0") not in ("", "0")
+CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again")     # (kicks suffer no penalties: an AFK removal no longer counts as leaving early)
 CLAN_EXCUSE_WHY = {}   # (token, mid) -> why the departure was excused (the log line of clan_finalize)
 # Kicks carry no penalty: (token, mid) removed by an admin kick or the ping limit. Its clan day for that match never books a
 # deficit: 0 parts = no day at all, parts > 0 = the parts count and the deficit is forgiven - even when the match ended normally afterwards (an admin kick
@@ -1218,6 +1239,12 @@ def clan_side(token, faction):
             except Exception as ex:                  # noqa: BLE001 - the feed never breaks the clan
                 log("CLAN story (new run) failed", ex)
     log("CLAN side", tag(token), clan.FACTION_NAMES.get(faction, faction), "ok" if ok else "refused (clan alive)")
+    if ok and achievements:
+        try:
+            with _dblock, dbc() as c:
+                ach_log(token, achievements.book_side(c, clan_key(c, token)))
+        except Exception as ex:                      # noqa: BLE001
+            log("ACH side failed", repr(ex))
     return st
 
 CLAN_WIN = {}        # (token, mid) -> True win / False loss / None draw of the token's team, booked with the host's 0x12 (record_result); read once by clan_match_facts
@@ -1272,6 +1299,155 @@ def book_career_stats(token, counts):
                 c.execute("INSERT INTO pweapon(token,weapon,n) VALUES(?,?,1) ON CONFLICT(token,weapon) DO UPDATE SET n=n+1", (token, w))
     except Exception as ex:                                        # noqa: BLE001
         log("STATS career record failed", ex)
+
+
+# ---- achievements (tools/achievements.py) --------------------------------------------------------------------------------------------
+# A match has two reports: the clan report 0xE2 (counts clamped by the anti-cheat, books the day) and the achievement report 0xA9 (all the ext's
+# counters). Either may come first and both are re-sent. ACH_DONE[(token, mid)] = what that match already credited, per label; ACH_PEND holds a
+# 0xA9 that came before the day was booked; ACH_DAY marks a booked day (its 0xE2 counts, result) so a later 0xA9 books on top of it.
+ACH_DONE, ACH_PEND, ACH_DAY = {}, {}, {}
+ACH_E2_ONLY = (1, 2, 3, 4, 5, 6, 21, 22, 23, 24, 33)      # labels the clamped 0xE2 report is the authority for (a 0xA9 value never overrides them)
+
+
+def _ach_trim(d, n=3000):
+    while len(d) > n:
+        d.pop(next(iter(d)))
+
+
+def ach_log(token, got):
+    if got:
+        log("ACH unlocked", tag(token), ", ".join("%s (%s)" % (a, achievements.BY_ID[a]["title"]) for a in got))
+        evt("ach", tag(token), got)
+
+
+def ach_merge(e2, a9):
+    m = {int(k): int(v) for k, v in (e2 or {}).items()}
+    for k, v in (a9 or {}).items():
+        k = int(k)
+        if k in ACH_E2_ONLY:
+            continue
+        m[k] = max(m.get(k, 0), int(v))
+    return m
+
+
+def ach_book_day(token, mid, counts, win, left, late, before, after, r):
+    """The clan day of (token, mid) was booked: credit the match (0xE2 counts + a 0xA9 that came first) and the clan day."""
+    try:
+        with _dblock, dbc() as c:
+            key = clan_key(c, token)
+            done = ACH_DONE.setdefault((token, mid), {})
+            first = (token, mid) not in ACH_DAY
+            ACH_DAY[(token, mid)] = {"e2": dict(counts or {}), "win": win, "left": bool(left), "late": bool(late)}
+            achievements.settle(c, key, counts, done, ACH_E2_ONLY)   # live reports (op 0xAB) above the clamped counts are taken back to them
+            got = achievements.book_match(c, key, ach_merge(counts, ACH_PEND.pop((token, mid), None)), done, win=win, left=left, late=late, first=first)
+            if r:
+                got += [a for a in achievements.book_clan(c, key, before, after, r) if a not in got]
+        _ach_trim(ACH_DONE)
+        _ach_trim(ACH_DAY)
+        ach_log(token, got)
+    except Exception as ex:                                      # noqa: BLE001 - achievements never break the clan day
+        log("ACH day failed", repr(ex))
+
+
+def ach_report_op(pl):
+    """Op 0xA9 [64B token][u32 seq][u8 n][n x (u8 label, u16 count)] (the ext's achievement counters of the match it just left) -> reply 0xA9 =
+    the player's achievement text (achievements.wire_text). Booked on top of the match's clan day, or held until the day books."""
+    if len(pl) < 69:
+        return None
+    token = pl[:64].decode("latin1", "ignore")
+    if not all(ch in "0123456789abcdefABCDEF" for ch in token):
+        return None
+    a9 = {}
+    for k in range(min(pl[68], 80)):
+        o = 69 + 3 * k
+        if len(pl) >= o + 3:
+            a9[pl[o]] = struct.unpack_from("<H", pl, o + 1)[0]
+    mid = CLAN_MATCH.get(token) or CLAN_LAST_MATCH.get(token)
+    if not CLAN_MATCH.get(token) and PRIV.is_private_mid(PRIV_LAST_MID.get(token)):
+        log("ACH report from a private match", tag(token), "- not booked (private matches have no clan / stats effects)")
+        return ach_read(token, 0, 0xA9)      # (CLAN_LAST_MATCH is the public match before it: its day must not get these counters)
+    got = []
+    try:
+        if mid and (AC is None or AC.rate_ok(token)):
+            day = ACH_DAY.get((token, mid))
+            if day is None:
+                old = ACH_PEND.get((token, mid)) or {}
+                ACH_PEND[(token, mid)] = {k: max(a9.get(k, 0), old.get(k, 0)) for k in set(a9) | set(old)}
+                _ach_trim(ACH_PEND)
+                log("ACH report", tag(token), "mid", mid, "held until the day books:", a9)
+            else:
+                with _dblock, dbc() as c:
+                    got = achievements.book_match(c, clan_key(c, token), ach_merge(day["e2"], a9), ACH_DONE.setdefault((token, mid), {}),
+                                                  win=day["win"], left=day["left"], late=day["late"], first=False)
+                log("ACH report", tag(token), "mid", mid, "booked:", a9)
+        elif not mid:
+            log("ACH report without a match", tag(token))
+        else:
+            log("ACH report refused: report flood", tag(token))
+        ach_log(token, got)
+    except Exception as ex:                                      # noqa: BLE001
+        log("ACH report failed", repr(ex))
+    return ach_read(token, 0, 0xA9)
+
+
+ACH_LIVE_AT = {}                                             # token -> time of its last booked live report
+ACH_LIVE_GAP = 2.0                                           # s between two booked live reports of a token (more = the table only)
+
+
+def ach_live_op(pl):
+    """Op 0xAB [64B token][u8 n][n x (u8 label, u16 count)] (an achievement shows the moment it is earned): the ext's counters of
+    the match it is in, sent when its table says a goal was just crossed (achieve.c ach_live_tick) -> booked at once (achievements.book_live,
+    the same per-match `done` as the match end, so nothing counts twice) -> reply 0xAB = the table, which carries the unlock to the card.
+    Only while the match runs (CLAN_MATCH, its day not booked yet); at most one booking per ACH_LIVE_GAP per token."""
+    if len(pl) < 65:
+        return None
+    token = pl[:64].decode("latin1", "ignore")
+    if not all(ch in "0123456789abcdefABCDEF" for ch in token):
+        return None
+    cnt = {}
+    for k in range(min(pl[64], 80)):
+        o = 65 + 3 * k
+        if len(pl) >= o + 3:
+            cnt[pl[o]] = struct.unpack_from("<H", pl, o + 1)[0]
+    mid = CLAN_MATCH.get(token)
+    now = time.time()
+    got = []
+    try:
+        if mid and (token, mid) not in ACH_DAY and now - ACH_LIVE_AT.get(token, 0.0) >= ACH_LIVE_GAP:
+            ACH_LIVE_AT[token] = now
+            _ach_trim(ACH_LIVE_AT)
+            with _dblock, dbc() as c:
+                got = achievements.book_live(c, clan_key(c, token), cnt, ACH_DONE.setdefault((token, mid), {}))
+            _ach_trim(ACH_DONE)
+            log("ACH live", tag(token), "mid", mid, "booked:", cnt)
+            ach_log(token, got)
+    except Exception as ex:                                      # noqa: BLE001
+        log("ACH live failed", repr(ex))
+    return ach_read(token, 0, 0xAB)
+
+
+def ach_read(token, sid_hint=0, op=0xAA):
+    try:
+        import clan_ingame
+        with _dblock, dbc() as c:
+            key = clan_read_key(c, token, sid_hint)
+            row = clan.load(c, key) or {}
+            txt = achievements.wire_text(c, key, int(row.get("days_total") or 0) // 7)
+        txt += "LIVE 1\n"                                     # (this daemon takes op 0xAB; a line without '|' fields, skipped by every reader)
+    except Exception as ex:                                      # noqa: BLE001
+        log("ACH read failed", repr(ex))
+        txt = ""
+    return msg(op, txt.encode("utf-8"))
+
+
+def ach_read_op(pl):
+    """Op 0xAA [64B token][optional 8B steamid hint, the launcher's] -> reply 0xAA (achievements.wire_text). Read only."""
+    if len(pl) < 64:
+        return None
+    token = pl[:64].decode("latin1", "ignore")
+    if not all(ch in "0123456789abcdefABCDEF" for ch in token):
+        return None
+    return ach_read(token, int.from_bytes(pl[64:72], "little") if len(pl) >= 72 else 0)
 
 
 def clan_finalize(token):
@@ -1340,6 +1516,12 @@ def clan_finalize(token):
         CLAN_EXCUSED.add((token, mid))
         log("CLAN excuse", tag(token), "mid", mid, "report within %.0f s of the daemon restart that restored this match - no left-early penalty" % (time.time() - RESTORED_T[mid]))
     forgive_excused = False
+    if left and CLAN_NO_PENALTY:                                   # a server without clan penalties (test server) - every early leave is excused
+        if int(parts) <= 0:
+            log("CLAN day", tag(token), "mid", mid, "left early - no clan penalties on this server: nothing earned, no day, no penalty")
+            return
+        left, forgive_excused = False, True
+        log("CLAN day", tag(token), "mid", mid, "left early - no clan penalties on this server: parts count, deficit forgiven")
     if (token, mid) in CLAN_KICKED:
         if int(parts) <= 0:
             log("CLAN day", tag(token), "mid", mid, "kicked (%s) - nothing earned, no day, no penalty" % CLAN_KICKED[(token, mid)])
@@ -1414,7 +1596,10 @@ def clan_finalize(token):
             log("CLAN late-join bonus", tag(token), "+%d parts" % late)
     if mult > 1.0 and not left:
         log("CLAN late-join multiplier", tag(token), "x%.2f (a day above x%.1f does not count, a deficit is forgiven)" % (mult, clan.DAY_MULT_LIMIT))
+    _ach_win = CLAN_WIN.get((token, mid), "none")                  # (clan_match_facts pops it below)
+    _ach_late = bool(late) or mult > 1.0
     with _dblock, dbc() as c:
+        _ach_before = clan.load(c, clan_key(c, token)) if achievements else None
         st, r = clan.apply_match(c, clan_key(c, token), mid, parts, left, counts, mult=mult if not left else 1.0,
                                  forgive=(mult > 1.0 and not left) or forgive_excused,
                                  bottles=0 if left else max(0, min(int((counts or {}).get(33, 0)), 200)))      # label 33 = supply bottles picked up (Interrogation lockbox-phase drops); a left match: ProcessClanDay(0, 0)
@@ -1442,6 +1627,8 @@ def clan_finalize(token):
             except Exception as ex:                  # noqa: BLE001
                 log("CLAN perks (day) failed", ex)
     log("CLAN day", tag(token), "mid", mid, "parts", parts, "left" if left else "", "->", r, "state", clan.state_text(st))
+    if achievements:
+        ach_book_day(token, mid, counts, _ach_win if _ach_win in (True, False) else None, left, _ach_late, _ach_before, st, r)
 
 _clan_sched = [False]
 CLAN_DUE = {}        # token -> time its pending report is finalised when no match end arrived
@@ -1455,7 +1642,7 @@ def clan_scheduler():
             try: clan_finalize(t)
             except Exception as e: log("CLAN scheduler", repr(e))
 
-# --------------------------------------------------------------- anti-cheat (the optional module has the rules and the storage)
+# --------------------------------------------------------------- anti-cheat (tools/anticheat.py has the rules and the storage)
 #   0xCC [64B token][u8 ver=1][u8 n] n x [u8 kind][u8 suspect slot][u16 t_s][f32 v1][f32 v2]   flag events from the ext, reply 0xCD "ok=1 want=<case>:<mid>,.."
 #   0xCE [64B token][u32 case][u8 part][u8 parts][u32 age_s][u32 span_s][chunk <= 60000 B]       demo upload,              reply 0xCF "ok=1 st=<ok|done|reason>"
 #   0xD4 [64B token][u8 ver=1][u8 reasons][u8 slot][8 ASCII hex mid][u16 tlen][text]             player report (launcher), reply 0xD5 "ok=1 code=R12" / "ok=0 err=.."
@@ -1516,10 +1703,8 @@ def ac_demo_op(pl):
 
 def ac_report_op(pl):
     t = ac_token_ok(pl)
-    if t is None or len(pl) < 77 or pl[64] != 1:
+    if t is None or AC is None or len(pl) < 77 or pl[64] != 1:
         return None
-    if AC is None:                                 # no anti-cheat module on this server: the launcher says reports are not available
-        return msg(OP_AC_REPORT_REPLY, b"ok=0 err=unavailable")
     reasons, slot = pl[65], pl[66]
     mid = pl[67:75].decode("ascii", "ignore").lower()
     tl = struct.unpack_from("<H", pl, 75)[0]
@@ -1532,10 +1717,8 @@ def ac_report_op(pl):
 
 def ac_recent_op(pl):
     t = ac_token_ok(pl)
-    if t is None:
+    if t is None or AC is None:
         return None
-    if AC is None:
-        return msg(OP_AC_RECENT_REPLY, b"n=0")
     now = time.time()
     lines = []
     ms = AC.recent_matches(t, 3)
@@ -1546,32 +1729,6 @@ def ac_recent_op(pl):
                 lines.append("p|%s|%d|%d|%s" % (mid, slot, sid, (nm or "PLAYER").replace("|", "/").replace("\n", " ")))
     return msg(OP_AC_RECENT_REPLY, ("n=%d\n" % len(ms) + "\n".join(lines)).encode("utf-8")[:60000])
 
-# --- dedicated matches: the match server checks the traffic itself (optional module on the match server).
-# The dedicated-server glue sets these two; unset (player-hosted matches only) nothing below runs.
-AC_DEDICATED_INFO = None   # fn(mid, slots) -> {"sid", "gen"} when slot 0 of this match is a match server, else None
-AC_DEMO_FETCH = None       # fn(case_id, mid, sid, gen): ask the match servers for that match's demo (control op ac_demo)
-
-def ac_dedicated_msg(mid, players, m):
-    """An anti-cheat message from a match server: {"ev": "ac"} findings, {"ev": "ac_end"} tallies, {"ev": "ac_demo"} a case's demo.
-    players = the match list (index = slot; slot 0 = the server). mid / players may be None for ac_demo (the match is gone). Never raises."""
-    if AC is None or not isinstance(m, dict):
-        return
-    try:
-        kind = m.get("ev")
-        if kind == "ac" and mid and players:
-            cids = AC.server_findings(mid, players, m.get("findings") or [])
-            log("AC server findings", mid, len(m.get("findings") or []), "case(s)" if cids else "", cids or "")
-        elif kind == "ac_end" and mid and players:
-            AC.note_tallies(mid, players, m.get("tallies") or {})
-            log("AC server tallies", mid, "findings", m.get("findings"), "demo kept" if m.get("demo") else "no demo")
-        elif kind == "ac_demo":
-            import base64
-            raw = base64.b64decode(m.get("data") or "") if m.get("data") else b""
-            st = AC.attach_server_demo(int(m.get("case") or 0), raw) if raw else "missing (%s)" % m.get("err")
-            log("AC server demo case", m.get("case"), st)
-    except Exception as e:                         # noqa: BLE001
-        log("AC dedicated message failed", repr(e))
-
 _ac_last_maint = [0.0]
 def ac_tick():
     """Every status tick: cross-check finished matches' reports, deliver warnings, hourly housekeeping."""
@@ -1580,9 +1737,6 @@ def ac_tick():
     try:                                           # (status_loop runs gc_tick and the rest after this: a broken review folder must never stop them)
         for tok, kind, w, ev, mid in AC.tick():
             ac_server_event(tok, mid, kind, w, ev)
-        if AC_DEMO_FETCH is not None:
-            for cid, mid, sid, gen in AC.server_demos_wanted():
-                AC_DEMO_FETCH(cid, mid, sid, gen)
         for wid, tok, text in AC.pending_warns():
             c = SESSIONS.conn(tok)
             if c and not MM.in_match(tok):
@@ -1603,6 +1757,9 @@ def clan_report(token, parts, flags, counts=None):
     mid = CLAN_MATCH.get(token)
     if AC is not None and not AC.rate_ok(token):
         log("AC clan report refused: report flood", tag(token))
+        return clan_state(token)
+    if not mid and PRIV.is_private_mid(PRIV_LAST_MID.get(token)):
+        log("CLAN report from a private match", tag(token), "parts", parts, "- not booked (private matches have no clan effects)")
         return clan_state(token)
     if not mid:
         log("CLAN report without a started match", tag(token), "parts", parts)
@@ -1726,6 +1883,8 @@ def match_end_via_reports(mid, now=None):
     return True
 
 CLAN_LAST_MATCH = {}   # token -> last mid it was in (survives CLAN_MATCH; orphan-report evidence only)
+PRIV_LAST_MID = {}   # token -> mid of its last private match: its clan report is answered, never booked
+
 def clan_match_started(players, mid):
     try:
         # A join-in-progress start passes [joiner] alone - map_index([joiner]) has no MATCH_MAP entry, so it ROTATED a fresh map, logged it
@@ -1735,19 +1894,25 @@ def clan_match_started(players, mid):
             CLAN_MAP.pop(next(iter(CLAN_MAP)))
     except Exception as ex:                                        # noqa: BLE001 - only flavour for the clan feed
         log("CLAN map name failed", repr(ex))
-    CLAN_TEAM[mid] = {p: team_in(mid, i, p) for i, p in enumerate(players)}
-    if len(CLAN_TEAM) > 400:
-        CLAN_TEAM.pop(next(iter(CLAN_TEAM)))
-    for p in players:
-        CLAN_MATCH[p] = mid
-        CLAN_LAST_MATCH[p] = mid
-        boost_start(p)
+    if PRIV.is_private_mid(mid):
+        # private match: no clan day, no booster used, no clan feed / chronicle; the anti-cheat roster below still runs
+        for p in players:
+            PRIV_LAST_MID[p] = mid
+            CLAN_MATCH.pop(p, None)
+        log("CLAN private match", mid, "- no clan effects for", [tag(p) for p in players])
+    else:
+        CLAN_TEAM[mid] = {p: team_in(mid, i, p) for i, p in enumerate(players)}
+        if len(CLAN_TEAM) > 400:
+            CLAN_TEAM.pop(next(iter(CLAN_TEAM)))
+        for p in players:
+            CLAN_MATCH[p] = mid
+            CLAN_LAST_MATCH[p] = mid
+            PRIV_LAST_MID.pop(p, None)
+            boost_start(p)
     if AC is not None:
         try:
             slots = MM.players_of_mid(mid) or list(players)
-            ded = AC_DEDICATED_INFO(mid, slots) if AC_DEDICATED_INFO is not None else None
-            AC.match_started(mid, slots, players, {p: get_name(p) for p in players}, {p: (BRIDGES.steamid(p) or token_steamid(p)) for p in players},
-                             dedicated=ded)
+            AC.match_started(mid, slots, players, {p: get_name(p) for p in players}, {p: (BRIDGES.steamid(p) or token_steamid(p)) for p in players})
         except Exception as e:                      # noqa: BLE001
             log("AC roster record failed", repr(e))
 
@@ -1875,6 +2040,20 @@ def rank_of_token(token):
     _RANK_TOK[token] = (now, rk, wk)
     return rk, wk
 
+_ROLES = None
+
+def role_of_steamid(sid):
+    """tools/roles.py role code (0 none, 1 OG, 2 admin, 3 dev, 4 lead dev) of a Steam64 id; lists live next to the DB, re-read on change."""
+    global _ROLES
+    try:
+        if _ROLES is None:
+            import roles
+            _ROLES = roles.Roles(os.path.dirname(os.path.abspath(DB_PATH)))
+        return _ROLES.role_of(sid)
+    except Exception as ex:          # noqa: BLE001 - the role is decoration
+        log("ROLE failed", repr(ex))
+        return 0
+
 def rank_table_op(pl):
     """Op 0xBF [64B token] -> reply 0xBF (tools/rankbadge.py: one entry per recently seen player, keyed by a hash of the shown name)."""
     if len(pl) < 64:
@@ -1886,8 +2065,8 @@ def rank_table_op(pl):
 
     def fetch():
         with _dblock, dbc() as c:
-            toks = [r[0] for r in c.execute("SELECT token FROM players ORDER BY last_seen DESC LIMIT ?", (rankbadge.LIMIT,)).fetchall()]
-        return [(get_name(t) or "", *rank_of_token(t)) for t in toks]
+            rows = c.execute("SELECT token, steamid FROM players ORDER BY last_seen DESC LIMIT ?", (rankbadge.LIMIT,)).fetchall()
+        return [(get_name(t) or "", *rank_of_token(t), role_of_steamid(sid)) for t, sid in rows]
     return msg(0xBF, rankbadge.table_text(fetch).encode("ascii", "ignore"))
 
 def clan13_op(pl):
@@ -1973,6 +2152,19 @@ def clan_op(op, pl):
     else:
         return None
     txt = clan.state_text(st)
+    # the asker's own role (tools/roles.py) for its own rank badge colour / nametag; k=v, before the name tails. EVERY 0xE1 reply carries it: the ext's
+    # clan_parse rebuilds the whole state from each reply (a missing key = 0), so the choose-side reply (0xE4) without it dropped the lead dev's pink badge and
+    # rim for the rest of the session (everyone picked a side after the release reset).
+    if op in (0xE0, 0xE2, 0xE4):
+        try:
+            with _dblock, dbc() as c:
+                r = c.execute("SELECT steamid FROM players WHERE token=?", (token,)).fetchone()
+            sid = (r[0] if r else 0) or (int.from_bytes(pl[64:72], "little") if op == 0xE0 and len(pl) >= 72 else 0)
+            ro = role_of_steamid(sid)
+            if ro:
+                txt += " ro=%d" % ro
+        except Exception as ex:                       # noqa: BLE001 - the role is decoration
+            log("ROLE (state) failed", ex)
     if op in (0xE0, 0xE2) and clan_perks:             # the active supply perks + the credited member ride at the END of the state text (old ext: stops at the first name; old daemon: no keys)
         try:
             with _dblock, dbc() as c:
@@ -2629,7 +2821,7 @@ def version_op(pl, addr=None):
 # "to1-levels" (0x69e1bd6853680065, test-tasks.bin). s3 MUST be the level name.
 # Record strings: s1 = map name label, s2 = map image (UI texture path, same style as
 # the .rdata HUD paths), s3 = level name.
-MAPS = [  # (display name - Title Case, image key, level name under to1-levels)
+MAPS = [  # (display name - Title Case (user), image key, level name under to1-levels)
     ("Forest", "forest", "to1-forest"),
     ("Gas Station", "gas-station", "to1-gas-station"),
     ("School", "school", "to1-school"),
@@ -2662,6 +2854,7 @@ SP_MAPS = [  # (display name, image key, level name, key in sp_maps.json)
     ("Overpass", "overpass", "to1-overpass", "overpass"),   # 21: Abby's Seattle Day 3 highway overpass (Scar Island), the No Return Overpass defense art (re/maps/overpass.md)
     ("Chase", "chase", "to1-chase", "chase"),   # 22: Abby's Seattle Day 3 sniper fight, the indoor part after the parking garage (footbridge, cruise terminal, restaurant; re/maps/chase.md)
     ("Supermarket", "jackson-market", "to1-jackson-market", "jackson-market"),   # 23: Jackson patrol supermarket + lot + courtyard, the winter map (re/maps/jackson-market.md)
+    ("Plaza (Part I)", "p1-plaza", "to1-p1-plaza", "p1-plaza"),   # 24: TLOU Part I Financial District plaza (re/part1/plaza.md); DLC like the Bookstore
 ]
 def _sp_retired():
     """Keys that are NOT part of an "all" build = sp_maps.json "build": false (one source of truth with the build; the release host
@@ -2684,7 +2877,7 @@ BASE_MAX_TEAM = {
     "to1-forest": 4,             # UNKNOWN: left at 4, to be decided after a playtest
 }
 SP_MAX_TEAM_FALLBACK = {"to1-train-station": 4, "to1-downtown": 4, "to1-jackson-suburbs": 4, "to1-outpost": 4,
-                         "to1-wilds-houses": 4, "to1-capitol-shops": 4, "to1-into-the-city": 4, "to1-overpass": 4, "to1-chase": 4, "to1-jackson-market": 4}
+                         "to1-wilds-houses": 4, "to1-capitol-shops": 4, "to1-into-the-city": 4, "to1-overpass": 4, "to1-chase": 4, "to1-jackson-market": 4, "to1-p1-plaza": 4}
 
 
 def max_team_table():
@@ -2734,7 +2927,7 @@ RESPAWNS = {"to1-forest": 16, "to1-gas-station": 11, "to1-school": 11, "to1-ship
             "to1-hardware": 13, "to1-motel": 13, "to1-hillcrest-stores": 13, "to1-tv-station": 13,
             "to1-train-station": 15, "to1-downtown": 20, "to1-lodge": 13, "to1-jackson-suburbs": 12, "to1-outpost": 12,
             "to1-p1-bookstore": 14, "to1-wilds-houses": 12, "to1-capitol-shops": 13, "to1-into-the-city": 12,
-            "to1-overpass": 17, "to1-chase": 13, "to1-jackson-market": 12}
+            "to1-overpass": 17, "to1-chase": 13, "to1-jackson-market": 12, "to1-p1-plaza": 14}
 
 
 def _sp_respawn_counts():
@@ -2909,7 +3102,7 @@ def flow_extra_secs():
 
 # a 2-in-1 chance per option slot against each other map of the pool: the ported maps are favoured a bit (Train Station;
 # later also Hillside, Capitol Hill Shops, Convention Center)
-VOTE_WEIGHT = {"to1-train-station": 2, "to1-wilds-houses": 2, "to1-capitol-shops": 2, "to1-into-the-city": 2, "to1-overpass": 2, "to1-chase": 2, "to1-jackson-market": 2}
+VOTE_WEIGHT = {"to1-train-station": 2, "to1-wilds-houses": 2, "to1-capitol-shops": 2, "to1-into-the-city": 2, "to1-overpass": 2, "to1-chase": 2, "to1-jackson-market": 2, "to1-p1-plaza": 2}
 
 
 VOTE_RECENT = []       # map idx of the last votes' winners (newest last) - used so the vote does not keep offering the same few maps
@@ -3246,7 +3439,17 @@ def start_match(players):
     log("load timing: START-MATCH sent", [tag(t) for t in players])
     MATCH_MAP.pop(frozenset(players), None)              # pick this match's map afresh
     VOTES.pop(frozenset(players), None)
-    if map_vote_on():
+    pmid = MM.mid_of(players[0]) if players else None
+    if pmid and PRIV.is_private_mid(pmid):
+        # private match: the lobby's map, a random pool map, or a vote over the lobby's pool
+        idx, opts = priv_pick_map(pmid, players)
+        key = frozenset(players)
+        with _vote_lock:
+            if opts:
+                VOTES[key] = {"opts": opts, "votes": {}, "winner": -1}
+            MATCH_MAP[key] = idx
+        log("MAP (private)", MAPS[idx][2], "vote over %d maps" % len(opts) if opts else "chosen / random", [tag(p) for p in players])
+    elif map_vote_on():
         vote_start(players)                              # placeholder map now, the winner at the vote's end
     map_index(players)
     for tok in players:
@@ -3270,7 +3473,7 @@ def countdown(players):
         log("COUNTDOWN-ERR", repr(e), [tag(t) for t in players])
 
 def _countdown_run(players):
-    """Drive the client's match page-state (0x189bc0) the way the client expects:
+    """Drive the client's match page-state (0x189bc0) like the original server:
     op 0x0c [phase][seconds] -> ctx+0x1b4 / ctx+0x1b8.
       phase 1          -> page 1->2 (MATCH FOUND)
       phase 2, n > 0   -> page 3, "STARTING MATCH IN n"
@@ -3571,10 +3774,39 @@ def best_host_order(players):
             i = out.index(a[0]); out[0], out[i] = out[i], out[0]
             log("NO-HOST", tag(pl[0]), "may not host -", tag(out[0]), "hosts")
         return out
+    def likely_joiners(pl):         # online players in no live match (post-match screens, menus): the usual join-in-progress arrivals
+        try:
+            busy = set()
+            for mid, mp in list(MM.matches.items()):    # (team_order runs under MM.lock: read the dicts, never take the lock)
+                if mid in MM.ended:
+                    continue
+                dep = MM.departed.get(mid, ())
+                busy.update(t for t in mp if t not in dep)
+            return [t for t in PRES_TOKENS() if t not in pl and t not in busy]
+        except Exception as e:
+            log("HOST-PICK joiners ERR", repr(e))
+            return []
     def cap_first(pl):              # no ping pick: capacity alone (T2R_HOST_CAP=2) - a player that lagged as host never hosts before one that did not
         out = first_allowed(pl)
         if hostcap.MODE < 2 or len(out) < 2:
             return out
+        # 2 players = one link, the ping cannot choose between them - but a third player often joins in progress
+        # seconds later (often queued the second the match formed). Online players in no match whose pings to both are known count as
+        # likely joiners: the host is scored on the pings to them too (worst, then total) before capacity decides as below.
+        if len(out) == 2 and pair_ping(out[0], out[1]) is not None:
+            try:
+                a = host_allowed(out)
+                extra = [t for t in likely_joiners(out) if all(pair_ping(t, c) is not None for c in out)]
+                if extra and len(a) == 2:
+                    view = out + extra
+                    keyed = [(c, hostmig.host_key([pair_ping(c, o) for o in view if o != c], perf_penalty(c))) for c in a]
+                    alt, lines = hostcap.pick(keyed, max(len(view), 3), HOSTCAP.verdict, label=tag)
+                    log("HOST-PICK", "2 players + likely joiners", [tag(t) for t in extra], "|", "; ".join(lines), "->", tag(alt))
+                    if alt and alt != out[0]:
+                        i = out.index(alt); out[0], out[i] = out[i], out[0]
+                    return out
+            except Exception as e:
+                log("HOST-PICK joiners ERR", repr(e))
         try:
             n = max(len(out), 3)                # a 2-player match grows by join in progress: judge for at least 3
             a = host_allowed(out)
@@ -3741,6 +3973,10 @@ class MatchMaker:
                 self.departed_vol.discard(t); n += 1
         return n
     def enqueue(self, token):
+        try:
+            PRIV.on_enqueue(token)                         # a lobby member searching publicly leaves its private lobby
+        except Exception as ex:                            # noqa: BLE001
+            log("PRIVATE enqueue ERR", repr(ex))
         with self.lock:
             if self._in_match(token):
                 return None, None                          # already in a match; don't re-queue
@@ -3774,6 +4010,14 @@ class MatchMaker:
             ready = sorted((t for t in self.queue if self.settle.get(t, 0) <= now and now - self.seen.get(t, 0) <= QUEUE_FRESH),
                            key=self.queue.get)
             ready = self._rq_filter(ready, now)                      # The players of a finished match wait for each other
+            # private matches (tools/private_lobby.py): lobby members never form or join a public match; a launching lobby forms
+            # its own match from its members as soon as they all search (or LAUNCH_WAIT_S after START with the ones that do)
+            try:
+                ready, priv_ready = PRIV.split_ready(ready)
+                for lb, have in PRIV.launches(priv_ready):
+                    return self._form_private(lb, have)
+            except Exception as ex:                                   # noqa: BLE001 - never breaks the public queue
+                log("PRIVATE form failed", repr(ex))
             # parties: a party queues as ONE unit - its members are matchable only when every one of them searches right now (the leader's
             # FIND MATCH asks the others to follow: SOCIAL.on_queue); one that is still missing holds the whole party back
             held = {}
@@ -3814,7 +4058,7 @@ class MatchMaker:
             # (a live 7-player match ran beside a separate 2-player one): while a match is forming or running, searchers it cannot
             # take now QUEUE for it (jip_pass puts them in when a slot frees, or the next lobby forms when it ends) instead of starting their own
             # small match; a second match forms only when the searchers alone fill SECOND_MATCH_MIN slots. 0 = old behaviour.
-            # The hold used to have no end: 5 searchers waited 6 min for a full match
+            # (two reports, with 2 and with 5 searchers): the hold had no end - 5 searchers waited 6 min (02:31:16-02:37:41) for a full match
             # that could not take them. Searchers held longer than QUEUE_HOLD_MAX s (the oldest one, MIN_PLAYERS present) form their own match.
             _held_long = bool(ready) and len(ready) >= MIN_PLAYERS and QUEUE_HOLD_MAX > 0 and now - min(self.queue.get(t, now) for t in ready) >= QUEUE_HOLD_MAX
             if SECOND_MATCH_MIN > 0 and len(ready) < SECOND_MATCH_MIN:
@@ -3832,12 +4076,22 @@ class MatchMaker:
                         return False
                     # 3-4 searchers held for a running School match whose map can never take one more player (max team) -
                     # a deadlock until it ended. A running match only holds the queue when its map fits one more of them.
-                    # A searcher of INTERROGATION was held for a running match of another mode with no way in.
+                    # a player searched INTERROGATION, the only running match was another mode - held for it with no way in.
                     # A running match only holds the queue when at least one searcher may join it (its mode, an admin team-move ticket for another match).
                     if mid in self.started and not any(MODEQ.fits(t, mid, PARTIES.leader(t)) and (self.move_team.get(t) or (mid,))[0] == mid for t in ready):
                         return False
                     cm = MATCH_MAP.get(frozenset(pl))
                     act = [t for t in pl if t not in self.departed.get(mid, ())]
+                    # a running match whose host every searcher is over the ping limit to never takes them (jip_ping_block): it does not hold them
+                    if mid in self.started:
+                        hmi = HM.host_info(mid) if HM.enabled else None
+                        hs = hmi["host"] if hmi else 0
+                        if 0 <= hs < len(pl) and all(jip_ping_block(t, mid, pl[hs], act, set(self.joining), now) is not None for t in ready):
+                            return False
+                    # (RELAY_MATCH_MAX) a server-relay match at its limit does not hold searchers that all have a Steam helper: jip_pick refuses them
+                    if (RELAY_MATCH_MAX > 0 and mid in self.started and MATCH_P2P.get(frozenset(pl)) is False and len(act) >= RELAY_MATCH_MAX
+                            and all(has_helper(t) for t in ready)):
+                        return False
                     # (a party of 3 waited forever for a 2-player Capitol Hill Shops match: 5 players are not in that map's pool):
                     # the fit is checked for the biggest searching party (it joins together), not for one player
                     return cm is None or cm in map_pool(act + grp)
@@ -3923,6 +4177,30 @@ class MatchMaker:
                                          for u, m in short.values()] if short else []))
             self._log_party_hold(held, now)
         return None, None
+    def _form_private(self, lb, have):
+        """(lock held) Form the private match of lobby `lb` from the searching members `have`. Returns (mid, players)."""
+        if lb.rules.get("teams", 0) == 0:
+            players = team_order(have)
+        else:
+            t0, t1 = PRIV.teams_for(lb, have, lambda pl: (pl[0::2], pl[1::2]))
+            bo = best_host_order(have) if len(have) >= 2 else list(have)
+            big = t0 if len(t0) >= len(t1) else t1
+            host = next((h for h in bo if h in big), None)
+            players = order_slots(t0, t1, host)
+        mid = secrets.token_hex(4)
+        self.qtime[mid] = {t: self.queue[t] for t in players}
+        for t in players:
+            del self.queue[t]
+            self.rq.drop(t)
+        self.matches[mid] = players
+        self.formed[mid] = time.time()
+        self._hold_since = 0.0
+        mode = lb.rules.get("mode", 0)
+        mname = modeq.MODES[mode] if 0 <= mode < modeq.NMODES else modeq.MODES[0]
+        MODEQ.formed(mid, mname)
+        PRIV.bound(lb, mid, players)
+        log("MATCH formed (private)", mid, lb.code, [tag(p) for p in players], mname)
+        return mid, players
     def _rq_filter(self, ready, now):
         """(lock held) `ready` without the searchers whose finished match still has players on its post-match screens (tools/requeue.py)."""
         if not REQUEUE:
@@ -3983,6 +4261,7 @@ class MatchMaker:
             if mid in self.matches:
                 first = mid not in self.ended
                 self.ended.add(mid)
+                PRIV.match_over(mid)                       # the owner may start the next private match
                 self.ended_at.setdefault(mid, time.time())
                 if first and REQUEUE:
                     try:
@@ -3994,6 +4273,7 @@ class MatchMaker:
                 "| no ticket (old ext / party member without its leader):", [tag(t) for t in tk[1]])
     def _forget(self, mid):
         """Remove every record of a match (caller holds the lock)."""
+        PRIV.match_over(mid)                               # its private lobby is back in the lobby state
         self.matches.pop(mid, None)
         self.qtime.pop(mid, None); self.formed.pop(mid, None); self.launched.discard(mid)
         self.departed.pop(mid, None); self.ended.discard(mid); self.ended_at.pop(mid, None)
@@ -4015,6 +4295,7 @@ class MatchMaker:
             qt = self.qtime.get(mid, {})
             now = time.time()
             self._forget(mid)
+            PRIV.aborted(mid)                              # a private lobby launches again with its players
             if only is not None:
                 players = [t for t in players if t in only]
             for t in players:
@@ -4232,6 +4513,8 @@ class MatchMaker:
                 continue
             if token not in pl and not MODEQ.fits(token, mid, PARTIES.leader(token)):
                 why_not.append("%s: another game mode" % mid); continue
+            if token not in pl and not PRIV.jip_ok(token, mid):
+                why_not.append("%s: private match / private lobby" % mid); continue
             dep = self.departed.get(mid, ())
             active = [t for t in pl if t not in dep]
             age = now - self.started_t.get(mid, 0)
@@ -4272,6 +4555,10 @@ class MatchMaker:
                 why_not.append("%s: only %d player left and the match is young (a load-timeout remnant)" % (mid, len(active))); continue
             if pl[hslot] in dep:
                 why_not.append("%s: host gone" % mid); continue
+            if not back or (token, mid) in PING_KICKED:
+                pms = jip_ping_block(token, mid, pl[hslot], active, set(self.joining), now)
+                if pms is not None:
+                    why_not.append("%s: %d ms to the host, over the %d ms ping limit (it would be removed)" % (mid, pms, PING_KICK_MS)); continue
             ck = self.clock.get(mid)
             if not ck or now - ck[3] > JIP_CLOCK_TTL:
                 # (say how stale - a build had 'no fresh clock report' for minutes in running 6-player matches; the digits are ignored by the log dedupe)
@@ -4289,6 +4576,10 @@ class MatchMaker:
             if len(active) + (1 if back else need) > MATCH_SIZE:         # (fuzz: a leaver coming back counts as one more player - its slot is departed, so it is not in `active`; the match was full already: 7 v MATCH_SIZE 6)
                 continue                                           # full (for this many players)
             key = frozenset(pl)
+            if (RELAY_MATCH_MAX > 0 and not back and MATCH_P2P.get(key) is False and has_helper(token)
+                    and len(active) + need > RELAY_MATCH_MAX):
+                why_not.append("%s: server-relay match with %d players (limit %d for players with a Steam helper: they play Steam P2P)" % (
+                    mid, len(active), RELAY_MATCH_MAX)); continue
             p2p = bool(MATCH_P2P.get(key))
             if p2p and not (BRIDGES.steamid(token) and BRIDGES.port(token) and BRIDGES.conn(token)
                             and BRIDGES.steamid(token) not in {BRIDGES.steamid(t) for t in active}):
@@ -4815,16 +5106,44 @@ def team_order(players):
         log("TEAMS balanced: %.2f v %.2f | %s v %s" % (sum(sk[x] for x in t0), sum(sk[x] for x in t1),
             ",".join("%s %.2f%s" % (tag(x), sk[x], " TOP" if x in top else "") for x in t0),
             ",".join("%s %.2f%s" % (tag(x), sk[x], " TOP" if x in top else "") for x in t1)))
-    host = best_host_order(players)[0] if len(players) >= 3 else None
+    bo = best_host_order(players) if len(players) >= 3 else []
+    host = bo[0] if bo else None
     if len(players) >= 3 and len(t0) != len(t1):     # uneven: the host comes from the bigger team (order_slots: slot parity)
         big = t0 if len(t0) > len(t1) else t1
-        bo = best_host_order(players)
-        host = bo[0] if bo and bo[0] in big else (best_host_order(list(big)) or [None])[0]   # (no_host.txt still applies)
+        if not (bo and bo[0] in big):
+            host = host_from_team(big, players)
     if len(players) >= 3 and (host not in t0 and host not in t1):
         host = None
     if len(players) < 3:
         host = best_host_order(players)[0] if players else None      # (no_host.txt: the other one hosts)
     return order_slots(t0, t1, host)
+
+def host_from_team(big, players):
+    """The host of an uneven match when the overall pick is on the smaller team: the bigger team's player whose pings to EVERY player of the
+    match are best (same key and capacity rule as best_host_order). Match 8bb74ec7 (2 v 1: a Middle East player and a European party v a
+    North American): the fallback ranked only the bigger team's 2 players among themselves - one link, so no ping decided and the queue's
+    first player hosted (worst ping 225 ms where the European would have had 205). Unknown pings: the old fallback (queue order)."""
+    allowed = host_allowed(list(big))
+    keyed = []
+    for c in allowed:
+        pings = [pair_ping(c, o) for o in players if o != c]
+        if None in pings:
+            log("HOST-PICK", "bigger team: ping unknown for", tag(c), "- queue order")
+            return (best_host_order(list(big)) or [None])[0]            # (no_host.txt still applies)
+        keyed.append((c, hostmig.host_key(pings, perf_penalty(c))))
+    if not keyed:
+        return None
+    best = min(keyed, key=lambda c: c[1])[0]
+    if hostcap.MODE >= 2:
+        try:
+            alt, lines = hostcap.pick(keyed, len(players), HOSTCAP.verdict, label=tag)
+            log("HOST-PICK", "bigger team cap:", "; ".join(lines), "->", tag(alt))
+            best = alt or best
+        except Exception as e:
+            log("HOST-PICK cap ERR", repr(e))
+    log("HOST-PICK", "overall pick is on the smaller team - bigger team",
+        ", ".join("%s worst %d total %d" % (tag(c), k[0], k[1]) for c, k in keyed), "->", tag(best))
+    return best
 
 def _pid_of(t):
     import hashlib
@@ -4956,7 +5275,7 @@ def auto_balance_tick():
             log("TEAMS auto-balance: match %s now %d v %d" % (mid, n[0], n[1]))
 
 def admin_move_team(pid):
-    """Admin live team switch IN THE MATCH when the
+    """Admin live team switch (an admin can split players in a live match). IN THE MATCH when the
     player's t2r-ext applies it (see below: same slot, same life, new team on every screen; the host too). Fallback for an older ext: the player leaves its match
     (back to the menu, like a kick) and its next FIND MATCH puts it back into the same match on the OTHER team (join in progress, a free
     slot of that team's parity; the old slot stays as a gone placeholder). Valid for 15 minutes (3 minutes expired before the player searched again and it went back to its old team)."""
@@ -5257,7 +5576,7 @@ def jip_unreachable(token, now=None):
     jip_push_peers(st[0], players)
     return True
 
-def wave_byte(late=False, back=False):
+def wave_byte(late=False, back=False, mid=None):
     """Trailing byte of the 0xE5 reply: 0x80 = 'present', bit0 = wave respawn on, bit1 = the asker joined a running match (only answered when the
     request carried flag 0x04, see jip_roster_op) (one byte only: an older ext's reply buffer holds a full 8-player roster + exactly one more byte)."""
     # test server: 0x08 = every player may use the free camera (T2R_TEST_FREECAM=1), 0x10 = Supply Raid clock x2 (T2R_TEST_CLOCK2=1), 0x20 = team lives x2 (T2R_TEST_LIVES2=1).
@@ -5265,7 +5584,12 @@ def wave_byte(late=False, back=False):
     test = (8 if os.environ.get("T2R_TEST_FREECAM", "") == "1" else 0) | (0x10 if os.environ.get("T2R_TEST_CLOCK2", "") == "1" else 0) | (0x20 if os.environ.get("T2R_TEST_LIVES2", "") == "1" else 0)
     # 0x40 = no AFK removal on this server (T2R_AFK_KICK_S=0, the test server): the ext drops its inactivity warning too
     test |= 0x40 if AFK_KICK_S <= 0 else 0
-    return 0x80 | (1 if WAVE_RESPAWN else 0) | (2 if late else 0) | (4 if late and back else 0) | test
+    wave = WAVE_RESPAWN
+    pr = PRIV.rules_of_mid(mid) if mid is not None else None
+    if pr is not None:                                     # private match: RESPAWN TIMER 0 = waves, else a fixed wait (the ext reads it from 0xF9 RULES); AFK REMOVAL off
+        wave = pr.get("resp", 0) == 0
+        test |= 0x40 if not pr.get("afk", 0) else 0
+    return 0x80 | (1 if wave else 0) | (2 if late else 0) | (4 if late and back else 0) | test
 
 def jip_is_late(token):
     """True when `token` was put into its CURRENT match by join in progress (JIP_LATE is stamped by jip_start; a later match has another id)."""
@@ -5331,7 +5655,7 @@ def jip_roster_op(pl):
         items = [(i, roster_team_in(mid, i, tok)) for i, tok in enumerate(players[:8]) if tok in sw and tok not in gone]
         if items:
             tail = bytes([0xA7, len(items)]) + b"".join(bytes([i, tm]) for i, tm in items)
-    return msg(0xE5, bytes([1, n]) + bytes(body) + bytes([wave_byte(late, back)]) + tail)
+    return msg(0xE5, bytes([1, n]) + bytes(body) + bytes([wave_byte(late, back, mid)]) + tail)
 
 def matchmaker_loop():
     """Forms matches that start on the fill timer (no new find-match press needed)."""
@@ -5342,6 +5666,8 @@ def matchmaker_loop():
             shutdown_tick()
             try: SOCIAL.tick()
             except Exception as e: log("SOCIAL tick ERR", repr(e))
+            try: PRIV.gc(lambda t: MM.in_match(t) or t in MM.queue)
+            except Exception as e: log("PRIVATE gc ERR", repr(e))
             mid, players = MM.try_form()
             if mid:
                 push_peers(players)
@@ -5411,7 +5737,8 @@ def repick_cap(mid, players, alive, hslot):
     if hostcap.MODE < 2:
         log("HOST-REPICK", mid, "cap:", bad, "- override off (T2R_HOST_CAP=1, log only)")
         return None
-    return {"host_bad": bad, "rank": {s: v[0] for s, v in vs.items()}, "text": {s: v[1] for s, v in vs.items()}, "max_rank": max_rank}
+    return {"host_bad": bad, "rank": {s: v[0] for s, v in vs.items()}, "text": {s: v[1] for s, v in vs.items()}, "max_rank": max_rank,
+            "saturated": bool(sat)}
 
 def repick_tick():
     """Every REPICK_INTERVAL s per running match: score every player as host on the live measured pings and, when the best is clearly
@@ -5507,6 +5834,9 @@ def gunlimit_op(pl):
     if not mid or not players or token not in players:
         GL.release(token)
         return msg(gunlimit.OP_REPLY, b"on=0")
+    if PRIV.rule(mid, "glim") == 0:
+        GL.release(token)
+        return msg(gunlimit.OP_REPLY, b"on=0")          # private match with GUN LIMITS off
     GL.gc({m[0] for m in MM.snapshot()})
     team = roster_team_in(mid, players.index(token), token)
     pre = mid not in MM.started             # match formed, game start not sent yet: ranked + settled pre-match decisions (tools/gunlimit.py)
@@ -5703,6 +6033,88 @@ def install_exit_hooks():
 
 MODEQ = modeq.ModeQ(now=time.time)
 
+# ---------------------------------------------------------------- private matches (tools/private_lobby.py, re/private-lobby-1117.md)
+PRIV = private_lobby.Lobbies(nmaps=len(MAPS), now=time.time, log=log)
+PRIVATE_ON = os.environ.get("T2R_PRIVATE", "1") != "0"
+
+
+def priv_allowed(players):
+    """Map indices a private match of `players` may be played on: every map this server has (T2R_SP_MAPS, T2R_MAP_EXCLUDE, BROKEN_MAPS) that
+    every player's DLL has (packs / SP sections). The max-team filter of public matches does NOT apply: a private lobby may play 4v4 on School."""
+    ph = "f0" * 30
+    players = [p for p in players if not (isinstance(p, str) and p.startswith(ph))]
+    off = ({m[2] for m in SP_MAPS} - sp_maps_on()) | {x.strip() for x in os.environ.get("T2R_MAP_EXCLUDE", "").split(",") if x.strip()} | BROKEN_MAPS
+    return [i for i, m in enumerate(MAPS) if m[2] not in off and PACKS.allowed(m[2], players) and SPSUP.allowed(m[2], players)]
+
+
+def priv_pool(rules, players):
+    """The private match's playable pool: its own pool mask on the allowed maps; Interrogation keeps the maps with lockbox spots. Never empty."""
+    allowed = priv_allowed(players)
+    pool = [i for i in allowed if int(rules.get("pool", -1)) >> i & 1] or allowed
+    if rules.get("mode", 0) == 1 and INT.lockboxes:
+        pool = [i for i in pool if i in INT.lockboxes] or [i for i in allowed if i in INT.lockboxes] or pool
+    return pool or [0]
+
+
+def priv_pick_map(mid, players):
+    """start_match of a private match: the map. Returns (map index, vote options or None)."""
+    r = PRIV.rules_of_mid(mid) or {}
+    pool = priv_pool(r, players)
+    m = int(r.get("map", private_lobby.MAP_VOTE))
+    if m >= 0 and m in pool:
+        return m, None
+    if m == private_lobby.MAP_RANDOM or len(pool) == 1 or not map_vote_on():
+        return pool[secrets.randbelow(len(pool))], None
+    return pool[0], list(pool)[:20]            # a vote over the whole private pool (the ext's all-maps grid, MF_GRID = 20 cells)
+
+
+def priv_op(pl):
+    """Op 0xF8 [token][ver][sub][arg] -> 0xF9 reply (tools/private_lobby.py header)."""
+    req = private_lobby.Lobbies.parse(pl)
+    if not req:
+        return None
+    token, sub, arg = req
+    if not is_token(token):
+        return None
+    if not PRIVATE_ON:
+        return msg(private_lobby.OP_REPLY, b"ok=0 err=off in=0")
+    PRIV.touch(token)
+    if sub == private_lobby.S_RULES:
+        mid = MM.mid_of(token)
+        return msg(private_lobby.OP_REPLY, PRIV.rules_text(mid if mid and PRIV.is_private_mid(mid) else None).encode())
+    err = ""
+    if sub == private_lobby.S_CREATE:
+        _, err = PRIV.create(token)
+    elif sub == private_lobby.S_JOIN:
+        _, err = PRIV.join(token, arg)
+    elif sub == private_lobby.S_LEAVE:
+        PRIV.leave(token)
+        with MM.lock:
+            if token in MM.queue:                  # a launching member that left stops searching for it
+                MM.queue.pop(token, None)
+    elif sub == private_lobby.S_SET:
+        _, err = PRIV.set(token, arg)
+    elif sub == private_lobby.S_TEAM:
+        _, err = PRIV.set_team(token, arg)
+    elif sub == private_lobby.S_KICK:
+        _, err = PRIV.kick(token, arg)
+    elif sub == private_lobby.S_START:
+        lb = PRIV.lobby_of(token)
+        busy = [t for t in (lb.members if lb else ()) if MM.in_match(t)]
+        if busy:
+            err = "inmatch"                        # a member is still in another match
+        else:
+            _, err = PRIV.start(token)
+    elif sub == private_lobby.S_CANCEL:
+        _, err = PRIV.cancel(token)
+    if sub != private_lobby.S_STATE:
+        log("PRIVATE", private_lobby.SUB_NAMES.get(sub, sub), tag(token), arg[:40], err or "ok")
+    lb = PRIV.lobby_of(token)
+    av = ""
+    if lb:
+        av = " av=%x" % sum(1 << i for i in priv_allowed(list(lb.members)))   # maps every member can play (the CHOOSE MAP / MAP POOL grid greys the others)
+    return msg(private_lobby.OP_REPLY, (PRIV.state_text(token, get_name, err) + av).encode())
+
 def requeue_keep_mode(token, mid):
     """A ticket holder searches again (MatchMaker.enqueue): the same mode as before - its own pick (refreshed, so a long session never falls back to the
     default mode after modeq.PREF_TTL) or, with no pick on record, the mode the finished match was played in."""
@@ -5820,6 +6232,8 @@ def clan_why_deliberate(why):
 
 def clan_leave_excuse(token, mid, why):
     """None = a deliberate leave of a running match that counts as 'left early'; else the reason it is excused (crash / timeout / ...)."""
+    if CLAN_NO_PENALTY:
+        return "no clan penalties on this server (T2R_CLAN_NO_PENALTY)"
     if not clan_why_deliberate(why):
         w = (why or "").lower()
         kind = ("crash / lost connection (session socket lost, never came back)" if "session lost" in w else
@@ -6405,7 +6819,8 @@ def maybe_game_start(token):
                 except OSError: pass
             done = MM.jip_done(j)
             JIP_STARTED[j] = (mid, time.time()); JIP_REPUSH.pop(j, None)
-            add_matches([j])
+            if not PRIV.is_private_mid(mid):
+                add_matches([j])
             clan_match_started([j], mid)
             log("jip: GAME-START 0x0a ->", tag(j), "(joined the running match", mid, "after %.0f s)" % (time.time() - (done[1] if done else time.time())))
             evt("jip-start", mid, tag(j))
@@ -6425,7 +6840,8 @@ def maybe_game_start(token):
     if first:
         evt("game-start", mid, "map", MAPS[map_index(players)][2], "players", [tag(p) for p in active])
         timing_summary(players)
-        add_matches(active)
+        if not PRIV.is_private_mid(mid):
+            add_matches(active)                          # (a private match is not a played match on the leaderboard)
         clan_match_started(players, mid)
         HM.start(mid, players)
         with MM.lock:
@@ -6529,6 +6945,21 @@ def handle_batch(conn, addr, st, batch):
                     conn.sendall(rep)
         return
 
+    # --- achievements: op 0xA9 match counters (books) / 0xAA read / 0xAB live counters, see ach_report_op / ach_read_op / ach_live_op ---
+    if 0xA9 in ops or 0xAA in ops or 0xAB in ops:
+        for op, pl in batch:
+            if op in (0xA9, 0xAA, 0xAB) and achievements:
+                if _creates_rows(op, pl, addr):
+                    continue
+                try:
+                    rep = ach_report_op(pl) if op == 0xA9 else ach_live_op(pl) if op == 0xAB else ach_read_op(pl)
+                except Exception as e:
+                    log("ACH ERR", addr, repr(e))
+                    rep = None
+                if rep:
+                    conn.sendall(rep)
+        return
+
     # --- the in-game CLAN page (to1/clan13): op 0xB6, see clan13_op ---
     if 0xB6 in ops:
         for op, pl in batch:
@@ -6622,6 +7053,18 @@ def handle_batch(conn, addr, st, batch):
                     rep = notice_op(pl)
                 except Exception as e:
                     log("NOTICE ERR", addr, repr(e))
+                    rep = None
+                if rep:
+                    conn.sendall(rep)
+        return
+    # --- private matches (t2r-ext short connection): op 0xF8, see priv_op ---
+    if private_lobby.OP_REQ in ops:
+        for op, pl in batch:
+            if op == private_lobby.OP_REQ:
+                try:
+                    rep = priv_op(pl)
+                except Exception as e:
+                    log("PRIVATE ERR", addr, repr(e))
                     rep = None
                 if rep:
                     conn.sendall(rep)
@@ -6886,8 +7329,8 @@ def handle_batch(conn, addr, st, batch):
                 except Exception as e: log("jip: ERR", repr(e))
     elif 0x0f in ops:                                     # BOOT handshake
         if not st["authed"] and st["token"] and len(st["token"]) == 64 and is_banned(st["token"], st["name"]):
-            # TWELVE WEEKS pressed on the boat menu: the client opens the session and logs in. Refuse right here: the note (op 0x11,
-            # shown by the MP-menu page tick) + 0x0d with payload 2 = the client's MM_REJECT variant that sets winmm's flag 0x180167979, which
+            # FACTIONS II pressed on the boat menu: the client opens the session and logs in. Refuse right here: the note (op 0x11,
+            # shown by the MP-menu page tick) + 0x0d with payload 2 = the base client's MM_REJECT variant that sets winmm's flag 0x180167979, which
             # the same page tick turns into FUN_180065480 = quit to the title (boat menu). Nothing is queued / announced / counted online.
             log("BOOT", addr, "refused (banned)", tag(st["token"]), "steam", BRIDGES.steamid(st["token"]) or token_steamid(st["token"]))
             conn.sendall(msg(0x11, ban_note(st["token"])) + msg(0x0d, b"\x02"))
@@ -6903,7 +7346,7 @@ def handle_batch(conn, addr, st, batch):
                 extra = (msg(0x16, struct.pack("<I", max(1, PRES.count())))
                          + msg(0x14, leaderboard_table()))
             if 0x0e in ops and not ANNOUNCE_CLOSE:
-                # MP-menu announce (the client's MM_HELLO): keep this socket OPEN, no 0x0d. winmm's
+                # MP-menu announce (the base client's MM_HELLO): keep this socket OPEN, no 0x0d. winmm's
                 # FIND MATCH reuses a connected session socket (FUN_180057110, state 2: it just
                 # appends op 0x01). The old trailing 0x0d closed it ~0.3 s after every announce
                 # (~every 3 s); a press inside that window got the 0x0d AFTER entering the
@@ -8212,6 +8655,8 @@ def afk_report(token, idle_s, flags=0):
         live = bool(mid and mid in MM.started and mid not in MM.ended and token not in MM.departed.get(mid, ()) and token not in MM.joining)
     if not live or (token, mid) in AFK_KICKED:
         return False
+    if PRIV.rule(mid, "afk") == 0:
+        return False                                     # private match with AFK REMOVAL off
     AFK_KICKED.add((token, mid))
     if len(AFK_KICKED) > 2000:
         AFK_KICKED.clear()
@@ -8226,6 +8671,22 @@ def _ping_fresh(a, b, now):
     at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
     return pair_ping(a, b) if now - at <= PING_FRESH_S else None
 
+def jip_ping_block(token, mid, host, active, joining, now):
+    """Join in progress: the joiner's fresh ping to the host when ping_check would remove it for that ping, else None (unknown ping, under the
+    limit, limit off for the match, or most players high to the host - ping_check removes nobody then). Match 8bb74ec7: a match hosted in the
+    Middle East took North American joiners at 233-299 ms; each was removed after 60 s, and a removed player came back once and stayed.
+    Called with MM.lock held (reads only)."""
+    if PING_KICK_MS <= 0 or PRIV.rule(mid, "ping") == 0 or token == host:
+        return None
+    ms = _ping_fresh(token, host, now)
+    if ms is None or ms <= PING_KICK_MS:
+        return None
+    known = [ms] + [v for v in (_ping_fresh(p, host, now) for p in active if p not in (host, token) and p not in joining) if v is not None]
+    high = [v for v in known if v > PING_KICK_MS]
+    if len(known) >= 2 and len(high) * 2 > len(known):
+        return None
+    return ms
+
 def ping_check(now=None):
     """Every status tick (10 s): the ping limit (PING_KICK_MS / PING_KICK_S, see the table above). Returns the tokens removed."""
     now = time.time() if now is None else now
@@ -8237,12 +8698,20 @@ def ping_check(now=None):
         if not launched or ended or now - formed < PING_GRACE_S:
             continue
         act = [p for p in players if p not in dep]
-        if len(act) < 2:
+        if len(act) < 2 or PRIV.rule(mid, "ping") == 0:     # (a private match with PING LIMIT off)
             continue
         host = HM.host_token(act[0]) if (HM.enabled and HM.has(act[0])) else players[0]
         if host not in act:
             continue
-        pings = {p: _ping_fresh(p, host, now) for p in act if p != host}
+        # a player still on the loading screen has not received its GAME-START (the match itself not started, or a joiner waiting for its own):
+        # its ping is not judged and no timer runs for it until the start went out
+        with MM.lock:
+            m_started = mid in MM.started
+            joining = set(MM.joining)
+        waiting = set(act) if not m_started else {p for p in act if p in joining}
+        for p in waiting:
+            PING_HIGH.pop((p, mid), None)
+        pings = {p: _ping_fresh(p, host, now) for p in act if p != host and p not in waiting}
         high = [p for p, ms in pings.items() if ms is not None and ms > PING_KICK_MS]
         known = [p for p, ms in pings.items() if ms is not None]
         if len(known) >= 2 and len(high) * 2 > len(known):         # most of them are high to the host: its link is the problem, nobody is removed
@@ -8250,7 +8719,7 @@ def ping_check(now=None):
                 PING_HIGH.pop((p, mid), None)
             continue
         for p in act:
-            if p == host:
+            if p == host or p in waiting:
                 continue
             key = (p, mid)
             live.add(key)
@@ -8456,6 +8925,7 @@ def merge_dbs(paths):
     """python daemon.py --merge-db a.db b.db ...: build DB_PATH (must not exist yet) from several playtest databases (a new
     test folder started a fresh t2r.db and the clans of the last one were gone). Newest file is the base; from the others: a clan is kept
     when it is further along (weeks_total, day) or as far and newer; players keep the row with more matches; names / boosters union."""
+    import shutil
     paths = [p for p in paths if os.path.exists(p)]
     if not paths or os.path.exists(DB_PATH):
         print("merge-db: nothing to do (no sources, or %s exists)" % DB_PATH); return

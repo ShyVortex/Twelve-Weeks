@@ -157,7 +157,7 @@ static void radar_box_frame(void) {
     int n = g_rbx_n; g_rbx_n = 0;
     int stt[RBX_N]; radar_box_states(n, stt);
     float al = g_rbx_pg ? (float)g_dui_text_alpha / 255.0f : (float)(g_radar_alpha < g_dui_text_alpha ? g_radar_alpha : g_dui_text_alpha) / 255.0f;   // (a page widget: the page alpha already follows the radar fade)   // full white (was x0.92 and a 0xDCDCDC tint = grey)
-    if (g_text_hide || hud_hidden()) al = 0.0f;
+    if (g_text_hide || hud_hidden() || g_mpui_hid[0]) al = 0.0f;     // (g_mpui_hid[0]: OPTIONS > MULTIPLAYER > DISABLE RADAR)
     static int nl, lastn = -1;
     if (n != lastn) { lastn = n; if (LOGCAP(nl, 30)) xlog("radar box: %d supply box icon(s) on the radar", n); }
     int want[2][RBX_ARC_N]; memset(want, 0, sizeof want);

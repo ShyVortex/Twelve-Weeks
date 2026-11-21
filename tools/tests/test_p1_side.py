@@ -11,7 +11,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "features"))
 import p1_side  # noqa: E402
 
-GCC = next((c for c in (os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin/gcc.exe"),
+GCC = next((c for c in ("./tools/win/ext/msys64/ucrt64/bin/gcc.exe",
                         os.path.join(HERE, "..", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe")) if os.path.isfile(c)), None)
 
 

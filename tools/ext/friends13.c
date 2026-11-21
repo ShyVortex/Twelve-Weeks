@@ -1,15 +1,14 @@
-// friends13.c - the in-game FRIENDS / PARTY panel (the in-game ui has a friends button, P for party, next to the lobby
-// widget on the right; having it only in the launcher is not enough). Included after clan13.c (it reuses gearup13.c's fit / fade / repeat helpers). Log prefix "friendsui:".
+// friends13.c - the in-game FRIENDS / PARTY panel (a friends button next to the lobby widget on the right). Included after clan13.c (it reuses gearup13.c's fit / fade / repeat helpers). Log prefix "friendsui:".
 //
 // WHERE: a button strip "P  FRIENDS" (key tile P, a red badge with the number of friend requests + party invites waiting, and "n ONLINE" / "PARTY 2/4") sits directly under the LOBBY
 // box on the right of the MP menu (to1/main-menu) and of FIND MATCH (to1/find-match-menu): x 2500..3682, y 1560..1680 of the 3840 x 2160 canvas (tools/features/friends13_widgets.py).
 // P (keyboard), the gamepad's menu-next (RB) or a click on the strip opens the page to1/friends13 (only on those two pages, never once the pre-match sequence / a match runs).
 //
-// PAGE: left PARTY (members with LEADER / READY / presence, then READY and LEAVE / DISBAND), right FRIENDS (ADD FRIEND typed in place, party invites, friend requests, friends online first,
+// PAGE (redesign: the shared No Return frame, breadcrumb MULTIPLAYER | FRIENDS, tile rows, one focus outline, boxed prompts): left PARTY (members with LEADER / READY / presence, then READY and LEAVE / DISBAND), right FRIENDS (ADD FRIEND typed in place, party invites, friend requests, friends online first,
 // requests you sent). Keys: W / S / arrows / stick move, A / D / Tab / Q / E / LB / RB switch the list, Enter / SELECT does the row's main action (INVITE, ACCEPT, JOIN, MAKE LEADER,
 // READY, LEAVE, type a name), X / Delete / the pad's menu-action the second one (REMOVE, DECLINE, KICK, CANCEL), R = ready, L = leave the party, P / Esc / BACK close.
 // ADD FRIEND: Enter on the first row opens a text field over it (animated underline, blinking caret, placeholder): letters, digits, space - _ . : [ ], Ctrl+V pastes, Left / Right / Home / End
-// move the caret, Backspace / Delete erase (the engine's pop of the page on Backspace is undone, see feature_friends13), Enter sends, Esc cancels typing, a second Esc closes (rework:
+// move the caret, Backspace / Delete erase (the engine's pop of the page on Backspace is undone, see feature_friends13), Enter sends, Esc cancels typing, a second Esc closes (
 // text fits its boxes, rows come in staggered, the page fades out on close, requests / invites pop up as a bottom-right card with Y / N, the toast block below).
 //
 // DATA: the daemon's friends service (tools/social.py), op 0xD8 [token][ver 1][lang][sub][arg] -> 0xD9 JSON, asked by this file's own short connection (like notice.c), parsed by friends13.h.
@@ -95,7 +94,7 @@ static struct {
     char buf[40];
     uint64_t enter_ms, back_f, sfx_ms, t_u, t_d, bs_t0;
     int h_sel, h_u, h_d, h_l, h_r, h_back, h_esc, h_pv, h_nx, h_act, hk[256], h_click;
-    int hv_col, hv_row, hv_back, hv_sel, hv_act;
+    int hv_col, hv_row, hv_back, hv_sel, hv_act, hv_sw;
     uint64_t click_f;                                  // frame of the last click (the engine's menu-select that rides on a mouse click is dropped, like gear up)
     int caret;                                         // typing: byte offset of the caret in buf (always on a character boundary)
     uint64_t typ_ms, edit_ms, bs_ms, close_ms, rep_t[4];   // typing started / last edit (caret stays solid) / a Backspace was last seen down / the close fade began / key-repeat timers (left, right, backspace, delete)
@@ -125,7 +124,8 @@ static const char *fr_err(const char *c) {
     return FRT("SOMETHING WENT WRONG - TRY AGAIN", "COŚ POSZŁO NIE TAK - SPRÓBUJ PONOWNIE");
 }
 static void fr_msg(const char *text, int good) {
-    snprintf(N13.msg, sizeof N13.msg, "<font color=\"#%s\">%s</font>", good ? "7CB494" : "F2625A", text);
+    snprintf(N13.msg, sizeof N13.msg, "<font color=\"#F0F0F0\">%s</font>", text);       // (the page has two text colours, the message is white, good or not)
+    (void)good;
     N13.msg_until = GetTickCount64() + 6000;
     F13.dirty = 1;
 }
@@ -229,7 +229,7 @@ static void fr_act_queue(int code, int sub, const char *arg) {
     ui_sfx("sfx-select");
     xlog("friendsui: action %d (sub %d %s)", code, sub, sub == 3 ? "<typed>" : N13.act_arg);
 }
-// ------------------------------------------------------------------ the toast (notifications in the bottom right corner, lifted, for friend invites and party invites)
+// ------------------------------------------------------------------ the toast (notifications in the bottom right corner for friend invites and party invites)
 // ONE card (widgets frToast, friends13_widgets.add_toast: x 2480..3720, y 1760..1940 of the 3840 x 2160 canvas = bottom right, inset 120 from the right edge, above the footer, below the
 // FRIENDS strip) on the MP menu and FIND MATCH while the menu is really showing (the same moments as the strip). Friend requests and party invites carry the sender's name and the keys
 // Y (accept / join) and N (decline) - or a click on the chip; everything else the server says about friends / party (notice lines kind p) is a plain card. More than one waiting: one after the other,
@@ -480,34 +480,68 @@ static const char *fr_label(int a) {
     default: return "";
     }
 }
+// Redesign: the rows are flat tiles on the shared No Return frame (nrui.c; widgets friends13_widgets.py row()): lRow<i> / rRow<i> with Bg, Fill (hover / focus lift), Ed (the accent edge:
+// your own row / a ready member), the rank badge, Nm, Yu (YOU), St, Ac (the action, shown on the focused row only) and three chips placed right to left: Cw white (INVITE / REQUEST),
+// Ca accent (READY), Cg grey (LEADER / NOT READY / IN YOUR PARTY). ONE outline (frFo, nr_frame_at) marks the focused row of either list.
+#define FR_LX 148.0f
+#define FR_RX 2004.0f
+#define FR_COLW 1676.0f
+#define FR_ROWH 136.0f
+#define FR_RY0 524.0f
+#define FR_RDY 152.0f
+#define FR_SEC_Y 470.0f
+#define FR_NAME_CY 46.0f
+#define FR_NAME_PT 39.0f
+#define FR_SM_PT 24.0f
+static const float FR_LY[FR_NL] = {524.0f, 676.0f, 828.0f, 980.0f, 1176.0f, 1328.0f};
+typedef struct { const char *name, *st, *ac, *cg, *ca, *cw; int me, edge, wide; } fr_rd_t;       // wide: no action text on the row, the status line may run long
 static void fr_status_word(const char *st, char *out, size_t n) {
-    static const char *const COL[5] = {"8D897B", "B4B4B4", "7FD07A", "F0B429", "3FA9F5"};
     int p = fr13_presence(st);
-    const char *w = p == 4 ? FRT("IN A MATCH", "W MECZU") : p == 3 ? FRT("SEARCHING FOR A MATCH", "SZUKA MECZU") : p == 2 ? FRT("IN THE MENU", "W MENU") : p == 1 ? FRT("IN THE LAUNCHER", "W LAUNCHERZE") : "OFFLINE";
-    snprintf(out, n, "<font color=\"#%s\">%s</font>", COL[p], w);
+    const char *w = p == 4 ? FRT("IN A MATCH", "W MECZU") : p == 3 ? FRT("SEARCHING FOR A MATCH", "SZUKA MECZU") : p == 2 ? FRT("IN THE MENU", "W MENU") : p == 1 ? FRT("IN THE LAUNCHER", "W LAUNCHERZE") : FRT("OFFLINE", "OFFLINE");
+    if (p > 0) snprintf(out, n, "<font color=\"#F0F0F0\">%s</font>", w);      // online = white, offline = the row's grey
+    else snprintf(out, n, "%s", w);
 }
-static int fr_tone(int p) { return p == 4 ? 4 : p == 3 ? 2 : p == 2 ? 1 : 0; }
 static void fr_rp(char *b, size_t n, int col, int i, const char *leaf) { snprintf(b, n, "anim-group.%s.%cRow%d.%c%s%d", col ? "rt" : "lf", col ? 'r' : 'l', i, col ? 'r' : 'l', leaf, i); }
 static int g_fr_player = 1;                          // 1 except while fr_set_row draws a real player row (not an action row): a badge even for a name the rank table lacks
-#define RKB_RES46 120.0f                              // = rank_badge_widgets.reserved(46, 80) = 120: the width the badge takes in front of a 46 pt name
-static void fr_set_row(int col, int i, int vis, int tone, const char *name, const char *st, const char *tag, const char *ac, int foc, int hov) {
+#define RKB_RES46 104.0f                              // = rank_badge_widgets.reserved(40, 68) = 104: the width the badge takes in front of a 39 pt name
+static void fr_chip(const char *g, int col, int i, const char *kind, const char *t, float *right) {     // one chip of a row: shown when t is set, placed left of *right
+    char b[200], p[216];
+    snprintf(b, sizeof b, "%s.%c%s%d", g, col ? 'r' : 'l', kind, i);
+    int on = t && t[0];
+    snprintf(p, sizeof p, "%sBg", b); ui_visible(p, on);
+    snprintf(p, sizeof p, "%sTx", b); ui_visible(p, on);
+    if (on) *right -= nr_chip(b, t, 0.0f, *right, FR_SM_PT) + 10.0f;
+}
+static void fr_set_row(int col, int i, const fr_rd_t *d, int foc, int hov) {          // d NULL = the row is hidden
     char p[160], g[96];
     snprintf(g, sizeof g, "anim-group.%s.%cRow%d", col ? "rt" : "lf", col ? 'r' : 'l', i);
+    int vis = d != NULL;
     ui_visible(g, vis);
     F13.rw[col][i] = vis ? ui_w(g) : 0;
     if (!vis) return;
-    for (int k = 0; k < 5; k++) { snprintf(p, sizeof p, "%s.%cBd%d_%d", g, col ? 'r' : 'l', k, i); ui_visible(p, k == tone); }
-    // every line is measured against its box (the widgets pivot at the edge they align to): a long name / status / action shrinks toward that edge, a name that still does not fit gets "..."
-    // rank badge (rankbadge.c; widgets rank_badge_widgets.py, a 46 pt name): a PLAYER row shows the badge and its name moves right by the badge's width; an action row ("ADD A FRIEND" ...) keeps the plain layout
-    int rk = -1, wk = 0, has = name && rkb_lookup(name, &rk, &wk);
-    if (!has && g_fr_player && name && name[0] && g_rkb_ver > 0) { has = 1; rk = 0; wk = 0; }      // a party member / inviter the table does not list yet: the lowest rank
+    snprintf(p, sizeof p, "%s.%cEd%d", g, col ? 'r' : 'l', i); ui_visible(p, d->edge);
+    // rank badge (rankbadge.c; widgets rank_badge_widgets.py, a 39 pt name): a PLAYER row shows the badge and its name moves right by the badge's width; an action row ("ADD A FRIEND" ...) keeps the plain layout
+    int rk = -1, wk = 0, has = d->name && rkb_lookup(d->name, &rk, &wk);
+    if (!has && g_fr_player && d->name && d->name[0] && g_rkb_ver > 0) { has = 1; rk = 0; wk = 0; }      // a party member / inviter the table does not list yet: the lowest rank
     { char ri[160], rn[160]; snprintf(ri, sizeof ri, "%s.%cRk%d", g, col ? 'r' : 'l', i); snprintf(rn, sizeof rn, "%s.%cRn%d", g, col ? 'r' : 'l', i); rank_ui(ri, rn, has ? rk : -1, wk); }
-    fr_rp(p, sizeof p, col, i, "Nm"); w_pivot(ui_w(p), has ? 36.0f + RKB_RES46 : 36.0f, 40.0f); gu_fit(p, name, (col ? 920.0f : 680.0f) - (has ? RKB_RES46 : 0.0f), 47.0f);
-    fr_rp(p, sizeof p, col, i, "St"); gu_fit(p, st, col ? 850.0f : 620.0f, 33.0f);
-    fr_rp(p, sizeof p, col, i, "Tg"); gu_fit(p, tag, 540.0f, 33.0f);
-    fr_rp(p, sizeof p, col, i, "Ac"); gu_fit(p, ac, 560.0f, 33.0f);
+    // every line is measured against its box (the widgets pivot at the edge they align to): a long name / status / action shrinks toward that edge, a name that still does not fit gets "..."
+    float res = has ? RKB_RES46 : 0.0f, nx = 36.0f + res, nbox = 1100.0f - res - (d->me ? 160.0f : 0.0f);
+    fr_rp(p, sizeof p, col, i, "Nm"); w_pivot(ui_w(p), nx, FR_NAME_CY); gu_fit(p, d->name, nbox, FR_NAME_PT);
+    fr_rp(p, sizeof p, col, i, "Yu");
+    if (d->me) {                                      // YOU in the accent after the name (the player stats' own row)
+        float w = nr_tw(d->name, FR_NAME_PT), wf = 24.0f * (float)strlen(d->name);
+        if (w < wf) w = wf;
+        if (w > nbox) w = nbox;
+        ui_text(p, FRT("<font color=\"#D9D86A\">YOU</font>", "<font color=\"#D9D86A\">TY</font>"));
+        w_pivot(ui_w(p), nx + w + 36.0f, FR_NAME_CY);
+    } else ui_text(p, "");
+    fr_rp(p, sizeof p, col, i, "St"); gu_fit(p, d->st, d->wide ? 1560.0f : 1000.0f, FR_SM_PT);
+    fr_rp(p, sizeof p, col, i, "Ac"); gu_fit(p, foc || hov ? d->ac : "", 560.0f, FR_SM_PT);
+    float right = FR_COLW - 24.0f;
+    fr_chip(g, col, i, "Cw", d->cw, &right);
+    fr_chip(g, col, i, "Ca", d->ca, &right);
+    fr_chip(g, col, i, "Cg", d->cg, &right);
     fr_rp(p, sizeof p, col, i, "Fill"); gu_fade(p, foc || hov);
-    fr_rp(p, sizeof p, col, i, "Frame"); gu_fade(p, foc);
 }
 static void fr_window(int n) {                        // the right list's window and focus
     int rows = FR_RROWS;
@@ -519,11 +553,11 @@ static void fr_window(int n) {                        // the right list's window
     if (F13.off[1] > n - rows) F13.off[1] = n - rows;
     if (F13.off[1] < 0) F13.off[1] = 0;
 }
+enum { FR_PR_SEL, FR_PR_ACT, FR_PR_SW, FR_PR_BACK };     // the boxed prompts of the page, left to right (nr_prompts items)
+static int g_fr_pr[4], g_fr_npr;
 static void fr_fill(void) {
-    char a[200], b[200], c[200], d[200];
-    int pl = nt_pl();
-    ui_text("anim-group.hd.hdKick", FRT("PARTY AND FRIENDS", "GRUPA I ZNAJOMI"));
-    ui_text("anim-group.hd.hdTitle", FRT("FRIENDS", "ZNAJOMI"));
+    char a[200], b[200];
+    nr_header(FRT("MULTIPLAYER", "TRYB WIELOOSOBOWY"), FRT("FRIENDS", "ZNAJOMI"));
     int show = N13.have;
     const char *ld = "";
     if (!show) ld = !g_fr_busy && N13.fails >= 2 ? FRT("THE SERVER DID NOT ANSWER", "SERWER NIE ODPOWIADA") : FRT("LOADING YOUR FRIENDS", "WCZYTYWANIE ZNAJOMYCH");
@@ -531,117 +565,134 @@ static void fr_fill(void) {
     ui_visible("anim-group.ldTx", !show);
     ui_visible("anim-group.lf", show);
     ui_visible("anim-group.rt", show);
-    ui_text("anim-group.pBackTx", FRT("BACK", "WSTECZ"));
-    if (!show) { ui_text("anim-group.hd.hdMe", ""); ui_text("anim-group.hd.hdId", ""); ui_text("anim-group.msgTx", ""); ui_text("anim-group.keyTx", ""); ui_text("anim-group.pSelTx", ""); ui_visible("anim-group.pSelIc", 0); ui_text("anim-group.pActTx", ""); ui_visible("anim-group.pActIc", 0); return; }
-    gu_fit("anim-group.hd.hdMe", g_f13.me_name, 1300.0f, 47.0f);
+    nr_prompt_t it[4];
+    int np = 0;
+    if (!show) {
+        ui_text("anim-group.hd.hdMe", ""); ui_text("anim-group.hd.hdId", ""); ui_text("anim-group.msgTx", ""); ui_text("anim-group.keyTx", "");
+        nr_frame_at("anim-group.frFo", 0.0f, 0.0f, 0.0f, 0.0f, 0);
+        it[0] = (nr_prompt_t){"menu:back", NULL, FRT("BACK", "WSTECZ"), 1}; g_fr_pr[0] = FR_PR_BACK; g_fr_npr = 1;
+        nr_prompts(it, 1);
+        return;
+    }
+    gu_fit("anim-group.hd.hdMe", g_f13.me_name, 1300.0f, 42.0f);
     snprintf(a, sizeof a, FRT("YOUR FRIEND ID  %s", "TWOJE ID  %s"), g_f13.me_id);
-    gu_fit("anim-group.hd.hdId", a, 1400.0f, 33.0f);
+    gu_fit("anim-group.hd.hdId", a, 1400.0f, 30.0f);
     // ---- left: PARTY
     int ln = fr_left_n();
     if (F13.foc[0] >= ln) F13.foc[0] = ln ? ln - 1 : 0;
     if (!ln && F13.col == 0) F13.col = 1;
-    ui_text("anim-group.lf.lTitle", FRT("PARTY", "GRUPA"));
-    if (g_f13.has_party) {
-        snprintf(a, sizeof a, "%d / %d%s%s", g_f13.nm, g_f13.pmax ? g_f13.pmax : 4, g_f13.me_leader ? FRT("  -  YOU ARE THE LEADER", "  -  JESTEŚ LIDEREM") : "", g_f13.searching ? FRT("  -  SEARCHING", "  -  SZUKA MECZU") : "");
-        gu_fit("anim-group.lf.lSub", a, 980.0f, 33.0f);
-    } else ui_text("anim-group.lf.lSub", "");
+    snprintf(a, sizeof a, "%d / %d%s", g_f13.nm, g_f13.pmax ? g_f13.pmax : 4, g_f13.searching ? FRT("  |  SEARCHING", "  |  SZUKA MECZU") : "");
+    nr_section("anim-group.lf.lSec", FR_LX, FR_LX + FR_COLW, FR_SEC_Y, FRT("PARTY", "GRUPA"), g_f13.has_party ? a : "", 36.0f);
     ui_text("anim-group.lf.lNone", FRT("NO PARTY YET. INVITE A FRIEND FROM THE LIST ON THE RIGHT - A PARTY QUEUES TOGETHER AND PLAYS ON ONE TEAM.", "JESZCZE NIE MASZ GRUPY. ZAPROŚ ZNAJOMEGO Z LISTY PO PRAWEJ - GRUPA SZUKA MECZU RAZEM I GRA W JEDNEJ DRUŻYNIE."));
     ui_visible("anim-group.lf.lNone", !ln);
     fr_row_t rows[1 + FR_NPI + 2 * FR_RROWS + FR_NF];
     int nr = fr_right_rows(rows);
     for (int i = 0; i < FR_NL; i++) {
         int foc = F13.col == 0 && F13.foc[0] == i, hov = F13.hv_col == 0 && F13.hv_row == i;
-        if (i >= ln) { fr_set_row(0, i, 0, 0, "", "", "", "", 0, 0); continue; }
+        if (i >= ln) { fr_set_row(0, i, NULL, 0, 0); continue; }
         int pri, sec; fr_row_actions(0, i, rows, nr, &pri, &sec);
+        fr_rd_t d;
+        memset(&d, 0, sizeof d);
         if (i < g_f13.nm) {
             const fr_m_t *m = &g_f13.m[i];
-            snprintf(a, sizeof a, "%s%s", m->name, m->me ? FRT("  (YOU)", "  (TY)") : "");
             fr_status_word(m->status, b, sizeof b);
-            snprintf(c, sizeof c, "%s%s%s%s", m->leader ? "<font color=\"#3FA9F5\">" : "", m->leader ? FRT("LEADER", "LIDER") : "", m->leader ? "</font>" : "", "");
-            if (m->ready && !m->leader) { size_t k = strlen(c); snprintf(c + k, SNLEFT(c, k), "%s<font color=\"#7FD07A\">%s</font>", m->leader ? "   " : "", FRT("READY", "GOTOWY")); }
-            fr_set_row(0, i, 1, fr_tone(fr13_presence(m->status)), a, b, c, fr_label(pri), foc, hov);
-            snprintf(d, sizeof d, "anim-group.lf.lRow%d.lTabN%d", i, i); ui_visible(d, !m->ready);        // readiness tab: dark grey = not ready, green = ready (the leader always)
-            snprintf(d, sizeof d, "anim-group.lf.lRow%d.lTabG%d", i, i); ui_visible(d, m->ready);
+            d.name = m->name; d.st = b; d.ac = fr_label(pri); d.me = m->me;
+            d.edge = m->ready || m->leader || m->me;                                  // no edge = not ready
+            d.cg = m->leader ? FRT("LEADER", "LIDER") : m->ready ? "" : FRT("NOT READY", "NIEGOTOWY");
+            d.ca = m->ready && !m->leader ? FRT("READY", "GOTOWY") : "";
+            fr_set_row(0, i, &d, foc, hov);
         } else if (i == g_f13.nm) {
-            if (g_f13.me_leader) g_fr_player = 0, fr_set_row(0, i, 1, 0, FRT("YOU START THE SEARCH", "TY ZACZYNASZ SZUKANIE"), FRT("FIND MATCH ON THE MP MENU - THE PARTY GOES IN ONCE EVERYONE IS READY", "ZNAJDŹ MECZ W MENU MP - GRUPA IDZIE RAZEM, GDY WSZYSCY SĄ GOTOWI"), "", "", 0, 0), g_fr_player = 1;
-            else g_fr_player = 0, fr_set_row(0, i, 1, fr_my_ready() ? 1 : 0, fr_label(A_READY), FRT("THE LEADER STARTS THE SEARCH AND THE READY PARTY GOES IN TOGETHER", "LIDER ZACZYNA SZUKANIE, A GOTOWA GRUPA IDZIE RAZEM"), "", "", foc, hov), g_fr_player = 1;
+            d.wide = 1;
+            if (g_f13.me_leader) { d.name = FRT("YOU START THE SEARCH", "TY ZACZYNASZ SZUKANIE"); d.st = FRT("FIND MATCH ON THE MP MENU - THE PARTY GOES IN ONCE EVERYONE IS READY", "ZNAJDŹ MECZ W MENU MP - GRUPA IDZIE RAZEM, GDY WSZYSCY SĄ GOTOWI"); }
+            else { d.name = fr_label(A_READY); d.st = FRT("THE LEADER STARTS THE SEARCH AND THE READY PARTY GOES IN TOGETHER", "LIDER ZACZYNA SZUKANIE, A GOTOWA GRUPA IDZIE RAZEM"); d.edge = fr_my_ready(); }
+            g_fr_player = 0; fr_set_row(0, i, &d, g_f13.me_leader ? 0 : foc, g_f13.me_leader ? 0 : hov); g_fr_player = 1;
         } else {
-            g_fr_player = 0, fr_set_row(0, i, 1, 0, fr_label(A_LEAVE), g_f13.me_leader ? FRT("THE PARTY ENDS FOR EVERYONE", "GRUPA KOŃCZY SIĘ DLA WSZYSTKICH") : FRT("YOU STAY A FRIEND OF EVERYONE IN IT", "ZOSTAJESZ ZNAJOMYM WSZYSTKICH Z GRUPY"), "", "", foc, hov), g_fr_player = 1;
+            d.wide = 1;
+            d.name = fr_label(A_LEAVE); d.st = g_f13.me_leader ? FRT("THE PARTY ENDS FOR EVERYONE", "GRUPA KOŃCZY SIĘ DLA WSZYSTKICH") : FRT("YOU STAY A FRIEND OF EVERYONE IN IT", "ZOSTAJESZ ZNAJOMYM WSZYSTKICH Z GRUPY");
+            g_fr_player = 0; fr_set_row(0, i, &d, foc, hov); g_fr_player = 1;
         }
     }
     // ---- right: FRIENDS
     fr_window(nr);
     int on = 0;
     for (int i = 0; i < g_f13.nf; i++) if (fr13_presence(g_f13.f[i].status) > 0) on++;
-    ui_text("anim-group.rt.rTitle", FRT("FRIENDS", "ZNAJOMI"));
-    snprintf(a, sizeof a, FRT("%d ONLINE  -  %d FRIENDS%s", "%d ONLINE  -  %d ZNAJOMYCH%s"), on, g_f13.nf, g_f13.ni ? (g_f13.ni == 1 ? FRT("  -  1 REQUEST", "  -  1 ZAPROSZENIE") : "") : "");
-    if (g_f13.ni > 1) snprintf(a + strlen(a), sizeof a - strlen(a), FRT("  -  %d REQUESTS", "  -  %d ZAPROSZEŃ"), g_f13.ni);
-    gu_fit("anim-group.rt.rSub", a, 1220.0f, 33.0f);
+    snprintf(a, sizeof a, FRT("%d ONLINE  |  %d FRIENDS", "%d ONLINE  |  %d ZNAJOMYCH"), on, g_f13.nf);
+    nr_section("anim-group.rt.rSec", FR_RX, FR_RX + FR_COLW, FR_SEC_Y, FRT("FRIENDS", "ZNAJOMI"), a, 36.0f);
     for (int i = 0; i < FR_RROWS; i++) {
         int idx = F13.off[1] + i;
         int foc = F13.col == 1 && F13.foc[1] == idx, hov = F13.hv_col == 1 && F13.hv_row == i;
-        if (idx >= nr) { fr_set_row(1, i, 0, 0, "", "", "", "", 0, 0); continue; }
+        if (idx >= nr) { fr_set_row(1, i, NULL, 0, 0); continue; }
         int pri, sec; fr_row_actions(1, idx, rows, nr, &pri, &sec);
         const fr_row_t *r = &rows[idx];
+        fr_rd_t d;
+        memset(&d, 0, sizeof d);
+        d.ac = fr_label(pri);
         if (r->kind == FR_K_ADD) {
-            if (F13.typing) fr_set_row(1, i, 0, 0, "", "", "", "", 0, 0);           // the text field (fr_inp_tick) sits over this slot
-            else g_fr_player = 0, fr_set_row(1, i, 1, 0, FRT("ADD A FRIEND", "DODAJ ZNAJOMEGO"), FRT("BY PLAYER NAME OR STEAM ID", "PO NAZWIE GRACZA LUB ID STEAM"), "", FRT("TYPE A NAME", "WPISZ NAZWĘ"), foc, hov), g_fr_player = 1;
+            if (F13.typing) { fr_set_row(1, i, NULL, 0, 0); continue; }                // the text field (fr_inp_tick) sits over this slot
+            d.name = FRT("ADD A FRIEND", "DODAJ ZNAJOMEGO"); d.st = FRT("BY PLAYER NAME OR STEAM ID", "PO NAZWIE GRACZA LUB ID STEAM"); d.ac = FRT("TYPE A NAME", "WPISZ NAZWĘ");
+            g_fr_player = 0; fr_set_row(1, i, &d, foc, hov); g_fr_player = 1;
+            continue;
         } else if (r->kind == FR_K_PINV) {
-            const fr_r_t *x = &g_f13.pinv[r->idx];
-            fr_set_row(1, i, 1, 2, x->name, FRT("<font color=\"#F0B429\">INVITED YOU TO A PARTY</font>", "<font color=\"#F0B429\">ZAPRASZA CIĘ DO GRUPY</font>"), "", fr_label(pri), foc, hov);
+            d.name = g_f13.pinv[r->idx].name; d.st = FRT("INVITED YOU TO A PARTY", "ZAPRASZA CIĘ DO GRUPY"); d.cw = FRT("INVITE", "ZAPROSZENIE");
         } else if (r->kind == FR_K_REQ) {
-            const fr_r_t *x = &g_f13.in[r->idx];
-            fr_set_row(1, i, 1, 3, x->name, FRT("<font color=\"#F2625A\">WANTS TO BE YOUR FRIEND</font>", "<font color=\"#F2625A\">CHCE ZOSTAĆ TWOIM ZNAJOMYM</font>"), "", fr_label(pri), foc, hov);
+            d.name = g_f13.in[r->idx].name; d.st = FRT("WANTS TO BE YOUR FRIEND", "CHCE ZOSTAĆ TWOIM ZNAJOMYM"); d.cw = FRT("REQUEST", "PROŚBA");
         } else if (r->kind == FR_K_FRIEND) {
             const fr_f_t *x = &g_f13.f[r->idx];
             fr_status_word(x->status, b, sizeof b);
-            snprintf(d, sizeof d, "%s", x->party ? FRT("<font color=\"#3FA9F5\">IN YOUR PARTY</font>", "<font color=\"#3FA9F5\">W TWOJEJ GRUPIE</font>") : "");
-            fr_set_row(1, i, 1, fr_tone(fr13_presence(x->status)), x->name, b, d, fr_label(pri), foc, hov);
+            d.name = x->name; d.st = b; d.cg = x->party ? FRT("IN YOUR PARTY", "W TWOJEJ GRUPIE") : "";
         } else {
-            const fr_r_t *x = &g_f13.out[r->idx];
-            fr_set_row(1, i, 1, 0, x->name, FRT("REQUEST SENT - WAITING FOR AN ANSWER", "ZAPROSZENIE WYSŁANE - CZEKA NA ODPOWIEDŹ"), "", "", foc, hov);
+            d.name = g_f13.out[r->idx].name; d.st = FRT("REQUEST SENT - WAITING FOR AN ANSWER", "ZAPROSZENIE WYSŁANE - CZEKA NA ODPOWIEDŹ");
         }
+        fr_set_row(1, i, &d, foc, hov);
     }
     int more = nr - (F13.off[1] + FR_RROWS);
     snprintf(a, sizeof a, more > 0 ? FRT("+ %d MORE", "+ JESZCZE %d") : "", more);
     ui_text("anim-group.rt.rMore", more > 0 ? a : "");
+    nr_scroll_v("anim-group.rt.rSc", 3694.0f, FR_RY0, FR_RY0 + FR_RDY * (float)FR_RROWS, FR_RDY * (float)FR_RROWS, F13.off[1], FR_RROWS, nr);
+    // ---- the focus outline
+    {
+        int fc = F13.col, fi = F13.foc[fc], fon = !F13.typing && (fc ? nr > 0 : ln > 0);
+        float fx = fc ? FR_RX : FR_LX, fy = 0.0f;
+        if (fc) { int s = fi - F13.off[1]; if (s < 0 || s >= FR_RROWS) fon = 0; else fy = FR_RY0 + FR_RDY * (float)s; }
+        else { if (fi < 0 || fi >= FR_NL) fon = 0; else fy = FR_LY[fi]; }
+        nr_frame_at("anim-group.frFo", fx, fy, FR_COLW, FR_ROWH, fon);
+    }
     // ---- status line, key hints, prompts
     uint64_t now = GetTickCount64();
-    gu_fit("anim-group.msgTx", N13.msg_until > now ? N13.msg : "", 3200.0f, 41.0f);
+    gu_fit("anim-group.msgTx", N13.msg_until > now ? N13.msg : "", 3500.0f, 33.0f);
     gu_fit("anim-group.keyTx", F13.typing ? FRT("ENTER SEND     ESC CANCEL     CTRL+V PASTE     LEFT / RIGHT / HOME / END MOVE     BACKSPACE / DELETE ERASE", "ENTER WYŚLIJ     ESC ANULUJ     CTRL+V WKLEJ     STRZAŁKI / HOME / END PRZESUWAJĄ     BACKSPACE / DELETE KASUJE")
                                           : g_pad_mode ? FRT("STICK / D-PAD  SELECT     THE PROMPTS BELOW DO IT     BUMPERS  SWITCH LIST     BACK  CLOSE", "GAŁKA / KRZYŻAK ZAZNACZ     PRZYCISKI NA DOLE WYKONUJĄ     ZDERZAKI ZMIEŃ LISTĘ     WSTECZ ZAMKNIJ")
-                                          : FRT("CLICK OR W / S SELECT     ENTER OR THE PROMPT BELOW DOES IT     X SECOND ACTION     R READY     L LEAVE PARTY     TAB SWITCH LIST     P OR ESC CLOSE", "KLIKNIJ LUB W / S ZAZNACZ     ENTER LUB PRZYCISK NA DOLE WYKONUJE     X DRUGA AKCJA     R GOTOWY     L OPUŚĆ GRUPĘ     TAB ZMIEŃ LISTĘ     P LUB ESC ZAMKNIJ"), 3200.0f, 33.0f);
+                                          : FRT("CLICK OR W / S SELECT     ENTER OR THE PROMPT BELOW DOES IT     X SECOND ACTION     R READY     L LEAVE PARTY     TAB SWITCH LIST     P OR ESC CLOSE", "KLIKNIJ LUB W / S ZAZNACZ     ENTER LUB PRZYCISK NA DOLE WYKONUJE     X DRUGA AKCJA     R GOTOWY     L OPUŚĆ GRUPĘ     TAB ZMIEŃ LISTĘ     P LUB ESC ZAMKNIJ"), 3500.0f, 24.0f);
     int pri = A_NONE, sec = A_NONE;
     int col = F13.col, idx = F13.foc[col];
-    fr_row_actions(col, col ? idx : idx, rows, nr, &pri, &sec);
+    fr_row_actions(col, idx, rows, nr, &pri, &sec);
     if (F13.typing) { pri = A_NONE; sec = A_NONE; }
-    gu_fit("anim-group.pSelTx", F13.typing ? FRT("SEND", "WYŚLIJ") : fr_label(pri), 640.0f, 49.0f);
-    ui_visible("anim-group.pSelIc", F13.typing || pri != A_NONE);
-    gu_fit("anim-group.pActTx", fr_label(sec), 640.0f, 49.0f);
-    ui_visible("anim-group.pActIc", sec != A_NONE);
-    gu_fit("anim-group.pTabTx", ln ? FRT("SWITCH LIST", "ZMIEŃ LISTĘ") : "", 760.0f, 49.0f);
-    ui_visible("anim-group.pPrevIc", ln != 0);
-    ui_visible("anim-group.pNextIc", ln != 0);
-    (void)pl;
+    it[np] = (nr_prompt_t){"menu:select", NULL, F13.typing ? FRT("SEND", "WYŚLIJ") : pri != A_NONE ? fr_label(pri) : FRT("SELECT", "WYBIERZ"), F13.typing || pri != A_NONE}; g_fr_pr[np++] = FR_PR_SEL;
+    it[np] = (nr_prompt_t){"menu:action", NULL, sec != A_NONE ? fr_label(sec) : FRT("ACTION", "AKCJA"), sec != A_NONE}; g_fr_pr[np++] = FR_PR_ACT;
+    it[np] = (nr_prompt_t){"menu:prev+menu:next", NULL, FRT("SWITCH LIST", "ZMIEŃ LISTĘ"), ln != 0 && !F13.typing}; g_fr_pr[np++] = FR_PR_SW;
+    it[np] = (nr_prompt_t){"menu:back", NULL, FRT("BACK", "WSTECZ"), 1}; g_fr_pr[np++] = FR_PR_BACK;
+    g_fr_npr = np;
+    nr_prompts(it, np);
 }
 // ------------------------------------------------------------------ the mouse
 static void fr_scan(void) {
     float cx, cy;
-    F13.hv_col = F13.hv_row = -1; F13.hv_back = F13.hv_sel = F13.hv_act = 0;
+    F13.hv_col = F13.hv_row = -1; F13.hv_back = F13.hv_sel = F13.hv_act = F13.hv_sw = 0;
     if (!ui_cursor_canvas(&cx, &cy)) return;
-    static const int LY[FR_NL] = {540, 710, 880, 1050, 1260, 1410}, LH[FR_NL] = {150, 150, 150, 150, 130, 130};
     int ln = fr_left_n();
-    if (cx >= 300 && cx <= 1700) for (int i = 0; i < ln && i < FR_NL; i++) if (cy >= LY[i] && cy <= LY[i] + LH[i]) F13.hv_col = 0, F13.hv_row = i;
-    if (cx >= 1900 && cx <= 3540) for (int i = 0; i < FR_RROWS; i++) if (cy >= 540 + 160 * i && cy <= 540 + 160 * i + 140) F13.hv_col = 1, F13.hv_row = i;
+    if (cx >= FR_LX && cx <= FR_LX + FR_COLW) for (int i = 0; i < ln && i < FR_NL; i++) if (cy >= FR_LY[i] && cy <= FR_LY[i] + FR_ROWH) F13.hv_col = 0, F13.hv_row = i;
+    if (cx >= FR_RX && cx <= FR_RX + FR_COLW) for (int i = 0; i < FR_RROWS; i++) if (cy >= FR_RY0 + FR_RDY * (float)i && cy <= FR_RY0 + FR_RDY * (float)i + FR_ROWH) F13.hv_col = 1, F13.hv_row = i;
     if (F13.hv_col == 1) { fr_row_t rows[1 + FR_NPI + 2 * FR_RROWS + FR_NF]; if (F13.off[1] + F13.hv_row >= fr_right_rows(rows)) F13.hv_col = F13.hv_row = -1; }
-    F13.hv_back = cx >= 250 && cx <= 730 && cy >= 1880 && cy <= 1970;
-    F13.hv_sel = cx >= 740 && cx < 1500 && cy >= 1880 && cy <= 1970;       // the footer prompts are the action buttons (select only moves, like gear up)
-    F13.hv_act = cx >= 1500 && cx < 2260 && cy >= 1880 && cy <= 1970;
+    int ph = nr_prompt_hover();                                  // the boxed prompts are the action buttons (select only moves, like gear up)
+    if (ph >= 0 && ph < g_fr_npr) {
+        int r = g_fr_pr[ph];
+        F13.hv_sel = r == FR_PR_SEL; F13.hv_act = r == FR_PR_ACT; F13.hv_sw = r == FR_PR_SW; F13.hv_back = r == FR_PR_BACK;
+    }
 }
 static int fr13_click_hit(void) {
     if (!F13.up) return 0;
     fr_scan();
-    return F13.hv_row >= 0 || F13.hv_back || F13.hv_sel || F13.hv_act;
+    return F13.hv_row >= 0 || F13.hv_back || F13.hv_sel || F13.hv_act || F13.hv_sw;
 }
 // ------------------------------------------------------------------ text entry
 // The ADD FRIEND field: a real one-line editor. Typed: letters, digits, space - _ . : [ ] (Ctrl+V pastes the same set); Left / Right / Home / End move the caret, Backspace / Delete (and Ctrl+Backspace for a
@@ -761,9 +812,9 @@ static void fr_inp_tick(uint64_t now) {
     int qp = (int)(F13.ph_a * 24.0f + 0.5f);
     if (qp != F13.pa_q) { F13.pa_q = qp; uint64_t ph = ui_w("anim-group.rt.inp.inpPh"); w_alpha(ph, (float)qp / 24.0f); w_visible(ph, qp > 0); }
     if (!F13.typing) return;                                // (fading out: the card keeps the last text)
-    gu_fit("anim-group.rt.inp.inpLbl", FRT("ADD A FRIEND  -  PLAYER NAME OR STEAM ID", "DODAJ ZNAJOMEGO  -  NAZWA GRACZA LUB ID STEAM"), 1060.0f, 33.0f);
-    gu_fit("anim-group.rt.inp.inpPh", FRT("TYPE A NAME OR A STEAM ID", "WPISZ NAZWĘ LUB ID STEAM"), 1060.0f, 47.0f);
-    gu_fit("anim-group.rt.inp.inpKey", FRT("ENTER SENDS", "ENTER WYSYŁA"), 410.0f, 33.0f);
+    gu_fit("anim-group.rt.inp.inpLbl", FRT("ADD A FRIEND  -  PLAYER NAME OR STEAM ID", "DODAJ ZNAJOMEGO  -  NAZWA GRACZA LUB ID STEAM"), 1060.0f, 24.0f);
+    gu_fit("anim-group.rt.inp.inpPh", FRT("TYPE A NAME OR A STEAM ID", "WPISZ NAZWĘ LUB ID STEAM"), 1060.0f, 39.0f);
+    gu_fit("anim-group.rt.inp.inpKey", FRT("ENTER SENDS", "ENTER WYSYŁA"), 410.0f, 24.0f);
     char c[32];
     snprintf(c, sizeof c, "%d / %d", F13.blen, FR_BUFMAX);
     ui_text("anim-group.rt.inp.inpCnt", c);
@@ -773,7 +824,7 @@ static void fr_inp_tick(uint64_t now) {
     unsigned grey = 0x1A + (unsigned)((0xF0 - 0x1A) * lq / 5);
     char tx[120];
     snprintf(tx, sizeof tx, "%.*s<font color=\"#%02X%02X%02X\">|</font>%s", F13.caret, F13.buf, grey, grey, grey, F13.buf + F13.caret);
-    gu_fit("anim-group.rt.inp.inpTx", tx, 1090.0f, 55.0f);
+    gu_fit("anim-group.rt.inp.inpTx", tx, 1090.0f, 45.0f);
 }
 // ------------------------------------------------------------------ the page
 static void fr_sfx(void) { uint64_t now = GetTickCount64(); if (now - F13.sfx_ms >= 60) { F13.sfx_ms = now; ui_sfx("sfx-cycle"); } }
@@ -846,27 +897,15 @@ static void fr_page_alpha(float f) {
     int q = (int)(f * 24.0f + 0.5f);
     if (q != lq) { lq = q; w_alpha(ui_w("anim-group"), (float)q / 24.0f); }
 }
-// the rows come in one after the other (50 ms apart, the right list 90 ms later; 240 ms each, ease-out cubic: fade + a 60-unit slide from the side of their list) and the focused row
-// leans 10 units to the right (a 70 ms follow); everything is written only when its quantised step changes
+// the rows come in one after the other (50 ms apart, the right list 90 ms later; 240 ms each, ease-out cubic: a fade); the rows stand still (the one focus outline, frFo, would not follow a slide);
+// everything is written only when its quantised step changes
 static void fr_rows_anim(uint64_t now) {
-    static uint64_t last;
-    static const int LYY[FR_NL] = {540, 710, 880, 1050, 1260, 1410};
-    float dt = last ? (float)(now - last) : 16.0f;
-    last = now;
-    if (dt > 60.0f) dt = 60.0f;
-    float k = 1.0f - expf(-dt / 70.0f);
     for (int col = 0; col < 2; col++) for (int i = 0; i < (col ? FR_RROWS : FR_NL); i++) {
         uint64_t h = F13.rw[col][i];
         if (!h) continue;
         float p = ft_ease(((float)(now - F13.enter_ms) - (float)(50 * i + 90 * col)) / 240.0f);
-        int ri = col ? F13.off[1] + i : i;
-        float f = (F13.col == col && ri == F13.foc[col] && !F13.typing) ? 1.0f : 0.0f;
-        F13.rfx[col][i] += (f - F13.rfx[col][i]) * k;
-        if (fabsf(f - F13.rfx[col][i]) < 0.02f) F13.rfx[col][i] = f;
-        float dx = (1.0f - p) * (col ? 60.0f : -60.0f) + F13.rfx[col][i] * 10.0f;
-        int q = (int)(p * 24.0f + 0.5f), qx = (int)(dx * 2.0f + (dx < 0 ? -0.5f : 0.5f));
+        int q = (int)(p * 24.0f + 0.5f);
         if (q != F13.rq[col][i]) { F13.rq[col][i] = q; w_alpha(h, (float)q / 24.0f); }
-        if (qx != F13.rqx[col][i]) { F13.rqx[col][i] = qx; w_pivot(h, (col ? 1900.0f : 300.0f) + (float)qx * 0.5f, col ? 540.0f + 160.0f * i : (float)LYY[i]); }
     }
 }
 static void fr_page_tick(uint64_t now, uint64_t top) {
@@ -901,6 +940,7 @@ static void fr_page_tick(uint64_t now, uint64_t top) {
         int pad_back = back && !kb_bs;
         if (esc || pad_back) { fr_typing_stop(); esc = 0; }
         else if (foc_win && ne_key_edge(VK_RETURN, &F13.hk[VK_RETURN])) fr_send_typed();
+        else if (click && F13.hv_sel) fr_send_typed();                                  // the SEND prompt
         else if (click && !F13.hv_back && !(F13.hv_col == 1 && F13.hv_row == 0 && F13.off[1] == 0)) fr_typing_stop();     // a click anywhere else leaves the field
         back = 0;
         if (!F13.hv_back) click = 0;
@@ -926,9 +966,9 @@ static void fr_page_tick(uint64_t now, uint64_t top) {
     if (up && n) { foc = (foc + n - 1) % n; fr_sfx(); }
     if (down && n) { foc = (foc + 1) % n; fr_sfx(); }
     if (wn && n) { foc -= wn; if (foc < 0) foc = 0; if (foc >= n) foc = n - 1; fr_sfx(); }
-    int sw = ktab || bp || bn || left || right;
+    int sw = ktab || bp || bn || left || right || (click && F13.hv_sw);
     if (sw && ln) { col = !col; F13.col = col; n = col ? nr : ln; foc = F13.foc[col]; fr_sfx(); }
-    // clicking on a member that has invited you used to select and accept automatically, so now it works like gear up: a click on a row ONLY moves the selection;
+    // a click on a row ONLY moves the selection;
     // an action happens by ENTER / the pad's SELECT / X / the pad's ACTION or a click on the prompt in the footer (the prompt names the action). The menu-select the
     // engine raises with a mouse click is dropped (a few frames after any click).
     if (click) F13.click_f = g_frame ? g_frame : 1;
@@ -973,8 +1013,8 @@ static int fr_btn_cursor(void) {                       // the cursor is over the
     return ui_cursor_canvas(&cx, &cy) && cx >= 2500.0f && cx <= 3682.0f && cy >= 1560.0f && cy <= 1680.0f;
 }
 static int fr13_btn_over(void) { return g_fr_off == 0 && (fr_btn_cursor() || fr_toast_hit()); }
-// before pressing find match the lobby shows the party member in one of its rows instead of 1/8: winmm fills the
-// lobby rows from its name vector only while searching (session state 3); on the MP menu it writes row 0 (us) alone. The party mates
+// Before FIND MATCH is pressed the lobby shows the party members in its rows instead of 1/8: winmm fills the
+// lobby rows from its name vector only while searching (session state 3, re/decomp_cd.c); on the MP menu it writes row 0 (us) alone. The party mates
 // go into rows 1.. here, and the count follows; a party that ends clears them once.
 static void fr_lobby_party_rows(void) {
     static int shown;
@@ -999,12 +1039,12 @@ static void fr_lobby_party_rows(void) {
     ui_text("anim-group.lobbyPanel.lobbyCount", a);
 }
 // ------------------------------------------------------------------ the party rule + the lobby tabs
-// Party members do not have to search, only ready up (their find match button becomes ready up): a NON-leader member's FIND MATCH row reads READY UP / UNREADY; the press is
+// Party members do not search, they only ready up (their find match button becomes ready up): a NON-leader member's FIND MATCH row reads READY UP / UNREADY; the press is
 // a ready toggle (op 0xD8 sub 12), never a search - fr_search_gate (called by t2r-ext's mmreq hook, the moment the engine sends the search request) says so and the page is popped
 // again; the daemon (social.py search_gate) refuses to queue such a member as well. The LEADER's FIND MATCH searches for the whole party, but only when every member is ready
 // (otherwise a deny note names who is not). While the leader searches, a READY member's client pushes the search page by itself (autofind's push: winmm's page tick starts the
 // search) so the party queues together; a member who backs out of that search is set unready. Ready flags reset when a match forms (daemon start_match).
-// Ready-up rework:
+// Rework (the ready-up system was unintuitive and bug-prone):
 // - a member's press is handled on the MP menu itself (modepick -> fr_member_ready_press): the ready toggle, no search page at all;
 // - the leader is never held back: FIND MATCH always searches, the daemon waits for the members (PARTY-WAIT) and every READY member's client follows;
 // - members join a party READY and stay ready after a match (daemon), so the usual round is: the leader presses FIND MATCH, everyone goes in.
@@ -1045,7 +1085,7 @@ static void fr_party_tick(uint64_t now, uint64_t top, uint64_t p_main) {
         const char *t = mem ? (fr_my_ready() ? FRT("UNREADY", "NIEGOTOWY") : FRT("READY UP", "GOTOWY")) : "FIND MATCH";
         if (top == p_main) { ui_text("anim-group.menuList.FindMatch.label0", t); lab_set = mem; }
     }
-    // The daemon acks every FIND MATCH with the SEARCHING state before its party gate decides, so a request it then refuses
+    // The party did not queue people: the daemon acks every FIND MATCH with the SEARCHING state before its party gate decides, so a request it then refuses
     // (member while the leader is not queued yet, leader while its ready flags differ) left the page up as a fake search: rows "<name> (party lead - not searching)" for ever, nobody queued.
     // Our own status in the party state says we are NOT searching while that page is up for 9 s: pop it, and let the follow-the-leader push try again.
     {

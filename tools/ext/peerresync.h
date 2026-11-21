@@ -11,7 +11,11 @@
 #define PEERRESYNC_H
 #include <stdint.h>
 #include <string.h>
-#define RS_N 8                       // = T2R_MAX_PEERS
+#ifdef T2R_MAX_PEERS
+#define RS_N T2R_MAX_PEERS           // (the ext defines it before including this)
+#else
+#define RS_N 8                       // standalone (tools/ext/tests/peerresync_test.c)
+#endif
 #define RS_STEPS 2
 #define RS_GAP_MS 90u                // minimum time between two handed-out slots: a host migration / a JIP joiner with 7 peers is spread over ~0.6 s instead of 7 frames
 static const uint32_t RS_DELAY_MS[RS_STEPS] = {700u, 3500u};   // after the slot turned up: first resync / second resync (loss insurance)

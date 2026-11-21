@@ -12,6 +12,7 @@ each one a stand-alone line.  Three things here (read side + one write):
   3. render_msg(): re-renders a recap row in either language.
 
 Never changes a number or a person's state; the diary's randomness is untouched (the recap row has kind "chron", which does not advance the diary counter)."""
+import json
 
 ILL_KINDS = ("worse", "medicine", "recovery", "death_illness")
 MOURN_KINDS = ("grief", "hope_after")

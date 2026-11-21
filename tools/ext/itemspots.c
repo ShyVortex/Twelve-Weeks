@@ -332,7 +332,7 @@ static void isp_sat_grant(int si, int n) {
     g_isp.sat_got++;
     g_clan_parts += ISP_SAT_PARTS;
     pm_tally("Supply Satchel", ISP_SAT_PARTS);
-    // no toast (picking up supplies must not give a notification) - the native pickup prompt / animation is the feedback
+    // no toast - the native pickup prompt / animation is the feedback
     xlog("item spots: spot %d roll %d SATCHEL +%d clan parts (+%d supplies; %d of %d this match, match total %d parts)", si + 1, n, ISP_SAT_PARTS, ISP_SAT_PARTS / 50, g_isp.sat_got, ISP_SAT_MAX, g_clan_parts);
 }
 // a GRANT for (spot, roll) reached us (or we are the host and decided it): copy removed / item kept / item taken back
@@ -664,7 +664,7 @@ static void sd_tick(uint64_t now) {
 }
 // radar: the item dot (same glyph, size, colour) per standing satchel (the radar's own glyph, drawn like the no-lives pulses)
 static void sd_radar_draw(void) {
-    if (match_substate() != 6) return;
+    if (match_substate() != 6 || g_mpui_hid[0]) return;     // (DISABLE RADAR)
     int any = 0;
     for (int i = 0; i < SD_MAX; i++) if (g_sd[i].on && g_sd[i].st == SD_HOLD) any = 1;
     if (!any) return;

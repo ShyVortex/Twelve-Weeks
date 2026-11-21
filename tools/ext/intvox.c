@@ -75,7 +75,7 @@ static int ivx_voice(uint64_t ent, uint32_t slot, int *fac, int *g, int *v) {
         look = fl_core_shown(&g_fl, slot, &team); *fac = vx_fac_of_slot(slot, &why); fem = slot_female(slot);
     }
     if ((*fac != 0 && *fac != 1) || look < 0) return 0;
-    *g = fem ? 1 : 0; *v = vx_voice_of_look(*fac, look);
+    *g = fem ? 1 : 0; *v = vx_voice_of_body(ent == SID_PLAYER ? T2R_US : (int)slot, *fac, look);
     return 1;
 }
 // a take of slot `kind` (vox_beg.h: 8 fist demand 1, 9 victim first, 10 fist demand 2, 11 victim second, 12 victim plea cut by the blow, 13 shiv demand, 14 shiv answer,

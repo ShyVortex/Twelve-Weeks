@@ -4,7 +4,7 @@
 
 Collects tools/tests/test_*.py, any other tools/**/test_*.py, and (if node is on PATH) release/launcher/test/*-test.js
 plus selftest.js. Every test runs with TMP/TEMP/TMPDIR pointed at --tmp (default env T2R_TEST_TMP, else
-work/tests when it can be created, else the system temp) so a full system drive cannot break them.
+E:\t2tmp_agents\tests when it can be created, else the system temp) so a full system drive cannot break them.
 Exit code 0 only when every test passed.
 """
 import argparse
@@ -24,7 +24,7 @@ def default_tmp():
     t = os.environ.get("T2R_TEST_TMP")
     if t:
         return t
-    for cand in (r"work/tests",):
+    for cand in (r"E:\t2tmp_agents\tests",):
         try:
             os.makedirs(cand, exist_ok=True)
             return cand

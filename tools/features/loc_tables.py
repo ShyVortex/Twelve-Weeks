@@ -2,7 +2,7 @@
 
 Table = u32 count, count x (u64 sid, u64 blob offset) sorted by sid, then the string blob (NUL terminated UTF-8).
 
-The mod patches eng.common / uke.common in the stage (re/modfs ships both: text ids the mod added, e.g. the HUD message
+The mod patches eng.common / uke.common in the stage (re/modfs ships both: text ids the revival added, e.g. the HUD message
 placeholder id 0xae4c7f46d2c1da94 that winmm's notify writes into, and the ciphers the widgets use). Every OTHER language the game
 can be set to lacks those ids: a lookup of a missing id hands back a pointer into the exe's read-only data and winmm's set-text copy
 into it crashed the game (Polish text selected). finish_language_tables() puts a <lang>.common of EVERY language of the

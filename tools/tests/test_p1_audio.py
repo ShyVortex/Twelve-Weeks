@@ -11,6 +11,7 @@ Needs the converted set (python tools/part1/p1_audio.py convert <Part I dir>), t
 """
 import os
 import shutil
+import struct
 import sys
 import tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)

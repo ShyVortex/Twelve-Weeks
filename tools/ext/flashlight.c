@@ -1,6 +1,6 @@
-// Flashlight (the SP flashlight is turned off by the mod because T is used to mark; light and light sync are added because some areas of the map are very dark). Included by t2r-ext.c after helpcall.c. Log prefix "flashlight:". Opt out: t2r-no-flashlight.txt next to the exe (no light, no sync).
+// Flashlight (the stock MP build has it switched off, and some maps are very dark). Included by t2r-ext.c after helpcall.c. Log prefix "flashlight:". Opt out: t2r-no-flashlight.txt next to the exe (no light, no sync).
 //
-// WHAT THE ENGINE DOES (static RE of tlou-ii.exe 1.6.10721 + winmm):
+// WHAT THE ENGINE DOES (static RE of tlou-ii.exe 1.6.10721 + winmm, notes in re/flashlight-1102.md):
 //   * The player's SP flashlight is a pooled Flashlight object (32 entries of 0xd0 bytes; kind 4/5 player, 2 npc, 3 buddy), driven by the player controller's event
 //     handler (exe 0x140b750d0): the script EVENTS turn-on-flashlight / turn-off-flashlight call the FlashlightController (player+0x3198) vfunc +0x30 / +0x28 and set
 //     player+0x4980. The pad / key toggle (exe 0x140b9ebea) reads the joypad command flashlight-toggle and posts those same two events. NPCs handle the same two
@@ -16,14 +16,14 @@
 //     player-using-flashlight? is read back after the event and the event re-sent (twice) if the engine says no; the log line says what the engine answered.
 //   * SYNC: MSG_FLASH 0xAB [u8 bit0 on], broadcast (enemies see it too, the SP trade-off) on every change and re-sent every 1.5 s while on; a receiver drops a
 //     light that is not refreshed for 6 s. Unknown to an old client = ignored like every other message of ours.
-//   * PUPPET LIGHTS / OWN OBJECT (fix: player-get-flashlight 0 = MP never creates the player's Flashlight object): the scripts' own
+//   * PUPPET LIGHTS / OWN OBJECT (fix after logs: player-get-flashlight 0 = MP never creates the player's Flashlight object): the scripts' own
 //     recipe is send-event(spawn-flashlight, <character>) with no argument, then send-event(turn-on-flashlight, <character>) (ss-pat-dina-flashlight,
 //     ss-test-flashlight, ss-efp-joel-flashlight). The player event handler (exe 0x140b750d0, event sid 0xd0edb0e12c55b1d9) spawns the player's
 //     FlashlightContainer (kind 0, attach point flashlightAttach, define = the engine default) when no player flashlight handle exists; the NPC handler does the
 //     same for characters. So: own light = spawn-flashlight(player) when player-get-flashlight is 0, then turn-on; puppets (within 40 m, 4 nearest) =
 //     spawn-flashlight(puppet) once, turn-on-flashlight, turn-off when culled. The engine light has shadows, so a wall hides it (no ESP). 1.5 s after the
 //     spawn the puppet's flashlight field (npc+0x3e40) is logged. NOTE: attach-flashlight is NOT this (the earlier version called it wrongly: its native is
-//     exe 0x140407be0 = (object, attach-name, x, y, z) -> bool, and the handler pairing in the earlier notes was shifted by one stub).
+//     exe 0x140407be0 = (object, attach-name, x, y, z) -> bool, and the handler pairing in re/flashlight-1102.md was shifted by one stub).
 //   REWORK (delay, no strap models, puppets): (1) the toggle is decided on the press frame from the mark code's own verdict (g_mark_nomark_n / winmm counters,
 //   fls_toggle_edge); (2) the own FlashlightContainer (strap model + light) is spawned at match start (fls_own_spawn_tick); (3) puppet light + strap model = the engine's FlashlightContainer spawn
 //   0x140aac560 (kind 4, look flashlight-l-military, attach flashlightAttach) + Flashlight::SetOn on the container (fls_puppets_tick, opt-in t2r-flashlight-puppets.txt).
@@ -37,7 +37,7 @@
 #define FLS_RANGE 120.0f           // puppet lights only within this many metres (players 44 m apart on Supermarket got no light at the old 40 m; a lit strap light is seen across the map in the dark)
 #define FLS_MAX_PUP 4              // at most this many puppet lights lit at once (engine light budget)
 #define FLS_WINMM_CALL 0x180032b73ULL   // winmm: `call rsi` = send-event(turn-off-flashlight, player), every frame
-// OFF by default; the launcher copied t2r-no-flashlight.txt only from 0.1.33 on, and a Play press
+// OFF by default on live; the launcher copied t2r-no-flashlight.txt only from 0.1.33 on, and a Play press
 // during its self-update kept the old launcher, so the flag never arrived. t2r-flashlight-on.txt next to the exe turns them on (tests).
 static int fls_off(void) { static uint64_t at; static int on; return !feel_flag("t2r-flashlight-on.txt", &at, &on, 120); }
 static struct {
@@ -112,12 +112,12 @@ static int fls_alive(void) { return match_substate() == 6 && !g_downed && !g_dow
 // toggles the light otherwise. Verdict FLS_VERDICT_MS after the press: winmm's mark counter (0x18013A7E8) moved, a mark target is held (0x18013A7C8) or
 // helpcall pinged a downed teammate = it marked, no toggle.
 static int fls_toggle_edge(uint64_t now) {
-    // the flashlight turned on with a noticeable delay: the verdict is taken on the PRESS frame from the mark's own result instead of waiting 300 ms.
+    // Delay fix: the verdict is taken on the PRESS frame from the mark's own result instead of waiting 300 ms.
     // mark_press_tick (t2r-ext.c) counts every press whose async cast found no usable target (g_mark_nomark_n, the "mark: press found no usable target" line):
     // that moves the same frame or the next one = toggle at once. A cast target at the press (7c8 != 0) = the mark lands (winmm's counter 7e8 moves) or helpcall
     // pings = no toggle; if winmm refuses it (7e0 moves) = toggle. FLS_VERDICT_MS stays only as the safety net for a press nothing answered.
     WORD pb = 0; BYTE lt, rt; SHORT lx, ly;
-    // The key is winmm's mark latch (0x18013A7D0), set by the
+    // The toggle is tied to the engine's flashlight command, not a hard-coded T: the key is winmm's mark latch (0x18013A7D0), set by the
     // engine command flashlight-toggle through winmm's own read (not hit by joypad-disable-commands), so a rebound key works and T only when it is bound.
     // t2r-flashlight-key-t.txt = the old hard-coded T as well.
     static int keyt = -1; if (keyt < 0) keyt = GetFileAttributesA("t2r-flashlight-key-t.txt") != INVALID_FILE_ATTRIBUTES;
@@ -181,7 +181,7 @@ static void fls_hexdump(const char *tag, const uint8_t *p, unsigned n) {
     for (unsigned i = 0; i < n && o < sizeof line - 20; i += 8) o += (unsigned)snprintf(line + o, sizeof line - o, "%016llx ", (unsigned long long)*(const uint64_t *)(p + i));
     xlog("flashlight: %s: %s", tag, line);
 }
-// ---- PUPPET LIGHT + STRAP MODEL, the engine's own container spawn (SP trace: EVERY character - player, buddy, NPC - goes through the
+// ---- PUPPET LIGHT + STRAP MODEL, the engine's own container spawn (SP trace re/sp-flash-1103.txt: EVERY character - player, buddy, NPC - goes through the
 // FlashlightContainer spawn exe 0x140aac560(settings, kind, define, r9 0, byte 1, dword owner pid) which carries model look + attach point + define: it spawns the
 // container process (returned in rax), that spawns the pooled Flashlight (owner = the container) and the model on the attach point. Settings struct (0xa8 bytes, as logged for
 // the buddy / NPC): +0x1c f32 1.0, +0x3c f32 1.0, +0x40 owner holder ptr (proc+0x80), +0x48 owner id (proc+0x94), +0x50 look sid, +0x70 attach sid, +0x78 sid "root"
@@ -238,7 +238,7 @@ static uint64_t fls_def_pick(void) {
     uint64_t g = *(volatile uint64_t *)(fls_exe() + 0x3f03b28);
     xlog("flashlight: player default define global = %016llx (%s); chosen define %016llx", (unsigned long long)g, g && fls_def_exists(g) ? "record exists" : "no record", (unsigned long long)def);
     // SHADOWS: SP's PLAYER define (*flashlight-wat-infected-tunnels*) has the two flag bytes +0x78 and +0x79 set (0x0101), the buddy define only +0x78, NPC defines neither
-    // (SP record dumps). They are the only per-define flags that differ besides the light numbers, so a stand-in define (*flashlight-default* ...) gets both set.
+    // (re/sp-flash-1103.txt record dumps). They are the only per-define flags that differ besides the light numbers, so a stand-in define (*flashlight-default* ...) gets both set.
     // The record is dumped; t2r-flashlight-nodefpatch.txt skips the patch.
     if (def) {
         void *(*find)(uint64_t) = (void *(*)(uint64_t))(fls_exe() + 0x1356d60);
@@ -275,11 +275,11 @@ static uint8_t *fls_container_spawn(uint32_t s, uint8_t *proc, uint64_t def) {
     return c && !IsBadReadPtr(c, 0x1a0) ? c : NULL;
 }
 // The container is kept as {holder, id} like the engine's own handles (the pool entries, the owner links): the engine's heap compaction MOVES processes ("puppet body
-// watch ... moved (heap compaction)" 108x in a test log), so the raw process pointer returned by the spawn is stale after the first compaction - every later
+// watch ... moved (heap compaction)" 108x in an A/B log), so the raw process pointer returned by the spawn is stale after the first compaction - every later
 // check of it failed silently ("pooled Flashlight" line missing after the 2nd spawn, no SetOn ever) - while holder+8 always points at the current process.
 static uint8_t *fls_cont_get(uint32_t s) { return fls_holder_proc(g_fls_pup[s].cont_holder, g_fls_pup[s].cont_id); }
 // Kill a puppet's container + its pooled light (the engine's own process destroy funnel 0x141341470, as pst_kill does for a weapon). Without this a respawned puppet body
-// (new pid; log: spawns for pid 15201 / 15435 / 36605 / 38389, pool 0 -> 2 -> 3 -> 4) left the old container's strap model + light standing where the body died.
+// (new pid; B log: spawns for pid 15201 / 15435 / 36605 / 38389, pool 0 -> 2 -> 3 -> 4) left the old container's strap model + light standing where the body died.
 static void fls_cont_kill(uint32_t s, const char *why) {
     uint8_t *c = fls_cont_get(s);
     if (!c) return;
@@ -290,12 +290,12 @@ static void fls_cont_kill(uint32_t s, const char *why) {
     ((void (*)(void *))(exe + 0x1341470))(c);
     xlog("flashlight: slot %u container {%llx,%u} destroyed (%s); pooled light %s; pool %d -> %d", s, (unsigned long long)g_fls_pup[s].cont_holder, g_fls_pup[s].cont_id, why, idx >= 0 ? "destroyed too" : "was not pooled", n0, fls_pool_count());
 }
-// ---- AIM (the light did not match where the characters are looking): the container's light follows the strap joint (r_clavicle), which does not turn with the look. The puppet's HEAD
+// ---- AIM (the beam did not match where the characters look): the container's light follows the strap joint (r_clavicle), which does not turn with the look. The puppet's HEAD
 // joint does (the synced look / animation drives it), so the pooled light's orientation is turned every frame onto the head's forward. The head's and the light's local forward axes are not
 // known statically: they are calibrated at run time on OUR OWN body, where the truth is known (the camera's reticle locator +Z): head axis = camera forward in head-joint space (while alive),
 // light axis = camera forward in our own pooled light's space (while our own light is on - the engine aims it at the camera). Until both are calibrated nothing is written.
 static float g_fls_cal_h[3], g_fls_cal_l[3]; static int g_fls_cal_hn, g_fls_cal_ln, g_fls_ax_h = -1, g_fls_ax_l = 2;
-// LIGHT AXIS IS STATIC (the light broke, shifted left and came off the shoulder): the pooled light's local forward is +Z for every body (measured: first calibration cos 0.96 on +Z; diag z-axis
+// LIGHT AXIS IS STATIC (A: the light shifted left and came off the shoulder): the pooled light's local forward is +Z for every body (measured: first calibration cos 0.96 on +Z; diag z-axis
 // follows the aim). Learning it from the engine-aimed light was wrong whenever the engine light did NOT point at the camera (it follows the r_clavicle strap joint), so a calibration taken then
 // picked a random axis / sign for the rest of the process and the beam stayed on the shoulder or swung left. Now +Z from the first frame, written every frame, no per-body state.
 static float g_fls_axv_h[3], g_fls_axv_l[3] = {0, 0, 1};
@@ -329,7 +329,7 @@ static void fls_cal_tick(uint8_t *own_fo) {
     if (g_fls_ax_h < 0) { float hp[3], hq[4]; if (xbx_loc(SID_PLAYER, "head", hp, hq)) fls_cal_add(g_fls_cal_h, &g_fls_cal_hn, hq, cam, &g_fls_ax_h, g_fls_axv_h, "head"); }
     if (g_fls_ax_l < 0 && own_fo && !IsBadReadPtr(own_fo + 0x130, 0x20)) fls_cal_add(g_fls_cal_l, &g_fls_cal_ln, (const float *)(own_fo + 0x140), cam, &g_fls_ax_l, g_fls_axv_l, "light");
 }
-// One player's beam still did not follow its camera on the other screen (log: "slot 1 aim: the engine rewrote the light orientation since our write" EVERY
+// (B's beam on A still did not follow B's camera; A log: "slot 1 aim: the engine rewrote the light orientation since our write" EVERY
 // frame, and the same for our own light): the container's locator (+0x130 / +0x140) is the attach-driven strap transform, rewritten from the strap joint each frame,
 // and it is NOT what aims the beam. The beam comes from the light's pool entry (exe+0x40d7910, stride 0xd0): the engine's own aim setters (0x140aaefd0: entry +0x70 =
 // source position, flag 0x40 in +0x10; 0x140aaef10: entry +0x60 = aim target point, +0x44 = the float arg, flag 0x20), found by the container owner. The player's flashlight
@@ -341,11 +341,11 @@ static void fls_pool_aim(int key, uint8_t *cont, const float *pos, const float *
     typedef void (*fn_srcpos)(void *, const float *);
     typedef void (*fn_target)(void *, const float *, float);
     static unsigned nlog[T2R_MAX_PEERS];
-    // diag (earlier logs): OUR OWN entry, written every frame by the player controller through these same two setters, holds at +0x60 a UNIT DIRECTION
+    // night60 diag (A/B prev logs): OUR OWN entry, written every frame by the player controller through these same two setters, holds at +0x60 a UNIT DIRECTION
     // (A [14228] 0.99 -0.17 0.03, B [25808] 0.07 -0.14 -0.99 = the camera forward) and at +0x70 the source 11 cm in front of r_clavicle. The second setter takes a
     // direction, not a target point: we gave it a world point (A [31364] -506.64 13.57 253.19), a 500 m "direction" - the beam broke and vanished. Now exactly what
     // the controller writes: source = strap joint + 12 cm along the aim, direction = the owner's replicated camera forward (unit, w 0), float -1.0.
-    // bystanders' flashlights must not cast shadows of their own player (the arms block the light and the arm shadows show): the shadow
+    // night61 (a bystander's flashlight must not cast the shadows of its own player's arms): the shadow
     // origin is the light source itself (the render light builder 0x1403fea30 takes one position per pool entry, entry +0x70); no owner-exclusion field exists
     // for it - the only per-entry id (+0x98, from the container spawn's last dword, the render light's +0x140) is 0 for the player AND for SP NPCs, and the
     // player-only branches there (entry index 0: 0x1403fe0a0, the second copied light) only add geometry, no caster filter. So the source goes IN FRONT of
@@ -384,13 +384,13 @@ static void fls_pool_aim(int key, uint8_t *cont, const float *pos, const float *
              *(float *)(e + 0x70), *(float *)(e + 0x74), *(float *)(e + 0x78), *(float *)(e + 0x60), *(float *)(e + 0x64), *(float *)(e + 0x68), *(float *)(e + 0x44),
              p4[0], p4[1], p4[2], use, t4[0], t4[1], t4[2]);
     }
-    // the flashlight did not show on other screens right after turning on: the beam showed for the frame before our first pool write and was gone
+    // night58 (the flashlight did not show on other screens right after turning on): the beam showed for the frame before our first pool write and was gone
     // after it - the values we wrote stayed exactly (A [24708..24711]: +0x70 / +0x60 = ours, flags 93), so it is what they mean, not that they were lost. The source
     // override put the light's origin ON the strap joint (r_clavicle), inside the puppet's chest; the flashlight casts shadows, so the body occluded its own beam.
     // The player controller's source (0x140b9e6a0) is the player locator + an offset in front of the body, the strap lamp itself is outside the mesh too. So the
     // source is left to the engine (the strap lamp) and only the aim target is set (30 m along the owner's camera: the lamp's few cm offset to the clavicle is
     // nothing at that distance). t2r-fls-pool-src.txt = also override the source again (test).
-    // (with the direction right the source is set again, as the controller does for our own light; t2r-fls-pool-nosrc.txt = leave it to the engine)
+    // (night60: with the direction right the source is set again, as the controller does for our own light; t2r-fls-pool-nosrc.txt = leave it to the engine)
     static uint64_t at; static int nosrc;
     if (!feel_flag("t2r-fls-pool-nosrc.txt", &at, &nosrc, 120)) ((fn_srcpos)(exe + 0xaaefd0))(cont, p4);
     ((fn_target)(exe + 0xaaef10))(cont, t4, -1.0f);
@@ -441,7 +441,7 @@ static void fls_entry_diag(int key, uint8_t *cont, uint64_t body, uint64_t on_ms
 static void fls_light_set(int key, uint8_t *fo, const float *pos, const float *d, const char *who) {
     static float wr[T2R_MAX_PEERS + 1][4]; static uint8_t wrok[T2R_MAX_PEERS + 1]; static unsigned lg;
     if (key >= 0 && key < T2R_MAX_PEERS && fo) fls_pool_aim(key, fo, pos, d);       // the beam (pool entry); the locator write below only moves the strap transform
-    // Other players' beams still followed their flashlight model: logs of EVERY run show "slot 0 aim: look yaw" / "camera aim received" but never "slot 0 light placed"
+    // (other players' beams still followed their flashlight model): B logs show "slot 0 aim: look yaw" / "camera aim received" but never "slot 0 light placed"
     // (the own light's line is there) = for a puppet this function always returned before the write, silently. Every early return now logs its reason once per key, and a light object whose
     // orientation quaternion is not a unit quaternion (never filled for the pooled puppet light) gets an ABSOLUTE orientation built from the wanted direction instead of the relative turn.
     static unsigned why[T2R_MAX_PEERS + 1];
@@ -484,7 +484,7 @@ static void fls_light_set(int key, uint8_t *fo, const float *pos, const float *d
 }
 // OWN light = SP's: the light stays on the strap joint (r_clavicle) and points at the camera's aim point (camera + 30 m along the reticle forward; no ray cast used), not along the camera.
 static void fls_own_aim(uint8_t *own_fo) {
-    // a flashlight shone to the left (on the owner's screen only, fine on a bystander): log - our own pool entry (entry 0) is
+    // night61 (the own flashlight shone to the left on its owner's screen only, fine for bystanders): B log - our own pool entry (entry 0) is
     // never written by us, its direction is the engine controller's (5..19 deg off the camera while turning, settling), but this function still wrote the own
     // container's locator +0x130 / +0x140 every frame with an orientation built from the calibrated light axis - and the local renderer draws the own beam from
     // that locator. The own light is now left 100% to the engine's player flashlight controller (0x140b9e6a0), as in SP; t2r-fls-own-aim.txt = old write (test).
@@ -550,7 +550,7 @@ static void fls_aim_apply(uint32_t s, uint64_t body, uint8_t *fo) {
     char who[16]; snprintf(who, sizeof who, "slot %u", s);
     fls_light_set((int)s, fo, pos, d, who);
 }
-// The flashlight was still not synced to the camera from the bystander view (one player lights the ceiling, the other sees no beam move): the aim was written
+// (flashlight not synced to the camera from the bystander view; A's clip 0-3.5 s: B lights the ceiling, A sees no beam move): the aim was written
 // into the POOLED Flashlight process (job 249690b68d4f7013 'Flashlight', the pool entry's holder) - its +0x130 / +0x140 are no transform (A log: quaternion norm^2 0.000
 // at the first write, then never touched by the engine), so nothing moved. Our own light is aimed through the FlashlightContainer process (player-get-flashlight ->
 // type c39284766914189e 'FlashlightContainer', +0x130 position / +0x140 unit quaternion = its locator, B's dump [13838]) and that works: the puppet's container is the
@@ -580,7 +580,7 @@ static void fls_puppets_tick(uint64_t now) {
         uint8_t *pe = sk_peer_ptr(s);
         uint64_t body = pe ? sk_peer_body(s) : 0;
         uint8_t *proc = body ? (uint8_t *)fls_proc(body) : NULL;
-        // a new body (another handle, or another process id behind the same handle): the old container does NOT go with it (log: pool 0 -> 2 -> 3 -> 4, strap models left standing
+        // a new body (another handle, or another process id behind the same handle): the old container does NOT go with it (B log: pool 0 -> 2 -> 3 -> 4, strap models left standing
         // in the air where each body spawned) - destroy it, then spawn on the new body. Checked every tick, so a body swapped under the same handle is caught too.
         if (g_fls_pup[s].spawned && (g_fls_pup[s].body != body || (proc && !IsBadReadPtr(proc, 0x98) && g_fls_pup[s].owner_id && *(uint32_t *)(proc + 0x94) != g_fls_pup[s].owner_id))) {
             fls_cont_kill(s, "its body was replaced");
@@ -641,7 +641,7 @@ static uint64_t fls_spawn_with(uint64_t target, uint64_t sid) {          // send
     uint64_t a[3] = {fnv64("spawn-flashlight"), target, box};
     return dc_call(fnv64("send-event"), 3, a);
 }
-// ---- FOG GLOW (the player's flashlight lit up the fog between players in the winter Supermarket scoped view, which made enemies hard to see).
+// ---- FOG GLOW (winter Supermarket, scoped: the flashlight lights up the fog between you and the enemy, which hides the enemy).
 // The volumetric fog in-scatters every runtime light: render setting new-volumetrics:run-time-lights:player-flashlight-mult scales that for the PLAYER's flashlight only
 // (other players' lights are untouched, so their cone still shows in fog), new-volumetrics:fog-run-time-light-contribution (live 1.0 in the report log) is the global
 // scale for all runtime lights. Surface lighting is not touched. Written with change-render-setting-value-float into the always-live pat regions, re-asserted every 2 s
@@ -679,7 +679,7 @@ static void fls_fogfix_tick(uint64_t now) {
         (void)r1;
     }
 }
-// OWN STRAP MODEL + FlashlightContainer (the flashlight models were missing on the backpack straps): in SP the player's Flashlight container (the
+// OWN STRAP MODEL + FlashlightContainer (the strap models were missing on our characters' backpacks): in SP the player's Flashlight container (the
 // model look flashlight-l-skinny / -military on attach flashlightAttach = r_clavicle, chosen by the player event handler 0x140b750d0 from player vfunc +0xb18, plus the light)
 // is spawned by the event spawn-flashlight as soon as the player owns the flashlight, so the model sits on the strap whether or not the light is on. MP only spawned it at the
 // first toggle. Now: once the match runs and we are alive, player-get-flashlight 0 -> send-event(spawn-flashlight, player), re-checked every 2 s (a respawn drops the object),
@@ -706,7 +706,7 @@ static void fls_own_spawn_tick(uint64_t now, int alive) {
     xlog("flashlight: no player flashlight object - spawn-flashlight(player%s) for the strap model + light (try %d; expect FlashlightContainer kind 0, look flashlight-l-skinny/-military, attach flashlightAttach) -> %llx",
          gok ? ", engine default define" : def ? ", explicit define" : "", tries, (unsigned long long)sr);
 }
-// LOCAL-LIGHT SHADOWS OF PUPPET BODIES (when a flashlight shone at a player, the cast shadows only showed their face and hands; SP: an NPC lit by Ellie's
+// LOCAL-LIGHT SHADOWS OF PUPPET BODIES (a flashlight shone at a player cast shadows of only the face and hands; SP: an NPC lit by Ellie's
 // light casts a full body shadow). Static RE of tlou-ii.exe 1.6.10721 (no game run): every sub-draw (sub-mesh) of a draw control has a runtime flags dword
 // (hash lookup exe 0x1403b9d60, keyed by the sub-mesh pointer). Bit 0x80 = "does not cast sun shadow", bit 0x800000 = "does not cast LOCAL (spot / omni / flashlight) shadow".
 // They are written when a mesh is ADDED to the draw control (0x141480340: `dc+0x40 bit 6 set ? clear 0x80 : set 0x80`, `dc+0x40 bit 7 set ? clear 0x800000 : set 0x800000`), i.e. a

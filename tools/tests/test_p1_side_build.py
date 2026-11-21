@@ -1,7 +1,7 @@
-"""T2R_P1_SIDE=1 end to end WITHOUT the 20-minute stage: build_dll.build() with stage_modfs replaced by a tiny prebuilt stage, on the real unpatched winmm.
+"""T2R_P1_SIDE=1 end to end WITHOUT the 20-minute stage: build_dll.build() with stage_modfs replaced by a tiny prebuilt stage, on the real base winmm.
 Checks the finished winmm (all patches + the .t2rps cave) + part1.dat + manifest: the blob holds no Part I bytes, the payload file offset + cut is
 64 KiB aligned, the cave maps the pair (offline harness) and the engine's view decodes to every packed file.
-Run: python tools/tests/test_p1_side_build.py   (needs the msys64 gcc and the unpatched winmm dll; ~1-2 min)"""
+Run: python tools/tests/test_p1_side_build.py   (needs the msys64 gcc and the base winmm dll; ~1-2 min)"""
 import os
 import subprocess
 import sys
@@ -13,13 +13,13 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "features"))
 sys.path.insert(0, os.path.join(HERE, ".."))
 
-GCC = next((c for c in (os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin/gcc.exe"),
+GCC = next((c for c in ("./tools/win/ext/msys64/ucrt64/bin/gcc.exe",
                         os.path.join(HERE, "..", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe")) if os.path.isfile(c)), None)
-BASE = next((c for c in (os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/local/winmm-nocave-127.0.0.1-7001.dll"),
+BASE = next((c for c in ("./tools/local/winmm-nocave-127.0.0.1-7001.dll",
                          os.path.join(HERE, "..", "local", "winmm-nocave-127.0.0.1-7001.dll")) if os.path.isfile(c)), None)
 
 
-@unittest.skipUnless(GCC and BASE, "gcc and the unpatched winmm dll needed")
+@unittest.skipUnless(GCC and BASE, "gcc and the base winmm dll needed")
 class SideBuild(unittest.TestCase):
     def test_build(self):
         import build_dll as B

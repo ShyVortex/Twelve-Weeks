@@ -26,7 +26,7 @@ After every observation (every ~0.5 sim s) the invariants run against the daemon
   log-clean           no Traceback / THREAD-DIED / handler ERR line in the daemon log or stdout, thread count never drops
 A failure is shrunk (ddmin over the recorded action list) and printed as a minimal reproduction + saved as JSON (--replay).
 Exit code 0 = all seeds clean."""
-import argparse, collections, hashlib, http.client, json, os, random, re, select, secrets, socket, struct, subprocess, sys, time
+import argparse, collections, hashlib, http.client, json, os, random, re, select, secrets, socket, struct, subprocess, sys, tempfile, threading, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -1144,7 +1144,7 @@ def main():
     ap.add_argument("--steps", type=int, default=200)
     ap.add_argument("--accel", type=float, default=5.0)
     ap.add_argument("-j", type=int, default=1)
-    ap.add_argument("--dir", default=os.environ.get("T2R_TEST_TMP") or r"work/fuzz")
+    ap.add_argument("--dir", default=os.environ.get("T2R_TEST_TMP") or r"E:\t2tmp_agents\fuzz")
     ap.add_argument("--replay")
     ap.add_argument("--shrink", action="store_true")
     ap.add_argument("--quick", action="store_true")

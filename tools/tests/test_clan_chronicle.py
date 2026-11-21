@@ -1,6 +1,7 @@
 """Clan chronicle (tools/clan_chronicle.py + clan_chronicle_text.py): templates, languages, factions, loot, repeats, stability.   Run: python tools/tests/test_clan_chronicle.py"""
 import itertools
 import os
+import random
 import re
 import sys
 

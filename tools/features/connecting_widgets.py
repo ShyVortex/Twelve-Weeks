@@ -1,8 +1,8 @@
 """to1/connecting: the page shown after TWELVE WEEKS is picked in the boat (title) menu, while winmm checks the network
 (net-connect: CHECKING NETWORK -> CONNECTING TO SERVER -> CHECKING GAME SERVER -> COMPLETE) and then starts the MP menu level.
 
-The stock page: a pure black screen, "CONNECTING" 120 pt centred, a grey status line under it and a
-centred 1000 x 10 px bar. The mod's own look (simple, in the mod's own style):
+The original (the base client's v1.08) page: a pure black screen, "CONNECTING" 120 pt centred, a grey status line under it and a
+centred 1000 x 10 px bar. The mod's own look (simplistic, its own style, not associable with the base client):
 
   * the dark MP menu backdrop (blur + near-black + one soft light, the same layers as the clan / vote pages), no pure black
   * title block at the left, vertically centred, the launcher's title: "THE LAST OF US" (bold) over a thin rule over
@@ -15,8 +15,8 @@ barTrack stay, winmm drives progress + statusText by path (anim-group.progress /
 connectingText (loc_static_labels, page "connecting"). Only layout / colours / extra decoration change. Widget space is
 3840 x 2160, y down.
 
-Variant "L" (default, re/loading-1105/README.md): the TWELVE WEEKS entry sequence. Pure black, the title big and centred in the
-"The Last Of Us Rough.ttf" font rendered to a texture (loading_art.py; the game's font system cannot load a new TTF from our tooling), a 28 px
+Variant "L" (default since re/loading-1105/README.md): the TWELVE WEEKS entry sequence. Pure black, the title big and centred in the
+user's "The Last Of Us Rough.ttf" rendered to a texture (loading_art.py; the game's font system cannot load a new TTF from our tooling), a 28 px
 white bar with a torn right edge along the bottom edge (winmm keeps driving anim-group.progress). Nothing is visible in the JSON: t2r-ext ld_tick (tools/ext/loadseq.c) fades bg to black, holds, fades
 the title (group t2rLoad) in slowly, fades the bar in and fades everything out; the stinger plays with the title fade.   python connecting_widgets.py <extracted widget dir> <out png>   renders the layout (preview)."""
 import copy

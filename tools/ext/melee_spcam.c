@@ -7,7 +7,7 @@
 //   - per contact a camera shake: rms 10-18 mm, peak 52-87 mm of camera-offset jitter.
 // What this does (render camera only, the game's camera / aim / shots are never touched; the same copy-the-camera hook as the hit kicks, gsh_filter):
 //   pull-in   the camera moves along its line to us to SP's 1.22 m (SPM_CAM_BACK; never pushed out, never closer than 1.1 m to our root) and
-//             to SP's 1.61 m above our root (SPM_CAM_UP; measured - t2r-ext.c; was a fixed 0.45 m pull at the engine camera's height);
+//             to SP's 1.61 m above our root (SPM_CAM_UP; v5-feel2, measured - t2r-ext.c; was a fixed 0.45 m pull at the engine camera's height);
 //   re-centre the camera moves SPM_CENTRE (0.5) of the way sideways toward the midpoint of the two fighters (capped 0.35 m), so the enemy is not
 //             parked at the screen edge;
 //   fov       meleefov.c eases the held fov up by x SPM_FOV (SP's 75 / 70) while the weight is up;
@@ -21,9 +21,9 @@
 // Off in: any exec / ctxdown / intro / down / free cameras (they own the camera), paired moves, downed / dying, stun, no enemy in reach.
 // Opt-out t2r-no-sp-melee-cam.txt next to the exe. Log "spmelee cam:".
 // ======================================================================================================================================================
-// SP melee camera spec, measured (SP per-frame logs melee-prev.log / melee-cur.log of the melee-only No Return run, player rows, 60 fps: 8883
-// frames with is-current-camera-melee = 1 ("cmel"), 43 melee episodes; MP side: "camrec:" logs
-// of two recordings). med (p10 .. p90). lat < 0 = right. "line" = the horizontal line player -> nearest enemy.
+// ps25 SP melee camera spec, measured (SP per-frame logs melee-prev.log / melee-cur.log of the melee-only No Return run, player rows, 60 fps: 8883
+// frames with is-current-camera-melee = 1 ("cmel"), 43 melee episodes; script ps25/spspec.py; MP side: "camrec:" of ablogs-uc2
+// A 43964-44317 / B 39575-39926 and ablogs-rec15). med (p10 .. p90). lat < 0 = right. "line" = the horizontal line player -> nearest enemy.
 //   WHEN     cmel is 1 only while a melee move of the PLAYER runs (swing, its -hit follow-through, dodge, pair) and 1 frame after; between combos it is 0.
 //            Hit by an NPC while it is 0: the melee camera does NOT come on (fov 70.5, camera world yaw 0.10 deg/frame med, p90 0.59).
 //   RIG      target-relative, in the LINE frame: lens 0.80 m beside the line (0.76 .. 1.01 on the kept side) and 0.90 m behind the player (0.66 .. 1.15)
@@ -42,10 +42,10 @@
 //   RATES    camera world yaw per frame med 0.23 deg, p90 1.0, p99 2.2, max 4.2; over 30 frames med 5, p90 18, p99 52-60 deg. On the 107 frames where the
 //            BODY turned > 5 deg (med 8.2) the camera turned 0.5 deg (p90 1.8, max 2.9): the camera does not follow body turns. Distance at the start:
 //            1.68 -> 1.45 (10 f) -> 1.32 (20) -> 1.28 (30). No cut.
-//   MP (earlier build, the attacker): lat -0.53 (-0.84 .. -0.04, 10 of 112 frames LEFT), back 1.07, up 1.62 flat, dist 1.19, pitch -18.3, cyaw -0.3 (-14.5 ..
+//   MP ps23  (uc2 A, the attacker): lat -0.53 (-0.84 .. -0.04, 10 of 112 frames LEFT), back 1.07, up 1.62 flat, dist 1.19, pitch -18.3, cyaw -0.3 (-14.5 ..
 //            +19.2), axis 0.45 m off the own root at 1.27 m, own root at x -0.37 / head -0.53, +0.59 (SP -0.24, +0.35), fov 75.7 for the whole duel. B (never
 //            swung): lat +0.83, back 0.80 (0.24 ..), cyaw -70.8, dist 1.15, fov 75.1. rec15 A: 495 of 869 frames on the LEFT.
-// Additions, measured (same logs + the FXN native lines of the SP log):
+// ps32 additions, measured (same logs + the FXN native lines of the SP log; scripts ps25/shake.py, fovout.py, persist.py, fin.py, stretch.py):
 //   HIT SHAKE   one additive camera animation per blow, camera-animation-enable(.., camera-shake-melee-hit-b, .., scale, ..): scale 1.5 fists, 1.0 blade /
 //            blunt, 0.5 on a finisher's blows, 1.75 when the player is hit. Per unit scale: roll +1.10 deg at +4 frames then -1.74 at +10, pitch +0.23 then
 //            -1.31 (down) at +10, both back at 0 by +20 frames; no fov, no yaw; the lens dips 19-36 mm at +6 frames (curve + table: melee_feel.c MFK32).
@@ -65,13 +65,13 @@
 //            -> -3.4; roll to -2.7 (later +15); own head at x -0.56 / y +0.82 of the half-frame at +25 f, the enemy's at +0.10 / +0.52. OUT: fov back at 70.1
 //            10-26 frames after the last frame (the head smash: 67.3 -> 70.0 over its last 20 frames), distance settled 24-34 frames after it.
 //   PLAYER AS VICTIM of a paired move (struggle / grab; n small): the lens 0.5-0.9 m from the root (med 0.86), 1.53 m up, fov 75, the hit shake at 1.75.
-// What this changes for it (each with its opt-out, meleefov.c PS25_*): the duel framing is SP's RIG in the line frame (spm25_rig: the lens's world azimuth
+// What ps25 changes for it (each with its opt-out, meleefov.c PS25_*): the duel framing is SP's RIG in the line frame (spm25_rig: the lens's world azimuth
 // round our pivot is its own state - the kept side, SPM25_AZ off the line, SP's turn rates - so neither a body turn nor an engine-camera swing moves it;
 // no re-centre in a duel), the look-at aims SPM25_AIM of the way from us to the partner (in angle) at SP's turn rate without the engine-heading gate, the
 // height / fov follow our own melee activity, a fighter who has not swung keeps his camera (PS25_VICTIM), and the release blends on a kept target.
 // The engine's own melee camera under force-melee-camera-target stays the BASE (its raw pose in the line frame is logged: "spmelee cam: ps25 rig ... engine
 // base") - whether it alone already gives SP's rig in MP is NOT measured yet (its heading does not: the look-at's engine-heading gate left us 21.7 deg off
-// the view centre with the partner at +2.8 in a recording, 'cam2: duel framing shown').
+// the view centre with the partner at +2.8 on uc2 A, 'cam2: duel framing shown').
 // ======================================================================================================================================================
 #define SPM25_AZ 0.7505f          // rad = 43 deg off straight-behind the line (SP: atan(0.80 / 0.90) .. atan(0.88 / 0.88))
 #define SPM25_SIDE_DEAD 0.15f     // m [TUNING ps25]: a lens within this of the line (or right of it) takes the RIGHT shoulder (SP 34 of 43), clearly left keeps left
@@ -664,14 +664,14 @@ static void ps43_cfg(uint64_t now) {
 //              height, the live head leans back toward the lens in hit reactions. Hard floor: the duel lens is never closer than S44H_MIN to our live head
 //              joint (s44h_filter, after the lens guard: the lens goes up and over the head, re-aimed at the point it looked at); when the kept side is
 //              pulled in by a surface, the lens is within the floor and the other side's ray is clear, the side swap is ONE cut (spm25_rig, g_s39_flip 2).
-#define S44H_MIN 0.75f            // m
+#define S44H_MIN 0.75f            // m (lead)
 //   PS44_VOUT  t2r-ps44-cam-vout-old.txt   R5b (B 16047 'the finisher side shot's way out to the downed camera is BLOCKED ...: it lands on ONE CUT', 16048 'LENS
 //              STEP ... lens-head 0.36 m'; B 11659 / 11660 'lens-head 0.48 m'; clip B 90.70-90.97 into our own beanie, 17.07-17.6 the attacker's face / coat,
 //              196.33 the back of our cap): the cut / ease landed on the downed camera's RAW spot while it was still arriving. The side shot is now held
 //              past the pair's end until the camera under it has settled (its lens >= S44O_HEAD from our live head, our chest within S44O_FRAME of its
 //              axis, not within 0.40 m of the attacker's torso, moved < 5 cm a tick for 3 ticks); not settled within S44O_PB the held shot pulls back
 //              (S44O_BACK) and looks at our own chest until it does (at most S44O_MAX). Then the ordinary way out (one cut or the ease).
-#define S44O_HEAD 0.80f           // m
+#define S44O_HEAD 0.80f           // m (lead)
 #define S44O_FRAME 0.5236f        // rad = 30 deg off the under-camera's axis [TUNING ps44]
 #define S44O_PB 1500              // ms
 #define S44O_MAX 4000             // ms [TUNING ps44]: the hold never runs longer
@@ -1485,7 +1485,7 @@ static int s34_vic_take(uint64_t other_h, float dur_s, const char *name) {
 // pair's placement at later times of the clip is not sampled (no cheap psync API): it is evaluated on every tick before the decision and, with the lens
 // fixed, on every tick after it - a shot that loses us (the lens -> our head ray blocked, or the capsule on both lines) for > 0.3 s takes ONE cut to the
 // other side, once per shot, when that side is clear. t2r-ps41-cam-vis-old.txt = the ps40 choice (also the attacker's authored-camera test, t2r-ext.c).
-#define S41V_CAP_R 0.30f          // m
+#define S41V_CAP_R 0.30f          // m (lead)
 #define S41V_PEN 1.0f             // [TUNING ps41]: a fully covered victim costs as much as a fully blocked arm ray
 #define S41V_FRONT 0.12f          // [TUNING ps41]: +-0.12 = up to 0.24 between the sides, over s34_decide's 0.15 tie margin
 static struct { float occ[2], fr[2]; int flipped, told, cut_req; uint64_t hid_at; } g_s41v;

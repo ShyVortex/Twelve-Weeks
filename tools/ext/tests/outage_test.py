@@ -5,7 +5,7 @@
  2. parse_fuzz: the ext's reply parsers (clan_parse, mf_parse, nm_parse, meta_parse, pm_parse, feed_parse) are cut out of t2r-ext.c, compiled with
     stubs and fed thousands of random / mutated / garbled strings, each placed right before a PAGE_NOACCESS guard page (an over-read faults).
 """
-import os, re, subprocess, sys, tempfile, time, socket
+import os, re, subprocess, sys, tempfile, time, socket, random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 EXT = os.path.dirname(HERE)

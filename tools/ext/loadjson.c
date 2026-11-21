@@ -17,6 +17,9 @@ static const char *const LJ_SK[SK_COUNT] = {
     LJ_K(SK_FAT), LJ_K(SK_SHARP), LJ_K(SK_MARATHON), LJ_K(SK_COLLECTOR), LJ_K(SK_EXEC), LJ_K(SK_DMGMARK), LJ_K(SK_GUNSLINGER), LJ_K(SK_BOMB),
     LJ_K(SK_SCAV), LJ_K(SK_AWARE), LJ_K(SK_FORT), LJ_K(SK_AGILITY), LJ_K(SK_LONEWOLF), LJ_K(SK_SECOND), LJ_K(SK_JACK), LJ_K(SK_LUCKY), LJ_K(SK_LETHAL),
     LJ_K(SK_RIPOSTE), LJ_K(SK_GRIP), LJ_K(SK_BLADE), LJ_K(SK_HEAVY), LJ_K(SK_STEADY), LJ_K(SK_FOOTWORK),
+#if T2R_BODYSHIELD
+    LJ_K(SK_BODYSHIELD),
+#endif
 };
 
 // ---- a tiny JSON reader (objects, arrays, strings, numbers, true / false / null), in place on a buffer

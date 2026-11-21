@@ -41,6 +41,7 @@ import clan_alife_text_c as TC                               # noqa: E402
 import clan_alife_text_d as TD                               # noqa: E402
 import clan_alife_text_e as TE                               # noqa: E402
 import clan_alife_text_f as TF                               # noqa: E402
+import clan_alife_text_g as TG                               # noqa: E402  (camp incidents: re/clan-events-1117.md)
 
 STATE_V = 1
 WINDOW_DAYS = 999                   # once per run (a run is at most 85 days): a spent pool writes nothing
@@ -49,6 +50,7 @@ OPENER_P = 0.5                      # chance of a weather opener on a day the we
 DAY_MIN_ROWS, DAY_MAX_ROWS = 2, 3   # feed rows per clan day
 TICKER_SHARE = 3                    # of the menu's 6 ticker lines this many come from the A-Life facts (2 stored events, 1 classic 2013 line)
 MIN_CLAN = 3                        # below this the clan_story solo / duo voices own the feed
+INCIDENTS = os.environ.get("T2R_CLAN_INCIDENTS", "1") != "0"   # the camp incidents of re/clan-events-1117.md (text only; tests switch it to compare)
 MEM_CAUSES = ("illness", "starved", "mercy", "bite", "bite_kin", "attack", "turned")
 SWITCH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "clan_alife.txt")
 
@@ -58,7 +60,7 @@ TRAIT_LABEL = {"stubborn": ("stubborn", "uparty"), "joker": ("a joker", "dowcipn
                "storyteller": ("a storyteller", "gawędziarz"), "nervous": ("nervous", "nerwowy"), "optimist": ("an optimist", "optymista"), "grumbler": ("a grumbler", "maruda")}
 
 POOLS = {}
-for _m in (TA, TB, TC, TD):
+for _m in (TA, TB, TC, TD, TG):
     POOLS.update({k: list(v) for k, v in _m.POOLS.items()})
 for _m in (TE, TF):                                         # parts E and F widen pools of A-D (E also adds the role / trait ticker lines)
     for _pool, _rows in _m.POOLS.items():
@@ -768,6 +770,21 @@ class Day:
             a = self.pick(2)
             if len(a) == 2:
                 self.add(28, "rumor", a)
+        # a small camp incident (re/clan-events-1117.md, tools/clan_alife_text_g.py): damp in the stores, strangers at the wall, a horde passing in the
+        # night, a night in the sick tent (only when someone really is sick). Text only: nothing is lost, nobody is hurt, no number moves. Drawn last, so
+        # the day's other threads take their people first.
+        # It has its own random stream (seed, run, day): the day's other draws stay exactly what they were before these incidents existed.
+        irng = random.Random("%s:%s:inc:%d" % (al["seed"], al["run"], day))
+        if INCIDENTS and ready("inc", 6) and irng.random() < 0.2:
+            kinds = ["inc_spoil", "inc_tres", "inc_horde"] + (["inc_sick"] if sick_n else [])
+            self.rng = irng
+            try:
+                a = self.pick(2, states=("h",), fight=True)
+                if len(a) == 2:
+                    cool["inc"] = day
+                    self.add(34, irng.choice(kinds), a)
+            finally:
+                self.rng = rng
 
     def _social(self):
         """One relationship beat. Bonds are persistent: a friendship can sour into a quarrel (and end in a reconciliation days later), grow into a romance,

@@ -378,7 +378,7 @@ POOLS = {
         "{A} {A?dostał|dostała} dziś całą porcję i {A?jadł|jadła} ją powoli, dla pewności.",
         "{A} jest {A?najedzony|najedzona} i wraca do sił.",
         "{A} znów je jak należy.",
-        "Starczyło, żeby postawić na nogi także głodnych: {A}.",
+        "Starczyło, żeby {A} {A?stanął|stanęła} na nogi.",
         "{A} {A?przestał|przestała} się trząść po drugiej misce.",
         "{A} {A?zjadł|zjadła}, a potem {A?spał|spała} jak ktoś, kto zjadł.",
         "{A} znów dostaje pełne porcje.",
@@ -391,7 +391,7 @@ POOLS = {
         "{A} nie żyje. {ill}. Medyk siedział przy {A?nim|niej} do końca i od tamtej pory milczy.",
         "{A} się nie {A?obudził|obudziła}. Choroba ({ill}) dokończyła to, co zaczął głód.",
         "{A} {A?umarł|umarła} dziś: {ill}. Pogrzeb był przed zmrokiem.",
-        "{A} {A?odszedł|odeszła}. Powód: {ill}. Trwało to długo, a {A?on|ona} nie {A?zasłużył|zasłużyła} ani na jedno, ani na drugie.",
+        "{A} {A?odszedł|odeszła}. Powód: {ill}, i trwało to długo. {A?Zasłużył|Zasłużyła} na lżejszy koniec.",
         "{A} {A?zmarł|zmarła} dziś rano: {ill}. Pryczę rozebrano i wywietrzono.",
         "{A} tego nie {A?przetrwał|przetrwała}. {ill}, a w skrzynce żadnych leków.",
     ],
@@ -432,7 +432,7 @@ POOLS = {
         "{A} już odpoczywa. {A?Prosił|Prosiła} dwa razy, wyraźnie. Tu się tego nie odmawia.",
     ],
     "death_bite": [
-        "{A} {A?ukrywał|ukrywała} ugryzienie. Nie dało się go ukryć na długo. Załatwiono to przed przemianą.",
+        "{A} {A?ukrywał|ukrywała} ugryzienie, ale nie na długo. Zrobiliśmy, co trzeba, zanim doszło do przemiany.",
         "{A} nie żyje. Ugryzienie, z nocy ataku. W końcu {A?sam|sama} nam {A?powiedział|powiedziała}.",
         "{A} {A?pokazał|pokazała} dziś rano ugryzienie i {A?podał|podała} własną broń. Zrobiliśmy, o co {A?prosił|prosiła}.",
         "{A} nie żyje: ugryzienie. Dzień zwłoki poszedł na pożegnania.",
@@ -456,7 +456,7 @@ POOLS = {
         "{E} zabiły kolejną osobę: {A}.",
     ],
     "death_many": [
-        "Zabici jednego dnia: {n}. Wśród nich: {names}. Kopaliśmy do zmroku.",
+        "Zmarli jednego dnia: {n}. Wśród nich: {names}. Kopaliśmy do zmroku.",
         "Dziś straciliśmy: {n}. {names} i inni. Lista jest za długa na tę stronę.",
         "Od rana nie żyje nas: {n}. {names} i inni.",
         "Groby: {n}. W pierwszym leżą: {names}.",
@@ -468,7 +468,7 @@ POOLS = {
         "{B} siedzi przy pryczy i nikt {B?go|jej} stamtąd nie ruszy.",
         "{B} nie zostanie dziś {B?sam|sama}; ktoś będzie blisko.",
         "{B} {B?dostał|dostała} dzień wolny od list. I tak {B?pracował|pracowała}.",
-        "{B} {B?zatrzymał|zatrzymała} po {A?nim|niej} płaszcz.",
+        "{B} {B?zatrzymał|zatrzymała} płaszcz, który nosił{A?|a} {A}.",
     ],
     "join": [
         "{A} {A?przyszedł|przyszła} pod bramę {A?sam|sama} i {A?poprosił|poprosiła} o pracę, nie o jedzenie. Wpuściliśmy.",
@@ -533,10 +533,52 @@ POOLS = {
         "Choć raz gotowi. Wroga odparto, zanim dotarł do prycz. Nie przeżyli: {lost}.",
         "To był atak, do którego ćwiczyliśmy, i ćwiczenia go wygrały. Groby: {lost}, nie trzydzieści.",
     ],
+    "hwarn": [
+        "Czujki usłyszały ją, zanim ją zobaczyły: horda, schodzi doliną w naszą stronę. Trzy dni, jeśli utrzyma tempo.",
+        "Zarażeni zbierają się za linią drzew, co noc jest ich więcej. Kiedy rusza ich tylu, ruszają razem. Ćwiczymy, dopóki nie ruszą.",
+        "Nadchodzi horda. Nie ma zwiadowców do zmylenia ani warunków do zaproponowania. Jest tylko mur i to, jak dobrze na nim staniemy.",
+        "Ziemia za murem aż się rusza. Czego zdołamy się nauczyć od siebie w trzy dni, tego się nauczymy.",
+    ],
+    "hatk0": [
+        "Horda przyszła, a my nie byliśmy gotowi. Przelała się przez mur jak woda. Zabici: {lost}.",
+        "Zarażeni uderzyli w ciemności. Nie ćwiczyliśmy i było to widać w pierwszej minucie. Nasi zabici: {lost}.",
+        "Mur nie zatrzymał hordy. Ci, którzy zostali, palą resztę. Straceni: {lost}.",
+    ],
+    "hatk1": [
+        "Horda do nas dotarła. Ta odrobina ćwiczeń sprawiła, że to nie był koniec. Mimo to nasi zabici: {lost}.",
+        "Byliśmy gotowi na zarażonych w połowie. Druga połowa ocaliłaby życie. Kosztowało nas to życie naszych: {lost}.",
+        "Barykada miejscami wytrzymała. Tam, gdzie nie wytrzymała, horda zabrała naszych: {lost}.",
+    ],
+    "hatk2": [
+        "Horda przyszła. Byliśmy na nią wyszkoleni i było to widać: mur wytrzymał. Nasi zabici: {lost}.",
+        "Zarażeni rozbili się o barykadę. Zabici po naszej stronie: {lost}. Ulica jest pełna ich ciał.",
+        "Utrzymaliśmy się przeciw hordzie. Kosztowało to życie naszych: {lost}. Każdy stał tam, gdzie go nauczono stać.",
+    ],
+    "hatk3": [
+        "Horda przyszła i rozbiła się o nas. Każde ćwiczenie się zwróciło. Straceni: {lost}, a mogła to być połowa obozu.",
+        "Horda przyszła setkami, a my byliśmy gotowi w każdym miejscu, w które napierała. Zabici: {lost}. Nigdy nie trzymaliśmy się tak dobrze.",
+        "Mur wytrzymał od pierwszego wrzasku do ostatniego. Nasi polegli: {lost}. Horda leży stosem pod barykadą.",
+    ],
+    "hatk_none": [
+        "Horda przyszła i każdy z nas wciąż tu jest, żeby to powiedzieć.",
+        "Zarażeni rozbili się o mur i nikt za nim nie zginął. Ani jedna osoba.",
+        "Horda przeszła ulicą i nie weszła do środka. Nie spaliliśmy nikogo z naszych.",
+    ],
+    "death_horde": [
+        "{A} {A?zginął|zginęła} na barykadzie, kiedy przyszła horda.",
+        "{A} nie przeży{A?ł|ła} hordy. Trzyma{A?ł|ła} wyłom, dopóki go nie zamknięto.",
+        "{A} {A?zginął|zginęła} od zarażonych. Zesz{A?edł|ła} z muru jako ostatni{A?|a}.",
+        "{A} {A?padł|padła} pod nimi na podwórzu.",
+    ],
     "atk_none": [
         "{E} przyszły, a każde z nas wciąż tu jest i może to powiedzieć.",
         "Atak rozbił się o mur i nikogo za nim nie straciliśmy. Ani jednej osoby.",
         "Przyszli po nas i wrócili z niczym. Nikogo nie pochowaliśmy.",
+    ],
+    "gstart5": [
+        "Obóz za mostem stracił zapasy przez wilgoć: każda puszka wzdęta, każdy worek spleśniały. Pójdą za tym, kto zdoła ich wykarmić.",
+        "Przyszła wieść o zepsutych zapasach przy drodze. Cała zima jedzenia zgniła w tydzień. Ci ludzie szukają stołu, przy którym można usiąść.",
+        "Pod bramę przyszła rodzina z puszką na pokaz: wzdęta, pęknięta, czarna w środku. Taki jest cały ich magazyn. Chcą wiedzieć, czy nasz jest lepiej pilnowany.",
     ],
     "gstart0": [
         "Zwiadowcy spotkali grupę ocalałych dzień drogi stąd. Przyjaźni, głodni, ostrożni. Jeśli pokażemy, że umiemy się utrzymać, może do nas przyjdą.",
@@ -583,6 +625,11 @@ POOLS = {
         "Akcja się udała. Z oddziałem wrócili ludzie, których w nim nie było, kiedy wychodził: {gain}.",
         "Drogę wyrąbano i utrzymano dość długo. Nasi przyjaciele są bezpieczni: {gain}.",
     ],
+    "gwin5": [
+        "Mieliśmy się czym podzielić, kiedy ich zapasy się zepsuły. Przy naszym stole siedzą teraz nowi: {gain}.",
+        "Ludzie z zepsutego obozu przyszli do nas. Nie przynieśli nic poza sobą: {gain}.",
+        "Ich magazyn to cmentarz puszek. Nasz ich przez to przekarmił. Nowi członkowie: {gain}.",
+    ],
     "gwin4": [
         "Maroderów przepędzono. Ludzie, których okradali, przyszli do nas: {gain}.",
         "Droga jest wolna od maroderów. Z małych obozów wprowadzili się za nasz mur: {gain}.",
@@ -607,6 +654,11 @@ POOLS = {
         "Nie dotarliśmy do sojuszników. Sygnał ze wschodu ustał.",
         "Odsiecz nigdy się nie zebrała. Cokolwiek się z nimi stało, stało się bez nas.",
         "Naszych przyjaciół zostawiono samym sobie. Nikt stamtąd nie wyszedł.",
+    ],
+    "gfail5": [
+        "Nie zdołaliśmy wykarmić obozu, któremu zepsuły się zapasy. Poszli szukać gdzie indziej.",
+        "Ludzi z zepsutego obozu już nie ma. Klan, który ledwo karmi sam siebie, nikogo nie uratuje.",
+        "Nikt nie przyszedł. Zabrali ostatnie dobre puszki i ruszyli na północ.",
     ],
     "gfail4": [
         "Maroderzy wciąż są na drodze, a małe obozy poszły do kogoś silniejszego.",
@@ -714,10 +766,14 @@ POOLS = {
     "t_atk_none": ["Atak: {E}. Mur wytrzymał"],
     "t_death": ["Nie żyje: {A}"],
     "t_death2": ["Nie żyją: {A} i {B}"],
-    "t_death_n": ["Zabici jednego dnia: {n}"],
+    "t_death_n": ["Zmarli jednego dnia: {n}"],
     "t_gwin": ["Nowi w klanie: {gain}"],
     "t_gfail": ["Nikt nie przyszedł"],
     "t_warn": ["Nadchodzą: {E}"],
+    "t_hatk": ["Atak hordy. Zabici: {lost}"],
+    "t_hatk_none": ["Atak hordy. Mur wytrzymał"],
+    "t_hwarn": ["Nadchodzi horda"],
+    "t_gstart5": ["Zepsute zapasy przy drodze"],
     "t_gstart0": ["Ocalali na drodze"],
     "t_gstart1": ["Czerwonka w sąsiednim obozie"],
     "t_gstart2": ["Malaria na bagnach"],
@@ -751,6 +807,7 @@ POOLS = {
     "f_death": ["{A} nie żyje."],
     "f_join": ["{A} {A?dołączył|dołączyła} do klanu."],
     "f_atk": ["Atak: {E}. Zabici: {lost}."],
+    "f_hatk": ["Atak hordy. Zabici: {lost}."],
     "f_gwin": ["Nowi członkowie: {gain}."],
     "f_gfail": ["Nikt nie dołączył."],
     "f_more_sick": ["Chorują też: {names}."],
@@ -801,7 +858,8 @@ POOLS = {
 }
 
 CAPTIONS = {"raid": "WYPAD", "sup": "ZAPASY", "camp": "OBÓZ", "event": "WYDARZENIE", "note": "NOTATKI", "start": "DZIEŃ PIERWSZY", "end": "KONIEC"}
-EVENT_NAMES = ("PRZYJAZNI OCALALI", "WYBUCH CZERWONKI", "WYBUCH MALARII", "RATUNEK DLA SOJUSZNIKÓW", "ATAK MARODERÓW")
+EVENT_NAMES = ("PRZYJAZNI OCALALI", "WYBUCH CZERWONKI", "WYBUCH MALARII", "RATUNEK DLA SOJUSZNIKÓW", "ATAK MARODERÓW", "ZEPSUTE ZAPASY")
 ATTACK_NAME = "ATAK: {E}"
+HORDE_NAME = "HORDA ZARAŻONYCH"
 LACK = {"food": "jedzenia", "water": "wody", "med": "leków"}
 AND = " i "

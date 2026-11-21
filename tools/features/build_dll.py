@@ -7,7 +7,7 @@
    (dc_modules.py) -> packed into the DLL.
 2. code patches (winmm_patches.py defaults + tab-native-backpack).
 3. t2r-ext.dll loader (ext_loader.py).
-4. 8-player (4v4) support: new .t2r8 section + patched sites (slots8.py; T2R_SLOTS8=0 = off).
+4. 8-player (4v4) support: new .t2r8 section + patched sites (slots8.py; T2R_SLOTS8=0 = off; T2R_SLOTS=9 = 9 slots).
 5. server address 127.0.0.1:<port> (patch_winmm.py; 7001 release, 7101 test instances).
 
 Build time: a per-stage profile table is printed at the end and appended to tools/local/build_profile.log.
@@ -70,6 +70,11 @@ GUNEXEC_PAK5 = "anim-npc-m-lg-enemy-only"   # fifth carrier pak (build_gunexec_p
 GUNEXEC_PAKS = [GUNEXEC_PAK, GUNEXEC_PAK2, GUNEXEC_PAK3, GUNEXEC_PAK4, GUNEXEC_PAK5]
 _GX_BUILT = {}                              # pak name -> (bytes, res) of build_gunexec_pak.build (the Frontier step needs the third set before stage_gunexec runs)
 _GX_FRONTIER_STAGED = []                    # pak names the Frontier step already wrote to the stage on top of the gun execution clips
+# Vintage Rifle bolt copies (stage_vintage_bolt): carrier jobs per pak waiting to be built (stage_frontier builds them INTO its own builds of the
+# same paks), the carrier of every job key once built, and the plan rows (tools/part1/vintage_bolt.py)
+_VBL_EXTRA = {}
+_VBL_NAMES = {}
+_VBL_ROWS = []
 GUNEXEC = os.environ.get("T2R_GUNEXEC", "1") != "0"
 # the weapon's own animation in the 2013 executions (revolver cylinder, tools/models/gx_weapon_clips.py, re/factions2013/exec-weapon-anims.md): T2R_GX_WEAPON=0 off
 GX_WEAPON = os.environ.get("T2R_GX_WEAPON", "1") != "0"
@@ -197,10 +202,47 @@ def _colt_work_pak():
     return path
 
 
+def check_staged_pngs(stage):
+    """Every staged .png must be a real PNG (signature, IHDR first, IEND last) before the stage is packed. A crash left
+    zero-filled entries in the png_opt cache (sizes kept, data lost); the weapons1117 build shipped six all-zero icons and the game drew
+    nothing, silently. Fails the build with the list of bad files.
+    lut0/ is skipped: the engine's LUT textures (TLOU2's own and the Part I ones sp_maps_build stages from conv/lut0) are named .png
+    but are a raw 131072-byte container, not PNG."""
+    bad, n = [], 0
+    for dp, dns, fns in os.walk(stage):
+        if dp == stage:
+            dns[:] = [d for d in dns if d.lower() != "lut0"]
+        for fn in fns:
+            if not fn.lower().endswith(".png"):
+                continue
+            n += 1
+            p = os.path.join(dp, fn)
+            try:
+                size = os.path.getsize(p)
+                with open(p, "rb") as f:
+                    head = f.read(16)
+                    if size >= 12:
+                        f.seek(-12, 2)
+                    tail = f.read(12)
+            except OSError as e:
+                bad.append(f"{os.path.relpath(p, stage)} (unreadable: {e})")
+                continue
+            if size == 0 or head[:8] != b"\x89PNG\r\n\x1a\n" or head[12:16] != b"IHDR" or tail[4:8] != b"IEND":
+                bad.append(f"{os.path.relpath(p, stage)} ({size} bytes, starts {head[:8].hex()})")
+    if bad:
+        raise SystemExit(f"staged PNG check: {len(bad)} of {n} staged PNGs are not valid PNGs (zeroed / truncated):\n  " + "\n  ".join(bad))
+    print(f"staged PNG check: all {n} staged PNGs are valid (signature, IHDR, IEND)")
+
+
 def stage_modfs(salt=0):
-    if os.path.exists(STAGE):
+    # STAGE may be a junction to another drive (a full C:): clear its contents and keep the link
+    linked = os.path.exists(STAGE) and os.path.normcase(os.path.realpath(STAGE)) != os.path.normcase(os.path.abspath(STAGE))
+    if linked:
+        for e in os.scandir(STAGE):
+            shutil.rmtree(e.path) if e.is_dir(follow_symlinks=False) else os.remove(e.path)
+    elif os.path.exists(STAGE):
         shutil.rmtree(STAGE)
-    shutil.copytree(MODFS, STAGE)
+    shutil.copytree(MODFS, STAGE, dirs_exist_ok=linked)
     _prof.lap('staging: rmtree + copytree of re/modfs')
     dc_data_patches.write_faction_guns_header()        # t2r-ext faction_guns_on() follows this build (not the txt)
     mp_snow.write_header()                             # t2r-ext mpsnow.c drives the snow tables only when this build carries them (T2R_MP_SNOW=1)
@@ -236,6 +278,9 @@ def stage_modfs(salt=0):
                                              os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"))
     dc_data_patches.make_tac_sfx_overlay(os.path.join(ROOT, "re", "gamebin", "dc1"),
                                          os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"))
+    # Vintage / Military Sniper bolt-forward: bolt-close's own sfx-info-light record (T2R_BOLTCLOSE_INFO=0: none, stale file removed)
+    dc_data_patches.make_boltscar_close_info(os.path.join(ROOT, "re", "gamebin", "dc1"),
+                                             os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"))
     # remote players' footsteps / gear at 2013-like range (mix-default foley-npc rows; T2R_NPC_FOLEY_MIX=0 = base mix)
     dc_data_patches.make_audio_mix_overlay(os.path.join(ROOT, "re", "gamebin", "dc1"),
                                            os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"))
@@ -257,7 +302,7 @@ def stage_modfs(salt=0):
     # props.bin: definitions for the armoured twins' pushed cloth-prop copies (without one a look2 prop spawns
     # nothing - coat missing); removed again when the copies are off (T2R_ARMOUR_PROP_PUSH=0 / T2R_NO_ARMOUR_UNDER=1; on by default)
     dc_data_patches.make_props_overlay(os.path.join(ROOT, "re", "gamebin", "dc1", "props.bin"),
-                                       os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"))
+                                       os.path.join(OVERLAYS, "t2r-data", "bin", "dc1"), extra=dc_data_patches.customize_prop_copies())
     # weapon-straps.bin: rifle sling offsets (slot one + two) for every MP look and armour twin (re/weapon-straps.md); T2R_STRAPS=0 = game file
     import weapon_straps
     ws = os.path.join(OVERLAYS, "t2r-data", "bin", "dc1", "weapon-straps.bin")
@@ -351,6 +396,14 @@ def stage_modfs(salt=0):
     dc_data_patches.add_second_holsters(chars)      # second-sidearm holster part per look, hidden at spawn (tools/models/second_holster.py)
     dc_data_patches.verify_armour_looks(chars, dc_data_patches.patch_armour_looks(chars, modules))
     dc_data_patches.patch_look_tints(chars, modules)
+    # CUSTOMIZE (re/customize-1117.md "Wearing it in a match"): per-body composable looks t2r-cz-* (superset part arrays; the ext
+    # writes the chosen subset before each spawn). Needs the twins + tints above; T2R_CUSTOMIZE_LOOKS=0 = without.
+    if os.environ.get("T2R_FACTION_LOOKS") == "1":
+        import customize_looks
+        _cz = customize_looks.patch_customize_looks(chars, modules)
+        customize_looks.patch_customize_tints(chars, modules)
+        customize_looks.verify_customize_looks(chars, _cz)
+        dc_data_patches.MP_LEVEL_ADDS += ["symbol " + _n for _n in _cz if "symbol " + _n not in dc_data_patches.MP_LEVEL_ADDS]
     if dc_data_patches.WINTER_ON:       # T2R_MP_SNOW=1 + T2R_FACTION_LOOKS=1: the winter crew looks (tools/models/crew_winter.py; the ext wears them on winter maps)
         dc_data_patches.patch_winter_looks(chars, modules)
         dc_data_patches.verify_winter_looks(chars)
@@ -360,6 +413,13 @@ def stage_modfs(salt=0):
     # TAB-menu backpack props per look backpack (re/backpack-rig.md "TAB menu prop"): look2 entries
     if dc_data_patches.BACKPACK_PROPS_ON:
         dc_data_patches.verify_backpack_prop_looks(chars, dc_data_patches.patch_backpack_prop_looks(chars, modules))
+    if os.environ.get("T2R_FACTION_LOOKS") == "1":
+        # the tint inside the stock kits (customize_items.TINT_KITS): EVERY look of characters.bin that wears a tint kit's arms
+        # (pool looks, twins, winter looks, the game's own SP looks) gets the tint key + a palette in its head's colour - after
+        # every look patch (it edits their part arrays)
+        import customize_looks
+        customize_looks.patch_pool_hand_tints(chars, modules)
+        customize_looks.verify_hand_tints(chars)
     dc_data_patches.verify_look_patches(chars)
     _prof.lap('look2 patches (parts, armour twins, tints, backpack props)')
     # more team voice lines (tools/features/vox_lines.py, re/vox-lines.md): vox-info records in the mod's
@@ -375,6 +435,8 @@ def stage_modfs(salt=0):
             dc_data_patches.verify_vox_beg(gl, modules)
             dc_data_patches.patch_vox_downed(gl, modules)   # downed groans (bleed-out groans + injured breaths, every voice set)
             dc_data_patches.verify_vox_downed(gl, modules)
+            dc_data_patches.patch_vox_pick(gl, modules)     # CHOOSE YOUR SIDE voice (real enemy takes of each faction, tools/ext/choose.c)
+            dc_data_patches.verify_vox_pick(gl, modules)
         if dc_data_patches.FEMALE_ON:       # T2R_FEMALE=1: the female voice sets (re/female-characters.md)
             dc_data_patches.patch_vox_lines_female(gl, modules)
             dc_data_patches.verify_vox_lines_female(gl, modules)
@@ -436,7 +498,7 @@ def stage_modfs(salt=0):
                     lst.insert(last + 1, p)
                     p1_new += lst is paths
     for m in sp_maps_build.selected():      # Part I Bookstore ambience (p1_audio.py): its 2 level paks, banks, streams and carrier DC modules (staged by sp_maps_build.stage_part1_audio)
-        for p in sp_maps_build.p1_audio_files(m) + sp_maps_build.p1_actor_files(m):   # (+ the converted Part I actor paks: Part I map data, test builds only)
+        for p in sp_maps_build.p1_audio_files(m) + sp_maps_build.p1_actor_files(m) + sp_maps_build.p1_lut_files(m) + sp_maps_build.p1_particle_files(m):   # (+ the converted Part I actor paks: Part I map data, A/B only; + the Part I fire particle set)
             p1_rel.add(p)
             for lst in (paths, order):
                 if p not in lst:
@@ -557,7 +619,7 @@ def stage_modfs(salt=0):
                 last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/") or x.startswith("soundbank4/"))
                 lst.insert(last + 1, f"soundbank4/{bank}.bnk")
     print("sound: suppressed pistols = Beretta suppressed bloom + MPX5 suppressed thumps")
-    # the purchasable Galil keeps its stock shot: the game's bank, byte for byte (the suppressed rifles fire the MPX5's SP suppressed
+    # the purchasable Galil keeps its stock v1.08 shot: the game's bank, byte for byte (the suppressed rifles fire the MPX5's SP suppressed
     # event, SUPP_RIFLE_*; they used to share the Galil's event, with its waves edited)
     galil_orig = open(os.path.join(ROOT, "re", "sound", dc_data_patches.RIFLE_SUPP_BANK + ".bnk"), "rb").read()
     galil = galil_orig
@@ -577,9 +639,9 @@ def stage_modfs(salt=0):
                 last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/") or x.startswith("soundbank4/"))
                 lst.insert(last + 1, f"soundbank4/{cb}.bnk")
         dc_data_patches.verify_supp_carrier(ROOT, os.path.join(ROOT, "re", "gamebin", "dc1"), carrier)
-        print(f"sound: Galil = the game's stock bank (stock shot); suppressed rifles = the old mix on {dc_data_patches.SUPP_CARRIER_EVENT} (bank {cb})")
+        print(f"sound: Galil = the game's stock bank (v1.08 shot); suppressed rifles = the old mix on {dc_data_patches.SUPP_CARRIER_EVENT} (bank {cb})")
     else:
-        print("sound: Galil = the game's stock bank (stock shot); suppressed rifles = the MPX5's SP suppressed shot (T2R_SUPP_CARRIER=0)")
+        print("sound: Galil = the game's stock bank (v1.08 shot); suppressed rifles = the MPX5's SP suppressed shot (T2R_SUPP_CARRIER=0)")
     # Tactical Shotgun shots (not the pump's sound; the suppressed one like the
     # Chigurh "silencedshotgun.wav"): two shotgun banks no MP gun uses, loaded in matches (pak68)
     #   Abby's double barrel (sfx-shotgun-dbl-barrel-abby-player): blooms = the hunting rifle's
@@ -737,10 +799,26 @@ def stage_modfs(salt=0):
         dc_data_patches.patch_milsniper_scope_reticle(wg)      # own scope view (mil-dot widget), the hunting rifle keeps the shared one
         if dc_data_patches.MILSNIPER_NO_RECHAMBER:       # semi-auto at 2013's 0.4 s: no bolt cycle after the shot
             dc_data_patches.patch_milsniper_art(wa)
+    if dc_data_patches.VINTAGE_ON:
+        # Vintage Rifle: the hunting rifle's clone (bolt clips, overlays, reload) on TLOU2's NPC bolt rifle model, no scope (upgrades=False:
+        # no scope bundle, no upgrade parts - its levels are stats only, t2r-ext WEAPON_STATS), own firearm def (magazine 2, kick)
+        weapon_clone.clone_weapon(os.path.join(STAGE, "bin", "dc1"), dc_data_patches.VINTAGE_SRC, dc_data_patches.VINTAGE, dc_data_patches.VINTAGE_SFX, dc_data_patches.VINTAGE_AUDIO, None,
+                                  dc_data_patches.VINTAGE_ACTOR, None, dc_data_patches.VINTAGE_MUZZLE_DZ, upgrades=False)
+        dc_data_patches.patch_m14_gameplay(wg, dc_data_patches.VINTAGE, dc_data_patches.VINTAGE_STATS)
     _prof.lap('weapon clones (M14/Enforcer/Tac/Burst/Military Sniper)')
+    if dc_data_patches.VINTAGE_BOLT:
+        _vbl_prepare()          # (before stage_frontier: its carrier builds of the shared paks take the Vintage copies too)
     if dc_data_patches.FRONTIER_ON:
         stage_frontier(paths, order, wa, wg, mdata)
     _prof.lap('stage_frontier (carriers, overlay, sound)')
+    if dc_data_patches.VINTAGE_BOLT:
+        stage_vintage_bolt(paths, order, wa, mdata)
+    else:
+        sys.path.insert(0, os.path.join(TOOLS, "part1"))
+        import vintage_bolt
+        vintage_bolt.write_ext_header(None)       # (an empty table: a header of an earlier build must not stay in the ext)
+        print("vintage bolt: off (T2R_VINTAGE_BOLT=0) - the hunting rifle's rechamber clips at x1")
+    _prof.lap('stage_vintage_bolt (carriers, overlay)')
     # 2013 El Diablo (purchasable scoped revolver) and Shorty (sawn-off double barrel sidearm):
     # clones of the revolver / Abby's over-under on their own models (tools/models/factions_guns.py)
     if dc_data_patches.FACTION_GUNS:
@@ -753,6 +831,10 @@ def stage_modfs(salt=0):
         weapon_clone.clone_weapon(os.path.join(STAGE, "bin", "dc1"), "shotgun-baserri-over-under", dc_data_patches.SHORTY,
                                   None, None, None, dc_data_patches.SHORTY_ACTOR, upgrades=False)
         dc_data_patches.patch_m14_gameplay(wg, dc_data_patches.SHORTY, dc_data_patches.SHORTY_STATS)
+        if dc_data_patches.SNUBBY_ON:   # the Snubby: a revolver clone with its own shot event (SNUBBY_SFX); Part I reload in stage_p1_anims
+            weapon_clone.clone_weapon(os.path.join(STAGE, "bin", "dc1"), "pistol-revolver-taurus", dc_data_patches.SNUBBY,
+                                      dc_data_patches.SNUBBY_SFX, None, None, dc_data_patches.SNUBBY_ACTOR, upgrades=False)
+            dc_data_patches.patch_m14_gameplay(wg, dc_data_patches.SNUBBY, dc_data_patches.SNUBBY_STATS)
         if dc_data_patches.P1_GUNS:
             stage_p1_anims(paths, order, wa, mdata, wg)
     _prof.lap('El Diablo/Shorty clones + stage_p1_anims (Part I gun anims, sounds)')
@@ -799,6 +881,12 @@ def stage_modfs(salt=0):
     # 2 rifle, 1 pistol) - try rifle for the reticle (+0x1c0 was not it)
     # (+0x2c weapon class 2 gave it the bolt rifle's rechamber animation - reverted; reticle open)
     # Double Barrel: 2013 big circle (after the Shorty clone, which copies the over-under and keeps its own reticle)
+    if dc_data_patches.DRAGON_ON:
+        # Dragon's Buckshot: Abby's over-under as the game has it (cloned BEFORE set_art_model moves the Double Barrel to the side-by-side
+        # below), with its upgrade sets / bundles (upgrades=True: t2r-ext FREE_BUNDLES puts stock + bullet-loops + barrel on from spawn); the firearm
+        # def stays the Double Barrel's (t2r-ext syncs it), the 2013 big circle reticle like the Double Barrel's
+        weapon_clone.clone_weapon(os.path.join(STAGE, "bin", "dc1"), dc_data_patches.DBL_WEAPON, dc_data_patches.DRAGON)
+        dc_data_patches.patch_tac_reticle(wg, dc_data_patches.DRAGON, dc_data_patches.DBL_RETICLES)
     dc_data_patches.patch_tac_reticle(wg, dc_data_patches.DBL_WEAPON, dc_data_patches.DBL_RETICLES)
     dc_data_patches.patch_tac_art_reticle(os.path.join(STAGE, "bin", "dc1", "weapon-art.bin"))
     if dc_data_patches.DBL_MODEL_ON:
@@ -883,8 +971,14 @@ def stage_modfs(salt=0):
     # actors listed in actor97.txt / the MP level (dc_data_patches.MP_LEVEL_ADDS)
     import factions_guns
     fg_paks = {}
-    for actor, make in (((dc_data_patches.DIABLO_ACTOR, lambda o: factions_guns.build_diablo(o, *factions_guns.pak_cli())),
-                         (dc_data_patches.SHORTY_ACTOR, factions_guns.build_shorty)) if dc_data_patches.FACTION_GUNS else ()):
+    fg_models = (((dc_data_patches.DIABLO_ACTOR, lambda o: factions_guns.build_diablo(o, *factions_guns.pak_cli())),
+                  (dc_data_patches.SHORTY_ACTOR, factions_guns.build_shorty)) if dc_data_patches.FACTION_GUNS else ())
+    if dc_data_patches.SNUBBY_ON:       # the Snubby: Part I's .357 in a renamed copy of the revolver's pak (tools/part1/p1_guns.SNUBBY)
+        sys.path.insert(0, os.path.join(TOOLS, "part1"))
+        import p1_guns
+        assert p1_guns.SNUBBY["actor"] == dc_data_patches.SNUBBY_ACTOR, "Snubby actor: p1_guns.SNUBBY and dc_data_patches.SNUBBY_ACTOR differ"
+        fg_models += ((dc_data_patches.SNUBBY_ACTOR, lambda o: p1_guns.build(p1_guns.SNUBBY, o, preview=False)),)
+    for actor, make in fg_models:
         fgo = os.path.join(STAGE, "actor97", actor + ".pak")
         fg_paks[actor] = _cached_pak("model-" + actor, ["factions_guns", "p1_guns"], fgo, lambda: make(fgo),
                                      (_p1_inputs() if factions_guns.p1_guns_enabled() else [_models()]))
@@ -907,6 +1001,20 @@ def stage_modfs(salt=0):
                 if _p not in lst:
                     anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
                     lst.insert(lst.index(anchor) + 1, _p)
+    # CUSTOMIZE stage poses (menu_scenes.POSE_ACTORS): rogue-mode-poses.pak sits only in world-game-start.psarc, an SP world archive the MP
+    # menu never mounts - an A/B log showed every rogue-mode-* clip had duration 0 although the menu scene paks' pak68 blocks listed
+    # the actor (no visible difference in the menu). Shipped in the mod like the NR crates above, so the menu scenes find it. 0.8 MB.
+    import dsar_list        # (menu_scenes: the module-level import; a local import here makes the name local to stage_modfs and breaks its earlier use)
+    _d, _ent, _bs, _bsz = dsar_list.open_files(os.path.join(os.environ.get("T2_GAME", "C:/Games/The Last of Us Part II Remastered"),
+                                                            "build", "pc", "main", "world-game-start.psarc"))
+    for _a in menu_scenes.POSE_ACTORS:
+        _p = "actor97/" + _a + ".pak"
+        os.makedirs(os.path.join(STAGE, "actor97"), exist_ok=True)
+        open(os.path.join(STAGE, _p), "wb").write(dsar_list.extract(_d, _ent, _bs, _bsz, _p))
+        for lst in (paths, order):
+            if _p not in lst:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
+                lst.insert(lst.index(anchor) + 1, _p)
     # Crafter gift (tools/ext/gift.c): the gift weapon IS the brick (clone_weapon brick -> gift, its actors); its four mesh paks throw-brick-standard / -a / -b / -c
     # carry the SP medical supply box instead (tools/models/gift_box_pak.py: box mesh in every LOD, box maps in the brick material) - joints, grip, hold and
     # throw are the brick's own. The MP level did not load the brick actors: dc_data_patches.MP_LEVEL_ADDS adds them. T2R_GIFT=0 builds without.
@@ -963,7 +1071,7 @@ def stage_modfs(salt=0):
                 anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
                 lst.insert(lst.index(anchor) + 1, p)
     _prof.lap('model: dbl_barrel')
-    # visible armour: grey copies of the cut multiplayer's helmet / torso (tools/models/armour_paks.py)
+    # visible armour: grey copies of the Twelve Weeks helmet / torso (tools/models/armour_paks.py)
     import armour_paks
     adir = os.path.join(STAGE, "actor97")
     arm = {a: os.path.join(adir, a + ".pak") for a in (armour_paks.HELMET_ACTOR, armour_paks.TORSO_ACTOR)}
@@ -1169,14 +1277,21 @@ def stage_modfs(salt=0):
     if dc_data_patches.FRONTIER_ON:        # the Marlin lever model (game pak) for the Frontier Rifle's icon
         frontier_pak = os.path.join(STAGE, "actor97", "frontier-icon-src.pak")
         open(frontier_pak, "wb").write(_game_pak(dc_data_patches.FRONTIER_ACTOR))
+    vintage_pak = None
+    if dc_data_patches.VINTAGE_ON:         # TLOU2's NPC bolt rifle model (game pak) for the Vintage Rifle's icon
+        vintage_pak = os.path.join(STAGE, "actor97", "vintage-icon-src.pak")
+        open(vintage_pak, "wb").write(_game_pak(dc_data_patches.VINTAGE_ACTOR))
     icon_paks = dict(enforcer_pak=deagle_pak, colt_pak=_colt_work_pak() if dc_data_patches.P1_COLT else None,
                      diablo_pak=fg_paks.get(dc_data_patches.DIABLO_ACTOR), shorty_pak=fg_paks.get(dc_data_patches.SHORTY_ACTOR),
-                     dbl_pak=dbl_pak, frontier_pak=frontier_pak, burst_pak=burst_pak, milsniper_pak=mil_pak)
+                     dbl_pak=dbl_pak, frontier_pak=frontier_pak, burst_pak=burst_pak, milsniper_pak=mil_pak,
+                     vintage_pak=vintage_pak)
     _bc.cached("icons", [_bc.Code("make_icons"), _env_scoped("make_icons"), _bc.File(os.path.join(TOOLS, "features", "data", "milsniper-scope-reticle.png")), _re("icons"), _models(), _re("armor", "ref"), _bc.Stat(os.path.join(TOOLS, "models")),
                          {k: (_bc.File(v) if v else None) for k, v in icon_paks.items()}],
                lambda: make_icons.main(os.path.join(ROOT, "re", "icons"), idir, **icon_paks), dirs=[idir])
     if frontier_pak:
         os.remove(frontier_pak)
+    if vintage_pak:
+        os.remove(vintage_pak)
     for f in sorted(os.listdir(idir)):
         p = "gtex1/streaming/t2r/icons/" + f
         for lst in (paths, order):
@@ -1208,6 +1323,47 @@ def stage_modfs(salt=0):
                 last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/"))
                 lst.insert(last + 1, p)
     print(f"clan end screens: {len(os.listdir(cdir))} files in gtex1/streaming/t2r/clanend")
+    # the redesigned CHOOSE YOUR SIDE art (parallax key art + dims + shade; tools/features/choose_widgets.py, tools/ext/choose.c) ->
+    # streaming/t2r/choose/*.png from re/choose-1115/tex (re/choose-1115/src/make_ingame_choose.py)
+    import choose_ship
+    chdir = os.path.join(STAGE, "gtex1", "streaming", "t2r", "choose")
+    for f in choose_ship.main(os.path.join(ROOT, "re", "choose-1115", "tex"), chdir):
+        p = "gtex1/streaming/t2r/choose/" + f
+        for lst in (paths, order):
+            if p not in lst:
+                last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/"))
+                lst.insert(last + 1, p)
+    print(f"choose your side: {len(os.listdir(chdir))} files in gtex1/streaming/t2r/choose")
+    # the clan event key art (5 parallax layers per event and faction; tools/features/clan_widgets.py build_event_page evArt, t2r-ext.c
+    # ev_art_fill) -> streaming/t2r/clanev/*.png from re/clan-events-1117/tex (re/clan-events-1117/src/ship_layers.py).
+    # ONE file per layer (no _1440p / _1080p copies: the game falls back to the base name) at 6 bits of colour: 18.2 MB (15.6 MB after png_opt) for the 70 layers
+    # instead of 57.3 MB (tools/models/figures/clanev_ship.py, re/clan-events-1117.md "Size").
+    evtex = os.path.join(ROOT, "re", "clan-events-1117", "tex")
+    if os.path.isdir(evtex) and any(f.endswith(".png") for f in os.listdir(evtex)):
+        import clanev_ship
+        evdir = os.path.join(STAGE, "gtex1", "streaming", "t2r", "clanev")
+        _evf = clanev_ship.main(evtex, evdir)
+        for f in os.listdir(evdir):                 # (a stage dir of an older build: its resolution copies must not ride along)
+            if f not in _evf:
+                os.remove(os.path.join(evdir, f))
+        for f in _evf:
+            p = "gtex1/streaming/t2r/clanev/" + f
+            for lst in (paths, order):
+                if p not in lst:
+                    last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/"))
+                    lst.insert(last + 1, p)
+        print(f"clan event art: {len(os.listdir(evdir))} files, {sum(os.path.getsize(os.path.join(evdir, f)) for f in _evf) / 1e6:.1f} MB in gtex1/streaming/t2r/clanev")
+    # the achievement icons (tools/features/achieve_widgets.py page + unlock card, tools/ext/achieve_ui.c) -> streaming/t2r/ach/*.png from
+    # re/achievements-1117/tex (re/achievements-1117/src: fist.py / obj.py / glyph.py + emblem.py)
+    import ach_ship
+    adir = os.path.join(STAGE, "gtex1", "streaming", "t2r", "ach")
+    for f in ach_ship.main(os.path.join(ROOT, "re", "achievements-1117", "tex"), adir):
+        p = "gtex1/streaming/t2r/ach/" + f
+        for lst in (paths, order):
+            if p not in lst:
+                last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/"))
+                lst.insert(last + 1, p)
+    print(f"achievement icons: {len(os.listdir(adir))} files in gtex1/streaming/t2r/ach")
     import widgets_patch
     if dc_data_patches.MILSNIPER_ON and os.path.isfile(widgets_patch.MIL_SCOPE_PNG):     # artist's Military Sniper scope reticle (widgets_patch.add_mil_scope)
         sp = os.path.join(STAGE, "gtex1", *widgets_patch.MIL_SCOPE_TEX.split("/"))
@@ -1241,7 +1397,7 @@ def stage_modfs(salt=0):
         for k, v in dc_check.check_mod_tree(STAGE).items():
             print(f"dc_check {k}: {v[0]} entries, {v[1]} relocated pointers, {v[2]} exports - OK")
     _prof.lap('dc_check (level set loader check)')
-    # Cut multiplayer armor: 4 helmet + 4 torso spawners (one per player slot, AutoSpawn off), spawned
+    # Twelve Weeks armor: 4 helmet + 4 torso spawners (one per player slot, AutoSpawn off), spawned
     # on demand with spawn-entity-async (which streams the art in) and attached by t2r-ext
     subprocess.run(["pwsh", "-NoProfile", "-File", os.path.join(TOOLS, "features", "art_spawners.ps1"),
                     "-Pak", os.path.join(STAGE, "pak68", "starlight-mp-test-ingame.pak"),
@@ -1260,7 +1416,7 @@ def stage_modfs(salt=0):
         for lst in (paths, order):
             if "pak68/" + nav + ".pak" not in lst:
                 lst.insert(lst.index("pak68/" + src) + 1, "pak68/" + nav + ".pak")
-        print(f"navmesh: {level} + package {nav} (base pak, {k} spawner names renamed, {n} strings)")
+        print(f"navmesh: {level} + package {nav} (spec's pak, {k} spawner names renamed, {n} strings)")
     _prof.lap('pipe bomb text + nav paks')
     lm = "bin/dc1/listen-mode.bin"
     r = dc_data_patches.patch_listen_mode(os.path.join(ROOT, "re", "gamebin", "dc1", "listen-mode.bin"),
@@ -1529,8 +1685,22 @@ def stage_modfs(salt=0):
     _prof.lap('stage_molo_death (SP burning-death clips)')
     stage_unstream_disarms(paths, order)
     _prof.lap('stage_unstream_disarms (SP hatchet disarm clips made resident)')
+    stage_revive_nr(paths, order)
+    _prof.lap('stage_revive_nr (kneel help-up revive halves on page carriers)')
     stage_mp_snow(paths, order)
     stage_crew_winter(paths, order)
+    stage_hood_fit(paths, order)                        # (after the snow build: it widens the snow version of the hood)
+    stage_gasmasks(paths, order)
+    stage_scar_ports(paths, order)
+    stage_hats(paths, order)
+    stage_kellie(paths, order)
+    stage_hairparts(paths, order)                       # (after stage_hats: it replaces bare-head copies under their own names)
+    stage_facefit(paths, order)
+    stage_handtint(paths, order)
+    # (after the snow build AND stage_scar_ports: it tints the version of a kit that an earlier step staged - the snow kits, and
+    # militia-female-07-kit, which ships from a world archive with the ported paks - else the game's sp-common pak)
+    stage_tint_kits(paths, order)
+    _prof.lap('stage_gasmasks (CUSTOMIZE WLF story gas masks)')
     _prof.lap('stage_crew_winter (Owen / Manny / Jordan winter parts, T2R_MP_SNOW=1)')
     stage_winter_under(paths, order)
     _prof.lap('stage_winter_under (pushed copies of the WLF winter clothes for the armoured winter twins)')
@@ -1744,6 +1914,28 @@ def stage_molo_death(paths, order):
     _stage_anim_pak(paths, order, molo_death_pak.HOST_PAK, data, "SP burning death (molotov)")
 
 
+def stage_revive_nr(paths, order):
+    """actor97/anim-npc-alert-caps.pak (as staged: the gun execution carriers stay) with the kneel help-up revive halves (re/revive-1118/bake, the
+    No Return ally revive edited for the all-fours downed pose: walk-ins from 5 bearings x 2 kneel sides, loop, pull-up) on free carriers of a new
+    data page (revive_nr_pak.py: carriers no earlier stage re-baked, ClipData + align / apReference rows repointed). Writes tools/ext/revive_nr.h
+    (carrier names + walk-in paths; empty table = revive2013.c plays the 2013 pair). Runs after every other stage that patches this pak.
+    T2R_REVIVE_NR=0: not staged, empty header."""
+    import revive_nr_pak
+    if os.environ.get("T2R_REVIVE_NR", "1") == "0":
+        revive_nr_pak.write_header(revive_nr_pak.HEADER, {}, {})
+        print("revive nr: off (T2R_REVIVE_NR=0) - the 2013 revive pair plays")
+        return
+    name = revive_nr_pak.HOST_PAK
+    staged = os.path.join(STAGE, "actor97", name + ".pak")
+    game = _game_pak(name)
+    host = open(staged, "rb").read() if os.path.exists(staged) else game
+    data, car = revive_nr_pak.stage(game, host)
+    if data is None:
+        print(f"revive nr: no baked halves ({revive_nr_pak.src_dir() or 're/revive-1118/bake/out missing'}) - empty header, the 2013 revive pair plays")
+        return
+    _stage_anim_pak(paths, order, name, data, f"kneel revive ({len(car)} halves, {len(data) - len(host)} bytes more)")
+
+
 def stage_unstream_disarms(paths, order):
     """actor97/anim-melee-abby-t2.pak (the game's own Abby melee pak, already loaded by every MP match through abby-player-fundamentals) with SP's
     hatchet disarm clips made RESIDENT (tools/features/unstream_anims.py: the streamed clips' chunks decoded + re-encoded into full ClipData on the
@@ -1911,6 +2103,338 @@ def stage_mp_snow_copies(paths, kits):
     for (kit, _c), rep in zip(todo, _pool_calls([c for _k, c in todo])):          # (independent copies: own staged file each; report lines in the original order)
         done.append(f"{kit} ({', '.join(f'{g} {v}' for g, v in rep.items())})")
     print(f"mp snow: mod copies of swap garments: {'; '.join(done) or 'none'}")
+
+
+def stage_gasmasks(paths, order):
+    """actor97/t2r-gm-<m|f>-<mask>.pak: the SP story gas masks re-seated on the MP head (tools/models/wlf_gasmasks.py) for the CUSTOMIZE WLF headwear rows
+    (customize_items.MOD_PARTS: the look2 records are copies of the stock mask's). Listed in the level by dc_data_patches.GASMASK_ACTORS (male in
+    MP_LEVEL_ADDS, female in FEMALE_LEVEL_ADDS)."""
+    if not dc_data_patches.GASMASKS_ON:
+        return
+    sys.path.insert(0, os.path.join(TOOLS, "models"))
+    import wlf_gasmasks
+    assert wlf_gasmasks.ACTORS == dc_data_patches.GASMASK_ACTORS, "wlf_gasmasks.ACTORS != dc_data_patches.GASMASK_ACTORS"
+    under = wlf_gasmasks.under_actors()                # (the under-hat shapes: data/mask_under.npz, none without the file)
+    import customize_items as _ci
+    assert wlf_gasmasks.under_classes() == _ci.MASK_UNDER, f"mask_under.npz classes {wlf_gasmasks.under_classes()} != customize_items.MASK_UNDER {_ci.MASK_UNDER}"
+    actors = wlf_gasmasks.ACTORS["m"] + wlf_gasmasks.ACTORS["f"] + under["m"] + under["f"]
+    out97 = os.path.join(STAGE, "actor97")
+    outs = [os.path.join(out97, a + ".pak") for a in actors]
+    rep = {}
+
+    def make():
+        rep.update(wlf_gasmasks.build_all(out97))
+        return rep
+    _bc.cached("gasmasks", [_bc.Code("wlf_gasmasks"), _bc.Code("rename_pak"), _bc.Code("mesh_replace"), _env_scoped("wlf_gasmasks")] +
+               ([_bc.File(wlf_gasmasks.UNDER_FILE), _bc.Code("scar_ports_pack")] if under["m"] else []), make, files=outs)
+    import armour_paks
+    for a in actors:
+        pk = armour_paks._load(open(os.path.join(out97, a + ".pak"), "rb").read())
+        geo = {n[4:].split(".")[0] for n, t, _pi, _io in pk.items if t == "FOREGROUND_SECTION_2" and n.startswith("geo.")}
+        assert geo == {a}, f"{a}: geo parts {geo} (the look2 part must be the pak name)"
+        lvl = dc_data_patches.MP_LEVEL_ADDS if a[6:9] == "-m-" else dc_data_patches.FEMALE_LEVEL_ADDS      # (t2r-g<m|class>-<sex>-...)
+        assert "actor " + a in lvl, f"{a}: staged but not in the level adds"
+        p = "actor97/" + a + ".pak"
+        for lst in (paths, order):
+            if p not in lst:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
+                lst.insert(lst.index(anchor) + 1, p)
+    print(f"model: gas masks {', '.join(actors)} ({sum(os.path.getsize(o) for o in outs)} bytes)")
+
+
+def stage_scar_ports(paths, order):
+    """actor97/scar-t2r-*.pak: the Seraphite garments rebuilt for the base bodies (customize_items.PORTED_PAKS; tools/models/scar_garment_port.py +
+    skin_tint.py, made ready by scar_ports_pack.py) for the CUSTOMIZE Seraphite torso rows. The files are prebuilt (their build needs the SP
+    archives and minutes of mesh work): copied out of customize_items.PORTS_DIR, each checked against tools/models/data/scar_ports.json."""
+    import hashlib
+    import json
+    import customize_items as ci
+    if not ci.PORTS_ON:
+        print(f"model: rebuilt Seraphite garments NOT shipped (T2R_CZ_PORTS=0, or {ci.PORTS_DIR} does not hold the files of {ci.PORTS_LIST}): their rows stay tier 2")
+        return
+    lst = json.load(open(ci.PORTS_LIST))
+    out97 = os.path.join(STAGE, "actor97")
+    adds = dc_data_patches.MP_LEVEL_ADDS + dc_data_patches.FEMALE_LEVEL_ADDS
+    tot = 0
+    for a in ci.PORTED_PAKS:
+        data = open(os.path.join(ci.PORTS_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == lst[a], f"{a}: {ci.PORTS_DIR} holds another file than the listed one (tools/models/scar_ports_pack.py)"
+        assert "actor " + a in adds, f"{a}: staged but not in the level adds"
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: rebuilt Seraphite garments: {len(ci.PORTED_PAKS)} paks ({tot} bytes) from {ci.PORTS_DIR}")
+
+
+def stage_hats(paths, order):
+    """actor97/t2r-hw-*.pak: the hats / beanies cut out of NPC heads (customize_items.HATS: tools/models/data/head_hats.json + the
+    prebuilt files in HATS_DIR, made by tools/models/head_hats.py), each checked against the list, as stage_scar_ports."""
+    import hashlib
+    import customize_items as ci
+    if not ci.HATS:
+        print(f"model: head hats NOT shipped (T2R_CZ_HATS=0, or {ci.HATS_DIR} does not hold the files of {ci.HATS_LIST})")
+        return
+    out97 = os.path.join(STAGE, "actor97")
+    adds = dc_data_patches.MP_LEVEL_ADDS + dc_data_patches.FEMALE_LEVEL_ADDS
+    tot = 0
+    fit = ci.HATS_FIT["paks"] if ci.HATS_FIT else {}
+    stock = list(ci.HATS_FIT["stock"]) if ci.HATS_FIT else []
+    assert all(a in ci.HATS["paks"] or a in stock for a in fit), "hat_skin_fit.json lists a pak that is neither a cz-hats pak nor a stock cap"
+    for a, want in ci.HATS["paks"].items():
+        src = ci.HATS_FIT_DIR if a in fit else ci.HATS_DIR      # (a hat pushed off the heads' skin: the cz-hats7 file, same name)
+        want = fit.get(a, want)
+        data = open(os.path.join(src, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == list(want), f"{a}: {src} holds another file than the listed one (tools/models/head_hats.py / hat_skin_fit.py)"
+        assert "actor " + a in adds, f"{a}: staged but not in the level adds"
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: head hats: {len(ci.HATS['paks'])} paks ({tot} bytes) from {ci.HATS_DIR}" + (f", {len(fit) - len(stock)} of them pushed off the heads' skin ({ci.HATS_FIT_DIR})" if fit else ""))
+    for a in stock:                                         # the game's own caps that moved, under their own names
+        out = os.path.join(out97, a + ".pak")
+        game = _game_pak(a)
+        assert hashlib.sha1(game).hexdigest() == ci.HATS_FIT["stock_source"][a], f"{a}: the game's pak is not the one the skin fit was made from"
+        data = open(os.path.join(ci.HATS_FIT_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == list(fit[a]), f"{a}: {ci.HATS_FIT_DIR} holds another file than the listed one"
+        import geo_count
+        assert geo_count.count(data) == geo_count.count(game), f"{a}: the fit changed the geometry items"
+        how = "replaces the game's pak"
+        if os.path.exists(out):                             # (an earlier step's version of this cap, the snow build's: the fit's
+            sys.path.insert(0, os.path.join(TOOLS, "models"))   # positions go into THAT file - same mesh, other material)
+            import hood_fit
+            import pak_validate
+            staged = open(out, "rb").read()
+            data, _mx = hood_fit.transfer(staged, game, data)
+            assert geo_count.count(data) == geo_count.count(staged), f"{a}: the fit changed the geometry items"
+            bad = pak_validate.check(data, a, strict=False)
+            assert not bad, f"{a}: does not validate with the fit's positions: {bad[:3]}"
+            how = "positions written into the version an earlier step staged"
+        open(out, "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        print(f"model: stock cap {a} pushed off the heads' skin ({how}, same geometry items)")
+
+
+def _slim_line(a, data, r, geo_count, pak_validate):
+    """the build log's line of a prebuilt pak whose unused geometry items may have been removed (geodrop): slots before -> after,
+    and that the staged bytes validate. A slim pak on a character kit is NOT proven on a client before build #21's A/B check."""
+    now = geo_count.count(data)
+    assert now == r.get("geo_slots", now), f"{a}: {now} geometry items, the list says {r.get('geo_slots')}"
+    bad = pak_validate.check(data, a, strict=False)
+    assert not bad, f"{a}: does not validate: {bad[:3]}"
+    print(f"model: slim pak {a}: geometry slots {r.get('geo_slots_source', now)} -> {now}, pak_validate ok")
+
+
+def stage_hood_fit(paths, order):
+    """actor97/scar-female-hoodup.pak with the positions of tools/models/data/hood_fit.npz (tools/models/hood_fit.py: the female
+    Seraphite hood widened over the list faces' hair), under the pak's own name. Source = the
+    snow build's version when stage_mp_snow has staged one, else the game's. T2R_CZ_HOOD=0 = the stock hood; a missing positions
+    file stops the build (a dry run: the step returned without a word and the hood stayed stock)."""
+    sys.path.insert(0, os.path.join(TOOLS, "models"))
+    import hood_fit
+    # (the fit
+    #  moves vertices up to 77 mm and leaves spikes; the stock hood is the default again, T2R_CZ_HOOD=1 = the widened one)
+    if os.environ.get("T2R_CZ_HOOD", "0") == "0":
+        print("model: female hood NOT widened (T2R_CZ_HOOD=0)")
+        return
+    assert os.path.exists(hood_fit.NPZ), f"{hood_fit.NPZ} is missing (python tools/models/hood_fit.py --npz <fitted pak>); T2R_CZ_HOOD=0 = the stock hood"
+    import geo_count
+    import pak_validate
+    a = hood_fit.PAK
+    out = os.path.join(STAGE, "actor97", a + ".pak")
+    staged = os.path.exists(out)
+    src = open(out, "rb").read() if staged else _game_pak(a)
+    data, mx = hood_fit.apply_fit(src)
+    assert geo_count.count(data) == geo_count.count(src), f"{a}: the fit changed the geometry items"
+    bad = pak_validate.check(data, a, strict=False)
+    assert not bad, f"{a}: fitted pak does not validate: {bad[:3]}"
+    open(out, "wb").write(data)
+    p = "actor97/" + a + ".pak"
+    for l in (paths, order):
+        if p not in l:
+            anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+            l.insert(l.index(anchor) + 1, p)
+    print(f"model: female hood widened over the list hair ({a}, {'the snow build' if staged else 'the game'}'s pak, largest move {mx * 1000:.1f} mm)")
+
+
+def stage_hairparts(paths, order):
+    """actor97/<pak>.pak of customize_items.HAIRPARTS (tools/models/data/hair_parts.json + the prebuilt files in HAIRPARTS_DIR, made
+    by the dev-model session, listed by tools/models/hair_parts_import.py): the bare-head copies with their hair as separate
+    parts. Each REPLACES the cz-hats copy of the same name that stage_hats has just staged; each checked against the list."""
+    import hashlib
+    import customize_items as ci
+    if not ci.HAIRPARTS:
+        return
+    import geo_count
+    out97 = os.path.join(STAGE, "actor97")
+    tot = slots = 0
+    for r in ci.HAIRPARTS:
+        a = r["pak"]
+        dst = os.path.join(out97, a + ".pak")
+        assert os.path.exists(dst), f"{a}: no cz-hats copy of that name is staged (hair_parts.json replaces copies, it adds none)"
+        data = open(os.path.join(ci.HAIRPARTS_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == [r["bytes"], r["sha1"]], f"{a}: {ci.HAIRPARTS_DIR} holds another file than the listed one"
+        assert geo_count.count(data) <= geo_count.count(open(dst, "rb").read()), f"{a}: more geometry items than the copy it replaces"
+        import pak_validate
+        _slim_line(a, data, r, geo_count, pak_validate)
+        open(dst, "wb").write(data)
+        tot += len(data)
+        slots += geo_count.count(data)
+        # (per-hat hair: the face's extra paks - copies of the same kit holding per-hat parts only - are NEW actors, staged as KELLIE's)
+        for e in r.get("extra_paks", ()):
+            a2 = e["pak"]
+            data = open(os.path.join(ci.HAIRPARTS_DIR, a2 + ".pak"), "rb").read()
+            assert [len(data), hashlib.sha1(data).hexdigest()] == [e["bytes"], e["sha1"]], f"{a2}: {ci.HAIRPARTS_DIR} holds another file than the listed one"
+            lst = dc_data_patches.FEMALE_LEVEL_ADDS if r["sex"] == "f" else dc_data_patches.MP_LEVEL_ADDS
+            assert "actor " + a2 in lst, f"{a2}: staged but not in the level adds"
+            assert not pak_validate.check(data, a2, True), f"{a2}: pak_validate"
+            open(os.path.join(out97, a2 + ".pak"), "wb").write(data)
+            p = "actor97/" + a2 + ".pak"
+            for l in (paths, order):
+                if p not in l:
+                    anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                    l.insert(l.index(anchor) + 1, p)
+            tot += len(data)
+            slots += geo_count.count(data)
+    print(f"model: hair parts inside {len(ci.HAIRPARTS)} bare-head copies + {sum(len(r.get('extra_paks', ())) for r in ci.HAIRPARTS)} extra paks ({tot} bytes, {slots} geometry slots) from {ci.HAIRPARTS_DIR}")
+
+
+def stage_tint_kits(paths, order):
+    """actor97/militia-<sex>-NN-kit.pak of customize_items.TINT_KITS with the arm skin on the tinting hand material
+    (tools/models/wlf_hand_tint.tint), under the kit's OWN name: it replaces the game's pak in the mod data, as the snow kits do -
+    no new actor, no new geometry slot (build #19: the 32 kit COPIES were 804 of the engine's 5000). Source = the kit's pak in
+    the stage where an earlier step of THIS build put one (stage_modfs starts from an empty copy of re/modfs: the snow build's
+    version, the ported militia-female-07-kit of stage_scar_ports), else the game's sp-common pak. Not cached: under a second
+    a kit. (Build #20, first run: the source rule knew only the snow kits and asked sp-common for female 07 - KeyError.)"""
+    import customize_items as ci
+    if not ci.TINT_KITS:
+        return
+    sys.path.insert(0, os.path.join(TOOLS, "models"))
+    import geo_count
+    import pak_validate
+    import wlf_hand_tint
+    snow = {kit for kit, _g, _d in mp_snow.ALL} if mp_snow.ON else set()
+    out97 = os.path.join(STAGE, "actor97")
+    adds = dc_data_patches.MP_LEVEL_ADDS + dc_data_patches.FEMALE_LEVEL_ADDS
+    n = tot = n_staged = 0
+    plain = []
+    for sex, kits in ci.TINT_KITS.items():
+        for k in kits:
+            kit = ci.tint_kit_pak(sex, k)
+            assert "actor " + kit in adds, f"{kit}: a tint kit that is not in the MP level"
+            out = os.path.join(out97, kit + ".pak")
+            staged = os.path.exists(out)
+            assert staged or kit not in snow, f"{kit}: the snow build left no pak"
+            assert staged or kit not in getattr(ci, "WORLD_STOCK", {}), f"{kit}: a world-archive kit that stage_scar_ports did not stage (T2R_CZ_PORTS off?)"
+            src = open(out, "rb").read() if staged else _game_pak(kit)
+            n_staged += staged
+            data, rep = wlf_hand_tint.tint(src, sex)
+            if not rep["arm_materials"]:
+                plain.append(kit)                       # (no arm skin in the kit: it stays as it is)
+                continue
+            assert geo_count.count(data) == geo_count.count(src), f"{kit}: the tint changed the geometry items"
+            bad = pak_validate.check(data, kit, strict=False)
+            assert not bad, f"{kit}: tinted pak does not validate: {bad[:3]}"
+            open(out, "wb").write(data)
+            p = "actor97/" + kit + ".pak"
+            for l in (paths, order):
+                if p not in l:
+                    anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                    l.insert(l.index(anchor) + 1, p)
+            n += 1
+            tot += len(data)
+    print(f"model: hand tint inside {n} stock kits ({tot} bytes; {n_staged} on a version an earlier step staged, {len(snow & {ci.tint_kit_pak(s, k) for s, ks in ci.TINT_KITS.items() for k in ks})} of them the snow build's)"
+          + (f"; no arm skin in {', '.join(plain)}" if plain else ""))
+
+
+def stage_handtint(paths, order):
+    """actor97/<pak>.pak of the WLF tops' hand-tint copies (customize_items.HANDTINT: tools/models/data/wlf_hand_tint.json + the
+    prebuilt files in HANDTINT_DIR, made by tools/models/wlf_hand_tint.py), each checked against the list, as stage_kellie."""
+    import hashlib
+    import customize_items as ci
+    if not ci.HANDTINT:
+        return
+    out97 = os.path.join(STAGE, "actor97")
+    adds = dc_data_patches.MP_LEVEL_ADDS + dc_data_patches.FEMALE_LEVEL_ADDS
+    tot = 0
+    for a, want in ci.HANDTINT["paks"].items():
+        data = open(os.path.join(ci.HANDTINT_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == list(want), f"{a}: {ci.HANDTINT_DIR} holds another file than the listed one (tools/models/wlf_hand_tint.py)"
+        assert "actor " + a in adds, f"{a}: staged but not in the level adds"
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: WLF hand-tint copies: {len(ci.HANDTINT['paks'])} paks ({tot} bytes) from {ci.HANDTINT_DIR}")
+
+
+def stage_facefit(paths, order):
+    """actor97/<pak>.pak of the hat-fitted face parts (customize_items.FACEFIT: tools/models/data/face_fit.json + the prebuilt files in
+    FACEFIT_DIR), each checked against the list, as stage_kellie. A "first" pak is packed before its stock pak."""
+    import hashlib
+    import customize_items as ci
+    if not ci.FACEFIT:
+        return
+    out97 = os.path.join(STAGE, "actor97")
+    adds = dc_data_patches.MP_LEVEL_ADDS + dc_data_patches.FEMALE_LEVEL_ADDS
+    tot = 0
+    import geo_count
+    import pak_validate
+    for r in ci.FACEFIT:
+        a = r["pak"]
+        data = open(os.path.join(ci.FACEFIT_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == [r["bytes"], r["sha1"]], f"{a}: {ci.FACEFIT_DIR} holds another file than the listed one"
+        assert "actor " + a in adds, f"{a}: staged but not in the level adds"
+        _slim_line(a, data, r, geo_count, pak_validate)
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p, sp = "actor97/" + a + ".pak", "actor97/" + r["source"] + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                if r.get("first") and sp in l:
+                    l.insert(l.index(sp), p)
+                else:
+                    anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                    l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: hat-fitted faces: {len(ci.FACEFIT)} paks ({tot} bytes) from {ci.FACEFIT_DIR}: " +
+          ", ".join("%s %s %s%s" % (r["fac"], r["sex"], r["face"], " (before its stock pak)" if r.get("first") else "") for r in ci.FACEFIT))
+
+
+def stage_kellie(paths, order):
+    """actor97/<pak>.pak of the KELLIE rows (customize_items.KELLIE: tools/models/data/kellie_rows.json + the prebuilt files in KELLIE_DIR),
+    each checked against the list, as stage_scar_ports."""
+    import hashlib
+    import customize_items as ci
+    if not ci.KELLIE:
+        return
+    out97 = os.path.join(STAGE, "actor97")
+    tot = 0
+    for a, want in ci.KELLIE["paks"].items():
+        data = open(os.path.join(ci.KELLIE_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == list(want), f"{a}: {ci.KELLIE_DIR} holds another file than the listed one"
+        assert "actor " + a in dc_data_patches.FEMALE_LEVEL_ADDS, f"{a}: staged but not in the level adds"
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: KELLIE rows: {len(ci.KELLIE['paks'])} paks ({tot} bytes) from {ci.KELLIE_DIR}")
 
 
 def stage_crew_winter(paths, order):
@@ -2481,6 +3005,15 @@ def stage_frontier(paths, order, wa, wg, mdata):
     for pak in D.FRONTIER_CARRIER_PAKS:
         a_ = p1_carrier.anims(p1_carrier.load(p1_carrier.game_pak(pak)))
         caps.append([sum(1 for v in a_.values() if v[3] == p1_carrier.ELLIE_SIG), sum(1 for v in a_.values() if v[3] == frontier_reload.GUN_SIG)])
+    # Vintage bolt copies on the same paks (stage_vintage_bolt): built in the SAME p1_carrier.build as the Frontier's clips of that pak (a second
+    # build cannot chain on a first one's output: the first points every unused carrier at its first clip, the pool of the second is gone), after the
+    # Frontier's jobs so the Frontier's clips keep their carriers; their slots are reserved here (unique clips: identical copies share a carrier)
+    vx = {pak: _VBL_EXTRA.pop(pak) for pak in D.FRONTIER_CARRIER_PAKS if pak in _VBL_EXTRA}
+    for i, pak in enumerate(D.FRONTIER_CARRIER_PAKS):
+        for gi, kinds in ((0, ("part", "add")), (1, ("gun",))):
+            caps[i][gi] -= len({(j[1], j[2], repr(j[3])) for j in vx.get(pak, ()) if j[2] in kinds})
+        if min(caps[i]) < 0:
+            raise SystemExit(f"Vintage bolt carriers: {pak} has {caps[i]} body / gun slots left after the Vintage copies")
     per_pak = [[] for _ in caps]
     for job in jobs:
         gi = 1 if job[2] == "gun" else 0
@@ -2495,11 +3028,12 @@ def stage_frontier(paths, order, wa, wg, mdata):
     os.makedirs(os.path.join(STAGE, "actor97"), exist_ok=True)
     for pi, pak in enumerate(D.FRONTIER_CARRIER_PAKS):
         pjobs = per_pak[pi]
-        if not pjobs:
+        vjobs = vx.get(pak, [])
+        if not pjobs and not vjobs:
             continue
         while True:     # slots are counted above, bytes are not: a full pool spills its biggest clip to a later pak with a free slot
             try:
-                cdata, cn = p1_carrier.build(pjobs, print, pak=pak, use_gun=any(j[2] == "gun" for j in pjobs), gun_sig=frontier_reload.GUN_SIG)
+                cdata, cn = p1_carrier.build(pjobs + vjobs, print, pak=pak, use_gun=any(j[2] == "gun" for j in pjobs + vjobs), gun_sig=frontier_reload.GUN_SIG)
                 break
             except SystemExit as e:
                 if "carrier pool full" not in str(e):
@@ -2513,8 +3047,11 @@ def stage_frontier(paths, order, wa, wg, mdata):
                 pjobs.remove(big)
                 per_pak[to].append(big)
                 print(f"anim: Frontier carrier {pak} pool full - {big[0]} moved to {D.FRONTIER_CARRIER_PAKS[to]}")
-        p1_carrier.check(cdata, {cn[k]: c for k, c, _, _ in pjobs})
+        p1_carrier.check(cdata, {cn[k]: c for k, c, _, _ in pjobs + vjobs})
         names.update(cn)
+        if vjobs:
+            _VBL_NAMES.update({j[0]: cn[j[0]] for j in vjobs})
+            print(f"anim: {pak} carries {len(vjobs)} Vintage bolt copies ({len(set(cn[j[0]] for j in vjobs))} carriers) beside {len(pjobs)} Frontier clips")
         open(os.path.join(STAGE, "actor97", pak + ".pak"), "wb").write(cdata)
         cp = "actor97/" + pak + ".pak"
         for lst in (paths, order):
@@ -2559,12 +3096,17 @@ def stage_frontier(paths, order, wa, wg, mdata):
         for lv_ in (1, 2):
             wjobs += [(f"wedge|add-rech{lv_}", wclips[f"add-rech{lv_}"], "add", wev_rech), (f"wedge|gun-rech{lv_}", wclips[f"gun-rech{lv_}"], "gun", None)]
         gx3 = _gunexec_third(D.FRONTIER_NPC_ANIM_PAK)
-        wdata, wn = p1_carrier.build(wjobs, print, pak=D.FRONTIER_NPC_ANIM_PAK, use_gun=True, gun_sig=frontier_reload.GUN_SIG,
+        # (the Vintage bolt's rifle-base gun copies ride this pak too: same build, after the lever's jobs - see the body carriers above)
+        vjobs = _VBL_EXTRA.pop(D.FRONTIER_NPC_ANIM_PAK, [])
+        wdata, wn = p1_carrier.build(wjobs + vjobs, print, pak=D.FRONTIER_NPC_ANIM_PAK, use_gun=True, gun_sig=frontier_reload.GUN_SIG,
                                      body_sig=0xb813aaa4,
                                      keep_raw=True, src_bytes=gx3[0] if gx3 else None, exclude={r[0] for r in gx3[1]} if gx3 else ())
         if gx3:
             _GX_FRONTIER_STAGED.append(D.FRONTIER_NPC_ANIM_PAK)
-        p1_carrier.check(wdata, {wn[k]: c for k, c, _, _ in wjobs})
+        p1_carrier.check(wdata, {wn[k]: c for k, c, _, _ in wjobs + vjobs})
+        if vjobs:
+            _VBL_NAMES.update({j[0]: wn[j[0]] for j in vjobs})
+            print(f"anim: {D.FRONTIER_NPC_ANIM_PAK} carries {len(vjobs)} Vintage bolt gun copies ({len(set(wn[j[0]] for j in vjobs))} carriers) beside the lever's {len(wjobs)}")
         open(os.path.join(STAGE, "actor97", D.FRONTIER_NPC_ANIM_PAK + ".pak"), "wb").write(wdata)
         cp = "actor97/" + D.FRONTIER_NPC_ANIM_PAK + ".pak"
         for lst in (paths, order):
@@ -2633,6 +3175,130 @@ def stage_frontier(paths, order, wa, wg, mdata):
     print(f"sound: {D.FRONTIER_BANK} rebuilt for the Frontier Rifle: own shot ({len(wav_dir)} thump layers + the hunting rifle's crack)")
 
 
+def _vbl_prepare():
+    """Vintage Rifle bolt copies (tools/part1/vintage_bolt.py): the plan (gate frame, rate per variant / level, printed) and the carrier jobs, registered
+    per carrier pak in _VBL_EXTRA.  stage_frontier builds a registered pak's jobs inside its own carrier build of that pak (anim-ellie-workbench-bow is
+    its 4th body pak, anim-npc-m-lg holds the lever): p1_carrier.build cannot chain on its own output (a dry run: the second build stops on
+    'pointer into a ClipData body' - the first one pointed every unused carrier at its first clip).  stage_vintage_bolt builds what is left."""
+    sys.path.insert(0, os.path.join(TOOLS, "part1"))
+    import vintage_bolt as vb
+    rows = vb.plan()
+    vb.report(rows)
+    js = vb.jobs(rows)
+    _VBL_EXTRA.clear()
+    _VBL_NAMES.clear()
+    _VBL_ROWS[:] = rows
+    _VBL_EXTRA[vb.BODY_PAK] = js["body"]
+    _VBL_EXTRA[vb.GUN_PAK] = js["gun"]
+
+
+def stage_vintage_bolt(paths, order, wa, mdata):
+    """Vintage Rifle bolt cycle 0.95 / 0.85 / 0.75 s per upgrade level (vintage_bolt.CYCLE: re-timed copies, the bolt's motion x1.6 .. x2.1).  The RechamberWeapon state plays the hunting rifle's rechamber clips at
+    x1 whatever def +0x2c says (A/B: 1.97 s shot to shot), the next shot waits for the weapon-rechamber event inside the arms clip.  As the Frontier's
+    lever (frontier_anims.level_clip): re-timed copies of the rechamber-arms / -gun clips (tools/part1/vintage_bolt.py bake, committed in tools/features/data/vintage-bolt) on carrier slots, the
+    Vintage's own player overlay module player-specific-weapon-overlays/rifle-hunting-bolt (in modules.bin, used by no gun: the hunting rifle's
+    set + its rechamber clips renamed to the LEVEL-0 copies, the hunting rifle's compiled map), art def +0x180 / +0x188 = "rifle-hunting-bolt";
+    t2r-ext vbl_answer (tools/ext/vintage_bolt_built.h, written here) answers our own body's lookup of a level-0 copy with the level's copy.
+    The hunting rifle's own module is only read.  Runs after the Vintage's clone_weapon and after stage_frontier (which builds the shared carrier paks)."""
+    sys.path.insert(0, os.path.join(TOOLS, "part1"))
+    import vintage_bolt as vb
+    import p1_carrier
+    import p1_overlay
+    import weapon_clone
+    from dcfile import DcFile, fnv as _fnv
+    D = dc_data_patches
+    os.makedirs(os.path.join(STAGE, "actor97"), exist_ok=True)
+    # carrier paks stage_frontier did not build (Frontier off, or no lever wedge): own builds - the gun pak on top of the gun execution set (as the wedge)
+    for pak, js in list(_VBL_EXTRA.items()):
+        if pak == vb.GUN_PAK:
+            gx3 = _gunexec_third(pak)
+            # (the NPC body clips are pooled as in the wedge's build: the 24 rifle-base bodies alone hold too few bytes; with no body job one NPC
+            # clip is kept and the other NPC carriers point at it - p1_carrier.build)
+            data, nm = p1_carrier.build(js, print, pak=pak, use_gun=True, gun_sig=vb.GUN_SIG, body_sig=vb.NPC_BODY_SIG, keep_raw=True,
+                                        src_bytes=gx3[0] if gx3 else None, exclude={r[0] for r in gx3[1]} if gx3 else ())
+            if gx3 and pak not in _GX_FRONTIER_STAGED:
+                _GX_FRONTIER_STAGED.append(pak)        # (stage_gunexec then checks its clips decode back from this final file)
+        else:
+            data, nm = p1_carrier.build(js, print, pak=pak, use_gun=False)
+        p1_carrier.check(data, {nm[k]: c for k, c, _, _ in js})
+        open(os.path.join(STAGE, "actor97", pak + ".pak"), "wb").write(data)
+        cp = "actor97/" + pak + ".pak"
+        for lst in (paths, order):
+            if cp not in lst:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
+                lst.insert(lst.index(anchor) + 1, cp)
+        _VBL_NAMES.update(nm)
+        del _VBL_EXTRA[pak]
+        print(f"anim: {pak} carries {len(js)} Vintage bolt copies ({len(set(nm.values()))} carriers, own build)")
+    want_keys = {j for r in _VBL_ROWS for lv in r["levels"] for j in (vb.key("arms", r["v"], lv), vb.key("gun", r["v"], lv))}
+    if want_keys - set(_VBL_NAMES):
+        raise SystemExit(f"Vintage bolt: no carrier for {sorted(want_keys - set(_VBL_NAMES))}")
+    for pak, sig in ((vb.BODY_PAK, "body"), (vb.GUN_PAK, "gun")):
+        ks = [k for k in want_keys if k.split("|")[1] == ("arms" if sig == "body" else "gun")]
+        print(f"vintage bolt: {len(ks)} {sig} copies on {len(set(_VBL_NAMES[k] for k in ks))} carriers of {pak}")
+    # the overlay module: the hunting rifle's set (grips, aim, fire, reload) with the rechamber clips renamed to the level-0 copies
+    dc1 = os.path.join(STAGE, "bin", "dc1")
+    host = os.path.join(dc1, "player-specific-weapon-overlays", *D.FRONTIER_OVERLAY_HOST[0].split("/"))
+    if not os.path.exists(host):
+        host = os.path.join(ROOT, "re", "gamebin", "dc1", "player-specific-weapon-overlays", *D.FRONTIER_OVERLAY_HOST[0].split("/"))
+    rel = f"player-specific-weapon-overlays/{vb.OVERLAY_KEY}.bin"
+    dst = os.path.join(dc1, *rel.split("/"))
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    renames = vb.renames(_VBL_NAMES)
+    n, ch, add = p1_overlay.rewrite(os.path.join(ROOT, "re", "gamebin", "dc1", *rel.split("/")), host, D.FRONTIER_OVERLAY_HOST[1], renames, dst)
+    nk, _na = p1_overlay.rebuild_map(dst, host, "*weapon-specific-overlay-rifle-remington-bolt*", f"*weapon-specific-overlay-{vb.OVERLAY_KEY}*", {})
+    print(f"overlay {rel}: {D.FRONTIER_OVERLAY_HOST[1]} ({n} entries: {ch} retargeted, {add} added; tree entries with module pointers: "
+          f"{len(p1_overlay.rewrite.reused)} use the target's own lambdas, {len(p1_overlay.rewrite.dropped)} left out), compiled map {nk} keys (the hunting rifle's)")
+    rd = DcFile(open(dst, "rb").read())
+    sets = p1_overlay.find_sets(rd)
+    if len(sets) != 1:
+        raise SystemExit(f"Vintage overlay: {len(sets)} sets in the staged {rel}")
+    got = {}
+    for frm, to, _raw in p1_overlay.entries(rd, sets[0]):
+        got.setdefault(frm, to)                 # (the resolver takes the FIRST entry of a from-name)
+    for k, v in sorted(renames.items()):
+        ok = got.get(_fnv(k)) == _fnv(v)
+        print(f"overlay readback: {k} -> {v}: {'OK' if ok else 'MISSING'}")
+        if not ok:
+            raise SystemExit(f"Vintage overlay: {k} does not resolve to {v}")
+    weapon_clone.find_symbol(rd, f"*weapon-specific-overlay-{vb.OVERLAY_KEY}*")
+    dc_modules.set_size(mdata, rel[:-4], os.path.getsize(dst))
+    f = "bin/dc1/" + rel
+    for lst in (paths, order):
+        if f not in lst:
+            lst.insert(lst.index("bin/dc1/weapon-gameplay.bin") + 1, f)
+    # art def +0x180 / +0x188 (player overlay key) = "rifle-hunting-bolt" (no art def has that string: appended)
+    _vbl_art(wa, vb.OVERLAY_KEY)
+    vb.write_ext_header(_VBL_NAMES)
+    print(f"vintage bolt: tools/ext/{os.path.basename(vb.EXT_HEADER)} {len(vb.ext_rows(_VBL_NAMES))} level rows (the ext is rebuilt after the data build)")
+
+
+def _vbl_art(wa, key):
+    """weapon-art.bin: the Vintage's art def +0x180 / +0x188 (pointers to the player overlay key string) -> `key` (an existing NUL-terminated string
+    of the file, else one appended)"""
+    from dcfile import DcFile, fnv as _fnv
+    from weapon_clone import find_symbol, hash_get
+    D = dc_data_patches
+    d = DcFile(open(wa, "rb").read())
+    ho = find_symbol(d, "*weapon-art-defs-hash*")
+    a, src = hash_get(d, ho, _fnv(D.VINTAGE)), hash_get(d, ho, _fnv(D.VINTAGE_SRC))
+    if a == src:
+        raise SystemExit("Vintage art def is the hunting rifle's (clone_weapon must run first)")
+    s = key.encode() + b"\0"
+    at = bytes(d.data).find(b"\0" + s)
+    off = at + 1 if at >= 0 else d.append(s)
+    for o in (0x180, 0x188):
+        d.set_ptr(a + o, off)
+    open(wa, "wb").write(d.save())
+    rd = DcFile(open(wa, "rb").read())
+    a = hash_get(rd, find_symbol(rd, "*weapon-art-defs-hash*"), _fnv(D.VINTAGE))
+    for o in (0x180, 0x188):
+        q = rd.q(a + o)
+        if not rd.is_ptr(a + o) or bytes(rd.data[q:q + len(s)]) != s:
+            raise SystemExit(f"Vintage art def +{o:#x} does not read back as {key}")
+    print(f"weapon-art: {D.VINTAGE} player overlay key (+0x180 / +0x188) -> {key} ({'existing' if at >= 0 else 'appended'} string)")
+
+
 def stage_p1_anims(paths, order, wa, mdata, wg):
     """T2R_P1_GUNS=1 (with T2R_FACTION_GUNS=1): the Part I Shorty / El Diablo reload, fire-gun clips
     (tools/part1/p1_wire.py, re/part1/weapons.md section 9): the carrier anim pak (its own anim events - NOT stripped),
@@ -2640,8 +3306,22 @@ def stage_p1_anims(paths, order, wa, mdata, wg):
     `python tools/part1/p1_anims.py bake` (re/part1/anims in the main checkout)."""
     sys.path.insert(0, os.path.join(TOOLS, "part1"))
     import p1_wire
-    data, names = p1_wire.carrier_pak()
+    snubby = dc_data_patches.SNUBBY_ON
+    data, names = p1_wire.carrier_pak(snubby=snubby)
     open(os.path.join(STAGE, "actor97", p1_wire.MP_ACTOR + ".pak"), "wb").write(data)
+    if snubby:      # the Snubby's own carrier paks (p1_wire Snubby section; listed in the MP level by dc_data_patches SNUBBY_ON)
+        assert set(p1_wire.SNUBBY_PAKS) <= {l.split(" ", 1)[1] for l in dc_data_patches.MP_LEVEL_ADDS if l.startswith("actor ")}
+        spaks, snames = p1_wire.snubby_carrier_paks(gamebin_dc1=os.path.join(ROOT, "re", "gamebin", "dc1"))
+        names.update(snames)
+        for name, sdata in spaks:
+            dst = os.path.join(STAGE, "actor97", name + ".pak")     # (built from the game's pak: no other feature writes these two)
+            open(dst, "wb").write(sdata)
+            sp = "actor97/" + name + ".pak"
+            for lst in (paths, order):
+                if sp not in lst:
+                    lst.insert(lst.index("actor97/" + p1_wire.MP_ACTOR + ".pak") + 1 if "actor97/" + p1_wire.MP_ACTOR + ".pak" in lst
+                               else max(i for i, x in enumerate(lst) if x.startswith("actor97/")) + 1, sp)
+            print(f"anim: Snubby reload clips in {name} ({len(sdata)} bytes) in the MP level")
     p = "actor97/" + p1_wire.MP_ACTOR + ".pak"
     for lst in (paths, order):   # (runs before the model staging adds rifle-autorifle4: after the last actor97 entry then)
         if p not in lst:
@@ -2651,17 +3331,25 @@ def stage_p1_anims(paths, order, wa, mdata, wg):
     print(f"anim: Part I gun clips in {p1_wire.MP_ACTOR} ({len(data)} bytes) in the MP level")
     p1_wire.patch_art(wa, names)
     p1_wire.patch_gameplay(wg)                     # the Shorty is a SIDEARM (class 1: right hand, holster slot)
+    if snubby:
+        p1_wire.snubby_patch_art(wa)               # overlay key: the Part I round-by-round reload
     # Part I sounds: the host sets' banks (Ruger -> Shorty, .357 -> El Diablo) rebuilt with the Part I waves
     import p1_sound
     os.makedirs(os.path.join(STAGE, "soundbank4"), exist_ok=True)
-    for gun in ("shorty", "diablo"):
-        name, data = p1_sound.build(gun)
+    banks = [p1_sound.build(gun) for gun in ("shorty", "diablo")]
+    if snubby:      # the Snubby's mixed pistol-style shot in the Seraphite revolver bank (tools/part1/snubby_sound.py, user pick 'B4')
+        import snubby_sound
+        banks.append(snubby_sound.build())
+    for name, data in banks:
         open(os.path.join(STAGE, "soundbank4", name), "wb").write(data)
         for lst in (paths, order):
             if "soundbank4/" + name not in lst:
                 last = max(i for i, x in enumerate(lst) if x.startswith("gtex1/") or x.startswith("soundbank4/"))
                 lst.insert(last + 1, "soundbank4/" + name)
-    for rel in p1_wire.overlay_modules(os.path.join(ROOT, "re", "gamebin", "dc1"), os.path.join(STAGE, "bin", "dc1"), names):
+    rels = p1_wire.overlay_modules(os.path.join(ROOT, "re", "gamebin", "dc1"), os.path.join(STAGE, "bin", "dc1"), names)
+    if snubby:
+        rels.append(p1_wire.snubby_overlay_module(os.path.join(ROOT, "re", "gamebin", "dc1"), os.path.join(STAGE, "bin", "dc1"), names))
+    for rel in rels:
         dc_modules.set_size(mdata, rel[:-4], os.path.getsize(os.path.join(STAGE, "bin", "dc1", *rel.split("/"))))
         f = "bin/dc1/" + rel
         for lst in (paths, order):
@@ -2774,7 +3462,7 @@ def start_ext_compile(out):
         return                                             # (a Defender-flag rebuild reuses the compile)
     ext = os.path.join(TOOLS, "ext")
     cands = [os.path.join(TOOLS, "win", "ext", "msys64", "ucrt64", "bin"), os.path.join(os.environ.get("T2R_MAIN_ROOT", ROOT), "tools", "win", "ext", "msys64", "ucrt64", "bin"),
-             os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin")]
+             "./tools/win/ext/msys64/ucrt64/bin"]
     bindir = next((c for c in cands if os.path.isfile(os.path.join(c, "gcc.exe"))), None)
     if bindir is None:
         raise SystemExit("--ext: gcc.exe (msys64 ucrt64) not found")
@@ -2804,6 +3492,14 @@ def join_ext_compile():
 
 
 _P1_VIRT = None
+# T2R_PACK_FILE=1 (tools/features/pack_file.py): the payload goes to <out>-t2r-data.bin (shipped as <game>/t2r-maps/main/t2r-data.bin), the
+# image keeps a 64 KiB stub, so SizeOfImage no longer grows with the content (Windows refuses images over ~2,000,000,000 bytes).
+PACK_FILE = os.environ.get("T2R_PACK_FILE") == "1"
+
+
+def pack_file_path(dll_out):
+    """where build_dll writes the data file of the DLL `dll_out` (build_release copies it into client/t2r-maps/main/t2r-data.bin)"""
+    return os.path.splitext(os.path.abspath(dll_out))[0] + "-t2r-data.bin"
 
 
 def _pack_virt(t2r_pack, finish):
@@ -2858,6 +3554,9 @@ def _pack_cached(t2r_pack, drop):
 
 def build(a, salt):
     stage_modfs(salt)
+    dc_data_patches.check_level_caps(os.path.join(STAGE, "pak68.txt"))      # (a level over the engine's caps = no boot: build #18)
+    import geo_count                                    # (... and the global geometry table, 5000 slots: build #19 crashed on it)
+    geo_count.gate(STAGE, [k for k in os.environ.get("T2R_SP_MAPS", "").split(",") if k and k != "all"] or None)
     _prof.lap("stage_modfs: manifest write")
     if getattr(a, "ext", None):
         start_ext_compile(a.ext)
@@ -2865,10 +3564,15 @@ def build(a, salt):
     if ready:       # build_release compiles t2r-ext beside the rest of this build: every generated tools/ext header is final now
         with open(ready, "w") as f:
             f.write("ok")
+    if os.environ.get("T2R_PNGPAL", "1") != "0":        # gui2 art -> 8-bit palette PNGs (png_pal.py; winmm image-size budget)
+        # own process: its worker pool must not re-import build_dll (spawn imports the main module in every worker)
+        subprocess.run([sys.executable, os.path.join(os.path.dirname(os.path.abspath(__file__)), "png_pal.py"), "--stage", STAGE], check=True)
+        _prof.lap("png_pal: gui2 art to 8-bit palette")
     if os.environ.get("T2R_PNG_OPT", "1") != "0":       # lossless IDAT recoding of the staged PNGs (pixel-checked, cached; no-op without pyoxipng)
         import png_opt
         png_opt.optimize_stage(STAGE)
         _prof.lap("png_opt: lossless PNG recompression")
+    check_staged_pngs(STAGE)
     # one in-process pipeline (was: four python processes, each reading and writing the 470 MB DLL): pack the stage into the base
     # DLL, apply the code patches, add the t2r-ext loader, retarget the server address
     import t2r_pack
@@ -2894,7 +3598,9 @@ def build(a, salt):
         import slim
         _SLIM_PLAN = slim.plan(STAGE)
         _prof.lap("slim: plan (classify vs the game's files)")
-    if _P1_VIRT:
+    if PACK_FILE:
+        assert not SLIM, "T2R_PACK_FILE=1 and T2R_SLIM=1 cannot be combined"
+    elif _P1_VIRT:
         assert not SLIM, "T2R_P1_SIDE=1 and T2R_SLIM=1 cannot be combined"
     else:
         out = _pack_cached(t2r_pack, _SLIM_PLAN["drop"] if _SLIM_PLAN else ())
@@ -2906,16 +3612,21 @@ def build(a, salt):
             "lobby8-found-loop", "lobby8-fill-test", "lobby8-clear-skip", "lobby8-count", "lobby8-search-loop", "lobby8-fill-loop"])   # find-match lobby list: 8 rows (4v4)
         out = ext_loader.add_loader(out)
         _prof.lap("pack: winmm_patches + ext_loader")
-        if os.environ.get("T2R_SLOTS8", "1") != "0":       # 8 net slots (4v4): tables relocated into the .t2r8 section (re/winmm-8slots.md); T2R_SLOTS8=0 = the original 4
+        if os.environ.get("T2R_SLOTS8", "1") != "0":       # 8 net slots (4v4): tables relocated into the .t2r8 section (re/winmm-8slots.md); T2R_SLOTS8=0 = the original 4; T2R_SLOTS=9 = 9 slots (re/winmm-nslots.md; also build the ext with it)
             import slots8
-            out, _s8 = slots8.apply(out)
-            print(f"slots8: {len(_s8.report)} sites, cave {len(_s8.cave.code):#x} bytes, data {_s8.dsize:#x} bytes")
+            out, _s8 = slots8.apply(out)                   # slot count N = env T2R_SLOTS (default 8: the same bytes as before)
+            print(f"slots8: N = {_s8.N}, {len(_s8.report)} sites, cave {len(_s8.cave.code):#x} bytes, data {_s8.dsize:#x} bytes")
             _prof.lap("pack: slots8 (8-player winmm)")
         import stubpool        # reserved executable stub pool inside the image: the ext's stubs must be within rel32 of winmm code (re/stub-pool-1103.md)
         out, _sp_rva, _sp_vs = stubpool.add(out)
         stubpool.check(out)
         print(f"stubpool: .t2rstub rva {_sp_rva:#x} size {_sp_vs:#x}")
-        if _P1_VIRT:        # the side-file cave (p1_side_map.py): maps part1.dat behind the blob at the loader; a probe image (side_info None) only needs the layout
+        if PACK_FILE:       # the data-file cave (pack_file.py): maps t2r-data.bin (+ part1.dat behind it) at the loader
+            import pack_file
+            out = pack_file.add(out, side_info["size1"], side_info["fnv"], side_info["size2"], side_info["build_id"],
+                                 sfnv=side_info["sfnv"])
+            pack_file.check(out, side_info["size1"], side_info["fnv"], side_info["build_id"])
+        elif _P1_VIRT:        # the side-file cave (p1_side_map.py): maps part1.dat behind the blob at the loader; a probe image (side_info None) only needs the layout
             import p1_side_map
             out = p1_side_map.add(out, side_info["size2"] if side_info else 1, side_info["build_id"] if side_info else bytes(16))
             p1_side_map.check(out)
@@ -2931,7 +3642,12 @@ def build(a, salt):
         return out
 
     side = None
-    if _P1_VIRT:
+    payload = None
+    if PACK_FILE:
+        out, payload, side, _sinfo = t2r_pack.pack_file_bytes(BASE_DLL, STAGE, _P1_VIRT["paths"] if _P1_VIRT else ())
+        out = finish(out, _sinfo)
+        _prof.lap("pack: finish (stub image)")
+    elif _P1_VIRT:
         out, side, _sinfo = _pack_virt(t2r_pack, finish)
     else:
         out = finish(out, None)
@@ -2939,6 +3655,15 @@ def build(a, salt):
     with open(os.path.abspath(a.out), "wb") as f:
         f.write(out)
     print(f"{a.out}: {ips.pop()}:{ports.pop()} -> {patch_winmm.current_target(out)}")
+    if PACK_FILE:
+        import pack_file
+        import pefile
+        dp = pack_file_path(a.out)
+        n = pack_file.write_data_file(dp, payload, _sinfo["fnv"], _sinfo["build_id"])
+        soi = pefile.PE(data=out, fast_load=True).OPTIONAL_HEADER.SizeOfImage
+        print(f"pack file: {dp}: {n} bytes (payload {_sinfo['size1']}, fnv {_sinfo['fnv']:016x}, build id {_sinfo['build_id'].hex()}); "
+              f"winmm {len(out)} bytes, SizeOfImage {soi:#x}; deliver as <game>/{pack_file.DATA_REL}")
+        del payload
     if _P1_VIRT:
         p1_side.write_virt_outputs(p1_side.out_dir(ROOT), _P1_VIRT["entries"], _P1_VIRT["kept"], side)
         print(f"p1 side: deliver {a.out} + {p1_side.out_dir(ROOT)}/part1.dat + manifest.txt (launcher: <game dir>/t2r-maps/part1/); self-test: re/part1/side-selftest.md")

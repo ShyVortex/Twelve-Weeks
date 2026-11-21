@@ -33,7 +33,7 @@ static uint64_t dv_sid(int i, uint32_t slot, int kind, char *desc, size_t dn) {
     if (own) { fac = vx_own_fac(); look = g_fl.cur; fem = own_female(); }
     else { int team; const char *why; look = fl_core_shown(&g_fl, slot, &team); fac = vx_fac_of_slot(slot, &why); fem = slot_female(slot); }
     if ((fac != 0 && fac != 1) || look < 0) { snprintf(desc, dn, "faction %d / look %d not known", fac, look); return 0; }
-    int v = vx_voice_of_look(fac, look), k = kind;
+    int v = vx_voice_of_body(own ? T2R_US : (int)slot, fac, look), k = kind;
     if (VXD_RANGE[fac][fem != 0][v][k][1] <= 0) k ^= 1;     // a voice without injured-breath takes (scrfa, scrfd, mltfd) groans instead
     int n = VXD_RANGE[fac][fem != 0][v][k][1];
     if (n <= 0) { snprintf(desc, dn, "no takes"); return 0; }

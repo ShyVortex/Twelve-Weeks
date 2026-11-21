@@ -38,7 +38,7 @@ typedef struct { const uint8_t *base; int n; } ep_base_t;
 static ep_base_t g_ep_base[8];
 static int g_ep_nb;
 static const uint8_t *ep_raw_base(const uint8_t *raw) {
-    // Known edge tables first - set items and edge records sit in different regions, so ep_ok's one-region cache missed on every call
+    // known edge tables first - set items and edge records sit in different regions, so ep_ok's one-region cache missed on every call
     // (~500 VirtualQuery per report = 8-9 s freeze on a vault attempt)
     for (int i = 0; i < g_ep_nb; i++) {
         const uint8_t *b = g_ep_base[i].base;

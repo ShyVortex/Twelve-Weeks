@@ -1,6 +1,6 @@
 """Clan supply perks through the daemon: op 0xE0/0xE2 replies carry the perk tail, the match report's labels 31/32 draw the stock, the saga line lands.
 Temp DB only. Run: python tools/tests/test_clan_perks_daemon.py"""
-import json, os, sys, tempfile
+import json, os, struct, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)

@@ -38,10 +38,126 @@ static int rv_pup_slot(uint32_t sl) {                                           
     return sl < T2R_MAX_PEERS && g_ps.role && g_ps.kind == PS_REVIVE && g_ps.vic == (int)sl && psync_busy_slot(sl);
 }
 static int rv_reviver_slot(uint32_t sl) { return psync_reviver_pup((int)sl) && psync_busy_slot(sl); }       // (paired.c: the reviver half of the running move is a hittable standing body)
+// ---- the kneel help-up revive (re/revive-1118.md; clips: re/revive-1118/bake, build: revive_nr_pak.py -> revive_nr.h). The No Return ally revive,
+// edited for our all-fours downed pose: the reviver walks in from where it stands (one walk-in per kneel side L / R of her body and start bearing,
+// started at the path sample nearest to the reviver = start skip), kneels, puts its hands on her (LOOP, restarted only when there is more time than
+// the pull needs), takes her hand and pulls her up (PULL). The 5 s hold IS the help-up: PULL starts at a segment end when the time left is no more
+// than its length, sped up (x1 .. x1.6) so she is standing as the bar fills; a booked revive goes to PULL at once (x1.6). The ap = her own locator
+// (position + facing): the clips are baked in her downed idle's own space, so nobody is turned or moved. Every ENTER / LOOP ends on the pose PULL
+// starts with (no blend needed at a segment end). Same chain table on every client (by the ENTER carrier psync_start sent).
+// Set [1] = the prone dap-up for a PRONE reviver (it crawls in, pats her onto her back, clasps her hand + pats her shoulder, she rolls back onto her
+// belly = prone; both stay prone): the same chain and rules, FINISH = the roll back, and the revived is kept prone (not stood up) by revived_recv.
+// t2r-revive-2013.txt next to the exe = the 2013 kneel pair instead; a clip that is not loaded = the 2013 pair (prone: the arm-only gesture).
+#include "revive_nr.h"
+#define RVNR_MAX_SPD 1.6f
+static struct { int on; int set; int side; int var; float spd0; } g_rvnr;
+static int rvnr_prone_move(void) { return g_rvnr.on && g_rvnr.set == 1 && g_ps.role && g_ps.kind == PS_REVIVE; }      // (revived_recv: stay prone)
+static int rvnr_has_set(int set) { for (int i = 0; i < RVNR_N_ENTER; i++) if (RVNR_ENTER[i].set == set && RVNR_ENTER[i].att[0]) return 1; return 0; }
+static int rvnr_off(void) {
+    static int off = -1;
+    if (off < 0) { FILE *f = exe_side_open("t2r-revive-2013.txt", "r"); off = f != NULL; if (f) fclose(f); xlog("revive nr: kneel help-up %s (%d walk-ins in this build)", off ? "OFF (t2r-revive-2013.txt): the 2013 pair" : "on", RVNR_N_ENTER); }
+    return off;
+}
+// time left until the revive of slot tgt books (ms), from every attached reviver's start + time and the co-revive rates (rv_prog's sum)
+static double rv_left_ms(int tgt) {
+    if (tgt < 0 || tgt >= T2R_MAX_PEERS) return REVIVE_SECONDS * 1000.0;
+    float p = rv_prog((uint32_t)tgt), sum = 0.0f;
+    for (uint32_t r = 0; r < T2R_MAX_PEERS; r++) {
+        if (!g_rvt[tgt][r].ms) continue;
+        float T = g_rvt[tgt][r].secs > 0.2f ? g_rvt[tgt][r].secs : 5.0f;
+        sum += rv_corate(rv_rank((uint32_t)tgt, r)) / T;
+    }
+    if (sum <= 0.0f) return REVIVE_SECONDS * 1000.0;
+    double l = (1.0 - p) / sum * 1000.0;
+    return l > 0.0 ? l : 0.0;
+}
+static float rvnr_spd(double clip_ms, double left_ms) {      // speed that ends clip_ms of clip time in left_ms of real time, x1 .. x1.6
+    if (left_ms < 1.0) return RVNR_MAX_SPD;
+    float s = (float)(clip_ms / left_ms);
+    return s < 1.0f ? 1.0f : s > RVNR_MAX_SPD ? RVNR_MAX_SPD : s;
+}
+static int rvnr_loaded(int i) {                               // walk-in i, its side's LOOP / FINISH and the revived's halves are in this build's paks
+    if (i < 0 || i >= RVNR_N_ENTER) return 0;
+    int s = RVNR_ENTER[i].side == 'R', k = RVNR_ENTER[i].set;
+    const char *c[6] = {RVNR_ENTER[i].att, RVNR_ENTER[i].vic, RVNR_LOOP[k][s][0], RVNR_LOOP[k][s][1], RVNR_FIN[k][s][0], RVNR_FIN[k][s][1]};
+    for (int k = 0; k < 6; k++)
+        if (!c[k] || !*c[k] || anim_len(SID_PLAYER, c[k]) <= 0.0f) {
+            static int nl; if (LOGCAP(nl, 4)) xlog("revive nr: clip %s is not loaded - the 2013 pair", c[k] ? c[k] : "(none)");
+            return 0;
+        }
+    return 1;
+}
+// the walk-in of set `set` for a reviver at (lx, lz) in her space: the path sample nearest to it (+ a little for the walk still ahead), -> index, *skip_s = clip time skipped
+static int rvnr_pick(int set, float lx, float lz, float *skip_s, float *miss_m) {
+    int best = -1; float bc = 1e9f, bs = 0.0f, bm = 0.0f;
+    for (int i = 0; i < RVNR_N_ENTER; i++)
+        for (int k = 0; k < RVNR_ENTER[i].npath && RVNR_ENTER[i].set == set; k++) {
+            float dx = RVNR_ENTER[i].path[k][0] - lx, dz = RVNR_ENTER[i].path[k][1] - lz, d = __builtin_sqrtf(dx * dx + dz * dz);
+            float rest = RVNR_ENTER[i].walk_s - 0.1f * (float)k; if (rest < 0.0f) rest = 0.0f;
+            float c = d + 0.05f * rest;                          // (where the body is wins: the drive blend slides any miss; the walk ahead only breaks ties)
+            if (c < bc) { bc = c; best = i; bs = 0.1f * (float)k; bm = d; }
+        }
+    *skip_s = bs; *miss_m = bm;
+    return best;
+}
+// FINISH (kneel: the pull-up) from move time new_t0 with left_ms to the booking: sped up x1 .. x1.6; when even x1.6 is too slow (Reviver perk: a 2.25 s
+// revive; co-revive; a booked revive = 0 ms left) it starts up to RVNR_FIN_SKIP_S into its hands-on part (before she moves; 0.22 m reviver pose jump in
+// the kneel set, so a 0.3 s blend) and plays the rest at x1.3 where that fits
+#define RVNR_SKIP_SPD 1.3f
+static void rvnr_fin(double new_t0, double left_ms, float blend, const char *why) {
+    double fin = RVNR_FIN_S[g_rvnr.set] * 1000.0, skip = 0.0;
+    float s = rvnr_spd(fin, left_ms);
+    if (left_ms < 1.0 || fin / left_ms > RVNR_MAX_SPD) {
+        skip = fin - left_ms * RVNR_SKIP_SPD;
+        double mx = RVNR_FIN_SKIP_S[g_rvnr.set] * 1000.0;
+        if (skip > mx) skip = mx;
+        if (skip < 0.0) skip = 0.0;
+        s = rvnr_spd(fin - skip, left_ms);
+        if (skip > 0.0 && blend < 0.30f) blend = 0.30f;
+    }
+    xlog("revive nr: u%08x %s with %.0f ms left: from %.2f s in, x%.2f (done %s)", g_ps.uid, g_rvnr.set ? "roll back to prone" : "pull-up", left_ms, skip / 1000.0, s,
+         (fin - skip) / s <= left_ms + 50.0 ? "as the bar fills" : "a little after the bar fills");
+    psync_rv_switch(2, new_t0 - skip / s, blend, why, s);
+}
+// psync_rv_chain's rules for this chain (every client, its own clock + the revive table): 1 = handled (it is the kneel help-up chain)
+static int rvnr_chain(double now) {
+    if (!g_rvnr.on || g_ps.kind != PS_REVIVE) return 0;
+    double len = psync_seg_len_ms(), t = now - g_ps.t0;
+    if (g_ps.cur_seg >= 2) {                                  // PULL: not booked when it ends (a watching screen, MSG_REVIVE in flight) - both hold the last pose
+        if (!g_ps.rv_fin) {
+            psync_rv_seam_hold(t, len);
+            if (t > len - 100.0 && t < len + 1500.0 && g_ps.dur_s * 1000.0 < t + 300.0) g_ps.dur_s = (float)((t + 300.0) / 1000.0);
+        }
+        return 1;
+    }
+    if (g_ps.rv_fin && g_ps.cur_seg == 1) { rvnr_fin(now, 0.0, 0.30f, "revive booked mid loop - finish now"); return 1; }
+    psync_rv_seam_hold(t, len);
+    if (t < len) return 1;
+    double left = rv_left_ms(g_ps.vic), fin = RVNR_FIN_S[g_rvnr.set] * 1000.0;
+    if (g_ps.rv_fin) rvnr_fin(g_ps.t0 + len, 0.0, 0.12f, "revive booked - finish");
+    else if (left > fin + 100.0) psync_rv_switch(1, g_ps.t0 + len, 0.12f, g_ps.cur_seg ? "loop restart (time to spare)" : "enter over - hands on her", 1.0f);
+    else rvnr_fin(g_ps.t0 + len, left, 0.12f, g_rvnr.set ? "roll back to prone" : "pull up");
+    return 1;
+}
 // the segments, the same table on every client: [0] ENTER, [1] LOOP, [2] FINISH; the carrier names come from the build (revive_carriers.h)
 static int rv_chain_of(uint64_t *att, uint64_t *vic, float *spd, float *cut, int max) {
     static const int ORDER[3] = {2, 0, 1};      // REVIVE_CARRIER rows: revive-enter, revive-loops, revive-finish
     if (max < 3) return 0;
+    g_rvnr.on = 0;
+    for (int i = 0; i < RVNR_N_ENTER && !rvnr_off(); i++) {
+        if (!RVNR_ENTER[i].att[0] || g_ps.att_sid != fnv64(RVNR_ENTER[i].att)) continue;
+        int s = RVNR_ENTER[i].side == 'R', k = RVNR_ENTER[i].set;
+        att[0] = g_ps.att_sid; vic[0] = fnv64(RVNR_ENTER[i].vic);
+        att[1] = fnv64(RVNR_LOOP[k][s][0]); vic[1] = fnv64(RVNR_LOOP[k][s][1]);
+        att[2] = fnv64(RVNR_FIN[k][s][0]); vic[2] = fnv64(RVNR_FIN[k][s][1]);
+        // ENTER's speed: the reviver's own pick (rv_ps_start); a watching screen from its revive table (the skip is not known here yet: the whole walk-in)
+        float s0 = g_ps.role == 1 && g_rvnr.var == i && g_rvnr.spd0 >= 1.0f ? g_rvnr.spd0 : rvnr_spd((RVNR_ENTER[i].dur_s + RVNR_FIN_S[k]) * 1000.0, rv_left_ms(g_ps.vic));
+        spd[0] = s0; spd[1] = spd[2] = 1.0f; cut[0] = cut[1] = cut[2] = 0.0f;
+        g_rvnr.on = 1; g_rvnr.set = k; g_rvnr.side = s; g_rvnr.var = i;
+        xlog("revive nr: chain = %s %d (side %c, start %d, %.2f s) x%.2f -> loop -> %s (%.2f s), role %d", k ? "prone crawl-in" : "walk-in", i, RVNR_ENTER[i].side,
+             RVNR_ENTER[i].bearing, RVNR_ENTER[i].dur_s, s0, k ? "roll back to prone" : "pull-up", RVNR_FIN_S[k], g_ps.role);
+        return 3;
+    }
     for (int i = 0; i < 3; i++) {
         const char *a = REVIVE_CARRIER[ORDER[i]][0], *v = REVIVE_CARRIER[ORDER[i]][1];
         if (!a || !*a || !v || !*v) return 0;
@@ -73,11 +189,11 @@ static int rv_ps_start(uint32_t vic) {
         uint64_t none = 0, pr = dc_call(fnv64("player-is-prone?"), 0, &none);
         g_rv_prone = pr != ~0ULL && (pr & 0xff);
     }
-    if (rv_off() || psync_active() || vic >= T2R_MAX_PEERS || g_downed || g_exec_until || g_down_dying) return 0;
+    if (rv_off() || psync_own() || vic >= T2R_MAX_PEERS || g_downed || g_exec_until || g_down_dying) return 0;
     {   // A prone reviver stays prone. The crouched 2013 pair (full-body kneel clip + stance snap) is not played; the old arm-only hand-out gesture
         // (the SP pickup reach, a partial right-arm clip over whatever the body does, no forced crouch) plays on the reviver's own body and, through the
         // same MSG_UC4_REACH (byte 3 = 0), on its puppet on every other screen. Timing / ring / MSG_REVIVE are the unchanged revive logic.
-        if (g_rv_prone) {
+        if (g_rv_prone && !(!rvnr_off() && rvnr_has_set(1))) {
             xlog("revive 2013: prone reviver - prone variant (stays prone, arm-only reach gesture %s, no crouch pair, no stance change; slot %u)", RG_GESTURE[0], vic);
             return 0;
         }
@@ -106,6 +222,30 @@ static int rv_ps_start(uint32_t vic) {
     if (dx * dx + dz * dz > 3.0f * 3.0f) {
         xlog("revive 2013: anchor of slot %u is %.1f m from the reviver (the puppet's locator is stale, net position %s) - no pair, the old gesture hand-out", vic, __builtin_sqrtf(dx * dx + dz * dz), np ? "read" : "unread");
         return 0;
+    }
+    if (!rvnr_off() && rvnr_has_set(g_rv_prone ? 1 : 0)) {    // the kneel help-up / prone dap-up: her own locator is the ap, the walk-in from where we stand
+        const float *q = pl + 4;
+        float fx = 2.0f * (q[0] * q[2] + q[3] * q[1]), fz = 1.0f - 2.0f * (q[0] * q[0] + q[1] * q[1]);
+        float vyaw = __builtin_atan2f(fx, fz), c = __builtin_cosf(vyaw), s = __builtin_sinf(vyaw);
+        float lx = dx * c - dz * s, lz = dx * s + dz * c, skip = 0.0f, miss = 0.0f;   // us in her space (the clips' space: +z = her locator's forward)
+        int set = g_rv_prone ? 1 : 0, i = rvnr_pick(set, lx, lz, &skip, &miss);
+        if (i >= 0 && rvnr_loaded(i)) {
+            double left = rv_left_ms((int)vic);
+            g_rvnr.var = i;
+            g_rvnr.spd0 = rvnr_spd((RVNR_ENTER[i].dur_s - skip + RVNR_FIN_S[set]) * 1000.0, left);
+            g_ps_start_skip_ms = skip > 0.0f ? skip * 1000.0f / g_rvnr.spd0 : 0.0f;
+            float ap[7] = {vx, pl[1], vz, 0.0f, __builtin_sinf(vyaw * 0.5f), 0.0f, __builtin_cosf(vyaw * 0.5f)};
+            if (psync_start(PS_REVIVE, vic, RVNR_ENTER[i].att, RVNR_ENTER[i].vic, ap, -1.0f, 0, 0xff, 0, 0)) {
+                rv_ps_started();
+                rv_unarm_begin();
+                xlog("revive nr: started on slot %u - %s %d (side %c, start %d) from %.2f s in (path %.2f m off), x%.2f, %.0f ms to the booking; us at (%.2f, %.2f) in her space, her yaw %.0f",
+                     vic, set ? "prone crawl-in" : "walk-in", i, RVNR_ENTER[i].side, RVNR_ENTER[i].bearing, skip, miss, g_rvnr.spd0, left, lx, lz, vyaw * 57.29578f);
+                return 1;
+            }
+            g_ps_start_skip_ms = 0.0f; g_rvnr.var = -1;
+            xlog("revive nr: psync refused the %s on slot %u - %s", set ? "prone dap-up" : "kneel help-up", vic, set ? "the arm-only gesture" : "the 2013 pair");
+        }
+        if (g_rv_prone) return 0;                    // (a prone reviver never gets the crouched 2013 pair: the arm-only gesture, as before)
     }
     if (dx * dx + dz * dz < 0.2f * 0.2f) {           // standing on them: the way we face
         const float *q = ml + 4;

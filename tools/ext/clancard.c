@@ -13,7 +13,7 @@
 #include "clancard.h"
 #define CC_QN 4
 #define CC_POP_X 60.0f                   // resting x of the card (3840-unit canvas, 2400 wide)
-// the card sat over the 4v4 team icons. The HUD's left column (2160-unit canvas, ref shot p29g at 2560x1440): team icons + "20:20" end at y 0.473 (1022), the parts counter
+// The card used to sit over the 4v4 team icons. The HUD's left column (2160-unit canvas, ref shot p29g at 2560x1440): team icons + "20:20" end at y 0.473 (1022), the parts counter
 // starts at y 0.867 (1872); the card (520 x 0.55 = 286 tall) is centred in that gap: centre (1022 + 1872) / 2 = 1447, top 1447 - 143 = 1304 (0.604 .. 0.736 of the screen height).
 // It shares this lane with the buy hint (centre 1370, 170 tall): never at the same time (g_buyhint_active / g_cc_busy, the hint queues behind the card).
 #define CC_POP_Y 1304.0f                 // = clancard_widgets row y (resting y of the scaled row's top)
@@ -166,11 +166,29 @@ static const char *cc_word(int kind, int female, int pl) {
     static const char *const PLF[CC_KINDS] = {"ZAOPATRZENIE KLANU", "GLODNA", "W ZALOBIE", "CHORA", "NIE ZYJE", "RANNA", "WYZDROWIALA", "NOWA CZLONKINI", "ZALAMANA", "W SZOKU"};
     return kind >= 0 && kind < CC_KINDS ? (pl ? (female ? PLF[kind] : PLM[kind]) : EN[kind]) : "";
 }
+// redesign (tools/features/pause_restyle_widgets.py add_pause_nr): the pause page's frame parts - the MISSION / CLAN NEWS section rows (title, the rule placed from the
+// measured, translated title width; local coordinates of their groups) and the boxed SELECT / BACK prompts (laid out again when the input device changes). The breadcrumb, the
+// scoreboard and the clock are sbteam.c's / pause_mission_tick's. A click on the BACK box closes the menu like Esc (cc_frame).
+#define CC_PAUSE_W 1060.0f                // PNR_MIS / PNR_NEWS width
+#define CC_PAUSE_SEC_Y 30.0f              // PNR_SECROW_Y
+static void cc_pause_layout(uint64_t g) {
+    static uint64_t lg; static unsigned lgen = ~0u; static int lpad = -1;
+    if (g != lg || lgen != g_ui_gen) {
+        lg = g; lgen = g_ui_gen; lpad = -1;
+        nr_section("anim-group.pauseMission.pmSec", 0.0f, CC_PAUSE_W, CC_PAUSE_SEC_Y, "MISSION", "", 36.0f);
+        nr_section("anim-group.pauseStatus.psSec", 0.0f, CC_PAUSE_W, CC_PAUSE_SEC_Y, "CLAN NEWS", "", 36.0f);
+    }
+    if (lpad != g_pad_mode) {
+        lpad = g_pad_mode;
+        nr_prompt_t it[2] = {{"menu:select", "menu:select", "SELECT", 1}, {"menu:back", "menu:back", "BACK", 1}};
+        nr_prompts(it, 2);
+    }
+}
 static int g_cc_pause_up; static void cc_pause_tick(void) {
     static uint64_t grp, at; static uint32_t lh;
-    static const char *const COL[CC_KINDS] = {"#9CA6B5", "#F0B429", "#6C9BF2", "#E8483F", "#9CA6B5", "#E08A3B", "#6FCF6A", "#5DC0DC", "#7A6FA8", "#C9A0DC"};
     uint64_t g = ui_w("anim-group.pauseStatus"); g_cc_pause_up = g != 0;
     if (!g) { grp = 0; return; }
+    cc_pause_layout(g);
     cc_status_t s;
     EnterCriticalSection(&g_clan_cs); s = g_cc_st; LeaveCriticalSection(&g_clan_cs);
     if (cc_status_off()) s.n = 0;
@@ -180,7 +198,7 @@ static int g_cc_pause_up; static void cc_pause_tick(void) {
     int n = s.n > 4 ? 4 : s.n;
     for (int i = 0; i < n; i++) {
         int k = s.e[i].code;
-        snprintf(row[i], sizeof row[i], "<font color=%c%s%c>%s</font>  %s", 34, COL[k], 34, cc_word(k, s.e[i].female, pl), s.e[i].name);
+        snprintf(row[i], sizeof row[i], "<font color=%c#8C8C8C%c>%s</font>  %s", 34, 34, cc_word(k, s.e[i].female, pl), s.e[i].name);       // (the state word grey, the name white - two text colours)
         for (const char *p = row[i]; *p; p++) h = (h ^ (uint8_t)*p) * 16777619u;
     }
     uint64_t now = GetTickCount64();
@@ -217,6 +235,11 @@ static void cc_frame(void) {                     // main tick (PF in the tick li
     if (match_substate() != 6) { g_cc.st = 0; g_ccqn = 0; g_cc_busy = 0; g_cc.page = 0; return; }
     // perf (cc_frame() 0.1-0.4 ms avg, spikes 4-7 ms on a Ryzen 5 2600): the pauseStatus lookup is an engine path walk that FAILS (the dearest kind) on every page that is not the ESC menu; it ran in every match every 20 frames. The group only exists on the pause page: no menu over the HUD and the group not up = no lookup.
     if (!(g_frame % 20) && (g_cc_pause_up || hud_menu_up())) cc_pause_tick();
+    {   // the boxed BACK prompt of the pause page: a click on it = back (like Esc)
+        static uint64_t P_PAUSE;
+        if (!P_PAUSE) P_PAUSE = page_id("pause-menu");
+        if (g_cc_pause_up && g_click_edge && top_page() == P_PAUSE && nr_prompt_hover() == 1) { ui_sfx("sfx-menu-back"); pop_page(); return; }
+    }
     uint64_t page = *(uint64_t *)VMA(0x180189BA0);
     if (g_cc.st && page != g_cc.page) { g_cc.st = 0; }                              // a new match built a new page: the widgets are gone
     if (!g_cc.st) {

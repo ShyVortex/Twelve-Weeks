@@ -49,7 +49,12 @@ check(len(P) == len(page["items"]), "every widget path on the page is unique (%d
 src = open(os.path.join(ROOT, "tools", "ext", "friends13.c"), encoding="utf-8").read()
 need = set()
 for lit in re.findall(r'"(anim-group\.[A-Za-z0-9_.]+)"', src):
-    if lit.startswith("anim-group.friendsBtn") or lit.startswith("anim-group.frToast"):
+    if lit.startswith(("anim-group.friendsBtn", "anim-group.frToast", "anim-group.lobbyPanel", "anim-group.menuList")):      # (the button / toast / the main menu's own widgets)
+        continue
+    if lit in ("anim-group.frFo", "anim-group.lf.lSec", "anim-group.rt.rSec", "anim-group.rt.rSc"):             # bases of the nrui.c helpers: nr_frame_at / nr_section / nr_scroll_v
+        suf = {"anim-group.frFo": "TBLR", "anim-group.rt.rSc": "TH"}.get(lit)
+        for sfx in ([c for c in suf] if suf else ["Tx", "Rt", "Rl"]):
+            need.add(lit + sfx)
         continue
     need.add(lit)
 # the row widgets friends13.c builds with fr_rp / fr_set_row
@@ -57,10 +62,11 @@ for col, g, ch, rows in (("lf", "lf", "l", fw.NL), ("rt", "rt", "r", fw.NR)):
     for i in range(rows):
         row = f"anim-group.{g}.{ch}Row{i}"
         need.add(row)
-        for leaf in ("Nm", "St", "Tg", "Ac", "Fill", "Frame", "Hit"):
+        for leaf in ("Nm", "Yu", "St", "Ac", "Fill", "Ed", "Rk", "Rn", "Hit"):
             need.add(f"{row}.{ch}{leaf}{i}")
-        for k in range(5):
-            need.add(f"{row}.{ch}Bd{k}_{i}")
+        for k in ("Cg", "Ca", "Cw"):                  # the three chips (redesign): friends13.c fr_chip -> <base>Bg / <base>Tx
+            need.add(f"{row}.{ch}{k}{i}Bg")
+            need.add(f"{row}.{ch}{k}{i}Tx")
 miss = sorted(p for p in need if p not in P)
 check(not miss, "every path the driver writes exists on the page (%d checked)%s" % (len(need), (": missing " + ", ".join(miss[:6])) if miss else ""))
 # geometry: rows inside the canvas, no overlap inside a column

@@ -118,7 +118,7 @@ KEEP = {"chess": ("a chessboard", "szachownicę", 5), "guitar": ("a guitar strin
         "teddy": ("a teddy bear", "pluszowego misia", 6), "seeds": ("a pouch of seeds", "woreczek nasion", 4), "cards": ("a deck of cards", "talię kart", 4),
         "harmonica": ("a harmonica", "harmonijkę", 5)}
 CAT_POOL = {"food": "use_food", "med": "use_med", "ammo": "use_ammo", "tool": "use_tool"}
-# portrait ids for the UI: faction/sex/model/expression (pictures land in work/portraits/<faction>/<sex>/<model>_<expression>.png)
+# portrait ids for the UI: faction/sex/model/expression (pictures land in E:/t2tmp_lead/tmp/portraits/<faction>/<sex>/<model>_<expression>.png)
 EXPRESSIONS = ["happy", "neutral", "sad", "sick", "hurt", "scared", "hungry", "dead"]
 
 

@@ -1,6 +1,6 @@
 """Menu music: all five official 2013 Factions lobby tracks, in random order.
 
-The mod's re/modfs/music1/022_t2r_credits_in_menu.xvag is the five 2013 "The Last Of Us Multiplayer Lobby Soundtrack #1-#5"
+The mod's re/modfs/music1/022_t2r_credits_in_menu.xvag (spec's) is the five 2013 "The Last Of Us Multiplayer Lobby Soundtrack #1-#5"
 rips joined into ONE 7:32 ATRAC9 cue (4 ch, 48 kHz; lengths 106.115 + 136.812 + 66.955 + 41.575 + 100.914 s = 452.371 s, the cue's exact
 length). winmm starts the playlist "*music-playlist-t2r-credits-in-menu*" in the front end; that playlist has ONE chunk (the whole
 cue), so the menu always began with track 1 and played them in order.

@@ -1,5 +1,5 @@
 // ---------------------------------------------------------------- Esc / Start on the VICTORY / DEFEAT card shows the scoreboard
-// Pressing Esc while the victory / defeat screen is on shows the scoreboard. winmm pushes to1/scoreboard at the match end and the
+// "let people press esc when the victory/defeat screen is on so we can see scoreboard". winmm pushes to1/scoreboard at the match end and the
 // end banner (feature_hud_overlays) keeps that page's anim-group hidden until the fade to black; one press of Esc (keyboard) or Start / Options
 // (any pad) now shows it in place of the card, a second press brings the card back. Only the visibility of the two widgets changes: the end
 // clock (fade to black, the leave to the menu) is untouched, so a scoreboard left open is simply covered by the fade like the card is.

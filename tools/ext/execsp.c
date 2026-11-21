@@ -1,13 +1,13 @@
-// ---- execution SP audio layer: unarmed executions need proper SP audio instead of the mockups they had (keeping the 2013 turnover audio), and many special
-// executions (not all) felt odd because there is no audio in between the audio called in the execution: for the unarmed
-// executions, between the turnover and first punch, it was silent. So: some grunts and other SP melee audio, and begs that do not sound like
-// the victim is about to get shot (not the long NOOOOOO scream), more like Wait wai- Ugh, Argh, Bleeeh (on the finishing punch). Only audio gathered
-// from SP, no mockups.
+// ---- execution SP audio layer: "Unarmed executions need proper SP audio instead of the mockups they have now (include 2013 turnover audio though), and also, i
+// noticed that a lot of our special executions (not all though) feel odd because theres no audio in between the audio called in the execution, so like for the unarmed
+// executions, between the turnover and first punch, its silent. We should add some grunts, and other SP melee audio. let's also add begs, but exclude those that sound like
+// theyre about to get shot (the long NOOOOOO scream ...), it should be more like Wait wai- Ugh, Argh, Bleeeh (on the finishing punch). But use ONLY audio that we have gathered
+// from SP, not random mockups."
 // Included by t2r-ext.c right after explus.c (before ex_tick; uses g_ex, the exec_beg.c helpers and the vox helpers).
 //
 // What:
 //  1. Contacts. The three punches of the 2-hand fist executions, the gut kick / boot stomp of the stomp pair and the neck snap used TLOU2 punch WAVES ripped into our PCM mixer
-//     (t2m_blob "mockups"). The 2013 timeline's contact moments now fire the SP events of the Abby fist capture natively at the victim: punch
+//     (t2m_blob "mockups"). The 2013 timeline's contact moments now fire the SP events of the Abby fist capture (re/sp-abby-fist-sounds-1026.md) natively at the victim: punch
 //     sfx-unarmed-hit-face-skin at heada, the killing punch sfx-unarmed-finisher-face-skin, gut kick sfx-unarmed-hit-gut at pelvis, stomp sfx-unarmed-hit-kick-face-skin,
 //     neck snap sfx-unarmed-finisher-neckbreak-combat (banks wpn-melee-unarmed + gbl-fight are in the MP level adds). The 2013 TURNOVER audio (grab / push / body fall labels and the
 //     whole-move foley stream) is untouched. Old behaviour: t2r-no-exec-sp-audio.txt next to the exe.
@@ -106,7 +106,7 @@ static struct {
     int played, skipped;
 } g_es;
 // the unarmed victim's voice is this timeline's (plea / takes / death): the explus voices and gx_play's pain / death lines stay off while it runs
-// the unarmed execution then had no audio except some faint punch layers: taking the victim's voice away from the
+// taking the victim's voice away from the
 // proven explus / gx PCM layers left it near silent - the timeline adds to them now (t2r-exec-sp-owns-voice.txt = it owns the voice again).
 static int es_holds_victim(void) {
     static uint64_t at; static int on;

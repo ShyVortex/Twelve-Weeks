@@ -14,7 +14,7 @@
 #define T2R_FALLPROBE_C
 
 // ---- the lethal predicted-drop threshold (all builds) ----
-// Bookstore atrium rail: the kill depends on the distance to the ground (half stairs are fine, a bigger drop kills mid air). The player fall
+// A/B (Bookstore atrium rail: the kill depends on the distance to the ground; the half stairs are fine, the bigger drop kills mid air): the player fall
 // controller (exe+b8acb0, fall-to-ground-die entry exe+b55d40 called from exe+b8bb19) holds a ground-probe result at this+0x350 {pos, normal, distance at +0x370;
 // -1 = none}. It enters fall-to-ground-die (the death) in mid-air when  FALL_DIE_MIN < distance < 16.0  and the ground normal y > 0.2 and the fall speed is
 // below -6 m/s. FALL_DIE_MIN is the stock 6.0 m (a code constant at exe+2b0a788 shared with other code: the compare at exe+b8ba37 is repointed at our own float,
@@ -42,7 +42,7 @@ static void fh_install(void) {
     xlog("fall-die distance: the predicted-drop kill threshold is %.1f m (stock 6.0)", FALL_DIE_MIN);
     // second kill path of the same function: exe+b8bb8c  vmovups xmm0,[rip+..] (-> exe+2c06480 = -10.0 m/s x4) then vucomiss -> when the fall speed is below it
     // (and the first band did not catch it) the controller calls machine->vf88 (exe+b56500, the fall-die probe) and, when that returns 0, machine->vf38(1,0) +
-    // the holster + state request 0x701: the death seen at vy -10.8 after a ~5 m free fall (probe distance 6.35 m set at the fall start, ground contact
+    // the holster + state request 0x701: the death seen in an A/B at vy -10.8 after a ~5 m free fall (probe distance 6.35 m set at the fall start, ground contact
     // one frame later, dead the frame after).  Repointed at our own -FALL_DIE_SPEED x4 (the landing tier takes everything up to 14 m/s).
     uint8_t *site2 = exe + 0xb8bb8c;
     static const uint8_t expect2[8] = {0xc5, 0xf8, 0x10, 0x05, 0xec, 0xa8, 0x07, 0x02};  // vmovups xmm0, [rip + 0x207a8ec]
@@ -57,7 +57,7 @@ static void fh_install(void) {
     VirtualProtect(site2, 8, old, &old);
     FlushInstructionCache(GetCurrentProcess(), site2, 8);
     xlog("fall-die speed: the fast-fall kill threshold is %.1f m/s (stock 10.0)", FALL_DIE_SPEED);
-    // third kill path, the one that remained (3.7 m and 4.5 m drops survive, 5.35 m dies on the landing frame with no landing record chosen):
+    // third kill path, the one that remained (A/B: 3.7 m and 4.5 m drops survive, 5.35 m dies on the landing frame with no landing record chosen):
     // the movement component's query +0x278 (exe+b87620) = (player+0x2e40 position - player+0x100 position) . up > G, G = the global float at exe+4103e9c (~5 m;
     // shared by ~25 functions, so NOT touched).  The compare at exe+b876d3  vcomiss xmm2,[rip+..]  is repointed at our own FALL_LETHAL_M.  The control update
     // (exe+b89360) tests it (with q280 / q3b0) when the fall ends and issues net-kill-fall (exe+b8a076).
@@ -72,7 +72,7 @@ static void fh_install(void) {
     VirtualProtect(site3, 8, old, &old);
     FlushInstructionCache(GetCurrentProcess(), site3, 8);
     xlog("fall-lethal height: the +0x278 fall-height query now compares against %.1f m (stock G = float at exe+4103e9c, ~5 m)", FALL_LETHAL_M);
-    // (Bookstore atrium, 6.36 m drop, dev tp to y 5.4): still died - q280 and q3b0 flipped 1.2 m into the fall, i.e. the readers of G itself saw 5.9 (the game rewrites
+    // A/B (Bookstore atrium, 6.36 m drop, dev tp to y 5.4): still died - q280 and q3b0 flipped 1.2 m into the fall, i.e. the readers of G itself saw 5.9 (the game rewrites
     // G; our per-frame set races it): q280 (exe+b876f0, threshold 1.0 or 2.5 + max(0, G - 5.9)) and the fall controller's latch (exe+b8b26a: probe distance vs G -> vf3b8 sets
     // the +0x5e0 flag = q3b0).  Both G reads are repointed at our own 8.0 (same cave trick), independent of what the game does to G.  t2r-no-fall-sites.txt = off (bisect).
     { FILE *sw = exe_side_open("t2r-no-fall-sites.txt", "r"); if (sw) { fclose(sw); xlog("fall G sites: off (t2r-no-fall-sites.txt)"); return; } }

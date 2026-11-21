@@ -9,6 +9,7 @@ language table (English text, or the translation where the language has one)."""
 import glob
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))

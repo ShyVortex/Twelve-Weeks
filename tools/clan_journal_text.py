@@ -432,7 +432,7 @@ POOLS = {
         ("*", "{A} is dead. {ill}. The medic sat with {A_him} to the end and has not spoken since."),
         ("*", "{A} did not wake. The {ill} finished what the hunger started."),
         ("*", "{ill} killed {A} today. We buried {A_him} before dark."),
-        ("*", "{A} is gone. It was {ill}, and it was slow, and {A_he} did not deserve either."),
+        ("*", "{A} is gone. It was {ill}, and it took a long time. {A_He} deserved a kinder end."),
         ("*", "{A} died this morning of {ill}. {A_His} bunk has been stripped and aired."),
         ("*", "We could not get {A} through it. {ill_a}, and no medicine in the box."),
     ],
@@ -479,7 +479,7 @@ POOLS = {
     ],
     # trigger: a member died of a bite after an attack
     "death_bite": [
-        ("*", "{A} was bitten and hid it. It could not stay hidden. It was dealt with before {A_he} turned."),
+        ("*", "{A} was bitten and hid it, but not for long. We did what had to be done before {A_he} turned."),
         ("*", "{A} is dead. A bite, from the night of the attack. {A_He} told us {A_himself} in the end."),
         ("*", "{A} showed the bite this morning and held out {A_his} own weapon. We did what {A_he} asked."),
         ("*", "We lost {A} to a bite. {A_He} had a day's grace and spent it saying goodbye."),
@@ -593,6 +593,45 @@ POOLS = {
         ("*", "Ready, for once. The {E} were beaten off before they reached the bunks. Did not make it: {lost}."),
         ("*", "It was the attack we trained for, and the training won it. Graves: {lost}, not thirty."),
     ],
+    # ---- the attack is a HORDE of infected (clan.AN_HORDE: days 30, 65). Same triggers as warn / atk0..3 / atk_none.
+    "hwarn": [
+        ("*", "The lookouts heard it before they saw it: a horde, coming down the valley toward us. Three days, if it keeps its pace."),
+        ("*", "Infected are gathering past the tree line, more each night. When that many move, they move together. We drill until they do."),
+        ("*", "A horde is coming. No scouts to fool, no terms to offer. Only the wall, and how well we stand on it."),
+        ("*", "The ground past the wall is crawling. Whatever we can teach each other in three days, we teach."),
+    ],
+    "hatk0": [
+        ("*", "The horde came and we were not ready. It went over the wall like water. Dead: {lost}."),
+        ("*", "The infected hit us in the dark. We had not trained, and it showed in the first minute. Our dead: {lost}."),
+        ("*", "The wall did not hold the horde. What is left of us is burning the rest. Lost: {lost}."),
+    ],
+    "hatk1": [
+        ("*", "The horde reached us. The little training we managed kept it from being the end. Still, our dead: {lost}."),
+        ("*", "We were half ready for the infected. The other half would have saved lives. It cost us {lost}."),
+        ("*", "The barricade held in places. Where it did not, the horde took {lost}."),
+    ],
+    "hatk2": [
+        ("*", "The horde came. We were trained for it and it showed: the wall held. Our dead: {lost}."),
+        ("*", "The infected broke on the barricade. Dead on our side: {lost}. The street is full of theirs."),
+        ("*", "We held against the horde. It cost {lost}. Each stood where they had been drilled to stand."),
+    ],
+    "hatk3": [
+        ("*", "The horde came and broke against us. Every drill paid for itself. Lost: {lost}, where it could have been half the camp."),
+        ("*", "The horde came in its hundreds, and we were ready in every place it pushed. Dead: {lost}. We have never held this well."),
+        ("*", "The wall held from the first scream to the last. Our fallen: {lost}. The horde is a heap at the barricade."),
+    ],
+    "hatk_none": [
+        ("*", "The horde came, and every one of us is still here to say so."),
+        ("*", "The infected broke on the wall and nobody behind it was lost. Not one."),
+        ("*", "A horde went through the street and did not get in. We burned no one of ours."),
+    ],
+    # trigger: a member died in the horde's attack
+    "death_horde": [
+        ("*", "The horde took {A} at the barricade."),
+        ("*", "{A} did not survive the horde. {A_He} held the gap until it closed."),
+        ("*", "We lost {A} to the infected. {A_He} was the last one off the wall."),
+        ("*", "{A} went down under them in the yard."),
+    ],
     # trigger: the attack came and nobody died
     "atk_none": [
         ("*", "The {E} came, and every one of us is still here to say so."),
@@ -600,6 +639,11 @@ POOLS = {
         ("*", "They came for us and went home with nothing. We buried no one."),
     ],
     # trigger: a growth event starts; 0 FRIENDLY SURVIVORS, 1 DYSENTERY OUTBREAK, 2 MALARIA OUTBREAK, 3 RESCUE ALLIES, 4 MARAUDER ATTACK
+    "gstart5": [
+        ("*", "The camp past the bridge lost its stores to damp: every tin blown, every sack gone to mould. They will follow whoever can feed them."),
+        ("*", "Word came of spoiled supplies down the road. A whole winter of food, rotten in a week. Those people are looking for a table to sit at."),
+        ("*", "A family came to the gate with a tin to show us: swollen, split, black inside. Their whole store room is like that. They want to know if ours is better kept."),
+    ],
     "gstart0": [
         ("*", "Scouts met a group of survivors a day's walk out. Friendly, hungry, careful. If we show them we can hold our own, they may come in."),
         ("*", "There are people camped past the river, not {E}. They are watching how we do before they decide about us."),
@@ -646,6 +690,12 @@ POOLS = {
         ("*", "The rescue worked. The party came home {gain} stronger than it went out."),
         ("*", "The way was cut open and held long enough. Friends made safe: {gain}."),
     ],
+    # 5 SPOILED SUPPLIES (clan.GN_SPOIL: days 45, 70): a camp down the road lost its stores to damp; feed them and they join
+    "gwin5": [
+        ("*", "We had enough to share when their stores went bad. Sitting at our table now: {gain}."),
+        ("*", "The people from the spoiled camp came in. They brought nothing but themselves: {gain}."),
+        ("*", "Their store room is a grave of tins. Ours fed them through it. New members: {gain}."),
+    ],
     "gwin4": [
         ("*", "The marauders were driven off. Of the people they had been robbing, {gain} came to join us."),
         ("*", "The road is clear of marauders. Moved in behind our wall from the small camps: {gain}."),
@@ -671,6 +721,11 @@ POOLS = {
         ("*", "We did not reach our allies. The signal from the east has stopped."),
         ("*", "The rescue never came together. Whatever happened to them, it happened without us."),
         ("*", "Our friends were left to it. No one came out."),
+    ],
+    "gfail5": [
+        ("*", "We could not feed the camp whose stores spoiled. They went looking elsewhere."),
+        ("*", "The people from the spoiled camp are gone. A clan that can barely feed itself is no one's rescue."),
+        ("*", "Nobody came in. They took their last good tins and walked north."),
     ],
     "gfail4": [
         ("*", "The marauders are still on the road, and the small camps have gone to someone stronger."),
@@ -796,6 +851,10 @@ POOLS = {
     "t_gwin": [("*", "New members: {gain}")],
     "t_gfail": [("*", "Nobody came")],
     "t_warn": [("*", "The {E} are coming")],
+    "t_hatk": [("*", "A horde attacked: {lost} dead")],
+    "t_hatk_none": [("*", "A horde attacked. The wall held")],
+    "t_hwarn": [("*", "A horde is coming")],
+    "t_gstart5": [("*", "Spoiled stores down the road")],
     "t_gstart0": [("*", "Survivors on the road")],
     "t_gstart1": [("*", "Dysentery in the next camp")],
     "t_gstart2": [("*", "Malaria in the marsh")],
@@ -831,6 +890,7 @@ POOLS = {
     "f_death": [("*", "{A} died.")],
     "f_join": [("*", "{A} joined the clan.")],
     "f_atk": [("*", "The {E} attacked. Dead: {lost}.")],
+    "f_hatk": [("*", "A horde attacked. Dead: {lost}.")],
     "f_gwin": [("*", "New members: {gain}.")],
     "f_gfail": [("*", "Nobody joined.")],
     "f_more_sick": [("*", "Also sick: {names}.")],
@@ -887,8 +947,9 @@ POOLS = {
 
 # the caption above each paragraph of an entry (the client shows it dim, in capitals)
 CAPTIONS = {"raid": "THE RAID", "sup": "SUPPLIES", "camp": "THE CAMP", "event": "EVENT", "note": "NOTES", "start": "DAY ONE", "end": "THE END"}
-EVENT_NAMES = ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES", "MARAUDER ATTACK")      # clan.GROWTH_NAMES (the caption of a growth event's paragraph)
+EVENT_NAMES = ("FRIENDLY SURVIVORS", "DYSENTERY OUTBREAK", "MALARIA OUTBREAK", "RESCUE ALLIES", "MARAUDER ATTACK", "SPOILED SUPPLIES")      # clan.GROWTH_NAMES (the caption of a growth event's paragraph)
 ATTACK_NAME = "{E} ATTACK"
+HORDE_NAME = "INFECTED HORDE"                                    # clan.ATTACK_NAMES[1] (the caption of a horde attack's paragraph)
 LACK = {"food": "food", "water": "water", "med": "medicine"}
 NO_ARTICLE = ("Hillside", "Hillcrest", "Downtown")              # map names that take no "the"
 AND = " and "

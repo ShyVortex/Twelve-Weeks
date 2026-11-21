@@ -216,6 +216,7 @@ def compose(st, before, newc, r, rng):
     fed = [p for p in old if p["s"] == "h" and was[int(p["i"])][3] == "u"]
     evk, evt, evn = int(r.get("evk", 0)), int(r.get("evt", 0)), int(r.get("evn", 0)) % len(EN.EVENT_NAMES)
     evl, evg = int(r.get("evl", 0)), int(r.get("evg", 0))
+    horde = evk == clan.EV_ATTACK and int(r.get("evn", 0)) == clan.AN_HORDE    # the attack was a horde of infected (re/clan-events-1117.md)
     per = {}                                                                   # member id -> the sentence about them (the status cards use it)
     paras = []
     tone = "info"
@@ -291,6 +292,8 @@ def compose(st, before, newc, r, rng):
                 c = str(d.get("c") or "illness")
                 pool = {"attack": "death_attack", "illness": "death_illness", "mercy": "death_mercy", "starved": "death_starved", "lost": "death_lost",
                         "walkout": "death_walkout", "suicide": "death_suicide", "bite": "death_bite", "bite_kin": "death_bite", "turned": "death_turned"}.get(c, "death_illness")
+                if pool == "death_attack" and horde:
+                    pool = "death_horde"
                 person(pool, "f_death", d, ill=(d.get("il") or "fever") if pool == "death_illness" else None)
                 kin = now.get(int(d.get("k") or 0))
                 if i == 0 and kin and int(kin["i"]) not in away:
@@ -342,8 +345,8 @@ def compose(st, before, newc, r, rng):
     ev = []
     cap = ""
     if evk == clan.EV_ATTACK:
-        cap = "atk"
-        ev.append(W.s("atk%d" % max(0, min(3, evt)), fb="f_atk", lost=evl) if evl else W.s("atk_none", avoid=[]))
+        cap = "hatk" if horde else "atk"
+        ev.append(W.s(cap + "%d" % max(0, min(3, evt)), fb="f_" + cap, lost=evl) if evl else W.s(cap + "_none", avoid=[]))
         worse("bad" if evl else "warn")
     elif evk == clan.EV_GROWTH:
         cap = "g%d" % evn
@@ -352,7 +355,7 @@ def compose(st, before, newc, r, rng):
     nk, nn = clan.event_today(int(newc.get("day", 0))) if status == clan.ALIVE else (clan.EV_NONE, 0)
     start = None
     if nk == clan.EV_ATTACK:
-        start = ("atk", W.s("warn"))
+        start = ("hatk", W.s("hwarn")) if nn == clan.AN_HORDE else ("atk", W.s("warn"))
         worse("warn")
     elif nk == clan.EV_GROWTH:
         start = ("g%d" % (nn % len(EN.EVENT_NAMES)), W.s("gstart%d" % (nn % len(EN.EVENT_NAMES))))
@@ -403,7 +406,7 @@ def compose(st, before, newc, r, rng):
     elif status == clan.WON:
         title = T("t_won")
     elif evk == clan.EV_ATTACK:
-        title = T("t_atk", lost=evl) if evl else T("t_atk_none")
+        title = T("t_hatk" if horde else "t_atk", lost=evl) if evl else T("t_hatk_none" if horde else "t_atk_none")
     elif len(deaths) > 2:
         title = T("t_death_n", n=len(deaths))
     elif len(deaths) == 2:
@@ -413,7 +416,7 @@ def compose(st, before, newc, r, rng):
     elif evk == clan.EV_GROWTH:
         title = T("t_gwin", gain=evg) if evg > 0 else T("t_gfail")
     elif nk == clan.EV_ATTACK:
-        title = T("t_warn")
+        title = T("t_hwarn" if nn == clan.AN_HORDE else "t_warn")
     elif nk == clan.EV_GROWTH:
         title = T("t_gstart%d" % (nn % len(EN.EVENT_NAMES)))
     elif len(joined) > 1:
@@ -583,6 +586,8 @@ def status_lines(st, per, rng):
                 c = str(d.get("c") or "illness")
                 pool = {"attack": "death_attack", "illness": "death_illness", "mercy": "death_mercy", "starved": "death_starved", "lost": "death_lost", "walkout": "death_walkout",
                         "suicide": "death_suicide", "bite": "death_bite", "bite_kin": "death_bite", "turned": "death_turned"}.get(c, "death_illness")
+                if pool == "death_attack" and clan.attack_story(int(d.get("d", -9))) == clan.AN_HORDE:
+                    pool = "death_horde"
                 ill = (d.get("il") or "fever") if pool == "death_illness" else None
             q = W.s(pool, {"A": who}, fb=fb, avoid=shown.get(pool, set()), ill=ill) if pool else W.s(fb, {"A": who}) if fb else None
         if q:
@@ -676,7 +681,9 @@ def entries(c, tid, lang="en", days_done=None):
                 continue
             for q in sents:
                 fk = (q[1].get("s") or {}).get("f", fk)
-            if cap == "atk":
+            if cap == "hatk":
+                caption = T.HORDE_NAME
+            elif cap == "atk":
                 en = PLN.ENEMY[fk][0] if lang == "pl" else D.FACTION[fk]["enemies"]
                 caption = T.ATTACK_NAME.replace("{E}", en).upper()
             elif cap.startswith("g") and cap[1:].isdigit():

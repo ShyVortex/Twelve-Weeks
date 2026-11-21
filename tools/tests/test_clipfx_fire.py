@@ -2,7 +2,7 @@
 
 The head of clipfx.c (up to the SfxProcess section) is compiled with stubs into a test DLL against a FAKE exe image (EffectAnimInfo ctor, the Character
 effect-info builder and the signature bytes of FireEffect / the event handler are real x86 stubs at the exe's offsets) and a fake object / EffectControl:
-  1. with our clipfx_fe_hook in EffectControl's vtable slot 0x48 (always) clipfx_fire reaches FireEffect (it used to return 0);
+  1. with our clipfx_fe_hook in EffectControl's vtable slot 0x48 (always) clipfx_fire reaches FireEffect (earlier it returned 0);
   2. any other pointer outside the exe image in the slot is still refused (0);
   3. our own call is tagged by thread (g_cfxe_ours_tid): the Agility II FireEffect drop and the engine-event ring never see it, so the same call made by an
      engine job thread IS filtered / recorded - an effect of ours is neither dropped nor counted as "the engine fired it" (verdict logic, no double blood);

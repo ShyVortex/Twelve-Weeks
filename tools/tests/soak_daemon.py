@@ -2,7 +2,7 @@
 """Soak test for the master server (tools/daemon.py): starts a REAL daemon process on a free port with a temp DB, drives N fake clients
 against it for a configurable time and fails when memory / threads / handles / registries / log size keep growing.
 
-  python tools/tests/soak_daemon.py [--minutes 10] [--clients 50] [--sample 5] [--dir work/soak] [--out report.json] [--quick]
+  python tools/tests/soak_daemon.py [--minutes 10] [--clients 50] [--sample 5] [--dir E:\\t2tmp_agents\\soak] [--out report.json] [--quick]
 
 Never touches the live server: the daemon gets its own ports (free ones), its own DB / log / admin secret under --dir, and
 T2R_STATUS_FILE=0. Run from anywhere. --quick = 25 s / 8 clients (harness self-test, used by tools/tests/test_soak_harness.py).
@@ -350,7 +350,7 @@ class Client(threading.Thread):
         while not self.stop_ev.is_set():
             try:
                 self.tick(time.time())
-            except Exception:  # a client bug must not stop the soak
+            except Exception as e:  # a client bug must not stop the soak
                 self.stats.add("client-exc")
                 self.close_all(); self.state = "menu"; self.sess = None
                 time.sleep(0.5)
@@ -651,7 +651,7 @@ def main():
     ap.add_argument("--minutes", type=float, default=10)
     ap.add_argument("--clients", type=int, default=50)
     ap.add_argument("--sample", type=float, default=5)
-    ap.add_argument("--dir", default=os.environ.get("T2R_TEST_TMP") or os.environ.get("T2R_TMP") or r"work/soak")
+    ap.add_argument("--dir", default=os.environ.get("T2R_TEST_TMP") or os.environ.get("T2R_TMP") or r"E:\t2tmp_agents\soak")
     ap.add_argument("--out")
     ap.add_argument("--quick", action="store_true")
     ap.add_argument("--chaos", type=float, default=6.0, help="chaos events per second")

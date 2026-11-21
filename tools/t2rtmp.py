@@ -1,8 +1,8 @@
-"""Temp-file hygiene for every tool and test (%TEMP% grew to 95 GB, mostly leaked tempfile.mkdtemp() dirs of tests).
+"""Temp-file hygiene for every Twelve Weeks tool and test (%TEMP% grew to 95 GB, mostly leaked tempfile.mkdtemp() dirs of tests).
 
 `import t2rtmp` (once, before the first tempfile call) does four things:
   * T2R_TMP=<dir>      all temp files of this process (and of its children: TMP/TEMP/TMPDIR) go there instead of %TEMP%
-                       (e.g. a folder on another drive when C: is short on space)
+                       (e.g. T2R_TMP=E:\\t2tmp when C: is short on space)
   * a named prefix     tempfile.mkdtemp()/mkstemp()/NamedTemporaryFile(delete=False) without an explicit prefix get
                        't2r-tmp-<script>-', so leftovers are identifiable and safe to delete (`t2r-tmp-*`)
   * cleanup at exit    every dir / file made through those calls is removed when the process ends (atexit; success, failure

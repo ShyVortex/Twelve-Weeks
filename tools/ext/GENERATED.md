@@ -85,3 +85,9 @@ a generator that is not published yet; the extension does not build until those 
 | `xcam_tracks_shiv.h` | *private* |
 | `vox_beg_keys.h` | *private* |
 | `vox_words.h` | `tools/features/gen_vox_words.py` |
+| `ach_chime.h` | *private* |
+| `choose_intro.h` | *private* |
+| `choose_music.h` | *private* |
+| `choose_vox.h` | *private* |
+| `revive_nr.h` | *private* |
+| `sendoff_pcm.h` | *private* |

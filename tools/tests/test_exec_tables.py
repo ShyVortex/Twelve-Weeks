@@ -146,7 +146,7 @@ for i, (name, kind, kill) in enumerate(melee):
     if kill > 0 and len(lens) == 2:
         check(kill <= max(lens) + 0.05, '%s: kill_s %.3f beyond both clips %s' % (name, kill, lens))
 
-# melee grip-class variants (meleeexec_variants.h, melee_classes.py): every row names a base MELEE2013 pair and a weapon of a variant class, with a unique carrier per variant clip,
+# Melee grip-class variants (meleeexec_variants.h, melee_classes.py): every row names a base MELEE2013 pair and a weapon of a variant class, with a unique carrier per variant clip,
 # a baked attacker clip of the same length as the base pair's and a channel file; melee_classes.py is the one list bake_t1.py / build_gunexec_pak.py / the header agree on
 sys.path.insert(0, os.path.join(ROOT, 're', 'factions2013', 't1anim'))
 import melee_classes

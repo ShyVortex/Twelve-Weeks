@@ -1,6 +1,6 @@
 """Offline tests for the performance-aware host pick (op 0xCA, hostmig.PerfScores, daemon.best_host_order, host migration).
 Run: python tools/tests/test_hostperf.py   (plain python; temp DB, no sockets)."""
-import os, sys, tempfile
+import os, sys, tempfile, itertools
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -43,8 +43,8 @@ def host(pl=None):
     return daemon.tag(out[0])
 
 
-JAS_SID = 76561198000000042
-SID = {T["jay"]: JAS_SID, T["BrownOwl"]: 1001, T["DeerRun"]: 1002, T["ShadeElk"]: 1003, T["SK"]: 1004, T["alderwood99"]: 1005, T["BlueFox"]: 1006}
+JAY_SID = 76561198000000042
+SID = {T["jay"]: JAY_SID, T["BrownOwl"]: 1001, T["DeerRun"]: 1002, T["ShadeElk"]: 1003, T["SK"]: 1004, T["alderwood99"]: 1005, T["BlueFox"]: 1006}
 daemon.BRIDGES.steamid = lambda t: SID.get(t, 0)
 EU, NA = "fra=22+2,ams=27+3,lhr=35", "iad=14+1,ord=30,atl=25"
 def locs(**kw):
@@ -60,7 +60,7 @@ check(hostmig.region_of("fra=22+2,ams=27+3") == "EU" and hostmig.region_of("iad=
 check(hostmig.region_of("sea=20,lax=30") == "NA-west" and hostmig.region_of("sgp=10,hkg=40") == "other", "region_of: NA-west / other")
 check(hostmig.region_of("lhr=90,iad=20") == "NA-east", "region_of: lowest-ping data centre decides")
 check(hostmig.region_of("") is None and hostmig.region_of("zzz=5") is None and hostmig.region_of(None) is None, "region_of: unknown -> None")
-check(hostmig.parse_pins("76561198000000042:EU, 5:NA-east") == {JAS_SID: "EU", 5: "NA-east"}, "parse_pins")
+check(hostmig.parse_pins("76561198000000042:EU, 5:NA-east") == {JAY_SID: "EU", 5: "NA-east"}, "parse_pins")
 
 # ---- no pin: majority region
 hostmig.PINS = {}

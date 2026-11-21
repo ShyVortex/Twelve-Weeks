@@ -14,7 +14,7 @@ from PIL import Image
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "models"))
-MAIN = os.environ.get("T2R_ROOT", os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")))
+MAIN = os.environ.get("T2R_ROOT", ".")
 ROOT = os.path.dirname(os.path.dirname(HERE))
 PAK_CANDS = [os.path.join(r, "re", "models", "gui2-textures-common.pak") for r in (ROOT, MAIN)]
 MOD_DIRS = [os.path.join(r, *p) for r in (ROOT, MAIN) for p in (("icons-for-manual", "ours"), ("re", "icons", "out"))]

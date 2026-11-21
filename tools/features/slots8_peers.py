@@ -6,20 +6,23 @@
   * the pump FUN_18005B5B0, LeaveInternal FUN_18005A4D0, BroadcastRoster FUN_18005DB30, IsConnected FUN_18005DA70 and the ctor
     FUN_18005F350 unroll their loops over the 4 peers: the last (or a non-destructive) block is copied for peers 4..7
     (copy_chain) or the sequence is regenerated for 8 (asm);
-  * the roster on the wire is 8 entries (2 + 8 * 67 = 538 = 0x21A bytes instead of 0x10E) and the protocol version is bumped
-    (0x29 -> 0x2A) so a 4-slot build never parses an 8-slot roster.
+  * the roster on the wire is N entries (2 + N * 67: 538 = 0x21A bytes for N = 8, 605 = 0x25D for N = 9, instead of 0x10E) and the protocol
+    version is bumped (0x29 -> 0x2A for N = 8, 0x2A + (N - 8) in general: slots8.proto_version) so a build with another slot count never
+    parses the roster.
 """
+import struct
+
 PEER_STRIDE = 0x40A0
 OLD_PEERS = 0x180167CC0
-N = 8
 HM_ROLE = 0x180177F40
 MY_SLOT = 0x180138090
 ROSTER_OLD = 0x10E
-ROSTER_NEW = 2 + N * 67          # 0x21A
 
 
 def build(S):
-    from slots8 import decode, rip_target
+    from slots8 import decode, rip_target, bump, proto_version
+    N = S.N
+    ROSTER_NEW = 2 + N * 67          # 0x21A for N = 8
     peers = S.data("peers", N * PEER_STRIDE)
     S.relocate_table("peers", OLD_PEERS, 4 * PEER_STRIDE, peers)
     P3 = OLD_PEERS + 3 * PEER_STRIDE
@@ -91,7 +94,9 @@ def build(S):
     isconn += [f"    or al, byte ptr {peer(j)}" for j in range(1, N)] + ["    setne al", "    and al, 1", "    ret"]
     S.hook(0x18005DA81, 0x18005DA9A - 0x18005DA81, "S8_isconn", "IsConnected (host): any peer 0..7 active")
 
-    bcast = ["S8_bcastroster:", "    push rsi", "    push rdi", "    push rbx", "    sub rsp, 0x270",
+    # frame: the roster buffer sits at rsp+0x40; 0x270 holds the 8-entry roster (0x40 + 0x21A), a longer one (N = 9: 0x25D) needs a bigger frame
+    frame = max(0x270, (0x40 + ROSTER_NEW + 15) & ~15)
+    bcast = ["S8_bcastroster:", "    push rsi", "    push rdi", "    push rbx", f"    sub rsp, {frame:#x}",
              f"    cmp byte ptr [rip + V_{HM_ROLE:x}], 1", "    jne S8_br_end"]
     for j in range(0, N):
         nx = f"S8_br_{j + 1}"
@@ -99,7 +104,7 @@ def build(S):
                   "    lea rdi, [rsp + 0x40]", "    mov rcx, rdi", "    call V_18005e5f0", f"    movzx r8d, byte ptr [rip + V_{MY_SLOT:x}]",
                   "    mov qword ptr [rsp + 0x20], rdi", f"    mov qword ptr [rsp + 0x28], {ROSTER_NEW:#x}", "    mov rcx, rsi", "    mov dl, 4",
                   "    xor r9d, r9d", "    call V_18005a9f0", f"{nx}:"]
-    bcast += ["S8_br_end:", "    add rsp, 0x270", "    pop rbx", "    pop rdi", "    pop rsi", "    ret"]
+    bcast += ["S8_br_end:", f"    add rsp, {frame:#x}", "    pop rbx", "    pop rdi", "    pop rsi", "    ret"]
     S.hook_entry(0x18005DB30, "S8_bcastroster", "BroadcastRoster: peers 0..7, 8-entry roster", minbytes=9)
 
     build_roster = f"""
@@ -252,14 +257,17 @@ S8_to0:
     S.hook(0x18005A806, 7, "S8_leave_reset", "LeaveInternal: reset peers 4..7")
 
     # ---- bounds ----------------------------------------------------------------------------------------------------------
-    S.patch(0x18005C06D, "3c 03", "3c 07", "pump Hello (relay): slot bound 3 -> 7")
-    S.patch(0x18005BCFB, "40 80 ff 03", "40 80 ff 07", "pump State (client): sender slot bound 3 -> 7")
-    S.patch(0x18005BEE5, "40 80 ff 03", "40 80 ff 07", "pump AnimCmd: sender slot bound 3 -> 7")
-    S.patch(0x18005C2B7, "48 81 fb e0 c1 00 00", "48 81 fb 60 c4 01 00", "event forward loop: peers 1..3 -> 1..7 (end 7*0x40A0)")
-    S.patch(0x18005CD67, "48 81 ff e0 c1 00 00", "48 81 ff 60 c4 01 00", "event route loop: peers 1..3 -> 1..7 (end 7*0x40A0)")
-    S.patch(0x18005D0F9, "41 bc 04 00 00 00", "41 bc 08 00 00 00", "SendPhase: 4 -> 8 peers")
-    S.patch(0x18005D928, "8d 46 fc", "8d 46 f8", "DropPeer: slot window 1..3 -> 1..7")
-    S.patch(0x18005D92B, "83 f8 fd", "83 f8 f8", "DropPeer: slot window 1..3 -> 0..7 (peer 0 = old host after a handover; only host-role callers)")
+    b3 = bump(N, 3)
+    end = struct.pack("<I", (N - 1) * PEER_STRIDE)
+    S.patch(0x18005C06D, "3c 03", bytes([0x3c, b3]), f"pump Hello (relay): slot bound 3 -> {b3}")
+    S.patch(0x18005BCFB, "40 80 ff 03", bytes([0x40, 0x80, 0xff, b3]), f"pump State (client): sender slot bound 3 -> {b3}")
+    S.patch(0x18005BEE5, "40 80 ff 03", bytes([0x40, 0x80, 0xff, b3]), f"pump AnimCmd: sender slot bound 3 -> {b3}")
+    S.patch(0x18005C2B7, "48 81 fb e0 c1 00 00", bytes([0x48, 0x81, 0xfb]) + end, f"event forward loop: peers 1..3 -> 1..{b3} (end {N - 1}*0x40A0)")
+    S.patch(0x18005CD67, "48 81 ff e0 c1 00 00", bytes([0x48, 0x81, 0xff]) + end, f"event route loop: peers 1..3 -> 1..{b3} (end {N - 1}*0x40A0)")
+    S.patch(0x18005D0F9, "41 bc 04 00 00 00", bytes([0x41, 0xbc, N, 0, 0, 0]), f"SendPhase: 4 -> {N} peers")
+    S.patch(0x18005D928, "8d 46 fc", bytes([0x8d, 0x46, (-N) & 0xff]), f"DropPeer: slot window 1..3 -> 1..{b3}")      # lea eax,[rsi - N]
+    S.patch(0x18005D92B, "83 f8 fd", bytes([0x83, 0xf8, (-N) & 0xff]),                                                 # cmp eax, -N
+            f"DropPeer: slot window 1..3 -> 0..{b3} (peer 0 = old host after a handover; only host-role callers)")
     # roster payload 0x10E -> 0x21A
     n = ROSTER_NEW.to_bytes(4, "little").hex(" ")
     o = ROSTER_OLD.to_bytes(4, "little").hex(" ")
@@ -269,6 +277,7 @@ S8_to0:
         S.patch(va, "49 81 ff " + o, "49 81 ff " + n, "roster receive minimum length 0x10E -> 0x21A")
     for va in (0x18005B9C5, 0x18005BA23):
         S.patch(va, "41 b8 " + o, "41 b8 " + n, "roster receive copy length 0x10E -> 0x21A")
-    # protocol version 0x29 -> 0x2A (an old 4-slot build must not parse the 8-entry roster)
-    S.patch(0x18005AAE5, "66 c7 05 e6 bc 12 00 29 00", "66 c7 05 e6 bc 12 00 2a 00", "protocol version in SendRaw 41 -> 42")
-    S.patch(0x18005C02D, "66 41 83 fe 29", "66 41 83 fe 2a", "protocol version check in Hello 41 -> 42")
+    # protocol version 0x29 -> 0x2A for N = 8, 0x2A + (N - 8) otherwise (a build with another slot count must not parse the roster)
+    pv = proto_version(N)
+    S.patch(0x18005AAE5, "66 c7 05 e6 bc 12 00 29 00", bytes.fromhex("66 c7 05 e6 bc 12 00") + bytes([pv, 0]), f"protocol version in SendRaw 41 -> {pv}")
+    S.patch(0x18005C02D, "66 41 83 fe 29", bytes.fromhex("66 41 83 fe") + bytes([pv]), f"protocol version check in Hello 41 -> {pv}")

@@ -39,7 +39,7 @@ static inline void psync_bf_from_loc(psync_bf *bf, const float *loc8) {
 // ---- wire (peer message MSG_PSYNC, ours; winmm's own types are below 0x20)
 #define MSG_PSYNC 0x4B
 enum { PS_OP_START = 1, PS_OP_ABORT = 2, PS_OP_END = 3, PS_OP_PING = 4, PS_OP_PONG = 5, PS_OP_ACK = 6 };
-enum { PS_GUN_EXEC = 1, PS_MELEE_EXEC = 2, PS_FINISHER = 3, PS_TACKLE = 4, PS_REVIVE = 5, PS_CTXDOWN = 6 };   // PS_CTXDOWN: contextual melee down (ctxdown.c), non-lethal; kill_s = the hand-off move time
+enum { PS_GUN_EXEC = 1, PS_MELEE_EXEC = 2, PS_FINISHER = 3, PS_TACKLE = 4, PS_REVIVE = 5, PS_CTXDOWN = 6, PS_BODYSHIELD = 7 };   // PS_BODYSHIELD: bodyshield.c grab chain ENTER -> HOLD (loop) -> END (picked at run time)   // PS_CTXDOWN: contextual melee down (ctxdown.c), non-lethal; kill_s = the hand-off move time
 #define PS_F_LETHAL 0x01           // the victim's client kills the victim at kill_s (owner-authorised death)
 #define PS_F_ANCHOR_VIC 0x02       // the ap was solved on the victim's body (it stays, the attacker comes to it)
 typedef struct __attribute__((packed)) {

@@ -32,6 +32,14 @@ def _pixels(data):
     return im.mode, im.size, np.asarray(im).tobytes(), repr(im.info.get("transparency"))
 
 
+def _sane(o, d):
+    """a cached result fit to replace `d`: the same signature + IHDR (size, depth, colour type) and a complete chunk stream (IEND
+    last); for a non-PNG input only the input itself"""
+    if d[:8] != b"\x89PNG\r\n\x1a\n":
+        return o == d
+    return o[:33] == d[:33] and o[-12:] == b"\0\0\0\0IEND\xaeB`\x82"
+
+
 def optimize_bytes(data, oxipng):
     """the recoded PNG, or `data` itself when nothing smaller and pixel-identical came out"""
     if data[:8] != b"\x89PNG\r\n\x1a\n":
@@ -72,13 +80,19 @@ def optimize_stage(stage, log=print):
         with guard:                      # one worker per cache key: files with the same bytes (e.g. one image staged as several variants)
             lk = locks.setdefault(key, threading.Lock())   # raced on the same cache file (Windows: replace onto a file open in another thread = WinError 5)
         with lk:
-            if os.path.exists(cp):
-                o = open(cp, "rb").read()
-            else:
+            o = open(cp, "rb").read() if os.path.exists(cp) else None
+            if o is not None and not _sane(o, d):
+                # A crash left 6 cache entries at their size but all zero bytes (unflushed writes); every later build shipped
+                # those icons blank. A hit must look like the PNG it replaces, else it is dropped and recomputed.
+                log(f"png_opt: cache entry {key} is not a valid PNG for {os.path.basename(p)} - recomputed")
+                o = None
+            if o is None:
                 o = optimize_bytes(d, oxipng)
                 tmp = cp + f".{os.getpid()}.{id(d)}.tmp"
                 with open(tmp, "wb") as f:
                     f.write(o)
+                    f.flush()
+                    os.fsync(f.fileno())
                 os.replace(tmp, cp)
         if o != d:
             with open(p, "wb") as f:

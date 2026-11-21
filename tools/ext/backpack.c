@@ -128,7 +128,7 @@ static const char *const BPC_NAME[4] = {"none", "intro", "loop", "outro"};
 // The look does not matter: every look's prop is the backpack-abby skeleton playing the same Abby clips (male + female alike, IsAbby forced while the bag is off).
 #define BPT_DT 25.0
 #define BPT_N 320
-// The logger is meant to catch how the backpack moves relative to the body and reproduce that onto other players: the track was
+// The track was
 // only learned from the VIEWER's own opens and the recorder flag was never set (bp_track.h empty), so A, who never opened its own bag, had no track and B's bag on A
 // fell back to the spinec follow (log: no "bptrack: slot" line all session). Now, with no flag:
 //   - every own open is recorded (as before) and saved next to the exe (t2r-bp-track.bin), loaded at start: the local track survives restarts;
@@ -531,7 +531,7 @@ static uint64_t bp_spawn_real(const float *loc8, uint64_t art, uint8_t **proc_ou
 }
 static void bp_send_msg2(uint8_t *proc, uint64_t msg, void *arg) {
     static __attribute__((aligned(16))) uint8_t z[6][16], tgt[16], out[0x40];
-    // (crash seen twice at exe+1573557 = the event sender's slot read `mov rdi,[rdi+8]`, right after "bp: ... path A ... shown"):
+    // (B crashed twice at exe+1573557 = the event sender's slot read `mov rdi,[rdi+8]`, right after "bp: ... path A ... shown"):
     // the cached process pointer can be stale (the prop process freed / its memory reused), so proc+0x80 held garbage. Send only when
     // the process still owns its handle slot (slot readable and slot+8 points back at this process), else drop the message.
     if (!proc || IsBadReadPtr(proc, 0xd0)) return;
@@ -720,7 +720,7 @@ static void bp_pup_bag_off(int s, uint64_t h, double now, int go) {
     xlog("bp: slot %d puppet bag OFF at t %.0f ms - worn parts hidden, %s %llx (look %s)", s, now,
          mode == 1 ? "animated bag (TAB prop look, clips in step)" : mode == 2 ? "rigid per-look bag at the hand" : "satchel at the hand", (unsigned long long)o, g_fl_spawn_str[s]);
 }
-// (the animated bag was offset from where the worn bag was -> a pop): measure at the first clip frame the world delta between the body's spinec (the worn bag
+// The animated bag was offset from where the worn bag was (a pop): measure at the first clip frame the world delta between the body's spinec (the worn bag
 // rides it) and the prop's spinec (root as fallback), log it ("backpack: open offset ..."), and keep it as a constant correction on the prop's locator for the whole clip.
 // Clamped to 15 cm. t2r-no-bp-offset-fix.txt = off (measure + log only).
 static int bp_offfix_off(void) {

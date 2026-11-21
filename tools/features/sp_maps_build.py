@@ -66,7 +66,10 @@ def specs():
         if m.get("part1", {}).get("fires"):
             sys.path.insert(0, os.path.join(os.path.dirname(HERE), "part1"))
             import p1_fires
-            if p1_fires.on() and p1_fires.DONOR_PARTICLES not in m["levels"]:
+            P = _p1_particles()
+            if P.wanted(m):     # Part I's own fire particles (p1_particles.py): their part levels instead of the Forest can's
+                m["levels"] = m["levels"] + [x for x in P.levels(m) if x not in m["levels"]]
+            elif p1_fires.on() and p1_fires.DONOR_PARTICLES not in m["levels"]:
                 m["levels"] = m["levels"] + [p1_fires.DONOR_PARTICLES]
             fx = _p1_firesfx()      # The fires' looping sound: own small level (region emitters + sound-bank lvl-nor-forest-amb), tools/part1/p1_firesfx.py
             if fx.sfx_fires(m) and fx.level_name(m) not in m["levels"]:
@@ -78,7 +81,9 @@ def specs():
     for m in maps:      # Part I Bookstore ambience (tools/part1/p1_audio.py): the audio levels leave the level set when it is off / not converted
         if m.get("part1", {}).get("audio"):
             P = _p1_audio()
-            if not P.on() or not P.available(m):
+            with p1_map_env(m):
+                have = P.available(m)
+            if not P.on() or not have:
                 if P.on() and os.environ.get("T2R_P1_AUDIO") == "1":
                     raise AssertionError(f"{m['key']}: T2R_P1_AUDIO=1 but {P.AUDIO} has no audio.json - run: python tools/part1/p1_audio.py convert <Part I dir>")
                 _p1_audio_note(P)
@@ -140,6 +145,85 @@ _MAIN = os.environ.get("T2R_MAIN_ROOT", os.path.dirname(os.path.dirname(HERE)).s
 P1_CONV = os.environ.get("T2R_P1_CONV") or os.path.join(_MAIN, "re", "part1", "x", "conv")
 
 
+# Two Part I maps in one build (Bookstore + Plaza): each map's converted set, audio set and actor switch come from its own
+# tools/part1/data/p1_maps/<key>.json "build" block ({main} = the main checkout, {wt} = $T2R_WT), so the global T2R_P1_CONV /
+# T2R_P1_AUDIO_DIR / T2R_P1_ACTORS_CONVERTED only apply to a map without one. T2R_P1_CONV_<KEY> (key upper-case, '-' -> '_') overrides
+# a map's conv dir for a test. Every per-map step runs inside p1_map_env(m), which points P1_CONV, p1_audio.AUDIO and the actor switch
+# at that map and restores them after.
+def p1_rs_renames(m):
+    """{old render-settings symbol name: new} the map stages its Part I render settings under (p1_maps json "rs_renames"; Plaza's copy
+    of Part I's city-wide base, so it never shares a symbol with the Bookstore's)"""
+    f = os.path.join(HERE, "..", "part1", "data", "p1_maps", m["key"] + ".json")
+    return dict(json.load(open(f, encoding="utf-8")).get("rs_renames") or {}) if m.get("part1", {}).get("levels") and os.path.exists(f) else {}
+
+
+def p1_build_cfg(m):
+    """-> {"conv", "audio", "actors_converted"} of a Part I map's p1_maps json "build" block (missing keys left out), or None"""
+    if not m.get("part1", {}).get("levels"):
+        return None
+    f = os.path.join(HERE, "..", "part1", "data", "p1_maps", m["key"] + ".json")
+    b = json.load(open(f, encoding="utf-8")).get("build") if os.path.exists(f) else None
+    if not b:
+        return None
+    sub = {"main": _MAIN, "wt": os.environ.get("T2R_WT", "../t2r-wt")}
+    out = {k: os.path.normpath(b[k].format(**sub)) for k in ("conv", "audio") if b.get(k)}
+    env = os.environ.get("T2R_P1_CONV_" + m["key"].upper().replace("-", "_"))
+    if env:
+        out["conv"] = env
+    if "actors_converted" in b:
+        out["actors_converted"] = bool(b["actors_converted"])
+    return out
+
+
+_P1_ENV_LOG = set()
+_RS_STAGED = {}         # stage dir -> [(map key, its staged t1x bytes)] in build order (stage_part1_rs merges them)
+
+
+class p1_map_env:
+    """with p1_map_env(m): P1_CONV / p1_audio.AUDIO / T2R_P1_ACTORS_CONVERTED follow map m (no-op for a map without a build block)"""
+    def __init__(self, m):
+        self.cfg = p1_build_cfg(m) if isinstance(m, dict) else None
+        self.key = m.get("key") if isinstance(m, dict) else None
+
+    def __enter__(self):
+        global P1_CONV
+        if not self.cfg:
+            return self
+        A = _p1_audio()
+        self.saved = (P1_CONV, A.AUDIO, os.environ.get("T2R_P1_ACTORS_CONVERTED"))
+        P1_CONV = self.cfg.get("conv", P1_CONV)
+        A.AUDIO = self.cfg.get("audio", A.AUDIO)
+        if "actors_converted" in self.cfg:
+            os.environ["T2R_P1_ACTORS_CONVERTED"] = "1" if self.cfg["actors_converted"] else "0"
+        if self.key not in _P1_ENV_LOG:
+            _P1_ENV_LOG.add(self.key)
+            print(f"sp map {self.key}: Part I inputs conv={P1_CONV} audio={A.AUDIO} actors_converted={os.environ.get('T2R_P1_ACTORS_CONVERTED', '0')}")
+        return self
+
+    def __exit__(self, *exc):
+        global P1_CONV
+        if not self.cfg:
+            return False
+        A = _p1_audio()
+        P1_CONV, A.AUDIO, ac = self.saved
+        if ac is None:
+            os.environ.pop("T2R_P1_ACTORS_CONVERTED", None)
+        else:
+            os.environ["T2R_P1_ACTORS_CONVERTED"] = ac
+        return False
+
+
+def _per_map(argi=0):
+    """decorator: run the function inside p1_map_env(<its argument argi>)"""
+    def deco(fn):
+        def w(*a, **k):
+            with p1_map_env(a[argi]):
+                return fn(*a, **k)
+        w.__name__, w.__doc__ = fn.__name__, fn.__doc__
+        return w
+    return deco
+
+
 def p1_levels(m):
     return _p1_stage().p1_levels(m)
 
@@ -154,6 +238,18 @@ def p1_rs(m):
 
 
 RS_MODULE = "render-settings/t1x"
+
+
+def _p1_particles():
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "part1"))
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "models"))
+    import p1_particles
+    return p1_particles
+
+
+def p1_particle_files(m):
+    """mod-relative paths of the map's Part I fire particle set (part level paks + carrier DC modules: Part I map data); [] without it"""
+    return [rel for rel, _src in _p1_particles().files(m)]
 
 
 def _p1_audio():
@@ -173,11 +269,19 @@ def _p1_audio_note(P):
                f"sp maps: Part I Bookstore ambience NOT built: {P.AUDIO}/audio.json missing (python tools/part1/p1_audio.py convert <Part I dir>); T2R_P1_AUDIO=1 makes this an error"))
 
 
+@_per_map(0)
 def p1_audio_files(m):
     """mod-relative paths of the map's Part I ambience (paks, banks, streams, DC carrier modules) for the archive manifest; [] without it"""
     if not m.get("part1", {}).get("audio"):
         return []
     return _p1_audio().manifest_paths(m)
+
+
+@_per_map(0)
+def p1_lut_files(m):
+    """mod-relative paths of the map's Part I LUT textures (lut0/..., Part I colour grading) for the archive manifest; [] without or with T2R_P1_RS=0"""
+    l = _p1_stage().lut_files(P1_CONV) if p1_rs(m) else []
+    return l + ["lut0/files.json"] if l else []
 
 
 def p1_ingame():
@@ -195,6 +299,14 @@ FILL_SYM = "*t2r-p1-ambient-fill*"
 def fill_on():
     # No TLOU2-value fill, OFF by default (p1_stage.fill_on; T2R_P1_FILL=1 = the old fill symbol)
     return _p1_stage().fill_on()
+
+
+def _p1_actor_level(m, lvl):
+    """True for the Part I level whose -ingame package is our tiny light-actor pak (spec part1.light-actors[].level; T2R_P1_LIGHT_ACTORS=0 off)"""
+    # no longer tied to the map having fires (Plaza has Part I lights and no fire barrels); T2R_P1_FIRES=0 still turns them off
+    if os.environ.get("T2R_P1_LIGHT_ACTORS", "1") == "0" or not _p1_fires().on():
+        return False
+    return any(a["level"] == lvl for a in _p1_fires().light_actors(m))
 
 
 def p1_fires_mod():
@@ -227,6 +339,7 @@ def t2_actor_paks():
     return out
 
 
+@_per_map(0)
 def p1_block_actors(m):
     """{level: [actor, ...]} Part I's block actors (conv/actors-part1.json, python p1_levelset.py actors <Part I dir> <key>) that TLOU2 also has;
     {} when off / not written. Part I-only actors (no TLOU2 actor97 pak: books-*, hun-isle-sign-*, ivy-weeds-a-overhanging-a ...) stay out:
@@ -247,27 +360,35 @@ def p1_block_actors(m):
     return {lv: [a for a in al if a in have] for lv, al in d.items()}
 
 
+@_per_map(0)
 def p1_blocks(m):
     """registry lines of the map's Part I levels (written by p1_levelset.py convert)"""
     f = os.path.join(P1_CONV, "pak68-part1.txt")
     assert os.path.exists(f), f"{m['key']}: {f} missing - run: python tools/part1/p1_levelset.py convert <Part I dir> {m['key']}"
     rs = p1_rs(m)
-    want, out, cur, lvl = set(p1_levels(m)) | ({rs} if rs else set()), [], None, None
+    want, out, cur, lvl, blk = set(p1_levels(m)) | ({rs} if rs else set()), [], None, None, 0
     acts = p1_block_actors(m)
     for ln in open(f, encoding="latin1").read().split("\n"):
         if ln.startswith("level-name "):
             lvl = ln[11:].strip()
             cur = lvl in want
+            blk = len(out)      # this level's block starts here in out
         if ln.startswith(("upperLeft ", "lowerRight ")):
             continue        # Part I-only keys: TLOU2's pak68.txt has none (0 of 3073 blocks) and its parser does not know them
         if cur and ln and not (lvl != rs and ln.startswith("package ") and ((ln.endswith("-ingame") and not p1_ingame()) or (ln.endswith("-phys") and not p1_phys(lvl)))):
             out.append(ln)
+            if ln == f"package {lvl}" and _p1_actor_level(m, lvl):      # the light actors' package (a ProcessDynLight spawns only with its actor pak listed)
+                out += [f"package {lvl}-ingame", "actor light-skel"]
             if ln.startswith("level-id ") and lvl != rs:
-                out += [f"actor {a}" for a in acts.get(lvl, ())]        # Part I's block actors that TLOU2 ships (T2R_P1_ACTORS)
+                out += [f"actor {a}" for a in acts.get(lvl, ()) if f"actor {a}" not in out[blk:]]        # Part I's block actors that TLOU2 ships (T2R_P1_ACTORS); no 2nd light-skel line next to the light-actor package
     if rs and fill_on():        # synthetic ambient-fill render-settings symbol (p1_rsenv.add_fill_symbol), layered via t2r-p1-rs-override.txt
         i = max((k for k, ln in enumerate(out) if ln.startswith("render-settings ")), default=None)
         if i is not None and "render-settings " + FILL_SYM not in out:
             out[i + 1:i + 1] = ["symbol " + FILL_SYM, "render-settings " + FILL_SYM]
+    rn = p1_rs_renames(m)
+    if rn:              # the map's own copy of a shared Part I symbol (stage_part1_rs renames it in the rs pak and the t1x module)
+        out = [(ln.split(" ", 1)[0] + " " + rn[ln.split(" ", 1)[1]]) if ln.startswith(("symbol ", "render-settings ")) and ln.split(" ", 1)[1] in rn else ln
+               for ln in out]
     assert not rs or f"level-name {rs}" in out, \
         f"{m['key']}: no {rs} block in {f} - run: python tools/part1/p1_levelset.py convert <Part I dir> {m['key']} (or T2R_P1_RS=0)"
     return out
@@ -284,12 +405,16 @@ def _p1_stage():
 def stage_part1(stage, maps):
     S = _p1_stage()
     for m in maps:
-        S.stage_levels(stage, m, P1_CONV)
-        if p1_rs(m):
-            stage_part1_rs(stage, m, p1_rs(m))
-        stage_part1_fires(stage, m)
-        if m.get("part1", {}).get("audio"):
-            _p1_audio().stage(stage, m)
+        with p1_map_env(m):
+            S.stage_levels(stage, m, P1_CONV)
+            if p1_rs(m):
+                stage_part1_rs(stage, m, p1_rs(m))
+            stage_part1_particles(stage, m)
+            stage_part1_fires(stage, m)
+            stage_part1_spawners(stage, m)
+            stage_part1_light_actors(stage, m)
+            if m.get("part1", {}).get("audio"):
+                _p1_audio().stage(stage, m)
 
 
 def _p1_firesfx():
@@ -312,11 +437,54 @@ def _p1_fires():
     return p1_fires
 
 
+@_per_map(1)
+def stage_part1_particles(stage, m):
+    """Part I's own fire particles (p1_particles.py): the converted part level paks + their DC modules as the carrier part modules, and
+    modules.bin: each carrier's size + export list (base-mod edit). T2R_P1_FIRE_PARTICLES=0: off (the Forest can fire instead)"""
+    P = _p1_particles()
+    if not P.wanted(m):
+        return
+    import dc_modules
+    modules = os.path.join(stage, "bin", "dc1", "modules.bin")
+    for name, size, exports in P.stage(stage, m, P1_CONV):
+        data = bytearray(open(modules, "rb").read())
+        old = dc_modules.set_size(data, name, size)
+        open(modules, "wb").write(data)
+        n0, n1 = _p1_audio().set_exports(modules, name, exports)
+        i0 = i1 = None
+        if P.imports_on():          # Part I's import list too, not the dev test module's
+            i0, i1 = P.set_imports(modules, name, P.carrier_imports(name))
+        print(f"sp map {m['key']}: Part I fire particles: {name}.bin {old} -> {size} bytes, exports {n0} -> {n1}, imports {i0} -> {i1}")
+
+
 def stage_part1_lights(stage, m, lv):
     """(moved to p1_stage.stage_lights, one code path with p1conv)"""
     _p1_stage().stage_lights(stage, m, lv)
 
 
+@_per_map(1)
+def stage_part1_light_actors(stage, m):
+    """Part I's ProcessDynLight actors (Bookstore: the fake-sun projector; Plaza: the plaza / office projectors and spots), cloned from the converted
+    Part I -ingame pak of the level that owns their LIGHT_TABLE_1 + ANIMATED_LIGHTS, as pak68/<level>-ingame.pak (one tiny package per level).
+    Split out of stage_part1_fires and grouped by level (Plaza's lights sit in two levels and the map has no fires)."""
+    F = _p1_fires()
+    acts = F.light_actors(m)
+    if not acts or not F.on() or not F.light_actors_on():
+        return
+    by = {}
+    for a in acts:
+        by.setdefault((a["level"], a["donor"]), []).append(a["name"])
+    assert len({lv for lv, _d in by}) == len(by), f"{m['key']}: light-actors name two donors for one level"
+    for (lv, dn), names in by.items():
+        donor = os.path.join(P1_CONV, dn + ".pak")
+        assert os.path.exists(donor), f"{m['key']}: light-actor donor {donor} missing"
+        out = os.path.join(stage, "pak68", lv + "-ingame.pak")
+        k = F.write_actor_pak(donor, names, out)
+        print(f"sp map {m['key']}: {k} Part I light actor(s) {names} from {dn} as pak68/{lv}-ingame.pak "
+              f"({os.path.getsize(out)} bytes; the level that owns the light tables)")
+
+
+@_per_map(1)
 def stage_part1_fires(stage, m):
     """Fire barrels (p1_fires.py): the Forest trash can's fire particle spawners at each map spec part1.fires entry, cloned into
     the staged <pak>-ingame.pak (build_dll copied the committed one before sp_maps_build.apply). T2R_P1_FIRES=0: off"""
@@ -335,34 +503,78 @@ def stage_part1_fires(stage, m):
         k = fx.build(fp, fs, cache)
         print(f"sp map {m['key']}: {k} fire sound emitters ({fx.SOUND:#x}, bank {fx.BANK}) in {fx.level_name(m)}-ingame.pak ({os.path.getsize(fp)} bytes)")
     old = os.path.getsize(pak)
-    k = F.graft(pak, fs, cache)
-    print(f"sp map {m['key']}: {k} fire particle spawners ({len(fs)} fires, donor {F.DONOR_LEVEL}) in {m['pak']}-ingame.pak "
-          f"({old} -> {os.path.getsize(pak)} bytes)")
-    acts = m.get("part1", {}).get("light-actors", [])
-    if acts and F.light_actors_on():        # Part I's ProcessDynLight actors (the fake-sun projector), cloned from the converted Part I -ingame pak
-        donor = os.path.join(P1_CONV, acts[0]["donor"] + ".pak")
-        assert os.path.exists(donor), f"{m['key']}: light-actor donor {donor} missing"
-        old = os.path.getsize(pak)
-        k = F.graft_actors(pak, donor, [a["name"] for a in acts], os.path.join(level_edit.CACHE, "p1-actors"))
-        print(f"sp map {m['key']}: {k} Part I light actor(s) {[a['name'] for a in acts]} from {acts[0]['donor']} in {m['pak']}-ingame.pak "
+    P = _p1_particles()
+    if P.wanted(m):     # Part I's own fire spawners (p1_particles.FIRE_SPAWNERS), cloned as they are from the converted Part I -ingame paks
+        k = F.graft_level_spawners(pak, P1_CONV, sorted({lv for lv, _n in P.fire_spawners(m)}), set(), os.path.join(level_edit.CACHE, "p1-spawners"),
+                                   names={n for _lv, n in P.fire_spawners(m)})
+        assert k == len(P.fire_spawners(m)), f"{m['key']}: {k} of {len(P.fire_spawners(m))} Part I fire spawners found in {P1_CONV}"
+        print(f"sp map {m['key']}: {k} Part I fire particle spawners in {m['pak']}-ingame.pak ({old} -> {os.path.getsize(pak)} bytes)")
+    else:
+        k = F.graft(pak, fs, cache)
+        print(f"sp map {m['key']}: {k} fire particle spawners ({len(fs)} fires, donor {F.DONOR_LEVEL}) in {m['pak']}-ingame.pak "
               f"({old} -> {os.path.getsize(pak)} bytes)")
+
+
+@_per_map(1)
+def stage_part1_spawners(stage, m):
+    """Part I ambient particle spawners + prop spawners (spec part1.particles / part1.spawner-arts), cloned from the converted -ingame paks into
+    the staged <pak>-ingame.pak. Split out of stage_part1_fires, which returns early for a map without fires (Plaza): its spawner-arts
+    were never grafted although their actor paks were staged."""
+    F = _p1_fires()
+    pak = os.path.join(stage, "pak68", m["pak"] + "-ingame.pak")
+    sys.path.insert(0, os.path.join(os.path.dirname(HERE), "maps"))
+    import level_edit
     pa = m.get("part1", {}).get("particles")
+    arts = F.spawner_arts(m, P1_CONV)
+    if (pa or arts) and not os.path.exists(pak):
+        raise AssertionError(f"{m['key']}: {pak} not staged before the Part I spawners")
     if pa and os.environ.get("T2R_P1_AMBIENT", "1") != "0":     # Part I's ambient particle spawners whose particle group TLOU2 also ships (gnats)
         old = os.path.getsize(pak)
         k = F.graft_level_spawners(pak, P1_CONV, p1_levels(m), set(), os.path.join(level_edit.CACHE, "p1-spawners"), prefixes=tuple(pa["spawners"]))
         print(f"sp map {m['key']}: {k} Part I ambient particle spawners {pa['spawners']} (group from {pa['level']}) in {m['pak']}-ingame.pak ({old} -> {os.path.getsize(pak)} bytes)")
-    arts = F.spawner_arts(m, P1_CONV)
     if arts:        # Part I's prop spawners whose art TLOU2 ships identically (p1-bookstore-spawn-arts.json), cloned from the converted -ingame paks
         old = os.path.getsize(pak)
         k = F.graft_level_spawners(pak, P1_CONV, p1_levels(m), set(arts), os.path.join(level_edit.CACHE, "p1-spawners"), {a: F.actor_file(m, a) for a in arts})
         print(f"sp map {m['key']}: {k} Part I prop spawners ({len(arts)} arts) in {m['pak']}-ingame.pak ({old} -> {os.path.getsize(pak)} bytes)")
 
 
+@_per_map(1)
 def stage_part1_rs(stage, m, rs):
     """the map's Part I render settings: the files (p1_stage.stage_rs_files: <rs>-ingame.pak into pak68/, <rs>.t1x.bin as bin/dc1/render-settings/t1x.bin)
     + modules.bin: that module's size + exports (base-mod edit, stays here)"""
     import dc_modules
     dst = _p1_stage().stage_rs_files(stage, m, P1_CONV)
+    # Two Part I maps: each conv's t1x is TLOU2's module + that map's symbols; the staged module is the merge of every Part I map of
+    # this build so far (p1_rsenv.merge_modules).  Part I's city-wide *t1-rs-hun-const-base* differs per map (its engine-default fill and
+    # LUT records depend on the map's own symbols: Plaza's sun has no own red record), so a map's p1_maps json "rs_renames" stages its
+    # copy under its own name: the rs pak's region tags, the module symbol, the registry lines (p1_blocks) and the ext row (const_sym).
+    import p1_rsenv
+    rn = p1_rs_renames(m)
+    if rn:
+        pk = os.path.join(stage, "pak68", rs + "-ingame.pak")
+        new_pk = p1_rsenv.rename_rs_pak(open(pk, "rb").read(), rn)       # (read first: open(..., "wb") truncates)
+        open(pk, "wb").write(new_pk)
+        print(f"sp map {m['key']}: {rs}-ingame.pak render-settings tags renamed {rn}")
+    done = _RS_STAGED.setdefault(os.path.normcase(os.path.abspath(stage)), [])
+    done.append((m["key"], open(dst, "rb").read(), {p1_rsenv.fnv(o): p1_rsenv.fnv(n) for o, n in rn.items()}))
+    if len(done) > 1 or rn:
+        stock = open(os.path.join(_MAIN, "re", "gamebin", "dc1", *RS_MODULE.split("/")) + ".bin", "rb").read()
+        merged, conflicts = p1_rsenv.merge_modules(stock, [d for _k, d, _r in done], [r for _k, _d, r in done])
+        open(dst, "wb").write(merged)
+        print(f"sp map {m['key']}: {RS_MODULE}.bin = stock + {', '.join(k for k, _d, _r in done)} ({len(merged)} bytes); "
+              f"shared symbols kept from the first map that has them (a later map's copy differs, unused there): "
+              f"{', '.join(f'{x:#x}' for x in conflicts) or 'none'}")
+        # a symbol whose records differ keeps the first map's; a later map must not use its dropped copy (its regions' tags, its ext rows)
+        for s_, losers in conflicts.items():
+            for i in losers:
+                k_, _d, _r = done[i]
+                mm = next(x for x in specs() if x["key"] == k_)
+                with p1_map_env(mm):
+                    used = {p1_rsenv.fnv(ln.split(" ", 1)[1]) for ln in p1_blocks(mm) if ln.startswith("render-settings ")}
+                (rg, _g), = p1_rsenv.read_pak_regions(open(os.path.join(stage, "pak68", p1_rs(mm) + "-ingame.pak"), "rb").read())
+                used |= {p1_rsenv.fnv(p1_rsenv.region_rs(r)) for r in rg if p1_rsenv.region_rs(r)}
+                assert s_ not in used, (f"{k_}: render-settings symbol {s_:#x} differs from an earlier Part I map's and {k_} uses it - "
+                                        f"add it to tools/part1/data/p1_maps/{k_}.json rs_renames")
     syms = [ln.split(" ", 1)[1] for ln in p1_blocks(m) if ln.startswith("render-settings ")]
     modules = os.path.join(stage, "bin", "dc1", "modules.bin")
     data = bytearray(open(modules, "rb").read())
@@ -371,6 +583,28 @@ def stage_part1_rs(stage, m, rs):
     n0, n1 = add_exports(modules, syms, module=RS_MODULE)
     print(f"sp map {m['key']}: Part I render settings {rs}-ingame.pak + {RS_MODULE}.bin ({old} -> {os.path.getsize(dst)} bytes, "
           f"exports {n0} -> {n1})")
+    luts = _p1_stage().lut_files(P1_CONV)
+    if luts:        # Part I colour grading: the LUT filename table (render-settings.bin) gets the Part I LUT stems, else the lut-texture-file sid binds nothing (p1_lut.py)
+        import p1_lut
+        rsb = os.path.join(stage, "bin", "dc1", "render-settings.bin")
+        raw = open(rsb if os.path.exists(rsb) else os.path.join(_MAIN, "re", "gamebin", "dc1", "render-settings.bin"), "rb").read()
+        new, added = p1_lut.add_entries(raw, luts)
+        bad = p1_lut.verify(new, luts)
+        assert not bad, f"LUT filename table: {bad[:3]}"
+        os.makedirs(os.path.dirname(rsb), exist_ok=True)
+        open(rsb, "wb").write(new)
+        # lut0/files.json = the engine's LUT list: the Part I names appended (a table name the list lacks is never loaded), then the staged-file checks
+        stock_fj = open(os.path.join(_MAIN, "re", "gamebin", "lut0", "files.json"), "rb").read()
+        fj = p1_lut.add_files_json(stock_fj, luts)
+        os.makedirs(os.path.join(stage, "lut0"), exist_ok=True)
+        open(os.path.join(stage, "lut0", "files.json"), "wb").write(fj)
+        bad = p1_lut.verify_files(fj, stage, luts)
+        assert not bad, f"staged Part I LUTs: {bad[:3]}"
+        if added:
+            data = bytearray(open(modules, "rb").read())
+            o2 = dc_modules.set_size(data, "render-settings", len(new))
+            open(modules, "wb").write(data)
+            print(f"sp map {m['key']}: Part I LUT filename table: +{', '.join(added)} (render-settings.bin {o2} -> {len(new)} bytes)")
 
 
 def scaled_props_of(m):
@@ -394,6 +628,7 @@ def stage_scaled(stage, maps):
     return scaled_props.stage(stage, bakes) if bakes else []
 
 
+@_per_map(0)
 def prop_actors(m):
     out = []
     for p in scaled_props_of(m)[0]:
@@ -412,6 +647,7 @@ def prop_actors(m):
     return out
 
 
+@_per_map(0)
 def p1_actor_files(m):
     """mod-relative paths of the map's converted Part I actor paks (actor97/<name>.pak): Part I MAP data like the level paks (the release build / zips leave
     them out with the Part I maps; build_dll adds them to the A/B manifest); [] without them"""
@@ -430,32 +666,41 @@ def stage_p1_actors(stage, maps):
     NOT returned as edit paks (build_dll adds p1_actor_files to the manifest next to the Part I levels, so a release build can drop them)"""
     n = size = 0
     for m in maps:
-        n += _p1_stage().stage_actors(stage, m, P1_CONV, p1_actor_files(m))
-        size += sum(os.path.getsize(os.path.join(stage, p)) for p in p1_actor_files(m))
+        with p1_map_env(m):
+            n += _p1_stage().stage_actors(stage, m, P1_CONV, p1_actor_files(m))
+            size += sum(os.path.getsize(os.path.join(stage, p)) for p in p1_actor_files(m))
     F = p1_fires_mod()
     have = t2_actor_paks()
-    if not F.converted_actors_on():
-        import struct
-        key = struct.pack("<Q", 0x80521a312c4cb09b)
-        for m in maps:
+    import struct
+    for m in maps:
+        with p1_map_env(m):
+            if F.converted_actors_on():
+                continue
+            # INTERACTIVE_BG_1 items by the pak's ITEM LIST (a byte search for the type id also hits the dead header the converter leaves when it drops the item)
             for lv in p1_levels(m):
                 f = os.path.join(stage, "pak68", lv + ".pak")
-                if os.path.exists(f) and key in open(f, "rb").read():
-                    msg = (f"{lv}.pak carries INTERACTIVE_BG_1 (conv-abi-mix5) but the converted Part I actors are not staged (T2R_P1_ACTORS_CONVERTED=0: their Havok 2020.1 "
+                if not os.path.exists(f):
+                    continue
+                d = open(f, "rb").read()
+                h = F._hdr(d)
+                pages = [struct.unpack_from("<III", d, h[5] + 12 * i) for i in range(h[4])]
+                if any(t == "INTERACTIVE_BG_1" for _, _, t in F._items(d, pages)):
+                    msg = (f"{lv}.pak carries an INTERACTIVE_BG_1 item ({os.path.basename(P1_CONV)}) but the converted Part I actors are not staged (T2R_P1_ACTORS_CONVERTED=0: their Havok 2020.1 "
                            f"collision is untranslated, re/part1/bookstore_missing_objects_1105.md s10). What the item needs from actor paks is not proven: build from a conv dir without "
                            f"the item (conv-abi-mix4), or set T2R_P1_IBG=1 to test it with the TLOU2-resident ivy actors only")
                     assert os.environ.get("T2R_P1_IBG") == "1", f"{m['key']}: {msg}"
                     print(f"sp maps: WARNING (T2R_P1_IBG=1) {lv}: {msg[:90]}")
     for m in maps:      # night69 crash guard: every art of a grafted Part I spawner must resolve to an actor pak (stock TLOU2 or staged here), and a staged one must carry TLOU2's Havok 2017.1 collision
-        if not m.get("part1", {}).get("spawner-arts"):
-            continue
-        for art in F.spawner_arts(m, P1_CONV):
-            name = F.actor_file(m, art)
-            assert name in have or os.path.exists(os.path.join(stage, "actor97", name + ".pak")),                 f"{m['key']}: grafted Part I spawner art {art!r} -> actor {name!r} is neither a stock TLOU2 actor pak nor staged (night69: unresolved actor = engine assert)"
-        for p in p1_actor_files(m):
-            d = open(os.path.join(stage, p), "rb").read()
-            assert b"SDKV20200100" not in d, f"{p}: still carries Part I's Havok 2020.1 collision tagfile (TLOU2 reads 2017.1: engine assert, night69 exe+1c31515)"
-            p1_actor_collision_checked.append(p)
+        with p1_map_env(m):
+            if not m.get("part1", {}).get("spawner-arts"):
+                continue
+            for art in F.spawner_arts(m, P1_CONV):
+                name = F.actor_file(m, art)
+                assert name in have or os.path.exists(os.path.join(stage, "actor97", name + ".pak")),                 f"{m['key']}: grafted Part I spawner art {art!r} -> actor {name!r} is neither a stock TLOU2 actor pak nor staged (night69: unresolved actor = engine assert)"
+            for p in p1_actor_files(m):
+                d = open(os.path.join(stage, p), "rb").read()
+                assert b"SDKV20200100" not in d, f"{p}: still carries Part I's Havok 2020.1 collision tagfile (TLOU2 reads 2017.1: engine assert, night69 exe+1c31515)"
+                p1_actor_collision_checked.append(p)
     if n:
         print(f"sp maps: {n} Part I actor paks staged ({size / 1e6:.1f} MB uncompressed)")
 
@@ -796,36 +1041,58 @@ def patch_registry(path, maps):
     while lines and not lines[-1]:
         lines.pop()
     for m in maps:
-        p = m["pak"]
-        if f"level-name {p}" in lines:          # rebuilt block (props may have changed)
-            i = lines.index(f"level-name {p}")
-            j = i + 1
-            while j < len(lines) and not lines[j].startswith("level-name "):
-                j += 1
-            del lines[i:j]
-        lines += [f"level-name {p}", f"level-id {p}", f"package {p}-ingame"] + [f"actor {a}" for a in prop_actors(m)]
-        if m.get("part1", {}).get("fires"):     # The fires' sound level (p1_firesfx): drop a stale block, append ours (its bank loads with this map only)
-            fx = _p1_firesfx()
-            if f"level-name {fx.level_name(m)}" in lines:
-                i = lines.index(f"level-name {fx.level_name(m)}")
+        with p1_map_env(m):
+            p = m["pak"]
+            if f"level-name {p}" in lines:          # rebuilt block (props may have changed)
+                i = lines.index(f"level-name {p}")
                 j = i + 1
                 while j < len(lines) and not lines[j].startswith("level-name "):
                     j += 1
                 del lines[i:j]
-            if fx.sfx_fires(m):
-                lines += fx.registry(m)
-        if p1_levels(m):                        # Part I levels: drop stale blocks, append ours
-            for lv in p1_levels(m) + ([p1_rs(m)] if p1_rs(m) else []) + (_p1_audio().levels_of(m) if m.get("part1", {}).get("audio") else []):
-                if f"level-name {lv}" in lines:
-                    i = lines.index(f"level-name {lv}")
+            lines += [f"level-name {p}", f"level-id {p}", f"package {p}-ingame"] + [f"actor {a}" for a in prop_actors(m)]
+            if m.get("part1", {}).get("fires"):     # The fires' sound level (p1_firesfx): drop a stale block, append ours (its bank loads with this map only)
+                fx = _p1_firesfx()
+                if f"level-name {fx.level_name(m)}" in lines:
+                    i = lines.index(f"level-name {fx.level_name(m)}")
                     j = i + 1
                     while j < len(lines) and not lines[j].startswith("level-name "):
                         j += 1
                     del lines[i:j]
-            lines += p1_blocks(m)
-            if m.get("part1", {}).get("audio"):
-                lines += _p1_audio().registry(m)
+                if fx.sfx_fires(m):
+                    lines += fx.registry(m)
+            if p1_levels(m):                        # Part I levels: drop stale blocks, append ours
+                for lv in p1_levels(m) + ([p1_rs(m)] if p1_rs(m) else []) + (_p1_audio().levels_of(m) if m.get("part1", {}).get("audio") else []) + _p1_particles().levels(m):
+                    if f"level-name {lv}" in lines:
+                        i = lines.index(f"level-name {lv}")
+                        j = i + 1
+                        while j < len(lines) and not lines[j].startswith("level-name "):
+                            j += 1
+                        del lines[i:j]
+                lines += p1_blocks(m)
+                lines += _p1_particles().registry(m)       # Part I fire particles: package <part level> + particle-module <carrier>
+    # Part I ambience: every Part I map's audio set uses the same two levels (hun-const-audio + -rgn) with its own bank list; one block per
+    # level pair carries the union of the banks of every map of the build (each map's stale-block pass above already dropped old blocks)
+    lines += p1_audio_registry(maps)
     open(path, "w", encoding="latin1", newline="\n").write("\n".join(lines) + "\n")
+
+
+def p1_audio_registry(maps):
+    """pak68.txt blocks of the Part I ambience levels: per (level, region-level) pair one block (p1_audio.registry_lines) with the union of the
+    banks of every map that uses it, in build order (the 3 carrier DC modules and the 235 shared files are byte-identical between Bookstore and Plaza)"""
+    A, pairs = _p1_audio(), {}
+    for m in maps:
+        s = m.get("part1", {}).get("audio")
+        if not s:
+            continue
+        with p1_map_env(m):
+            man = A.load_manifest()
+        _spec, shipped, left = pairs.setdefault((s["level"], s["region-level"]), (s, [], []))
+        shipped += [b for b in man["banks"] if b not in shipped]
+        left += [b for b in man["banks-tlou2"] if b not in left]
+    out = []
+    for spec, shipped, left in pairs.values():
+        out += A.registry_lines(spec, shipped, [b for b in left if b not in shipped])
+    return out
 
 
 # ------------------------------------------------------------------ verify (read back)
@@ -905,28 +1172,43 @@ def verify(stage, maps):
 def _verify_registry(stage, maps):
     reg = open(os.path.join(stage, "pak68.txt"), encoding="latin1").read().split("\n")
     for m in maps:
-        assert f"level-name {m['pak']}" in reg and f"package {m['pak']}-ingame" in reg
-        assert os.path.exists(os.path.join(stage, "pak68", m["pak"] + "-ingame.pak")), f"{m['pak']}-ingame.pak not staged"
-        for lv in p1_levels(m):
-            assert os.path.exists(os.path.join(stage, "pak68", lv + ".pak")) and f"level-name {lv}" in reg, f"Part I level {lv} not staged / registered"
-        if m.get("part1", {}).get("audio"):
-            P = _p1_audio()
-            for lv in P.levels_of(m):
-                assert os.path.exists(os.path.join(stage, "pak68", lv + "-ingame.pak")) and f"level-name {lv}" in reg and f"package {lv}-ingame" in reg, f"Part I ambience level {lv} not staged / registered"
-            for b in P.load_manifest()["banks"]:
-                assert os.path.exists(os.path.join(stage, "soundbank4", b + ".bnk")) and f"sound-bank {b}" in reg, f"Part I bank {b} not staged / registered"
-            mods = P.modules_table(open(os.path.join(stage, "bin", "dc1", "modules.bin"), "rb").read())
-            for k, mi in P.load_manifest()["modules"].items():
-                sz = os.path.getsize(os.path.join(stage, *mi["file"].split("/")))
-                assert mods[mi["carrier"]][1] == sz == mi["size"] and sorted(mods[mi["carrier"]][2]) == sorted(int(x, 16) for x in mi["exports"]), f"Part I audio module {k} ({mi['carrier']}): modules.bin size / exports differ from the staged file"
-        rs = p1_rs(m)
-        if rs:
-            assert os.path.exists(os.path.join(stage, "pak68", rs + "-ingame.pak")) and f"level-name {rs}" in reg and \
-                f"package {rs}-ingame" in reg, f"Part I render-settings level {rs} not staged / registered"
-            mod = DcFile(open(os.path.join(stage, "bin", "dc1", *RS_MODULE.split("/")) + ".bin", "rb").read())
-            have = {struct.unpack_from("<Q", mod.data, mod.q(0x18) + 24 * i)[0] for i in range(struct.unpack_from("<I", mod.data, 0x14)[0])}
-            for sym in [ln.split(" ", 1)[1] for ln in p1_blocks(m) if ln.startswith("render-settings ")]:
-                assert fnv(sym) in have and f"render-settings {sym}" in reg, f"{sym} not in the staged {RS_MODULE}.bin / registry"
+        with p1_map_env(m):
+            assert f"level-name {m['pak']}" in reg and f"package {m['pak']}-ingame" in reg
+            assert os.path.exists(os.path.join(stage, "pak68", m["pak"] + "-ingame.pak")), f"{m['pak']}-ingame.pak not staged"
+            for lv in p1_levels(m):
+                assert os.path.exists(os.path.join(stage, "pak68", lv + ".pak")) and f"level-name {lv}" in reg, f"Part I level {lv} not staged / registered"
+            if m.get("part1", {}).get("audio"):
+                P = _p1_audio()
+                for lv in P.levels_of(m):
+                    assert os.path.exists(os.path.join(stage, "pak68", lv + "-ingame.pak")) and f"level-name {lv}" in reg and f"package {lv}-ingame" in reg, f"Part I ambience level {lv} not staged / registered"
+                for b in P.load_manifest()["banks"]:
+                    assert os.path.exists(os.path.join(stage, "soundbank4", b + ".bnk")) and f"sound-bank {b}" in reg, f"Part I bank {b} not staged / registered"
+                mods = P.modules_table(open(os.path.join(stage, "bin", "dc1", "modules.bin"), "rb").read())
+                for k, mi in P.load_manifest()["modules"].items():
+                    sz = os.path.getsize(os.path.join(stage, *mi["file"].split("/")))
+                    assert mods[mi["carrier"]][1] == sz == mi["size"] and sorted(mods[mi["carrier"]][2]) == sorted(int(x, 16) for x in mi["exports"]), f"Part I audio module {k} ({mi['carrier']}): modules.bin size / exports differ from the staged file"
+            PP = _p1_particles()
+            if PP.wanted(m):        # Part I fire particles: blocks registered, files staged, modules.bin carrier size / exports = the staged module
+                mods = _p1_audio().modules_table(open(os.path.join(stage, "bin", "dc1", "modules.bin"), "rb").read())
+                assert all(ln in reg for ln in PP.registry(m)), f"{m['key']}: Part I fire particle blocks not registered"
+                assert p1_fires_mod().DONOR_PARTICLES not in m["levels"], f"{m['key']}: Forest can particles loaded next to Part I's"
+                for rel, _src in PP.files(m):
+                    f = os.path.join(stage, *rel.split("/"))
+                    assert os.path.exists(f), f"{m['key']}: {rel} not staged"
+                    if rel.startswith("bin/dc1/"):
+                        name = rel[len("bin/dc1/"):-4]
+                        ex = sorted({r[0] for r in PP.Module(open(f, "rb").read()).rows})
+                        assert mods[name][1] == os.path.getsize(f) and mods[name][2] == ex, f"{m['key']}: {name}: modules.bin size / exports differ from the staged file"
+                        assert not PP.imports_on() or PP.module_imports(open(os.path.join(stage, "bin", "dc1", "modules.bin"), "rb").read(), name) == PP.carrier_imports(name), \
+                            f"{m['key']}: {name}: modules.bin imports are not Part I's"
+            rs = p1_rs(m)
+            if rs:
+                assert os.path.exists(os.path.join(stage, "pak68", rs + "-ingame.pak")) and f"level-name {rs}" in reg and \
+                    f"package {rs}-ingame" in reg, f"Part I render-settings level {rs} not staged / registered"
+                mod = DcFile(open(os.path.join(stage, "bin", "dc1", *RS_MODULE.split("/")) + ".bin", "rb").read())
+                have = {struct.unpack_from("<Q", mod.data, mod.q(0x18) + 24 * i)[0] for i in range(struct.unpack_from("<I", mod.data, 0x14)[0])}
+                for sym in [ln.split(" ", 1)[1] for ln in p1_blocks(m) if ln.startswith("render-settings ")]:
+                    assert fnv(sym) in have and f"render-settings {sym}" in reg, f"{sym} not in the staged {RS_MODULE}.bin / registry"
 
 
 EXT_HEADER = os.path.join(HERE, "..", "ext", "sp_maps_built.h")
@@ -938,9 +1220,42 @@ def built_mask(maps):
     mask = 0
     for m in maps:
         idx = m.get("index")
-        if idx is not None and SP_BASE <= idx < SP_BASE + 16:
+        if idx is not None and SP_BASE <= idx < SP_BASE + 32:      # u32 report (map_packs.SP_MAX)
             mask |= 1 << (idx - SP_BASE)
     return mask
+
+
+def p1_fire_spawner_names(maps):
+    """the full names of the fire particle spawners this build stages (the engine keeps only 31 characters of a process name, as
+    "<first 14>...<last 14>"; the ext diag expands them by this list): Part I's own spawners with the Part I particle set, else the
+    Forest-can graft names t2r-<fire>-<donor spawner>"""
+    out = []
+    for m in maps:
+        if not m.get("part1", {}).get("fires"):
+            continue
+        if _p1_particles().wanted(m):
+            out += [n for _lv, n in _p1_particles().fire_spawners(m)]
+        else:
+            F = _p1_fires()
+            out += [e["name"] for e in F.spawner_entries(F.fires(m), [{"name": n, "pos": list(F.DONOR_ANCHOR), "quat": [0, 0, 0, 1]} for n in F.DONOR_SPAWNERS])]
+    return sorted(set(out))
+
+
+def p1_lighting_define(maps):
+    """the ext replays the render-settings regions of the loaded Part I map (immersion.c, table g_p1m[] keyed by the loaded level).
+    Every Part I map of the build gets an entry (tools/part1/p1_lighting_multi.py); a map whose config
+    (tools/part1/data/p1_maps/<key>.json) has an "ext" block names its own generated header and base symbol, else the default
+    tools/ext/p1_lighting.h (the Bookstore). No Part I map = "" (immersion.c falls back to p1_lighting.h)."""
+    sys.path.insert(0, os.path.join(HERE, "..", "part1"))
+    import p1_lighting_multi
+    rows = []
+    for m in maps:
+        if not m.get("part1", {}).get("levels"):
+            continue
+        cfg = os.path.join(HERE, "..", "part1", "data", "p1_maps", m["key"] + ".json")
+        ext = (json.load(open(cfg, encoding="utf-8")).get("ext") or {}) if os.path.exists(cfg) else {}
+        rows.append((m["key"], ext.get("header"), ext.get("base_sym"), p1_rs_renames(m)))
+    return p1_lighting_multi.ext_define(rows)
 
 
 def write_ext_header(maps):
@@ -950,7 +1265,12 @@ def write_ext_header(maps):
     compile the ext (deploy_test.sh, build_release.py) pick it up."""
     text = ("// generated by tools/features/sp_maps_build.py - do not edit, do not commit\n"
             "#define T2R_SP_BUILT_MASK 0x%04xu   // bit k = map-list index %d + k: %s\n" %
-            (built_mask(maps), SP_BASE, ",".join(m["key"] for m in maps) or "none"))
+            (built_mask(maps), SP_BASE, ",".join(m["key"] for m in maps) or "none") +
+            # 1 = a map of this build ships the Part I fire particle set (p1_particles.wanted): no fire point-light records are staged,
+            # so the ext's p1_fire_flicker.c record search is off (it would walk the region manager forever)
+            "#define T2R_P1_FIRE_PARTICLES %d\n" % (1 if any(_p1_particles().wanted(m) for m in maps) else 0) +
+            "#define T2R_P1_FIRE_SPAWNER_NAMES %s   // (each followed by a comma; empty = none)\n" % "".join('"%s", ' % n for n in p1_fire_spawner_names(maps)) +
+            p1_lighting_define(maps))
     old = open(EXT_HEADER, encoding="utf-8").read() if os.path.exists(EXT_HEADER) else None
     if old != text:
         open(EXT_HEADER, "w", encoding="utf-8", newline="\n").write(text)

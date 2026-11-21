@@ -1,7 +1,7 @@
-// HWID report (bans by hardware id). The client (loader/hwid.cpp) hashes MachineGuid, SMBIOS UUID, disk serials and MACs
+// HWID report (bans by hardware id). The base client (loader/hwid.cpp) hashes MachineGuid, SMBIOS UUID, disk serials and MACs
 // and sends them in its own matchmaker login; the shipped winmm sends none, so this sends an equivalent over the clan short connection:
 //   op 0xB2 [64B token][u8 ver=1][u8 mask: bit0 machine guid, bit1 smbios uuid, bit2 first fixed disk serial][12B per present bit]
-// each 12 B = first 12 bytes of SHA-256("T2R-HWID1" tag data) (the same sources as the client: MachineGuid, SMBIOS system UUID, disk serial;
+// each 12 B = first 12 bytes of SHA-256("T2R-HWID1" tag data) (the same sources as the base client: MachineGuid, SMBIOS system UUID, disk serial;
 // MACs left out: VPN / virtual adapters make them collide). Reply 0xB3 "ok=1": stop. A server that never answers (older) is left
 // alone after 3 tries. No UI: the server decides (tools/daemon.py "HWID bans"). g_hwid_done / g_hwid_tries: t2r-ext.c (clan_worker).
 

@@ -1,4 +1,4 @@
-"""Net pre-mortem probes: each probe throws hostile / odd input at an in-process daemon (free localhost port, temp DB) and prints
+"""Net probes: each probe throws hostile / odd input at an in-process daemon (free localhost port, temp DB) and prints
 "ok" (the daemon copes) or "VULN" (a finding of re/premortem-net.md). Exits 0 unless --strict is given (then every VULN fails the run).
 Run: python tools/tests/test_net_premortem.py [--strict]"""
 import os, sys, socket, struct, tempfile, threading, time

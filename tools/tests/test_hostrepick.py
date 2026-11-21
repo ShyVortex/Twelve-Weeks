@@ -37,12 +37,12 @@ a, w = rp.check("m", T0, R, 0, evidence(), 600, None)
 check(a == "hold" and "would migrate" in w, "1st sample: hold, 'would migrate' logged: %s" % w)
 clk.adv(90)
 a, w = rp.check("m", T0, R, 0, evidence(), 500, None)
-check(a == "migrate" and w == 2, "2nd consecutive sample: migrate to slot 2 (alderwood): %r" % (w,))
+check(a == "migrate" and w == 2, "2nd consecutive sample: migrate to slot 2 (albewrld): %r" % (w,))
 check(any("would migrate to 2" in l for l in LOG), "logged")
 # a noisy single sample resets the streak
 rp, clk, LOG = mk(); clk.adv(125)
 rp.check("m", T0, R, 0, evidence(), 600)
-clk.adv(90); rp.check("m", T0, R, 0, {0: key(283, 494), 1: key(283, 373), 2: key(280, 301)}, 500)
+clk.adv(90); rp.check("m", T0, R, 0, {0: key(283, 494), 1: key(283, 480), 2: key(280, 470)}, 500)   # (totals close: no total-rule gain either)
 clk.adv(90); a, w = rp.check("m", T0, R, 0, evidence(), 400)
 check(a == "hold", "good, bad, good: streak was reset, no migration")
 # target flip resets too
@@ -51,10 +51,10 @@ rp.check("m", T0, R, 0, evidence(), 600)
 clk.adv(90); a, w = rp.check("m", T0, R, 0, {0: key(283, 494), 1: key(150, 200), 2: key(211, 301)}, 500)
 check(a == "hold", "different best target: streak restarts")
 
-# --- worth it: >= 40 ms AND >= 20 % lower
+# --- worth it: >= 40 ms AND >= 20 % lower (same totals: the total rule below stays out of it)
 for cur, best, ok in ((283, 211, True), (283, 250, False), (100, 55, True), (100, 70, False), (60, 15, True), (300, 245, False), (500, 410, False)):
     rp, clk, LOG = mk(); clk.adv(125)
-    sc = {0: key(cur, 400), 1: key(best, 300), 2: key(cur, 400)}
+    sc = {0: key(cur, 400), 1: key(best, 400), 2: key(cur, 400)}
     rp.check("m", T0, R, 0, sc, 600); clk.adv(90)
     a, w = rp.check("m", T0, R, 0, sc, 500)
     check((a == "migrate") == ok, "cur %d best %d -> %s" % (cur, best, "migrate" if ok else "hold"))
@@ -157,11 +157,12 @@ hm.handover("m", 1)
 hm.depart(A, "left")
 check(hm.snapshot("m")[3] in (1, 2) and not hm.handover_pending("m"), "host leaves during prepare: the normal host-loss migration wins, handover gone")
 
-# --- capacity override (match 82599fb6): the host (slot 0, ~1 Mbit) saturated: 0-1 83 -> 746, 0-2 252 -> 905, 1-2 168 calm.
+# --- capacity override ): a host (slot 0, ~1 Mbit) saturated: 0-1 83 -> 746, 0-2 252 -> 905, 1-2 168 calm.
 # The ping rule alone holds (746 vs 905 is < 20 %); hostcap says the host lagged in this match.
 LIVE = {0: key(905, 1651), 1: key(746, 914), 2: key(905, 1073)}
-def capd(bad="BOURADI lagged", rank=None, mx=1):
-    return {"host_bad": bad, "rank": rank if rank is not None else {0: 2, 1: 1, 2: 0}, "max_rank": mx}
+def capd(bad="BOURADI lagged", rank=None, mx=1, sat=True):
+    # (that match was saturated too: 83 -> 746 / 252 -> 905 ms; a saturated link moves at once, a lag record alone is confirmed)
+    return {"host_bad": bad, "rank": rank if rank is not None else {0: 2, 1: 1, 2: 0}, "max_rank": mx, "saturated": sat}
 rp, clk, LOG = mk(); clk.adv(125)
 a, w = rp.check("m", T0, R, 0, LIVE, 600)
 check(a == "hold", "live numbers, no capacity info: the ping rule holds (%s)" % w)
@@ -178,6 +179,18 @@ check(a == "hold", "every candidate lagged too: no override, the ping rule decid
 rp, clk, LOG = mk(); clk.adv(125)
 a, w = rp.check("m", T0, R, 0, {0: key(200, 300), 1: key(400, 500), 2: key(360, 450)}, 600, None, None, None, capd(rank={0: 2, 1: 0, 2: 1}))
 check(a == "hold", "override never picks a target > 150 ms worse than the host (%s)" % w)
+rp, clk, LOG = mk(); clk.adv(125)
+a, w = rp.check("m", T0, R, 0, {0: key(200, 300), 1: key(210, 290), 2: key(360, 450)}, 600, None, None, None, capd(rank={0: 2, 1: 0, 2: 1}))
+check(a == "hold", "override never picks a target with a worse worst ping than the host (210 > 200) (%s)" % w)
+# a lag record without a saturated link needs the same target on a 2nd check, 30 s later
+rp, clk, LOG = mk(); clk.adv(125)
+a, w = rp.check("m", T0, R, 0, LIVE, 600, None, None, None, capd(sat=False))
+check(a == "hold" and "check 1 of 2" in w, "lag record, link not saturated: 1st check holds (%s)" % w)
+check(not rp.due("m", T0), "the 2nd check is not due at once")
+clk.adv(31)
+check(rp.due("m", T0), "the 2nd check is due 30 s later")
+a, w = rp.check("m", T0, R, 0, LIVE, 600, None, None, None, capd(sat=False))
+check(a == "migrate" and w == 2, "lag record confirmed on the 2nd check: migrate (%r)" % (w,))
 rp, clk, LOG = mk(); clk.adv(125)
 a, w = rp.check("m", T0, R, 0, {0: None, 1: key(746, 914), 2: None}, 600, None, None, None, capd())
 check(a == "migrate" and w == 1, "host's own score unknown (a peer not measured): still replaced by the known not-lagged slot 1")
@@ -199,6 +212,14 @@ check(a == "hold", "2 players without capacity info: never moved (%s)" % w)
 rp, clk, LOG = mk(); clk.adv(125)
 a, w = rp.check("m", T0, R2P, 0, {0: key(790, 790), 1: key(790, 790)}, 600, None, None, None, capd("X link saturated", {0: 1, 1: 0}, 0))
 check(a == "migrate" and w == 1, "2 players, saturated host, the other proven: handover (%r)" % (w,))
+# the total rule needs an average gain per other player (REPICK_TOTAL_GAIN_PER_MS 25): 120 ms over 7 links is not a noticeable change
+R8 = frozenset(range(8))
+rp, clk, LOG = mk(); clk.adv(125)
+a, w = rp.check("m", T0, R8, 0, {0: key(200, 600), 1: key(200, 480)}, 600)
+check(a == "hold", "8 players, worst equal, total -120 ms (17 ms each): hold (%s)" % w)
+rp, clk, LOG = mk(); clk.adv(125)
+a, w = rp.check("m", T0, R8, 0, {0: key(200, 800), 1: key(200, 600)}, 600)
+check(a == "hold" and "total rule" in w and "check 1 of 2" in w, "8 players, total -200 ms (29 ms each, 25 %%): would migrate (%s)" % w)
 rp, clk, LOG = mk(); clk.adv(125)
 a, w = rp.check("m", T0, R2P, 0, {0: key(790, 790), 1: key(790, 790)}, 600, None, None, None, capd("X link saturated", {0: 1, 1: 1}, 0))
 check(a == "hold", "2 players, saturated host, the other unproven: hold")
@@ -351,6 +372,31 @@ fd, tp = tempfile.mkstemp(suffix=".log"); os.close(fd)
 open(tp, "w").write("\n".join(L2) + "\nother line\n")
 check(repick_stats.main([tp]) == 0, "main reads a log file"); os.remove(tp)
 
+
+
+# --- total rule: a player in South America hosted two players in Europe. Worst 315 -> 274 (13 %) failed the worst rule; the
+# total 589 -> 429 drops 160 ms (27 %) with a worst that is not worse: migrate. The confirm comes REPICK_CONFIRM_GAP_S later, not a full interval.
+for cur, best, ok, what in (((315, 589), (274, 429), True, "01660bc0: 315/589 -> 274/429"),
+                            ((315, 589), (315, 520), False, "same worst, total -69 ms"),
+                            ((315, 589), (330, 300), False, "worst gets worse, big total gain"),
+                            ((300, 1000), (300, 880), False, "total -120 ms but only 12 %")):
+    rp, clk, LOG = mk(); clk.adv(125)
+    sc = {0: key(*cur), 1: key(*best), 2: key(cur[0], cur[1] + 50)}
+    a1, w1 = rp.check("m", T0, R, 0, sc, 600)
+    clk.adv(hostmig.REPICK_CONFIRM_GAP_S + 1)
+    due2 = rp.due("m", T0)
+    a, w = rp.check("m", T0, R, 0, sc, 570)
+    good = (a == "migrate") == ok and (not ok or (due2 and "total rule" in str(w1)))
+    check(good, "total rule: %s -> %s (confirm due after %d s: %s)" % (what, a, hostmig.REPICK_CONFIRM_GAP_S, due2))
+# a check without 'would migrate' keeps the full interval
+rp, clk, LOG = mk(); clk.adv(125)
+rp.check("m", T0, R, 0, {0: key(200, 400), 1: key(200, 400), 2: key(200, 400)}, 600)
+clk.adv(hostmig.REPICK_CONFIRM_GAP_S + 1)
+check(not rp.due("m", T0), "no 'would migrate': next check only after the full %d s interval" % hostmig.REPICK_INTERVAL)
+# 2 players: one link - neither rule moves the host
+rp, clk, LOG = mk(); clk.adv(125)
+a, w = rp.check("m", T0, frozenset({0, 1}), 0, {0: key(315, 315), 1: key(100, 100)}, 600)
+check(a == "hold", "2 players: hold")
 
 print("\n%d failure(s)" % len(FAILS))
 sys.exit(1 if FAILS else 0)

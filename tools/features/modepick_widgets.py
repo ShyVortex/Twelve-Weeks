@@ -63,6 +63,7 @@ def add_clan_row(w, after):
 
 
 QUICK_LABEL = "QUICK MATCH"
+PRIVATE_LABEL = "PRIVATE MATCH"      # the 4th row: opens the private lobby page (private13_widgets / t2r-ext privlobby.c); no player count
 MAN_W, MAN_H, CNT_W = 22, 40, 92     # the count: icon 22 x 40 (the NR man is 36 x 66), the number box, together right-aligned in the row
 RW, RH, RPITCH = 700, 92, 104      # a mode row inside the panel: card, 1 px edge, focus fill + frame (the clan page's row look: clan13_widgets.edge)
 PAD = 28
@@ -72,7 +73,9 @@ def add_box(w, mlist):
     """The box: a closed panel (card + thin edge, the clan overview's look) with one row per mode: card / edge / hidden focus fill + frame, the label in
     the clan page's row face, the live count right-aligned in the small dim face. t2r-ext (modepick.c) fades mpFill<k> / mpFrame<k> with the selection."""
     import clan13_widgets as c13
-    mlist = list(mlist) + [{"label": QUICK_LABEL}]       # QUICK MATCH: the last row, "any mode" - not in modes.json (modepick.c: row MODE_N)
+    mlist = list(mlist) + [{"label": QUICK_LABEL}]       # QUICK MATCH: "any mode" - not in modes.json (modepick.c: row MODE_N)
+    if os.environ.get("T2R_PRIVATE_UI", "1") != "0":
+        mlist.append({"label": PRIVATE_LABEL, "nocount": 1})   # PRIVATE MATCH: row MODE_N + 1, no count
     n = len(mlist)
     t, _, _ = _templates(w)
     b = Builder(t)
@@ -80,7 +83,8 @@ def add_box(w, mlist):
     anim = by["anim-group"]["guid"]
     bw = RW + 2 * PAD
     bh = n * RH + (n - 1) * (RPITCH - RH) + 2 * PAD
-    top = ROW_CY - bh / 2.0
+    bh3 = 3 * RH + 2 * (RPITCH - RH) + 2 * PAD
+    top = ROW_CY - min(bh, bh3) / 2.0           # (a 4th row grows the box downwards; the approved 3-row placement stays, clear of the title)
     box = b.group(BOX, anim, b.tl(BX, top, bw, bh), visible=0, depth=4.6)
     bg = box["guid"]
     box.update({"focusable": 0, "engineClass": ""})
@@ -96,7 +100,7 @@ def add_box(w, mlist):
         b.text(f"mpNm{k}", g, c13.tlm(36, (RH - 52) / 2.0, 420, 52), m["label"], 44, c13.TEXT, tracking=2)
         # the live count: No Return's HUD man (hud/rogue/enemies-man-icon.png, white, shipped as streaming/t2r/icons/nr-man.png) left of the number, white; one group
         # (mpCntG<k>) so t2r-ext dims both together (50 % at 0). Icon 22 x 40 and the number box share the row's centre line.
-        cg = b.group(f"mpCntG{k}", g, b.tl(RW - 36 - CNT_W, 0, CNT_W, RH))["guid"]
+        cg = b.group(f"mpCntG{k}", g, b.tl(RW - 36 - CNT_W, 0, CNT_W, RH), visible=0 if m.get("nocount") else 1)["guid"]
         b.image(f"mpMan{k}", cg, b.tl(0, (RH - MAN_H) / 2.0, MAN_W, MAN_H), "streaming/t2r/icons/nr-man.png", 0xFFFFFFFF, 255, scaleMode="StretchAspect")
         b.text(f"mpCnt{k}", cg, b.tl(MAN_W + 14, (RH - 44) / 2.0, CNT_W - MAN_W - 14, 44), "...", 34, 0xFFFFFFFF, face="Default", align=0, tracking=2)
         b.rect(f"mpHit{k}", g, b.fill(), 0xFFFFFFFF, c13.HIT_A)

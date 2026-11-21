@@ -53,7 +53,7 @@ d = load_daemon("")
 base = d.map_pool()
 # Train Station is an "always" map (No Return arena): listed even with T2R_SP_MAPS unset (fixed indices 8..),
 # offered once the players report having it; without players the base pool is unchanged
-check(d.sp_maps_on() == {"to1-train-station"} and len(d.MAPS) == 24 and base == list(range(8)),
+check(d.sp_maps_on() == {"to1-train-station"} and len(d.MAPS) == 25 and base == list(range(8)),
       "T2R_SP_MAPS unset: Train Station on (always), base pool without reports")
 check(d.map_pool([A, B]) == base, "SP maps off: players don't matter")
 

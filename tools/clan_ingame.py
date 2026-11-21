@@ -8,17 +8,17 @@ Section 4 (STATUS UPDATES): U name roleText state stateWord pid line  (<= 4 newe
 Section 1 (ROSTER):  P name roleText stateCode(h/u/s/d/k) stateWord expr portraitId bond bondTypeWord tagline lately roleIcon      (<= 40 members)
 Section 2 (JOURNAL): J id caption title body tone(good/warn/bad/info/"") arcId step day week portraitId name new(0/1) more   (<= 24 STORIES, newest first; only written stories)
                      L cardId day text new(0/1)     (a one-liner of the timeline, under the J row with that id, <= 3 per story, in time order; "more" on the J row counts the rest)
-Section 5 (MATCH STATS of one raid, op 0xB6 with the u16 "seen raid day" slot = the raid's day; F / Triangle-Y on the RAIDS page):
-                     X day map win(1/0/-) players        (the match header; players = rows below, 0 = no stats were recorded: a match from before the stats were recorded)
+Section 5 (MATCH STATS of one raid, op 0xB6 with the u16 "seen raid day" slot = the raid's day; opened with F / Triangle-Y on the RAIDS page):
+                     X day map win(1/0/-) players        (the match header; players = rows below, 0 = no stats were recorded: a match from before per-match stats were recorded)
                      Q name team(0/1/-1) me(0/1) kills downs deaths revives execs headshots parts left(0/1) head    (a stat the client did not report = -1; <= 12, the asker's team first, then best parts first;
                        kills = enemies downed (label 1), downs = times the player was downed (label 21), deaths = label 22; head = the pool model id of the player's face, 0 = none: old daemons send 12 fields)
 Section 3 (RAIDS):   S label stock days need   (5 rows: food water med ammo mat; days -1 = no need),
                      M day map win(1/0/-) sup need new gotCats(5 numbers) needCats(5 numbers)   (<= 8, newest first),
                      T matchDay qty name iconKey new   (loot of those matches)
 Section 7 (END SCREEN, dead / won clans only; tools/ext/clanend.c): E kind(W/L) faces more remembered raidsWon raidsPlayed, then R name portraitId per face (<= 7)
-Section 6 (JOURNAL, week pages; tools/clan_journal.py: ONE entry per clan day; the u16 "seen raid day" slot = the week whose text is wanted, 0 = the newest):
+Section 6 (JOURNAL, week pages, tools/clan_journal.py: ONE entry per clan day; the u16 "seen raid day" slot = the week whose text is wanted, 0 = the newest):
                      K week newestWeek            (the week whose paragraphs follow; the newest week that has an entry)
-                     D day dow week id title tone(good/warn/bad/info) map win(1/0/-) sup need healthy hungry sick(-1 = unknown: an entry from before this field existed) sizeChange new(0/1)
+                     D day dow week id title tone(good/warn/bad/info) map win(1/0/-) sup need healthy hungry sick(-1 = unknown: an entry from before the per-day journal) sizeChange new(0/1)
                        (EVERY entry of the run, oldest first: the index of the week pages, <= 85 rows; day 0 = the founding, dow 0)
                      G day caption text           (the paragraphs of the days of week `week`, in reading order: THE RAID / SUPPLIES / THE CAMP / the event's name / NOTES)
                      Section 2 of a clan that has such entries carries them as J rows (one per day, newest first, caption "WEEK w - DAY d", no arc): older clients show the same journal.
@@ -352,7 +352,7 @@ def stats_head_pool():
 
 def stats_heads(rows):
     """{token: head model id} for the players of one match: a stable face per player token (same player, same face in every match and for every viewer; the sex and the head come
-    from the token's hash), team 0 wears WLF heads and team 1 Seraphite ones (neutral heads fit either), no two players of the match share a head while the pool has free ones.
+    from the token's hash), team 0 wears WLF heads and team 1 Seraphite ones (never a neutral or other-faction head), no two players of the match share a head while the pool has free ones.
     The daemon knows no look per player, so this is a face for the list, not the character the player ran."""
     import zlib
     pool = stats_head_pool()
@@ -363,10 +363,11 @@ def stats_heads(rows):
         h = zlib.crc32(("head|" + tok).encode("utf-8")) & 0xFFFFFFFF
         sex = "f" if h & 1 else "m"
         fk = "S" if team == 1 else "W"
-        cand = [m for m, sx, fc in pool if sx == sex and fc in (fk, "N") and m not in used] or [m for m, sx, fc in pool if sx == sex and m not in used] or [m for m, _, _ in pool if m not in used] or [m for m, _, _ in pool]
-        own = [m for m in cand if any(fc == fk for mm, _, fc in pool if mm == m)]
-        pick = own if own and (h >> 8) % 4 else cand                    # the faction's own heads 3 times in 4
-        out[tok] = pick[(h >> 12) % len(pick)]
+        side = [(m, sx) for m, sx, fc in pool if fc == fk]            # faction-locked: a WLF player is never shown a Seraphite / neutral head and the other way round
+        if not side:
+            continue
+        cand = [m for m, sx in side if sx == sex and m not in used] or [m for m, sx in side if m not in used] or [m for m, sx in side if sx == sex] or [m for m, _ in side]
+        out[tok] = cand[(h >> 12) % len(cand)]
         used.add(out[tok])
     return out
 

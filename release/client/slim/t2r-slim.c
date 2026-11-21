@@ -1,4 +1,4 @@
-// t2r-slim: rebuilds the full winmm.dll of a "slim" Twelve Weeks client from the player's own game files.
+// t2r-slim: rebuilds the full winmm.dll of a "slim" TLOU2 Multiplayer Revival client from the player's own game files.
 //
 //   t2r-slim.exe <slim winmm.dll> <t2r-slim.dat> <game folder> <out winmm.dll>
 //

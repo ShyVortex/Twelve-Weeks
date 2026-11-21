@@ -1,4 +1,4 @@
-"""Matchmaking / JIP pre-mortem fixes (re/premortem-matchmaking.md): offline tests, plain python, temp DB, no sockets.
+"""matchmaking / JIP fixes (see the matchmaking notes under re/): offline tests, plain python, temp DB, no sockets.
 Run: python tools/tests/test_mm_premortem.py"""
 import os, sys, tempfile, time
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
@@ -83,7 +83,7 @@ pool, info = hostmig.region_pool(["des", "pee"], region, lambda t: 0, pair, pins
 check(set(pool) == {"des", "pee"}, "no-host player removed first (2 candidates EU + NA-east tie): both stay (%s)" % info)
 regs = {"des": "EU", "pee": "NA-east", "mer": "NA-east"}
 pool, info = hostmig.region_pool(["des", "pee"], region, lambda t: 0, pair, pins={}, everyone=["des", "pee", "mer"])
-check(pool == ["pee"], "(a no-host player may not host but counts): NA-east majority 2 v 1 -> pee hosts, not des (%s)" % info)
+check(pool == ["pee"], "(a player who may not host but counts): NA-east majority 2 v 1 -> a host hosts, not des (%s)" % info)
 # a majority region whose best host is far worse than the overall best loses its priority
 regs = {"a": "EU", "b": "EU", "c": "NA-east", "d": "NA-east", "e": "NA-east"}
 pings = {("a", "b"): 20, ("c", "d"): 190, ("c", "e"): 200, ("d", "e"): 190,
@@ -101,6 +101,7 @@ pool, info = hostmig.region_pool(["a", "b", "c"], region, lambda t: {"a": 7}.get
 check(set(pool) == {"a"}, "an owner pin still forces its region (%s)" % info)
 
 # ------------------------------------------------------------ (3) the result only credits players who were still in the match
+import sqlite3
 def wins(t):
     with daemon._dblock, daemon.db() as c:
         r = c.execute("SELECT wins, draws FROM players WHERE token=?", (t,)).fetchone()

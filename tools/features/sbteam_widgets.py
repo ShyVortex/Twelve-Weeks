@@ -1,10 +1,11 @@
-"""The ESC / end-of-match scoreboard puts OUR team in the upper block, blue (in the ESC menu your team is always on the blue side above and the
-enemy in the red team).  winmm fills the two fixed blocks team0_* (upper) and team1_* (lower) by the roster team index; t2r-ext (sbteam.c) swaps the two blocks'
+"""The ESC / end-of-match scoreboard puts OUR team in the upper block, blue (in the ESC menu your team is always on the blue side above ... and the
+enemy in the red team").  winmm fills the two fixed blocks team0_* (upper) and team1_* (lower) by the roster team index; t2r-ext (sbteam.c) swaps the two blocks'
 places when our team is team 1.  So the colour has to belong to the PLACE, not to the block:
 
   * the two stock team bands (team0_band blue, team1_band red) are hidden; sbBlue sits at the upper band's place, sbRed at the lower one's (same size, same colours)
   * the row texts (names, numbers, ping), which were blue in the upper block and red in the lower one, wear one neutral light colour (the column heads' colour)
-Both pages carry the same widgets (to1/pause-menu, to1/scoreboard).  Idempotent."""
+Both pages carry the same widgets (to1/pause-menu, to1/scoreboard).  Idempotent.
+pause_restyle_widgets.add_pause_nr (runs later) replaces sbBlue / sbRed by thin team edge bars and restyles both pages in the No Return frame."""
 import copy
 import json
 import os

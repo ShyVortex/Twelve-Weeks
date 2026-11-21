@@ -1,5 +1,5 @@
 """attach-points.bin: SP's own backpack stow frames for the worn bag, measured in single player with the SP sandbox (Abby run,
-tools/sp-sandbox): Abby's long guns ride slot_1_space / slot_2_space and her melee rides
+re/sp-sandbox-runs/ (the Abby capture log), tools/sp-sandbox): Abby's long guns ride slot_1_space / slot_2_space and her melee rides
 backpack_r_side_holster, all three locked to backpack_fatconst (the bag's sway bone - spread 0.2 .. 3 cm over 140+ snapshots while
 running / sprinting / crouching), so a stowed weapon moves with the bag. base-male-skel (every MP look) has backpack_fatconst too.
 Adds t2r_fc_m / t2r_fc_g1 / t2r_fc_g2 = AP relative to backpack_fatconst (World = fatconst * AP * weapon offset, solved from the

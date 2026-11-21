@@ -1,8 +1,9 @@
-"""8-player (4v4) support for the T2R client winmm.dll: net slots 0..7 instead of 0..3.
+"""8-player (4v4) support for the T2R client winmm.dll: net slots 0..7 instead of 0..3. The slot count is one parameter N
+(env T2R_SLOTS, default 8; 9 = a 4v4 plus one more client, re/winmm-nslots.md); N = 8 is byte-identical to the original 8-slot patch.
 
-  python slots8.py <in.dll> <out.dll>          # apply to a built DLL (after winmm_patches + ext_loader)
+  python slots8.py <in.dll> <out.dll> [N]      # apply to a built DLL (after winmm_patches + ext_loader)
 
-winmm (the base MP client) is its `net::session` compiled with kMaxNetPlayers = 4: the loops over the 4 peers /
+winmm (the original mod's MP client) is the spec `net::session` compiled with kMaxNetPlayers = 4: the loops over the 4 peers /
 4 net players are UNROLLED (fixed addresses per entry), the tables are 4 entries wide and the match state sits right behind them.
 This module appends a section `.t2r8` (RWX) that holds the new 8-entry tables plus a code cave, and then edits winmm:
 
@@ -30,6 +31,23 @@ IMAGE_BASE = 0x180000000
 TEXT_LO, TEXT_HI = 0x180001000, 0x18009EF86
 CODE_RESERVE = 0x40000
 MAGIC = 0x38523254          # 'T2R8'
+N_MIN, N_MAX = 8, 9         # supported slot counts: the spectator candidate list (FUN_1800344E0: own slot excluded, 8 ints in its 32-byte stack slot)
+                            # holds N - 1 <= 8 entries, so 9 is the last N that fits; below 8 the in-place stats rows and the 4-wide leftovers differ
+PROTO_BASE = 0x2A           # wire protocol version of N = 8 (the original 4-slot client: 0x29); N != 8 uses PROTO_BASE + (N - 8)
+
+
+def nslots():
+    """The slot count N from the environment (T2R_SLOTS, default 8)."""
+    return int(os.environ.get("T2R_SLOTS", "8") or "8")
+
+
+def proto_version(n):
+    return PROTO_BASE + (n - 8)
+
+
+def bump(n, v):
+    """An original 4-slot bound / count `v` (3, 4, 2 ...) widened to N slots: v + (N - 4). N = 8 gives the constants of the 8-slot patch (3 -> 7, 4 -> 8)."""
+    return v + (n - 4)
 
 
 class Img:
@@ -116,7 +134,10 @@ def _cc_of(i):
 
 
 class Slots8:
-    def __init__(self, data):
+    def __init__(self, data, n=8):
+        if not N_MIN <= n <= N_MAX:
+            raise SystemExit(f"slots8: N = {n} is not supported (the patch is checked for {N_MIN}..{N_MAX} slots)")
+        self.N = n
         self.img = Img(data)
         im = self.img
         self.sec_rva = (im.size_of_image + im.salign - 1) // im.salign * im.salign
@@ -325,7 +346,7 @@ class Slots8:
                 return new + (t - lo)
         return t
 
-    def copy_chain(self, name, hook, tmpl, win_lo, stride, new_lo, tmpl_entry, first, count=8, next_targets=(),
+    def copy_chain(self, name, hook, tmpl, win_lo, stride, new_lo, tmpl_entry, first, count=None, next_targets=(),
                    last_exit=None, fall="next", end=None, slot_imm=(), rec_disp=None, rec_delta=0, note="", allow_inner=()):
         """Extend an unrolled per-entry code block to entries first .. count-1.
 
@@ -344,6 +365,7 @@ class Slots8:
                 'end'  : every copy continues at `end` (entry found / handled);
         slot_imm       : addresses of template instructions whose immediate (== tmpl_entry) becomes j.
         """
+        count = self.N if count is None else count
         tins = decode(self.img, tmpl[0], tmpl[1])
         trng = {i.address for i in tins}
         end = end if end is not None else tmpl[1]
@@ -420,10 +442,13 @@ class Slots8:
     def finalize(self):
         im = self.img
         counts = self._apply_relocs()
-        # descriptor for the ext (offset 0 of the data area): magic, version, then the table bases
-        d = struct.pack("<II", MAGIC, 1)
+        # descriptor for the ext (offset 0 of the data area): magic, version, then the table bases. Version 1 = N = 8 (the original 8-slot
+        # patch, unchanged bytes); version 2 (N != 8) appends u32 N, u32 protocol version, u64 stats rows base (0 = in place at ctx+0x2B98).
+        d = struct.pack("<II", MAGIC, 1 if self.N == 8 else 2)
         for k in ("peers", "pa_slot", "players", "slotstate"):
             d += struct.pack("<Q", self.dsyms.get(k, 0))
+        if self.N != 8:
+            d += struct.pack("<IIQ", self.N, proto_version(self.N), self.dsyms.get("stats", 0))
         self.dinit.append((0, d))
         code_all = self.cave.link(self.dsyms)
         if len(code_all) > CODE_RESERVE:
@@ -472,8 +497,8 @@ def build_all(S):
         m.build(S)
 
 
-def apply(data):
-    S = Slots8(data)
+def apply(data, n=None):
+    S = Slots8(data, nslots() if n is None else n)
     build_all(S)
     out, _ = S.finalize()
     return out, S
@@ -481,8 +506,8 @@ def apply(data):
 
 if __name__ == "__main__":
     src, dst = sys.argv[1:3]
-    out, S = apply(open(src, "rb").read())
+    out, S = apply(open(src, "rb").read(), int(sys.argv[3]) if len(sys.argv) > 3 else None)
     open(dst, "wb").write(out)
     for k, va, note in S.report:
         print(f"{k:6s} {va:#x} {note}")
-    print(f"{dst}: .t2r8 added, cave {len(S.cave.code):#x} bytes, data {S.dsize:#x} bytes, {len(S.report)} sites")
+    print(f"{dst}: .t2r8 added, N = {S.N}, cave {len(S.cave.code):#x} bytes, data {S.dsize:#x} bytes, {len(S.report)} sites")

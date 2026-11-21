@@ -1,7 +1,8 @@
 """Which head a clan member gets: role- and age-aware choice from the head pool (tools/clan_portrait_pool.py, every usable TLOU2 head).
   kid -> kids (and teens), elder -> elders, medic -> doctors / nurses (WLF) or civilians (Seraphites have no doctor look), cook -> kitchen staff, guard -> soldiers,
   scout -> soldiers / Firefly / Duster, scavenger -> civilians / refugees / Rattler-types, mechanic -> gym / civilians / Rattlers, gardener -> civilians (elders welcome),
-  radio -> civilians / soldiers.  A faction's own heads come first; neutral heads (Jackson, Rattlers, prisoners, Firefly) fit either side.
+  radio -> civilians / soldiers.  Faction-locked: a WLF clan wears WLF heads only, a Seraphite clan Seraphite heads only; the neutral rows of the pool
+  (Jackson, Rattlers, prisoners, Firefly, Duster: faction N) are never picked.
 Switch: T2R_PORTRAIT_POOL=0 (or tools/clan_portrait_pool.txt = 0) goes back to the old name-hash model 0..3 of clan_chronicle.PORTRAIT_MODELS. Pure data + hash, no I/O besides the switch.
 A pick is stable for a name (same name -> same head)."""
 import os
@@ -46,15 +47,19 @@ def _h(*parts):
     return zlib.crc32("|".join(str(x) for x in parts).encode("utf-8")) & 0xFFFFFFFF
 
 
-def candidates(role, sex, fk):
-    """[(row, weight)] heads for the role, own faction heads weighted 3x over the neutral ones, never the other faction's."""
+def _cands(role, sex, fk, sides, sera_civ=False):
+    """[(row, weight)] heads of the role among the factions `sides`, own faction weighted 3x.
+    sera_civ: the Seraphite raincoat heads also count as civilians (the pool has no Seraphite villager head; without this a Seraphite cook /
+    medic / gardener fell back to the bloodied prisoner faces)."""
     out = []
     pref = PREF.get(role, _DEFAULT)
     for row in POOL:
         mid, look, fac, sx, age, tags, rig, tier = row
-        if sx != sex or fac not in (fk, "N"):
+        if sx != sex or fac not in sides:
             continue
         tg = set(tags.split("+"))
+        if sera_civ and fac == "S" and "soldier" in tg:
+            tg.add("civilian")
         w = 0
         for tag, wt in pref:
             if tag in tg:
@@ -72,6 +77,16 @@ def candidates(role, sex, fk):
     return shown or out
 
 
+def candidates(role, sex, fk):
+    """[(row, weight)] heads for the role, the clan's own faction only (a Seraphite clan had a WLF-looking member)."""
+    return _cands(role, sex, fk, (fk,), sera_civ=True)
+
+
+def _legacy(role, sex, fk):
+    """The earlier candidate list (own faction + the neutral rows): only to keep the head a member already wore when it is of the clan's faction."""
+    return _cands(role, sex, fk, (fk, "N"))
+
+
 def _draw(cands, name, salt="head"):
     tot = sum(w for _, w in cands)
     x = _h(salt, name) % tot
@@ -82,11 +97,8 @@ def _draw(cands, name, salt="head"):
     return cands[-1][0][0]
 
 
-def pick(name, role, sex, fk, used=()):
-    """The model id (pool row id) for a member, or None when the pool has no head for them (the caller uses the old hash).
-    used = heads the earlier members already wear: the name's own pick stands unless it is in `used`; then another head of the role that nobody wears (still by the name's hash),
-    then a head of the broad civilian pool nobody wears; only when the whole pool for that sex is taken the first pick is repeated (clan members repeated looks)."""
-    cands = candidates(role, sex, fk) or candidates("scavenger" if role != "kid" else "kid", sex, fk)
+def _pick(name, role, sex, fk, used, cand):
+    cands = cand(role, sex, fk) or cand("scavenger" if role != "kid" else "kid", sex, fk)
     if not cands:
         return None
     first = _draw(cands, name)
@@ -95,11 +107,31 @@ def pick(name, role, sex, fk, used=()):
     free = [(r, w) for r, w in cands if r[0] not in used]
     if free:
         return _draw(free, name, "head2")
-    wide = candidates("scavenger" if role != "kid" else "kid", sex, fk)
+    wide = cand("scavenger" if role != "kid" else "kid", sex, fk)
     free = [(r, w) for r, w in wide if r[0] not in used]
     if free:
         return _draw(free, name, "head3")
     return first
+
+
+def faction_of(model):
+    for row in POOL:
+        if row[0] == model:
+            return row[2]
+    return None
+
+
+def pick(name, role, sex, fk, used=()):
+    """The model id (pool row id) for a member, or None when the pool has no head for them (the caller uses the old hash).
+    used = heads the earlier members already wear: the name's own pick stands unless it is in `used`; then another head of the role that nobody wears (still by the name's hash),
+    then a head of the broad civilian pool nobody wears; only when the whole pool for that sex is taken the first pick is repeated (clan members repeated looks).
+    Faction lock with no face churn: the pick the old rule gives is kept when it is of the clan's own faction, so only the members who wore a neutral head
+    (Jackson / Rattler / prisoner / Firefly) move, to a head of their clan's faction; nothing is stored, the save keeps name, role and state as they are."""
+    old = _pick(name, role, sex, fk, used, _legacy)
+    if old is not None and faction_of(old) == fk:
+        return old
+    new = _pick(name, role, sex, fk, used, candidates)
+    return new if new is not None else (old if fk not in ("W", "S") else None)
 
 
 def look_of(model):

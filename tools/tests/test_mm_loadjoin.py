@@ -1,4 +1,4 @@
-"""Matchmaking pre-mortem S1-S3 (non-loader / mid-load leaver / silent countdown player) and J3 (joiner into an empty match).
+"""matchmaking cases S1-S3 (non-loader / mid-load leaver / silent countdown player) and J3 (joiner into an empty match).
 Offline, plain python, temp DB, no sockets.  Run: python tools/tests/test_mm_loadjoin.py"""
 import os, sys, tempfile, time
 

@@ -53,11 +53,13 @@ KIND_MOOD = {
     "event_nojoin": "grim", "clan_dead": "grim", "despair": "despair", "guilt": "grieving", "grief": "grieving", "grief_mercy": "grieving",
     "loss_many": "grieving", "death_illness": "grieving", "death_mercy": "grieving", "death_starved": "grieving", "death_lost": "grieving",
     "death_walkout": "grieving", "death_suicide": "grieving", "death_bite": "grieving", "death_bite_kin": "grieving", "death_attack": "grieving",
-    "death_attack_many": "grieving", "death_turned": "grieving", "grief_turned": "grieving", "spore_worse": "afraid", "spore_hold": "worried"}
+    "death_attack_many": "grieving", "death_turned": "grieving", "grief_turned": "grieving", "spore_worse": "afraid", "spore_hold": "worried",
+    # the attack told as a horde of infected (clan.AN_HORDE; re/clan-events-1117.md)
+    "event_warn_h": "afraid", "event_hold_h": "hopeful", "event_heavy_h": "grim", "event_massacre_h": "grim", "death_horde": "grieving", "death_horde_many": "grieving"}
 
 # Messages about how someone feels / is doing RIGHT NOW (present tense): the menu shows them only while that person (names[0]) is alive.
-# Everything else is a happening (a death, falling sick, a join, an event) and stays news even after the person died (e.g. "X got sick" and "Y died" stay
-# news, but "X is sad over someone leaving" is not shown once X is dead).
+# Everything else is a happening (a death, falling sick, a join, an event) and stays news even after the person died (a member getting sick or dying
+# stays news, but "sad over someone leaving" about a dead member does not).
 FEELING_KINDS = {"hope", "plenty", "calm", "hope_after", "hunger", "starving", "despair", "guilt", "grief", "grief_mercy", "grief_turned", "spore_worse", "spore_hold", "ticker", "alife"}
 
 def _pn(**kw):
@@ -673,9 +675,11 @@ def story_day(st, rng, newc, r):
         ordered = deaths[:2]
         attack_deaths = [d for d in deaths if d[1] == "attack"]
         other = [d for d in deaths if d[1] != "attack"]
+        horde = evk == clan.EV_ATTACK and int(r.get("evn", 0)) == clan.AN_HORDE      # the attack was a horde of infected
         if len(attack_deaths) >= 2:
             ppl = {"A": attack_deaths[0][0], "B": attack_deaths[1][0]}
-            w.add("death_attack_many", ppl, n=len(attack_deaths), lost=len(attack_deaths))
+            if not (horde and w.add("death_horde_many", ppl, n=len(attack_deaths), lost=len(attack_deaths))):
+                w.add("death_attack_many", ppl, n=len(attack_deaths), lost=len(attack_deaths))
             ordered = other[:1]
         elif len(deaths) >= 4 and not attack_deaths:
             ppl = {"A": deaths[0][0], "B": deaths[1][0]}
@@ -684,6 +688,8 @@ def story_day(st, rng, newc, r):
         for p, cause, helper in ordered:
             kind = {"attack": "death_attack", "illness": "death_illness", "mercy": "death_mercy", "starved": "death_starved", "lost": "death_lost",
                     "walkout": "death_walkout", "suicide": "death_suicide", "bite": "death_bite", "bite_kin": "death_bite_kin", "turned": "death_turned"}[cause]
+            if kind == "death_attack" and horde:
+                kind = "death_horde"
             ppl = {"A": p}
             if cause in ("attack", "bite", "bite_kin", "turned") and KD.is_kid(helper):
                 helper = None
@@ -698,18 +704,22 @@ def story_day(st, rng, newc, r):
             v["ill"] = p["il"] if p["il"] else "none"
             if kind == "death_bite_kin" and "B" not in ppl:
                 kind = "death_bite"
-            if not w.add(kind, ppl, **v) and kind in ("death_bite_kin", "death_mercy", "death_walkout", "death_suicide", "death_turned"):
-                w.add("death_illness", ppl, **v)
+            if not w.add(kind, ppl, **v):
+                if kind == "death_horde":                       # (a lone survivor has no horde voice: the attack's own death line)
+                    w.add("death_attack", ppl, **v)
+                elif kind in ("death_bite_kin", "death_mercy", "death_walkout", "death_suicide", "death_turned"):
+                    w.add("death_illness", ppl, **v)
     # event outcome
     if evk == clan.EV_ATTACK:
         ppl = {k: v for k, v in zip("AB", two(fight=True))}
         lost = evl
+        hz = "_h" if int(r.get("evn", 0)) == clan.AN_HORDE else ""             # (a horde: its own lines; a lone survivor has no voice for it and writes nothing)
         if evt >= 3:
-            w.add("event_hold", ppl, lost=lost)
+            w.add("event_hold" + hz, ppl, lost=lost)
         elif evt == 2:
-            w.add("event_heavy", ppl, lost=lost)
+            w.add("event_heavy" + hz, ppl, lost=lost)
         elif status != clan.DEAD:
-            w.add("event_massacre", ppl, lost=lost)
+            w.add("event_massacre" + hz, ppl, lost=lost)
     elif evk == clan.EV_GROWTH:
         if int(r.get("evg", 0)) > 0 and joined:
             ppl = {"A": joined[0]}
@@ -728,7 +738,7 @@ def story_day(st, rng, newc, r):
     # next event warning
     if status == clan.ALIVE and clan.event_today(day)[0] == clan.EV_ATTACK and st["warned"] != day:
         st["warned"] = day
-        w.add("event_warn", {k: v for k, v in zip("A", two(fight=True))})
+        w.add("event_warn_h" if clan.event_today(day)[1] == clan.AN_HORDE else "event_warn", {k: v for k, v in zip("A", two(fight=True))})
     if joined and status == clan.ALIVE and len(w.out) < DAY_MAX_MSGS:
         ppl = {"A": joined[0]}
         others = [p for p in people_now if p not in joined]
@@ -929,7 +939,7 @@ def _rng(st, salt):
 
 
 def _purge_feed(c, tid):
-    """A brand-new clan showed lore up to day 4 on day 1 (in game, JOURNAL tab). ROOT CAUSE: CHOOSE YOUR SIDE after a dead / won clan
+    """Seen in game (JOURNAL tab, a brand-new clan): on day 1 the journal had lore up to day 4. ROOT CAUSE: CHOOSE YOUR SIDE after a dead / won clan
     (clan.choose_side -> on_new_run) and the reset-clan path of on_day started a new run (day 0) but never removed the previous run's clan_feed rows, which stay
     under the same clan key (ids keep counting) - so the new clan's journal showed the old run's days 1-4 above its own founding line. A run owns its rows."""
     try:
@@ -1171,7 +1181,7 @@ def _story_rank(m):
 
 
 def story_rows(rows):
-    """The journal is reserved for high quality stories; the 1-liners go in between the stories. rows = newest first
+    """The journal is reserved for high quality stories; the 1 liners go in between the stories. rows = newest first
     (read_feed shape). Every row gets m["card"]: True = a story (a written piece of the chronicle / saga / arcs, a death, an arrival, the founding), False = a
     one-liner for the timeline between the stories. A one-liner is never a card; a day with more than DAY_STORIES stories keeps the strongest ones as cards and the
     rest become lines. Nothing is merged or dropped; returns the same rows (copies) in the same order."""
@@ -1339,7 +1349,7 @@ def pick_for_widget(c, tid, seen, n=3, window=12, lang="en"):
     """Legacy per-reader picker (a `seen` set kept by the caller; the menu now uses the deterministic pick_slot instead): up to n of the newest `window`
     messages, newest unseen first; when everything recent was shown the cycle starts over. Returns [(id, text), ...] oldest first."""
     rows = read_feed(c, tid, window, lang=lang)
-    # A clan with 1 survivor must not show texts about other people: a death always shows, but present-tense descriptions only concern characters that are still alive.
+    # With one survivor left, texts about other members must not show; descriptions in the present tense only concern characters that are still alive.
     # Past-tense kinds (deaths, losses, the founding,
     # the clan's end) always show; any other message only while its subject (names[0], the one the text is about) is alive. Messages from an
     # earlier run (before this run's founding message) never show.

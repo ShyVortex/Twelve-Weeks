@@ -64,7 +64,14 @@ static void flame_cfg(void) {
         fclose(f);
     }
 }
-// the engine's puppet fire (winmm replays every shot of a remote player as npc-fire-weapon on its puppet): we only note it
+// the engine's puppet fire (winmm replays every shot of a remote player as npc-fire-weapon on its puppet).
+// A/B (run 6, B [56066]-[56077]): the replay on a puppet holding the flamethrower crashed the victim 10 frames later -
+// EXCEPTION c0000005 at tlou-ii.exe+117efa2 on a job thread, a read of [rsi+0x2f88] with rsi = 0. The caller (exe+0x1191488) takes the weapon's
+// owner through the NPC class cast 0x140da5c20 and passes the result on unchecked; a player puppet is not an NPC class object, so the flamethrower's
+// NPC fire path gets NULL (no TLOU2 NPC carries a flamethrower: that path never saw any other owner). The replay draws no flame on a puppet
+// anyway (clip; flame_fx_tick draws the stream), so for a flamethrower puppet it is swallowed here. Other guns pass unchanged.
+// t2r-flame-npc-fire.txt next to the exe = let it through (crash test only).
+static int g_fl_npc_fire_ok = -1;
 static void flame_npc_fire_hook(uint64_t *ret, int argc, uint64_t *argv, uint64_t sec) {
     typedef uint8_t *(*fn_peer)(uint32_t);
     if (argc >= 1 && g_t60) {
@@ -75,8 +82,12 @@ static void flame_npc_fire_hook(uint64_t *ret, int argc, uint64_t *argv, uint64_
                 uint64_t held = 0; memcpy(&held, peer + 0x91, 8);
                 if (flame_is_gun(held)) {
                     static int n;
-                    if (!g_fl_eng[sl] && n++ < 6) xlog("flame: the engine replays slot %u's flamethrower shots (npc-fire-weapon on its puppet) - its own flame effect runs there", sl);
+                    if (g_fl_npc_fire_ok < 0) { FILE *f = exe_side_open("t2r-flame-npc-fire.txt", "r"); g_fl_npc_fire_ok = f != NULL; if (f) fclose(f); }
+                    if (!g_fl_eng[sl] && n++ < 6)
+                        xlog("flame: slot %u fires its flamethrower - the engine's npc-fire-weapon replay on its puppet is %s", sl,
+                             g_fl_npc_fire_ok ? "let through (t2r-flame-npc-fire.txt: crash test)" : "swallowed (NPC fire path on a non-NPC owner = crash exe+117efa2)");
                     g_fl_eng[sl] = g_t60;
+                    if (!g_fl_npc_fire_ok) { if (ret) ret[0] = 0; return; }
                 }
                 break;
             }
@@ -194,7 +205,11 @@ static void flame_scan(const float *O, const float *D) {
             if (g_fl_ray_frame[sl] == g_frame) continue;
             float t = ray_t(g_fl_ray_job[sl]);
             g_fl_ray_job[sl] = 0;
-            if (t >= 0.0f && t < 0.95f) {
+            // A/B run 8 (A 1.5 m in front of B, every ray "a wall is 54-68% of the way", 0 ticks in a 2.8 s stream): at close range the ray
+            // meets the victim's own body collision 0.3-0.5 m before the body point. A hit within FL_BODY_R of the point is the body, not a wall
+            // (as the shot check's body radius skip).
+            float rl = __builtin_sqrtf((bp[0] - O[0]) * (bp[0] - O[0]) + (bp[1] - O[1]) * (bp[1] - O[1]) + (bp[2] - O[2]) * (bp[2] - O[2]));
+            if (t >= 0.0f && t < 0.95f && (1.0f - t) * rl > 0.6f) {
                 g_fl_stat_blocked++;
                 g_fl_next_ms[sl] = now + 60;
                 static int nb;
@@ -218,12 +233,12 @@ static void flame_fx_tick(void) {
     // unkilled shells hung in the air and set players alight). If a kill ever fails, the shell is not spawned again.
     typedef uint8_t *(*fn_peer)(uint32_t);
     static uint64_t next[T2R_MAX_PEERS]; static int nl, kill_bad;
-    static struct { uint64_t h, t60; } live[24]; static int nlive;
+    static struct { uint64_t h, t60; } live[64]; static int nlive;
     uint32_t me = *(uint32_t *)VMA(0x180138090);
     for (int i = 0; i < nlive; ) {                      // expire our stream pieces
         if (g_t60 - live[i].t60 >= 15) {
             uint64_t hh = live[i].h, r = dc_call(fnv64("kill-particles"), 1, &hh);
-            if (r == ~0ULL && !kill_bad) { kill_bad = 1; xlog("flame: kill-particles refused the stream handle %llx - shell spawning OFF (muzzle only)", (unsigned long long)hh); }
+            if (r == ~0ULL && !kill_bad) { kill_bad = 1; xlog("flame: kill-particles refused the stream handle %llx - stream spawning OFF (an unkillable piece would stay)",(unsigned long long)hh); }
             live[i] = live[--nlive];
         } else i++;
     }
@@ -237,10 +252,18 @@ static void flame_fx_tick(void) {
         if (!flame_is_gun(held)) continue;
         if (g_t60 < next[sl]) continue;
         next[sl] = g_t60 + 6;
-        uint64_t r1 = armor_fx_spawn(fnv64("flamethrower-fire-muzzle"), h, "r_hand_prop"), r2 = 0;
-        // the muzzle flame kept looping after the puppet stopped - it is a looping effect too: killed after 0.25 s like the shell
-        if (!kill_bad && r1 && r1 != ~0ULL && nlive < 24) { live[nlive].h = r1; live[nlive].t60 = g_t60; nlive++; }
-        if (!kill_bad && nlive < 24) {
+        // the muzzle flame kept looping after the puppet stopped - it is a looping effect too: killed after 0.25 s like the shell.
+        // Both pieces are spawned ONLY when their handle can be kept for the kill. Before, the muzzle was spawned even with the list full
+        // (24 handles: 4+ players flaming at once, each ~6 live pieces) or after a refused kill, and such a muzzle was never killed - a flame that
+        // stays on a bystander's screen after the shooter stopped. The list now holds 64 (7 shooters x 6 pieces with room).
+        uint64_t r1 = 0, r2 = 0;
+        if (kill_bad || nlive >= (int)(sizeof live / sizeof *live) - 1) {
+            static int nf; if (LOGCAP(nf, 6)) xlog("flame: slot %u flaming but no stream spawned (%s)", sl, kill_bad ? "kill-particles refused earlier" : "kill list full");
+            continue;
+        }
+        r1 = armor_fx_spawn(fnv64("flamethrower-fire-muzzle"), h, "r_hand_prop");
+        if (r1 && r1 != ~0ULL) { live[nlive].h = r1; live[nlive].t60 = g_t60; nlive++; }
+        {
             r2 = armor_fx_spawn(fnv64("flamethrower-fire-shell"), h, "r_hand_prop");
             if (r2 && r2 != ~0ULL) { live[nlive].h = r2; live[nlive].t60 = g_t60; nlive++; }
         }

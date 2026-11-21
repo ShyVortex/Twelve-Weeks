@@ -33,8 +33,8 @@ POOLS["death_turned"] = [
      "Medyk nie chciał tego powiedzieć, więc powiedział{A?|a} to {A}: „To zarodniki. Nie pozwólcie mi wstać.” {B} nie pozwolił{B?|a}. Nikt {place_at} nie zapomni, jak pewną rękę miał{B?|a} {B}."),
     ("S", "{A} walked down to the water at dusk, and the Elders let {A_him} go. The spores take everyone who breathes them. {A} chose where.",
      "{A} {A?zszedł|zeszła} o zmierzchu nad wodę, a Starsi pozwolili na to. Zarodniki zabierają każdego, kto je wdycha. {A} wybrał{A?|a} miejsce."),
-    ("S", "{B} sat by {A} through the long night. At dawn {A} asked to be carried to the shore, and {B} carried {A_him}, and came back alone.",
-     "{B} przesiedział{B?|a} przy {A?nim|niej} całą długą noc. O świcie {A} poprosił{A?|a}, żeby zanieść {A?go|ją} na brzeg, i {B} zaniósł{B?|a} {A?go|ją}, i wrócił{B?|a} {B?sam|sama}."),
+    ("S", "{B} sat by {A} through the long night. At dawn {A} asked to be carried to the shore. {B} carried {A_him} there and came back alone.",
+     "{B} przesiedział{B?|a} przy {A?nim|niej} całą długą noc. O świcie {A} poprosił{A?|a}, żeby zanieść {A?go|ją} na brzeg. {B} zaniósł{B?|a} {A?go|ją} tam i wrócił{B?|a} {B?sam|sama}."),
     ("S", "{A} sang in the long house until the voice stopped being a voice, and the Elders did what the Prophet's way asks of them. We stood outside until it was quiet.",
      "{A} śpiewał{A?|a} w długim domu, aż głos przestał być głosem, a Starsi zrobili to, czego wymaga droga Prorokini. Staliśmy na zewnątrz, aż zrobiło się cicho."),
 ]
@@ -84,8 +84,8 @@ POOLS["spore_hold"] = [
      "{B} ugotował{B?|a} dla {A} wszystkie zioła z apteczki. {A} wypił{A?|a} to z uprzejmości. Wszyscy wiedzą, czym są zarodniki."),
     ("*", "Nobody asks for medicine for {A} anymore. We ask for time instead, and no one can sell us that either.",
      "Nikt już nie prosi o lekarstwo dla {A}. Prosimy o czas, a tego też nikt nie sprzeda."),
-    ("W", "Medic says it flat: spores are a one-way road. We keep {A} comfortable and keep our distance, and I hate us both for it.",
-     "Medyk mówi to wprost: zarodniki to droga w jedną stronę. Dbamy, żeby {A?mu|jej} było wygodnie, i trzymamy dystans, i nienawidzę nas za to."),
+    ("W", "Medic says it flat: spores are a one-way road. We keep {A} comfortable and keep our distance. I hate that we have to.",
+     "Medyk mówi to wprost: zarodniki to droga w jedną stronę. Dbamy, żeby {A} miał{A?|a} wygodnie, i trzymamy dystans. Nienawidzę tego, że musimy."),
     ("S", "The healers cannot help {A}. The sea washes away much, but not this. We bring water and song and nothing else.",
      "Uzdrowiciele nie mogą pomóc {A?jemu|jej}. Morze zmywa wiele, ale nie to. Przynosimy wodę i pieśń, i nic więcej."),
 ]

@@ -26,7 +26,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
 ROOT = os.path.dirname(TOOLS)
-MAIN = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
+MAIN = r"."
 UC4T = os.path.join(ROOT, "re", "uc4ps4", "tools")
 for p in (os.path.join(ROOT, "tools", "models"), os.path.join(MAIN, "tools", "models"), UC4T, os.path.join(MAIN, "re", "uc4ps4", "tools"), TOOLS):
     if p not in sys.path:

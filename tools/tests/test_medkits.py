@@ -38,7 +38,7 @@ for f in files:
     area = M.map_area([(p[0], p[2]) for v in lay.values() for p in v])
     n = M.count_for(area)
     kits = d["kits"]
-    # hand_placed = SceneEditor placement (editor_import.py; `medkits.py gen` keeps it): the hand-placed spots win over the
+    # hand_placed = SceneEditor placement (editor_import.py; `medkits.py gen` keeps it): the user's spots win over the
     # count / half-balance / floor-height rules (capitol-shops: 6 kits vs rule 5), gap / team-start / header checks still apply
     hand = bool(d.get("hand_placed"))
     if hand:

@@ -1,0 +1,439 @@
+{
+ "takes": [
+  {
+   "fac": "scr",
+   "take": 0,
+   "req": 1,
+   "suffix": "gen-enmy-cmbt-enmy-last-words-defiant-sp-007",
+   "text": "No matter what... you're going to hell.",
+   "ms": 2910
+  },
+  {
+   "fac": "scr",
+   "take": 1,
+   "req": 0,
+   "suffix": "gam-sle-scar-village-logging-camp-enemy-convo-4-spj-004",
+   "text": "Let's show these Wolves what Seraphites are made of!",
+   "ms": 3622
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "suffix": "gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "text": "{to the other Scars} Show them how a Seraphite dies!",
+   "ms": 2382
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "suffix": "gen-enmy-pryrs-confident-mod-sp-008",
+   "text": "We are redeemed in the light of her spirit.",
+   "ms": 3064
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "suffix": "gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "text": "For the Prophet.",
+   "ms": 1390
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "suffix": "gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "text": "Hunt those Scars down!",
+   "ms": 1762
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "suffix": "gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "text": "This is for Isaac!",
+   "ms": 1514
+  },
+  {
+   "fac": "mlt",
+   "take": 2,
+   "req": 0,
+   "suffix": "gam-afm-burning-village-callouts-pr-001",
+   "text": "Burn it all down!",
+   "ms": 1452
+  }
+ ],
+ "records": [
+  {
+   "fac": "scr",
+   "take": 0,
+   "req": 1,
+   "g": "m",
+   "v": "c",
+   "speech": "scrmc-gen-enmy-cmbt-enmy-last-words-defiant-sp-007",
+   "id": "t2r-vox-pick-scr-01-mc"
+  },
+  {
+   "fac": "scr",
+   "take": 0,
+   "req": 1,
+   "g": "f",
+   "v": "a",
+   "speech": "scrfa-gen-enmy-cmbt-enmy-last-words-defiant-sp-007",
+   "id": "t2r-vox-pick-scr-01-fa"
+  },
+  {
+   "fac": "scr",
+   "take": 0,
+   "req": 1,
+   "g": "f",
+   "v": "c",
+   "speech": "scrfc-gen-enmy-cmbt-enmy-last-words-defiant-sp-007",
+   "id": "t2r-vox-pick-scr-01-fc"
+  },
+  {
+   "fac": "scr",
+   "take": 0,
+   "req": 1,
+   "g": "f",
+   "v": "d",
+   "speech": "scrfd-gen-enmy-cmbt-enmy-last-words-defiant-sp-007",
+   "id": "t2r-vox-pick-scr-01-fd"
+  },
+  {
+   "fac": "scr",
+   "take": 1,
+   "req": 0,
+   "g": "m",
+   "v": "c",
+   "speech": "scrmc-gam-sle-scar-village-logging-camp-enemy-convo-4-spj-004",
+   "id": "t2r-vox-pick-scr-02-mc"
+  },
+  {
+   "fac": "scr",
+   "take": 1,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "scrfc-gam-sle-scar-village-logging-camp-enemy-convo-4-spj-004",
+   "id": "t2r-vox-pick-scr-02-fc"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "m",
+   "v": "a",
+   "speech": "scrma-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-ma"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "m",
+   "v": "b",
+   "speech": "scrmb-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-mb"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "m",
+   "v": "c",
+   "speech": "scrmc-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-mc"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "m",
+   "v": "d",
+   "speech": "scrmd-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-md"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "f",
+   "v": "a",
+   "speech": "scrfa-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-fa"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "f",
+   "v": "b",
+   "speech": "scrfb-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-fb"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "scrfc-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-fc"
+  },
+  {
+   "fac": "scr",
+   "take": 2,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "scrfd-gam-fob-on-foot-defend-enemy-convo-3-pr-003",
+   "id": "t2r-vox-pick-scr-03-fd"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "m",
+   "v": "a",
+   "speech": "scrma-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-ma"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "m",
+   "v": "b",
+   "speech": "scrmb-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-mb"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "m",
+   "v": "c",
+   "speech": "scrmc-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-mc"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "m",
+   "v": "d",
+   "speech": "scrmd-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-md"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "f",
+   "v": "a",
+   "speech": "scrfa-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-fa"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "f",
+   "v": "b",
+   "speech": "scrfb-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-fb"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "scrfc-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-fc"
+  },
+  {
+   "fac": "scr",
+   "take": 3,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "scrfd-gen-enmy-pryrs-confident-mod-sp-008",
+   "id": "t2r-vox-pick-scr-04-fd"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "m",
+   "v": "a",
+   "speech": "scrma-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-ma"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "m",
+   "v": "b",
+   "speech": "scrmb-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-mb"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "m",
+   "v": "c",
+   "speech": "scrmc-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-mc"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "f",
+   "v": "a",
+   "speech": "scrfa-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-fa"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "f",
+   "v": "b",
+   "speech": "scrfb-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-fb"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "scrfc-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-fc"
+  },
+  {
+   "fac": "scr",
+   "take": 4,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "scrfd-gen-enmy-srch-start-rspns-confident-1x-sp-006",
+   "id": "t2r-vox-pick-scr-05-fd"
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "g": "m",
+   "v": "c",
+   "speech": "mltmc-gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "id": "t2r-vox-pick-mlt-01-mc"
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "g": "m",
+   "v": "d",
+   "speech": "mltmd-gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "id": "t2r-vox-pick-mlt-01-md"
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "g": "f",
+   "v": "a",
+   "speech": "mltfa-gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "id": "t2r-vox-pick-mlt-01-fa"
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "mltfc-gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "id": "t2r-vox-pick-mlt-01-fc"
+  },
+  {
+   "fac": "mlt",
+   "take": 0,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "mltfd-gam-afm-horse-chase-scar-wlf-fight-pr-003",
+   "id": "t2r-vox-pick-mlt-01-fd"
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "g": "m",
+   "v": "a",
+   "speech": "mltma-gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "id": "t2r-vox-pick-mlt-02-ma"
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "g": "m",
+   "v": "b",
+   "speech": "mltmb-gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "id": "t2r-vox-pick-mlt-02-mb"
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "g": "f",
+   "v": "a",
+   "speech": "mltfa-gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "id": "t2r-vox-pick-mlt-02-fa"
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "g": "f",
+   "v": "c",
+   "speech": "mltfc-gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "id": "t2r-vox-pick-mlt-02-fc"
+  },
+  {
+   "fac": "mlt",
+   "take": 1,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "mltfd-gam-afm-horse-chase-scar-wlf-fight-pr-006",
+   "id": "t2r-vox-pick-mlt-02-fd"
+  },
+  {
+   "fac": "mlt",
+   "take": 2,
+   "req": 0,
+   "g": "m",
+   "v": "d",
+   "speech": "mltmd-gam-afm-burning-village-callouts-pr-001",
+   "id": "t2r-vox-pick-mlt-03-md"
+  },
+  {
+   "fac": "mlt",
+   "take": 2,
+   "req": 0,
+   "g": "f",
+   "v": "d",
+   "speech": "mltfd-gam-afm-burning-village-callouts-pr-001",
+   "id": "t2r-vox-pick-mlt-03-fd"
+  }
+ ]
+}

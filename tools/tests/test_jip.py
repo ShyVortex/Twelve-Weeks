@@ -420,5 +420,51 @@ _r = _real_jip_start(T[3], r[0], r[1], r[2])
 check(_r is False and not sent, "jip_start does not send START-MATCH to a joiner that left")
 check(T[3] not in daemon.JIP_LATE, "no JIP_LATE stamp for it")
 
+# =====================================================================================================================================
+# Live: a server-relay match (a Linux client without its Steam helper) was filled to 8 by join in progress with players who
+# all had a helper. RELAY_MATCH_MAX: past the limit a joiner WITH a helper is refused (it plays Steam P2P); one without a helper still joins.
+# =====================================================================================================================================
+class _Conn:
+    def sendall(self, b): pass
+def _helper(t, sid):
+    daemon.BRIDGES.register(t, _Conn(), sid, 7777)
+_old_max = daemon.RELAY_MATCH_MAX
+daemon.RELAY_MATCH_MAX = 4
+for i, t in enumerate(T[1:6]): _helper(t, 76561190000000000 + i)       # T[0] = the Linux host without a helper
+mid = running(T[:3])                                                  # relay match (running() marks MATCH_P2P False), 3 active
+search(T[3]); why = []
+r = MM.jip_join(T[3], why)
+check(r is not None, "relay match with 3 players: a joiner with a helper still joins (4 <= limit) (%s)" % why)
+search(T[4]); why = []
+r = MM.jip_join(T[4], why)
+check(r is None and any("server-relay match with 4 players" in w for w in why), "relay match at 4: a joiner with a helper is refused (%s)" % why)
+check(T[4] in MM.queue, "the refused joiner stays in the queue (it forms / joins a Steam P2P match)")
+del MM.queue[T[4]]
+search(T[6]); why = []                                                # T[6] has no helper either: relay anywhere
+r = MM.jip_join(T[6], why)
+check(r is not None, "relay match at 4: a joiner WITHOUT a helper still joins (%s)" % why)
+# the same match marked Steam P2P: the limit does not apply
+mid = running(T[:4]); daemon.MATCH_P2P[frozenset(T[:4])] = True
+for i, t in enumerate(T[:4]): _helper(t, 76561190000000100 + i)
+search(T[4]); why = []
+r = MM.jip_join(T[4], why)
+check(r is not None, "Steam P2P match with 4 players: a joiner with a helper joins (%s)" % why)
+# queue hold: a relay match at its limit does not hold searchers that all have a helper - they form their own (Steam P2P) match
+for t in T: daemon.BRIDGES.unregister(t)
+for i, t in enumerate(T[1:8]): _helper(t, 76561190000000200 + i)
+mid = running(T[:4], left=400); search(T[4]); search(T[5]); MM.last_arrival = time.time() - 600   # past the fill step-down: 2 searchers may form
+r = MM.try_form()
+check(r[0] is not None and sorted(r[1]) == sorted(T[4:6]), "relay match at 4 + 2 searchers with helpers: they form their own match (%s)" % (r,))
+mid = running(T[:3], left=400); search(T[4]); search(T[5]); MM.last_arrival = time.time() - 600
+r = MM.try_form()
+check(r == (None, None), "relay match at 3 (room for 1 under the limit): the searchers are still held / joined as before")
+daemon.RELAY_MATCH_MAX = 0
+mid = running(T[:4])
+search(T[4]); why = []
+r = MM.jip_join(T[4], why)
+check(r is not None, "T2R_RELAY_MAX=0: no limit, the relay match takes a 5th player with a helper (%s)" % why)
+daemon.RELAY_MATCH_MAX = _old_max
+for t in T: daemon.BRIDGES.unregister(t)
+
 print("\n%d failed" % len(FAILS) if FAILS else "\nall ok")
 sys.exit(1 if FAILS else 0)

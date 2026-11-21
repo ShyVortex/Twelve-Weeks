@@ -119,8 +119,19 @@ os.environ.pop("T2R_MAP_POOL")
 sys.path.insert(0, os.path.join(TOOLS, "features"))
 import matchflow_widgets as mw  # noqa: E402
 ext = open(os.path.join(TOOLS, "ext", "t2r-ext.c"), encoding="utf-8").read()
-check(all('"%s"' % t in ext for _, t in mw.TIPS) and all('"%s"' % c in ext for c, _ in mw.TIPS) and len(mw.TIPS) == 16,
-      "the 16 loading tips are the same in the ext and the widget script")
+tips_h = open(os.path.join(TOOLS, "ext", "tips.h"), encoding="utf-8").read()
+check(all('{"%s", "%s",' % (c, t) in tips_h for c, t in mw.TIPS) and len(mw.TIPS) == tips_h.count('    {"'),
+      "the tip list is the same in the ext (tips.h) and the widget script")
+# each tip has its own screenshot in the loading box (tools/models/figures/tips_ship.py); npic in tips.h = the shots shipped
+import re as _re  # noqa: E402
+sys.path.insert(0, os.path.join(TOOLS, "models", "figures"))
+import tips_ship  # noqa: E402
+_np = [int(x) for x in _re.findall(r'", (\d+)\},', tips_h)]
+check(len(_np) == len(mw.TIPS) and tips_ship.counts() == {k + 1: v for k, v in enumerate(_np)},
+      "every tip has its screenshot(s) in re/tips-1118/src and tips.h npic matches")
+check(all('"%s"' % w in open(os.path.join(TOOLS, "features", "matchflow_widgets.py"), encoding="utf-8").read() for w in ("ldPicOld", "ldPic", "ldPicShade"))
+      and '"t2r.loading.ldPicOld"' in ext and "streaming/t2r/clan/tip-%02d-%d.png" in ext and mw.TIP_PIC == tips_ship.TEX,
+      "loading box: picture + previous picture under it + category shade, same texture names in ext / widgets / ship")
 check(all('"%s"' % n in ext and '"%s"' % d in ext for n, d in mw.BOOSTER_LIST), "boosters: names and texts in the ext")
 check(all('{"%s", "%s"}' % (nm, img) in ext for nm, img, _ in daemon.MAPS), "ext map table = daemon MAPS")
 check("t2r-no-matchflow.txt" in ext and "code >= 200 ? 3 : code >= 160 ? 1 : code >= 130 ? 2 : 0" in ext,

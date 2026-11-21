@@ -2,6 +2,7 @@
 bad geometry / missing winmm.dll / side path unusable / nothing baked. Also: IAT slots vs the base DLL's imports, hook bytes vs the base DLL.
 Run: python tools/tests/test_p1_side_map.py   (needs the msys64 gcc; skipped without it)"""
 import os
+import struct
 import subprocess
 import sys
 import tempfile
@@ -11,9 +12,9 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "features"))
 import p1_side_map as M  # noqa: E402
 
-GCC = next((c for c in (os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin/gcc.exe"),
+GCC = next((c for c in ("./tools/win/ext/msys64/ucrt64/bin/gcc.exe",
                         os.path.join(HERE, "..", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe")) if os.path.isfile(c)), None)
-BASE_DLL = next((c for c in (os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/local/winmm-nocave-127.0.0.1-7001.dll"),
+BASE_DLL = next((c for c in ("./tools/local/winmm-nocave-127.0.0.1-7001.dll",
                              os.path.join(HERE, "..", "local", "winmm-nocave-127.0.0.1-7001.dll")) if os.path.isfile(c)), None)
 SEC_VA = 0x200000
 DELTA = 0x1230
@@ -23,7 +24,7 @@ SIZE2 = 150000
 BID = bytes(range(16))
 
 
-@unittest.skipUnless(BASE_DLL, "unpatched winmm dll not found")
+@unittest.skipUnless(BASE_DLL, "base winmm dll not found")
 class BaseDll(unittest.TestCase):
     def test_iat_and_hook(self):
         import pefile
@@ -126,7 +127,7 @@ class Cave(unittest.TestCase):
         self.assertEqual((kv["status"], kv["layout"], kv["ret"], kv["d8"]), ("0", "0", "1", str(SIZE1)), out)
 
 
-@unittest.skipUnless(GCC and BASE_DLL, "gcc and the unpatched winmm dll needed")
+@unittest.skipUnless(GCC and BASE_DLL, "gcc and the base winmm dll needed")
 class EndToEnd(unittest.TestCase):
     """pack_split_bytes on a real base DLL + a small stage, the finished image and part1.dat fed to the cave harness: the engine's view
     (view1 + view2, payload pointer d0, size d8) decodes to exactly the files that were packed"""

@@ -272,7 +272,7 @@ def render(page, out, show=(), hide=(), scale=0.5, bg=None):
                     lines.append(cur)
             lh = f.size * 1.3
             total = lh * len(lines)
-            ty = y0 * S if g(i, "alignV", 1) == 0 else (y0 + sh / 2) * S - total / 2
+            ty = y0 * S if g(i, "alignV", 1) == 0 else (y0 + sh) * S - total if g(i, "alignV", 1) == 2 else (y0 + sh / 2) * S - total / 2
             trk = g(i, "tracking.x", 0.0) * S * 0.5           # (approximate: the engine's unit is not measured)
 
             def tlen(t):

@@ -62,7 +62,7 @@ class Interrogation:
         self.log = log
         self.rng = rng or random.Random()
         self.lockboxes = load_lockboxes() if lockboxes is None else lockboxes
-        # (2013 interrogation-notifs.md section 3): ~18 s per stage for ONE unlocker at the start (the video: 17-19 s at a 10-11 min clock; was 8 s), then late in the match the
+        # (2013 interrogation-notifs.md section 3): ~18 s per stage for ONE unlocker at the start (the video: 17-19 s at a 10 to 11 min clock; was 8 s), then late in the match the
         # unlock speed is raised every ~20 s ("Unlock speed increased!", the video at 6:25 / 6:45 / 7:05 of an 11:00 clock = from ~275 s in): speed = 1 + boost_step * n, hold = stage_secs / speed.
         self.stage_secs = float(stage_secs[0] if isinstance(stage_secs, (tuple, list)) else stage_secs)
         self.boost_after = boost_after

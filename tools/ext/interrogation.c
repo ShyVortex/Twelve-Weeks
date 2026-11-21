@@ -388,6 +388,7 @@ static void int_lockbox_props(int want) {                 // spawn / remove the 
 static void int_lockbox_open(int t) {                     // team t's lockbox was unlocked: the crate opens (once)
     if (t < 0 || t > 1 || g_lb_opened[t] || !g_lb_obj[t]) return;
     g_lb_opened[t] = 1;
+    { uint32_t me = *(uint32_t *)VMA(0x180138090); if (me < T2R_ENGINE_PEERS && team_of_slot(me) == (t ^ 1)) cz_career_safe(); }   // our team cracked the enemy safe (customize.c unlocks)
     // NR capture/siege safe (ss-rogue-tumbler-safe, spawner safe-res-rogue-1) opens with animate_(self, succ-anim-safe) = ellie-systemic-safe-open-success--safe (the -long variant
     // in the long version), blend 0.5; door-anim is the bare door channel, kept as the fallback when that clip is not resident.
     uint64_t r = animate_now(g_lb_obj[t], g_lb_safe[t] ? "ellie-systemic-safe-open-success--safe" : "open");
@@ -838,6 +839,7 @@ static void feature_interrogation(void) {
         int_event(2, (uint8_t)stage);
         award(LB_PARTS, me, "Opening lockbox");      // 2013: +250 per stage (stage 1, 2 and the final one)
         xlog("interrogation: lockbox stage %d", stage);
+        if (stage >= 3) ach_note(85, 1);                  // achievements: a lockbox we opened (achieve.c ACH_L_LOCKBOX)
         if (stage >= 3) msg_hook("Lockbox opened!", 3.0f, 0, 0);          // 2013 feed line of the unlocker (stages 1 / 2 are the banners of int_news_tick)
         g_lb_hold_frames = 0; g_lb_hold_last = 0;
         if (g_lb_obj[enemy] && g_lb_safe[enemy]) animate_now(g_lb_obj[enemy], "dial-anim");      // the dial turns once more as the stage opens

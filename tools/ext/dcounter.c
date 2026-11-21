@@ -774,6 +774,7 @@ static void dc_tick(void) {
         g_dcm.hit_sent = 1;
         int slot = g_dcm.slot;
         if (slot >= 0 && slot < T2R_MAX_PEERS && !g_peer_downed[slot] && !g_puppet_dead_here[slot]) {
+            ach_note(ACH_L_COUNTER, 1);                       // achievements (achieve.c): our dodge counter's blow landed
             // our own type-3 hit, lethal 0 (a counter killed instead of downing a low-hp player): winmm's FUN_18002cd10 turns a hit its
             // hp prediction calls lethal into its 250 lethal marker (log 20474: "dmg 250", hp 20 -> dead standing). The knockdown path's plain hit instead: the
             // victim's recv_hit_hook cuts a would-kill blow to 1 hp and downs them (Melee Down). (> 25: not rescaled by the victim)

@@ -687,8 +687,8 @@ static void inputprobe_tick(void) {
     uint64_t rm = dc_call(fnv64("joypad-command-active?"), 1, &c_mel), ri = dc_call(fnv64("joypad-command-active?"), 1, &c_int), ra = dc_call(fnv64("joypad-command-active?"), 1, &c_aim);
     uint64_t pr = dc_call(fnv64("player-is-prone?"), 0, &none), im = dc_call(fnv64("character-in-melee-attack?"), 1, &me);
     xlog("input probe: move held %.1f s, body speed %.2f m/s - exec until %lld, gx until %lld, stun until %lld, stand until %lld, no-auto-reload until %lld, path-gate hold %lld (frame %llu), downed-melee lock %d, psync role %d, "
-         "engine: melee %llx interact %llx aim %llx prone %llx in-melee-attack %llx",
+         "engine: melee %llx interact %llx aim %llx prone %llx in-melee-attack %llx; holster refusals %u (prone pass %d)",
          (double)(g_t60 - since) / 60.0, (double)bp_own_speed(), (long long)g_exec_until - (long long)g_t60, (long long)g_gx.until - (long long)g_t60, (long long)g_stun_until - (long long)g_t60,
          (long long)g_stand_until - (long long)g_frame, (long long)g_nar_until - (long long)g_t60, (long long)g_pg_hold_f - (long long)g_frame, (unsigned long long)g_frame, dm_locked(), psync_role(),
-         (unsigned long long)rm, (unsigned long long)ri, (unsigned long long)ra, (unsigned long long)pr, (unsigned long long)im);
+         (unsigned long long)rm, (unsigned long long)ri, (unsigned long long)ra, (unsigned long long)pr, (unsigned long long)im, g_hfix_refuse_n, g_prone_now);
 }

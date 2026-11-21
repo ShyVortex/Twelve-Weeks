@@ -15,7 +15,7 @@
 //   our pool == 0                       -> after 5 s "Sudden Death" (7 s) + the enemy highlight
 //   (enemy pool == 0: the few-enemies vox, already in the vox code)
 // Award: stat 0x4fa98037, 2013 *net-tdm-stat-rewards* 500 parts, scaled to 100 like the old end-of-match "Survived" it replaces
-// Paid once per match, only to the last player of the team while not killed. t2r-no-survived-bonus.txt = off.
+// (economy). Paid once per match, only to the last player of the team while not killed. t2r-no-survived-bonus.txt = off.
 // Enemy highlight (ss-comp-player-highlight): 5 s after the event every enemy is marked for the local player: fade in 3 s, full 5 s,
 // fade out 3 s, hidden 20 s, repeating to the match end (31 s cycle). Each event restarts the cycle. Drawn as the marked red name
 // tag (feature_nametags: through walls, any range; 2013 drew a red 'marked-man' icon 2.1 m over the enemy).
@@ -177,7 +177,10 @@ static void lms_tick(void) {
         else if (cT == 1 && cE == 1 && al <= 0 && en <= 0) st = LMS_1V1;
         else if (cT == 1 && al <= 0) st = LMS_LAST;
         else if (al == 8 && g_lms.lives0 > 8) st = LMS_LOW8;
-        else if (al == 0) st = LMS_SD;
+        // (all player nametags were constantly visible in a 4v4 at 0:0): a pool that reads 0 from the match start (no reinforcement count on this
+        // server / mode, or the getter has no value) armed Sudden Death and its every-enemy highlight from the first poll. 2013's Sudden Death is the pool
+        // RUNNING OUT: only a pool that started above 0 enters it. t2r-lms-sd-pool0.txt = old rule.
+        else if (al == 0 && (g_lms.lives0 > 0 || GetFileAttributesA("t2r-lms-sd-pool0.txt") != INVALID_FILE_ATTRIBUTES)) st = LMS_SD;
         xlog("lms: counts ours %d (pool %d, alive %d) theirs %d (pool %d, alive %d) -> %s%s", cT, al, n[0], cE, en, n[1], LMS_NAMES[st],
              st && st == g_lms.st ? " (already)" : st ? "" : " (state kept)");
         if (cT == 1 && al <= 0 && !g_lms.box_sent) {

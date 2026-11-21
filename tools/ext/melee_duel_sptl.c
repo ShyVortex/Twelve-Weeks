@@ -288,3 +288,94 @@ static const char *ps_take_other40(int k, int own) {
         && g_sptl.eng_hit_at - g_sptl.sw_t0 > (double)MDU_MOVES[g_mdu.sw_row].tc_ms + 50.0 && psync_ms() - g_sptl.eng_hit_at < 100.0) return "our swing ran more than 50 ms past its SP switch frame";
     return NULL;
 }
+
+// ---- DODGE TAIL (player logs of a 5-player brawl: a dodged swing just stopped). SP's miss = the swing clip plays on to its end at x1; ours cut the swing on its
+// contact frame - the attacker's own screen (A: the -hit pair was already running when the victim's DODGED ABORT came ~1 RTT later, paired.c psync_abort -> psync_finish
+// faded the half out over 0.3 s from 115-215 ms into a 1.5-3 s clip, the swing clip itself had been replaced by the half; B: the duel ruled DODGED before the pair and
+// mdu_miss_note's ps35 cancel-melee-action ended the engine's -hit move on its first frame) and every bystander (the DODGED abort -> psync_pup_release stops the puppet's
+// half over 0.3 s). The dodger's own screen was already right (melee_duel_contact.c mct_tick: the replica swing plays its follow-through at x1.0).
+// Now the swing clip's own tail plays on the attacker's body: the duel row's swing clip from its contact clip time (tc_ms x mdu_clip_k) + the time the pair half already
+// ran (the half continues the swing from the contact pose, so the tail continues from where the half had got to), over 0.10 s, at x1.0, blended out 150 ms before the
+// clip's end (mhr_stop, g_mhr.pd for puppets / dtail_tick for our body). The 0.3 s fade of the half stays underneath (stop of its own sid). Our body: the ps35 cancel is
+// skipped when the tail took over. t2r-no-dodge-tail.txt = the old stop / cancel (re-read every 2 s). The 'restored swing' fields of g_sptl (restored / rs_sid / rs_stop_at)
+// are not used: their tick re-sets the WINDUP speed on the clip's first frames (dtl_speed sw_sp) and only runs while sptl is on - this tail must run at x1.0 and be
+// stopped whatever sptl does.
+#define DTAIL_BLEND 0.10f          // [TUNING] s: the tail crossfades in over the pair half / the engine's -hit move (same pose family: the half starts on the swing's contact pose)
+#define DTAIL_END_MS 150           // [TUNING] ms: the blend-out starts this long before the clip's end
+#define DTAIL_OUT 0.25f            // s: the tail's blend-out
+#define DTAIL_MAX_ELAPSED 0.50f    // s: cap on the pair half's age added to the contact clip time
+#define DTAILOG(...) do { if (LOGCAP(g_dtail.nlog, 400)) xlog(__VA_ARGS__); } while (0)
+static struct { int on, nlog; uint64_t sid, stop_at; double t0q; } g_dtail;
+static int dtail_off(void) {
+    static int v = -1; static uint64_t at; uint64_t n = GetTickCount64();
+    if (v < 0 || n - at > 2000) { at = n; int o = GetFileAttributesA("t2r-no-dodge-tail.txt") != INVALID_FILE_ATTRIBUTES;
+        if (o != v) xlog("dtail: %s", o ? "OFF (t2r-no-dodge-tail.txt): a dodged swing stops as before" : "ON - a dodged swing plays its own tail to the clip's end (attacker, bystanders; t2r-no-dodge-tail.txt = off)");
+        v = o; }
+    return v;
+}
+// the swing clip's tail on a body: ent = SID_PLAYER (slot -1) or a puppet. elapsed_s = how long the pair half / the engine -hit move already played. 1 = started.
+static int dtail_play(uint64_t ent, int slot, int row, double elapsed_s, const char *what) {
+    if (!ent || row < 0 || (size_t)row >= MDU_MOVES_N) return 0;
+    const mdu_row_t *m = &MDU_MOVES[row];
+    if (!m->swing || !*m->swing || m->tc_ms <= 0) return 0;
+    uint64_t clip = fnv64(m->swing); float dur = mdg_clip_len(clip);
+    if (!(dur > 0.2f)) { DTAILOG("dtail: %s - swing clip %s of %s not loaded here: the old stop", what, m->swing, m->move); return 0; }
+    float tcs = (float)m->tc_ms * mdu_clip_k(m) / 1000.0f, el = elapsed_s < 0.0 ? 0.0f : elapsed_s > DTAIL_MAX_ELAPSED ? DTAIL_MAX_ELAPSED : (float)elapsed_s;
+    float at = tcs + el;
+    if (tcs > dur - 0.25f) { DTAILOG("dtail: %s - %s has no tail (contact %.0f ms of a %.0f ms clip): the old stop", what, m->move, (double)(tcs * 1000.0f), (double)(dur * 1000.0f)); return 0; }
+    if (at > dur - 0.20f) at = dur - 0.20f;
+    uint64_t r = mhr_animate(ent, clip, at / dur, DTAIL_BLEND);
+    if (r == ~0ULL) { DTAILOG("dtail: %s - animate_ refused the swing clip %s: the old stop", what, m->swing); return 0; }
+    uint64_t now = GetTickCount64(); int remain = (int)((dur - at) * 1000.0f), until = remain - DTAIL_END_MS < 60 ? 60 : remain - DTAIL_END_MS;
+    if (slot < 0) {
+        if (g_dtail.on && g_dtail.sid != clip) mhr_stop(SID_PLAYER, g_dtail.sid, 0.10f);
+        g_dtail.on = 1; g_dtail.sid = clip; g_dtail.stop_at = now + (uint64_t)until; g_dtail.t0q = psync_ms();
+    } else if (slot < T2R_MAX_PEERS) {
+        g_mhr.pd[slot].ent = ent; g_mhr.pd[slot].sid = clip; g_mhr.pd[slot].end = now + (uint64_t)until;     // blended out by mhr_tick (MHR_BLEND_OUT)
+    }
+    DTAILOG("dtail: %s - %s swing %s plays its tail on %s from %.0f ms of %.0f ms (contact %.0f ms + %.0f ms the half already ran) over %.2f s at x1.00, blend-out in %d ms -> %llx",
+            what, m->move, m->swing, slot < 0 ? "our body" : "the puppet", (double)(at * 1000.0f), (double)(dur * 1000.0f), (double)(tcs * 1000.0f), (double)(el * 1000.0f), (double)DTAIL_BLEND, until, (unsigned long long)r);
+    return 1;
+}
+// the duel row of the running -hit pair (paired.c): our own swing's row when it plays this pair, else the first row of the pair
+static int dtail_pair_row(void) {
+    int cd = cd_pair_of_move(g_ps.move);
+    if (cd < 0 || sptl_family(CD_PAIRS[cd].name) != SPF_HIT) return -1;
+    int sr = g_sptl.sw_row;
+    if (g_ps.role == 1 && sr >= 0 && (size_t)sr < MDU_MOVES_N && g_mdu.mv_cd[sr] == cd && psync_ms() - g_sptl.sw_t0 < 4000.0) return sr;
+    return sptl_row_of_pair(cd);
+}
+// paired.c psync_abort: the pair is cut by the victim's DODGED abort (attacker 1 / bystander 3), called before psync_finish fades the half
+static void dtail_abort(const char *why) {
+    if (!why || !strstr(why, "reason DODGED") || (g_ps.role != 1 && g_ps.role != 3) || g_ps.kind != PS_CTXDOWN || g_ps.nseg > 1 || dtail_off()) return;
+    if (g_ps.att < 0 || g_ps.att >= T2R_MAX_PEERS) return;
+    uint64_t ent = g_ps.ent_att;
+    if (!ent || (g_ps.role == 1 && ent != SID_PLAYER) || (g_ps.role == 3 && (ent == SID_PLAYER || psync_dead(ent) || g_peer_downed[g_ps.att]))) return;
+    int row = dtail_pair_row();
+    if (row < 0) return;
+    float ph = psync_phase(ent, g_ps.att_sid);
+    if (ph < 0.0f || ph > 0.9f) { DTAILOG("dtail: u%08x role %d - the pair half is not running (phase %.2f): no tail", g_ps.uid, g_ps.role, (double)ph); return; }
+    char what[48]; snprintf(what, sizeof what, "u%08x role %d DODGED abort", g_ps.uid, g_ps.role);
+    dtail_play(ent, g_ps.role == 1 ? -1 : g_ps.att, row, (psync_ms() - g_ps.t0) / 1000.0, what);
+}
+// melee_duel.c mdu_miss_note: our swing was ruled DODGED with the engine's own -hit move running. 1 = the tail took over (the caller skips the ps35 cancel)
+static int dtail_miss(const char *why) {
+    if (dtail_off() || g_downed || g_down_dying) return 0;
+    int row = g_mdu.sw_row >= 0 ? g_mdu.sw_row : g_sptl.sw_row;
+    double el = g_mdu_ehit_ms ? (double)(GetTickCount64() - g_mdu_ehit_ms) / 1000.0 : 0.0;
+    char what[64]; snprintf(what, sizeof what, "ruled DODGED (%.40s), engine -hit move", why ? why : "?");
+    return dtail_play(SID_PLAYER, -1, row, el, what);
+}
+// per frame (t2r-ext.c, next to mhr_tick): our body's tail ends with its clip, or at once when something else takes the body
+static void dtail_tick(void) {
+    if (!g_dtail.on) return;
+    uint64_t n = GetTickCount64(); const char *why = NULL; float bl = 0.12f;
+    if (n >= g_dtail.stop_at) { why = "its clip is over"; bl = DTAIL_OUT; }
+    else if ((g_ps.role == 1 || g_ps.role == 2) && g_ps.play_ms > g_dtail.t0q) why = "a paired move took the body";
+    else if (g_downed || g_down_dying) why = "we are down";
+    else if (mdg_own_clip_on()) why = "our dodge clip started";
+    if (!why) return;
+    mhr_stop(SID_PLAYER, g_dtail.sid, bl);
+    g_dtail.on = 0;
+    DTAILOG("dtail: our swing tail ends (%s), blend-out %.2f s", why, (double)bl);
+}

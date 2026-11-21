@@ -75,8 +75,12 @@ sys.path.insert(0, os.path.join(TOOLS, "features"))
 import sp_maps_build  # noqa: E402
 m = [x for x in sp_maps_build.specs() if x["key"] == "p1-bookstore"][0]
 rs = m["part1"].get("rs-level")
-pk = os.path.join(sp_maps_build.P1_CONV, "%s-ingame.pak" % rs)
-mod = os.path.join(sp_maps_build.P1_CONV, "%s.t1x.bin" % rs)
+with sp_maps_build.p1_map_env(m):         # (the map's own conv dir: tools/part1/data/p1_maps/<key>.json "build")
+    conv = sp_maps_build.P1_CONV
+if os.environ.get("T2R_P1_LUT", "0") == "0" and os.path.exists(os.path.join(conv, "nolut", "%s.t1x.bin" % rs)):
+    conv = os.path.join(conv, "nolut")     # (what p1_stage.stage_rs_files stages)
+pk = os.path.join(conv, "%s-ingame.pak" % rs)
+mod = os.path.join(conv, "%s.t1x.bin" % rs)
 stock = os.path.join(MAIN, "re", "gamebin", "dc1", "render-settings", "t1x.bin")
 if rs and os.path.exists(pk) and os.path.exists(mod):
     bad = E.check(open(pk, "rb").read(), open(mod, "rb").read(), open(stock, "rb").read() if os.path.exists(stock) else None)
@@ -88,3 +92,58 @@ if rs and os.path.exists(pk) and os.path.exists(mod):
     print("ok  %s: %d regions, %d render-settings symbols in the t1x module, registry block complete" % (rs, len(rg), len(syms)))
 else:
     print("skip  converted rs level (python tools/part1/p1_levelset.py convert <Part I dir> p1-bookstore)")
+
+# Two Part I maps in one build: the staged t1x module = TLOU2's stock module + every map's symbols (p1_rsenv.merge_modules); a map
+# with p1_maps json "rs_renames" (Plaza) stages Part I's city base under its own name: rs pak tags + module symbol + registry lines
+import shutil  # noqa: E402
+P1S = sp_maps_build._p1_stage()
+mods, keys, rns, paks = [], [], [], []
+tmp = tempfile.mkdtemp(prefix="t2r-rsmerge-")
+try:
+    for key in ("p1-bookstore", "p1-plaza"):
+        mm = [x for x in sp_maps_build.specs() if x["key"] == key][0]
+        with sp_maps_build.p1_map_env(mm):
+            try:
+                dst = P1S.stage_rs_files(os.path.join(tmp, key), mm, sp_maps_build.P1_CONV)
+            except AssertionError:
+                dst = None
+            rn = sp_maps_build.p1_rs_renames(mm)
+            blk = sp_maps_build.p1_blocks(mm) if dst else []
+        if dst:
+            mods.append(open(dst, "rb").read())
+            keys.append(key)
+            rns.append(rn)
+            rsl = mm["part1"]["rs-level"]
+            paks.append(open(os.path.join(tmp, key, "pak68", rsl + "-ingame.pak"), "rb").read())
+            for o, n in rn.items():
+                assert "render-settings " + n in blk and "render-settings " + o not in blk, "%s: registry lines renamed" % key
+finally:
+    shutil.rmtree(tmp, ignore_errors=True)
+if len(mods) == 2 and os.path.exists(stock):
+    sd = open(stock, "rb").read()
+    for key, pk, rn in zip(keys, paks, rns):
+        if rn:
+            new_pk = E.rename_rs_pak(pk, rn)
+            (rg0, _), = E.read_pak_regions(pk)
+            (rg1, _), = E.read_pak_regions(new_pk)
+            assert [rn.get(E.region_rs(r), E.region_rs(r)) for r in rg0] == [E.region_rs(r) for r in rg1], "%s: renamed rs tags" % key
+    sid_rn = [{E.fnv(o): E.fnv(n) for o, n in rn.items()} for rn in rns]
+    merged, conflicts = E.merge_modules(sd, mods, sid_rn)
+    got = E.read_symbols(merged)
+    used = []
+    for pk in paks:
+        (rg, _g), = E.read_pak_regions(pk)
+        used.append({E.fnv(E.region_rs(r)) for r in rg if E.region_rs(r)})
+    for sid, losers in conflicts.items():      # a later map's differing copy is dropped only where that map's regions do not use it
+        assert all(sid not in used[i] or sid in sid_rn[i] for i in losers), "%#x differs and a later map uses it" % sid
+    for i, (key, d, rn) in enumerate(zip(keys, mods, sid_rn)):
+        for sid, recs in E.read_symbols(d).items():
+            if i == 0 or sid in rn or sid in used[i]:
+                assert sorted(got[rn.get(sid, sid)]) == sorted(recs), "%s: symbol %#x not kept as the map has it" % (key, sid)
+    assert E.read_symbols(merged).keys() >= E.read_symbols(mods[0]).keys()
+    one, c1 = E.merge_modules(sd, mods[:1])
+    assert not c1 and E.read_symbols(one) == E.read_symbols(mods[0]), "single-map merge = that map's symbols"
+    print("ok  t1x %s: %d symbols (%d bytes), renames %s; first map's copy kept (later copy unused there): %s" % (
+        "+".join(keys), len(got), len(merged), [r for r in rns if r], [("%#x" % k) for k in conflicts]))
+else:
+    print("skip  t1x merge (needs both maps' converted rs levels: %s)" % (keys or "none"))

@@ -1,5 +1,5 @@
 <#
-Twelve Weeks - host a server through playit.gg.
+TLOU2 Multiplayer Revival - host a server through playit.gg.
 
 Needs: Python 3 and the playit agent with ONE tunnel of type "TCP+UDP" whose local
 address is 127.0.0.1:7001 (see PLAYIT-GUIDE.txt). This script finds that tunnel,
@@ -60,7 +60,7 @@ function Get-T2RTunnel([string]$playit) {
 }
 
 try {
-    Write-Host "=== Twelve Weeks - server ===" -ForegroundColor Cyan
+    Write-Host "=== TLOU2 Multiplayer Revival - server ===" -ForegroundColor Cyan
     $py = @(Find-Python)
     if (-not $py -or -not $py[0]) { throw "Python 3.8 or newer was not found (the Microsoft Store 'python' stub does not count). Install it from https://www.python.org/downloads/ and tick 'Add python.exe to PATH' in the installer, then close this window and start the server again." }
 
@@ -132,7 +132,7 @@ try {
     $env:T2R_HOST_MIGRATION = $(if ($NoHostMigration) { "0" } else { "1" })
     # the host comes from the majority region; while the owner (jas) is in a match it is always the EU region (steamid:region, comma list; "" = off)
     if (-not $env:T2R_HOST_REGION_PIN) { $env:T2R_HOST_REGION_PIN = "" }
-    if (-not $env:T2R_REQUIRE_VERSION) { $env:T2R_REQUIRE_VERSION = "1" }   # a client that never reports its version (an old launcher) is kept out of matches
+    if (-not $env:T2R_REQUIRE_VERSION) { $env:T2R_REQUIRE_VERSION = "1" }   # a client that never reports its version (an old launcher) is kept out of newer matches
 
     # port busy? (an old server window still open, or another program on that port)
     $busy = $null

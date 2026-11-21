@@ -88,6 +88,9 @@ static const mpn_row_t MPN_ROWS[] = {
     {"", "", "mp-1h-blade-low-cover-attack-enter-right-hit", "1h-blade-low-cover-attack-enter-right-hit", MDU_1HBLADE, MPN_COVER, MPN_ENTER, 0, 1, 0},
     {"", "", "mp-1h-blade-low-cover-attack-left-enter-hit", "1h-blade-low-cover-attack-left-enter-hit", MDU_1HBLADE, MPN_COVER, MPN_ENTER, 0, 1, 0},
     {"1h-blade-low-cover-attack-1", "ellie-1hblade-low-cover-combo-slash-1--ellie", "mp-1h-blade-low-cover-attack-1-hit", "1h-blade-low-cover-attack-1-hit", MDU_1HBLADE, MPN_COVER, MPN_BLOW, 1, 1, 367},
+    {"switchblade-low-cover-attack-2", "ellie-knife-low-cover-combo-slash-2--ellie", "mp-switchblade-low-cover-attack-2-hit", "switchblade-low-cover-attack-2-hit", MDU_1HBLADE, MPN_COVER, MPN_BLOW, 2, 1, 333},
+    {"switchblade-low-cover-attack-3", "ellie-knife-low-cover-combo-slash-3--ellie", "mp-switchblade-low-cover-attack-3-hit", "switchblade-low-cover-attack-3-hit", MDU_1HBLADE, MPN_COVER, MPN_BLOW, 3, 1, 233},
+    {"switchblade-low-cover-attack-4", "ellie-knife-low-cover-combo-slash-4--ellie", "mp-switchblade-low-cover-attack-4-hit", "switchblade-low-cover-attack-4-hit", MDU_1HBLADE, MPN_COVER, MPN_BLOW, 4, 1, 333},
     {"", "", "mp-1h-blade-left-wall-attack-enter-hit", "1h-blade-left-wall-attack-enter-hit", MDU_1HBLADE, MPN_WALL, MPN_ENTER, 0, 1, 0},
     {"", "", "mp-1h-blade-wall-attack-enter-right-far-hit", "1h-blade-wall-attack-enter-right-far-hit", MDU_1HBLADE, MPN_WALL, MPN_ENTER, 0, 1, 0},
     {"", "", "mp-1h-blade-wall-attack-enter-right-hit", "1h-blade-wall-attack-enter-right-hit", MDU_1HBLADE, MPN_WALL, MPN_ENTER, 0, 1, 0},
@@ -142,6 +145,9 @@ static const mpn_row_t MPN_ROWS[] = {
 /* MDU_1HBLADE MPN_COVER  MPN_ENTER 0 ellie 1h-blade-low-cover-attack-enter-right-hit */
 /* MDU_1HBLADE MPN_COVER  MPN_ENTER 0 ellie 1h-blade-low-cover-attack-left-enter-hit */
 /* MDU_1HBLADE MPN_COVER  MPN_BLOW  1 ellie 1h-blade-low-cover-attack-1-hit */
+/* MDU_1HBLADE MPN_COVER  MPN_BLOW  2 ellie switchblade-low-cover-attack-2-hit */
+/* MDU_1HBLADE MPN_COVER  MPN_BLOW  3 ellie switchblade-low-cover-attack-3-hit */
+/* MDU_1HBLADE MPN_COVER  MPN_BLOW  4 ellie switchblade-low-cover-attack-4-hit */
 /* MDU_1HBLADE MPN_WALL   MPN_ENTER 0 ellie 1h-blade-left-wall-attack-enter-hit */
 /* MDU_1HBLADE MPN_WALL   MPN_ENTER 0 ellie 1h-blade-wall-attack-enter-right-far-hit */
 /* MDU_1HBLADE MPN_WALL   MPN_ENTER 0 ellie 1h-blade-wall-attack-enter-right-hit */

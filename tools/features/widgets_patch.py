@@ -210,7 +210,7 @@ def layout_2013(items, panel):
 TAC_RETICLES = {   # new widget: (source widget, ring base size)
     "weapon-reticles/tac-circle-reticle": ("weapon-reticles/circle-reticle", 120.0),
     "weapon-reticles/large/tac-circle-reticle-large": ("weapon-reticles/large/circle-reticle-large", 150.0),
-    # Double Barrel: 2013's big ring - measured in a 1080p 2013 clip (re/clips/f2013ref/measurements.md B):
+    # Double Barrel: 2013's big ring - measured in the user's 1080p 2013 clip (re/clips/f2013ref/measurements.md B):
     # 124 px at rest (= 248 of the 2160 widget units), 159 px right after a shot; the gun's spread adds the bloom on top
     "weapon-reticles/dbl-circle-reticle": ("weapon-reticles/circle-reticle", 248.0),
     "weapon-reticles/large/dbl-circle-reticle-large": ("weapon-reticles/large/circle-reticle-large", 300.0),
@@ -239,7 +239,7 @@ def add_tac_reticles(wdir):
             elif i["name"] == "root":
                 # the root group is composited (an offscreen texture of its own rect, 250 in the originals): the ring sits at the
                 # rect's edge (group = the gun's spread, ring = group + base), so once the spread grows (SPRINT) the whole ring
-                # lay outside the rect and was clipped away - the Double Barrel's crosshair vanished while sprinting..
+                # lay outside the rect and was clipped away - the Double Barrel's crosshair vanished while sprinting.
                 # A rect that holds the largest spread (centre anchored, pivot 0.5: nothing moves); same for every ring copy
                 i["rectSizeDelta.width"] = i["rectSizeDelta.height"] = TAC_RETICLE_ROOT
         json.dump(w, open(os.path.join(wdir, *new.split("/")) + ".widget.json", "w", encoding="utf-8"), indent=4)
@@ -442,25 +442,38 @@ def patch_widgets(pak_path):
               f"2013 match HUD: top bar cut, timer over the radar, lives under the figures ({matchflow_widgets.remake_score_banner(tmp)} widgets), "
               f"MP menu trimmed ({matchflow_widgets.trim_main_menu(tmp)} entries hidden), "
               f"disclaimer + version label hidden ({matchflow_widgets.hide_notice_and_version(tmp)} widgets), "
-              f"TWELVE WEEKS names ({matchflow_widgets.rename_brand(tmp)} texts), "
+              f"TWELVE WEEKS names ({matchflow_widgets.rename_factions2(tmp)} texts), "
               f"find-match CREDITS hidden ({matchflow_widgets.hide_findmatch_credits(tmp)}), "
               f"2013 LOADING in the engine's loading.widget ({matchflow_widgets.add_loading_screen(tmp)} widgets)")
         import gearup13_widgets
         print(f"gui2-widgets: 2013 GEAR UP page to1/gearup13 ({gearup13_widgets.add_gearup13_page(tmp)})")
         import clan13_widgets
         print(f"gui2-widgets: in-game CLAN page to1/clan13 - roster / journal / raids ({clan13_widgets.add_clan13_page(tmp)})")
+        import achieve_widgets
+        print(f"gui2-widgets: in-game ACHIEVEMENTS page to1/clanach ({achieve_widgets.add_ach_page(tmp)})")
         import friends13_widgets
         print(f"gui2-widgets: in-game FRIENDS page to1/friends13 ({friends13_widgets.add_friends13_page(tmp)}), FRIENDS button under the lobby box on {friends13_widgets.add_friends_button(tmp)} pages")
         print(f"gui2-widgets: friend / party toast (frToast) on {friends13_widgets.add_friends_toast(tmp)} pages")
+        print(f"gui2-widgets: achievement unlock card (the SP new-item-root card, achNt) on {achieve_widgets.add_ach_card(tmp)} pages, "
+              f"+ in hud-root for the live unlocks ({achieve_widgets.add_ach_card_hud(tmp)} widgets)")
         import load_indicator_widgets
         print(f"gui2-widgets: TLOU2 loading icon in loading.widget ({load_indicator_widgets.add_loading_widget_spinner(tmp)} widgets)")
+        print(f"gui2-widgets: TWELVE WEEKS screen in loading.widget for the faction pick's reload ({load_indicator_widgets.add_loading_widget_tw(tmp)} widgets)")
         import names_widgets
         print(f"gui2-widgets: change name page to1/name-entry ({names_widgets.add_names_page(tmp)})")
+        import access_widgets
+        print(f"gui2-widgets: ACCESSIBILITY entry back on the in-game options page ({access_widgets.add_accessibility_button(tmp)})")
         import mission_widgets
         print(f"gui2-widgets: choose mission page to1/mission-choose ({mission_widgets.add_mission_page(tmp)})")
         if os.environ.get("T2R_MODEPICK_UI", "1") != "0":
           import modepick_widgets
           print(f"gui2-widgets: FIND MATCH mode box on the MP menu (native buttons {modepick_widgets.add_modepick_ui(tmp)}, arrow + open box right of the row) + CLAN menu row")
+          if os.environ.get("T2R_CUSTOMIZE_UI", "1") != "0":
+            import customize_widgets
+            print(f"gui2-widgets: CUSTOMIZE row under CLAN ({customize_widgets.add_customize_row(tmp)} menus) + page to1/customize ({customize_widgets.add_customize_page(tmp)})")
+        if os.environ.get("T2R_MODEPICK_UI", "1") != "0" and os.environ.get("T2R_PRIVATE_UI", "1") != "0":
+          import private13_widgets
+          print(f"gui2-widgets: PRIVATE MATCH pages to1/private13 (lobby, native menu rows) + to1/private13s (settings tabs, map grid): {private13_widgets.add_private_pages(tmp)}")
         if os.environ.get("T2R_INT_HUD_UI", "1") != "0":
           import interrogation_hud_widgets
           print(f"gui2-widgets: Interrogation HUD in hud-root (t2rIntHud bars + padlock + stage pips, t2rIntMk0/1 ATTACK / DEFEND markers, t2rIntPr hold prompt): {interrogation_hud_widgets.add_interrogation_hud(tmp)} widgets")
@@ -477,7 +490,7 @@ def patch_widgets(pak_path):
         import death_ui_widgets
         print(f"gui2-widgets: death screen in hud-root (black, SP death tip, KILLED BY card, countdown, spectate prompt): {death_ui_widgets.add_death_ui(tmp)} widgets")
         import killfeed_widgets
-        print(f"gui2-widgets: kill feed rows in hud-root (t2rKf0-4: killer name, weapon icon, victim name; replaces the stock text feed): {killfeed_widgets.add_killfeed(tmp)} widgets")
+        print(f"gui2-widgets: kill feed rows in hud-root (t2rKf0-4: killer name, weapon icon, victim name; replaces spec's text feed): {killfeed_widgets.add_killfeed(tmp)} widgets")
         import radar_box_widgets
         print(f"gui2-widgets: supply box lootbox icons for the radar in hud-root (t2rRbx0-11, placed by t2r-ext radar_box.c): {radar_box_widgets.add_radar_box(tmp)} widgets")
         print(f"gui2-widgets: grey crate + arrow radar icons for supply boxes on another floor (t2rRbxU0-11 / t2rRbxD0-11, shown by t2r-ext radar_box.c): {radar_box_widgets.add_radar_box_floor(tmp)} widgets")
@@ -499,8 +512,8 @@ def patch_widgets(pak_path):
         if os.environ.get("T2R_ENTRY_LOADING", "1") != "0":   # boat menu -> TWELVE WEEKS page in the mod's own style (pending approval)
             print(f"gui2-widgets: to1/connecting (boat menu -> TWELVE WEEKS) restyled, variant {os.environ.get('T2R_ENTRY_LOADING_VARIANT', 'L')}: "
                   f"{connecting_widgets.restyle_connecting(tmp, os.environ.get('T2R_ENTRY_LOADING_VARIANT', 'L'))} widgets added")
-        # UI round 2: pause = C2, gear up = merged B2 / R3. OFF by default (the earlier map vote, pause
-        # screen and post match UI stay; that build was made with T2R_UI_R2=0). T2R_UI_R2=1 turns it back on. re/ui-r2-picker-pause-impl-1019.md
+        # UI round 2: pause = C2, gear up = merged B2 / R3. OFF by default (the earlier UI is kept for the map vote, pause
+        # screen and post match; it was built with T2R_UI_R2=0). T2R_UI_R2=1 turns it back on. re/ui-r2-picker-pause-impl-1019.md
         r2 = os.environ.get("T2R_UI_R2", "0") != "0"
         if r2 and os.environ.get("T2R_PAUSE_RESTYLE", "1") == "1":   # in-match Esc page: top bar + two teams side by side (C2)
             import pause_restyle_widgets
@@ -512,8 +525,14 @@ def patch_widgets(pak_path):
         elif r2 and os.environ.get("T2R_LOADOUT_R2", "1") != "0":    # gear up: slot column | picker list | details on a grit ground (B2 merged)
             import loadout_r2_widgets
             print(f"gui2-widgets: gear up pages restyled (B2 three columns): {loadout_r2_widgets.apply(tmp)} widgets added / moved")
+        import leaderboard_nr_widgets   # after the shade / feed / row-fit edits above, so its place / colour / hidden chrome win
+        print(f"gui2-widgets: leaderboard page in the No Return frame (breadcrumb, thin rule rows, YOU row marks, BACK prompt): {leaderboard_nr_widgets.add_leaderboard_nr(tmp)} widgets added")
+        if not (r2 and os.environ.get("T2R_PAUSE_RESTYLE", "1") == "1"):   # the in-match pages (Esc menu, scoreboard) in the No Return frame; the old R2 restyle (opt-in, off) replaces it
+            import pause_restyle_widgets
+            print(f"gui2-widgets: pause menu + scoreboard in the No Return frame (breadcrumb, US / THE ENEMY sections with totals, tile rows, YOU row, boxed prompts): {pause_restyle_widgets.add_pause_nr(tmp)} widgets added")
         import rank_badge_widgets
         print(f"gui2-widgets: rank badge (symbol + weeks) before the names: {rank_badge_widgets.add_lobby_rows(tmp)} lobby row widgets, {rank_badge_widgets.add_scoreboards(tmp)} scoreboard rows (pause menu + end page)")
+        print(f"gui2-widgets: lead dev name rims (8 pink copies under each lobby / scoreboard name, t2r-ext namerim.c): {rank_badge_widgets.add_name_rims(tmp)} widgets")
         import loc_widgets
         print(f"gui2-widgets: {loc_widgets.apply(tmp)} static labels moved to text ciphers (translated with the game's language, tools/loc)")
         out = pak_path + ".new"

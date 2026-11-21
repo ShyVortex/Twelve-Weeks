@@ -39,7 +39,7 @@ static int cd_enabled(void) {
     }
     return !g_cd_off;
 }
-// Grass got detected as low cover / wall: the replica rays only answer t (fraction), no surface / material, so a hit cannot be asked
+// Grass was detected as low cover / wall: the replica rays only answer t (fraction), no surface / material, so a hit cannot be asked
 // what it is. Real surfaces are planes; vegetation / scattered clutter is not. The WALL / COVER verdicts need the rays to agree (cd_plane_ok);
 // t2r-cd-no-plane-check.txt = the old unchecked verdicts.
 static int g_cd_plane_off = -1;
@@ -55,7 +55,7 @@ static int cd_plane_check(void) {
 static char g_cd_sp_why[128] = "not tried";   // the last result of SP's own MeleeProbe query on the victim puppet (logged with every replica decision)
 static int g_cd_ray_file = -1;        // t2r-cd-ray-probe.txt: use the ray replica of the wall frame instead of the engine probe (A/B comparison)
 static int g_cd_yaw_over = -999;      // t2r-cd-wall-yaw.txt (degrees): turns the REPLICA frame only (the engine's frame is the engine's)
-// Pins must work within 30-45 degrees of facing the wall head on:
+// A pin should not need the attacker to face a wall directly with the victim in between; there should be about 30 to 45 degrees of freedom:
 // the surface rays were cast along the attack direction only, so a wall behind the victim at an angle was missed (open-ground verdicts, a face the rays
 // slid past). The CONE SEARCH: when the cast along the attack direction finds no surface, the following scans cast along the attack direction turned
 // by +22 / -22 / +45 / -45 deg (g_cd_rot), and take a surface whose normal is within CD_CONE_DEG (SP's own limit: the attacker within 45 deg of the
@@ -89,17 +89,17 @@ static void cd_files_poll(void) {
 //        floor (pelvis < 0.25 m on the decoded victim clip, 30 fps), where the pair is cut and the victim goes down.
 // measured contact times (ms) of the Abby fist finishers, from the decoded halves in ap space (hits.py): [0] = wrist-to-victim-head contacts (the first blow),
 // [1] = the victim head's speed peak (the smash into the surface), counted from the START OF THE FINISHER's main clip
-// [2] = when the attacker is released (ms from the finisher's start, 0 = the final blow + 0.45 s, the rule for the fists).
+// [2] = when the attacker is released (ms from the finisher's start, 0 = the final blow + 0.45 s,  rule for the fists).
 // Knife: SP's own release, SP sandbox round 3 E=65 (ellie-knife-low-cover-kill-gut-to-ice-pick-end): locomotion back 2.22 s into the -end clip = its last
 // blade event (the curved-line flick, 1.73 s) + 0.49 s; every knife finisher is released at ITS last blade event + 0.45 s, the heavy blow = its blade-out
 // ribbon (blood-ribbon-slash-eff), both read from the clips' own part-effect events. MP before: 0.70 x the hand-off time + 0.45 s = 3.0 s into the
 // ice pick (the attacker kept playing ~1.5 s).
 // Fists: SP E=28 (abby-fist-kill-hwall-combo-head-smash, head slam at 1.05 s) gave control back only at 2.75 s (+1.70 s); MP keeps +0.45 s
-// after the slam (the victim needs time to escape; the attacker was stuck too long).
+// after the slam (the attacker needs time to escape and must not be stuck too long).
 // [3] = 1: the first contact [0] is a GRAB (the hand closes on the head, no blow): the grab foley there, not a punch.
 // wall-combo-head-smash (decoded halves): right hand on the forehead 0.23 s (wrist 0.15 m from the head from then to 1.6 s), head pulled back
 // 0.7 m off the wall by 0.73 s, into the wall at 1.03 s (the clip's own headslam sound event 1.033 s; head 6.1 m/s, at the wall 1.07 s; SP E=28 1.05 s).
-// A victim against a truck (A [68375]: face 0.47 m behind him, top 1.26 m -> 'no surface', normal knockdown): the band between a car hood (1.1) and the
+// (LautiZ against a truck, A [68375]: face 0.47 m behind him, top 1.26 m -> 'no surface', normal knockdown): the band between a car hood (1.1) and the
 // 1.7 m wall ray fell through both rules. Truck beds / SUV hoods / high counters up to 1.35 m are cover (the ledge finishers slam onto that top).
 #define CD_COVER_MAX 1.35f
 #define CD_HITS_DATA \
@@ -134,7 +134,8 @@ typedef struct { const char *att, *vic; float spd, cut; } cd_seg;   // cut: clip
 #define CD_RAW_PAIR(att, vic, spd, cut) {att, vic, (spd), (cut)}     // full clip names (the upgraded one-shots: crowbar / machete clips)
 #define CD_WPN_PAIR(base, spd, cut) {"ellie-" base "--ellie", "ellie-" base "--npc-f", (spd), (cut)}     // the 1h / 2h melee weapon sets (anim-melee-player-shared-t2, Ellie's skeleton)
 #define CD_WPNA_PAIR(base, spd, cut) {"abby-" base "--abby", "abby-" base "--npc-f", (spd), (cut)}       // (the 1h blunt right uppercut: anim-melee-abby-t2)
-// The push is only used where the animation needs the victim already pushed into the wall / over the ledge (the finisher is chosen on the is-hit-gonna-down basis), and the chain is one continuous animation, 1:1 with the references: TLOU2 starts a finisher two ways (start lambdas, re/tlou2-env-melee.md 2-3):
+// The push matters only where the animation needs the victim already pushed into the wall / over the ledge, on the is-hit-gonna-down basis;
+// 1:1 as the references, one continuous animation. TLOU2 starts a finisher two ways (start lambdas, re/tlou2-env-melee.md 2-3):
 //   OPEN (from-open? = 1: the enemy one hit from going down) - no push: the finisher's own -intro pair IS the run-in (attacker 1.2-1.8 m out, victim at the surface)
 //         -> intro, then the main clip;
 //   COMBO only (from-open? = 0: the victim must already be pinned) - the push pair first, CUT at the frame whose pose matches the finisher's first frame best
@@ -149,12 +150,12 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     // ---- fists (Abby), wall, OPEN: 05:08 throat strike + head into the wall
     {"wall-throat-punch", 1, 1.6f, 2.20f, -1, 2, {CD_ABBY_PAIR("hwall-melee-throat-punch-intro", 1.0f, 0.0f), CD_ABBY_PAIR("hwall-melee-throat-punch", 1.0f, 0.0f)}},
     // ---- fists, wall, COMBO: 04:56 forehead grab, head PULLED BACK 0.7 m off the wall, then smashed into it (SP E=28's finisher; replaces
-    //      the quick 1.5 s hwall-melee-head-smash shove - the slower one, fairer vs the other takedowns). fist-wall-right-combo-head-smash-finisher is
+    //      the quick 1.5 s hwall-melee-head-smash shove: the slower one is fairer next to the other takedowns). fist-wall-right-combo-head-smash-finisher is
     //      combo-only (dmax 2.5), so it starts from the contextual wall opener fist-wall-attack-enter-right / -right-far (window 0.5 .. 2.0 m, cd_dmin):
     //      abby-fist-hwall-enter-npc-close-hit (victim authored 0.50 m out -> 0.18 m) / -npc-far-hit (1.72 m -> 0.17 m), each from frame 0, cut at the
     //      root match to the finisher intro's frame 0 (tools/ctxcut.py), then SP's intro (both halves, 0.23 s) and the finisher (hand grabs the head 0.23 s,
     //      pulled back to 0.73 s, head into the wall 1.07 s at 6.1 m/s, let go 1.6 s, pelvis on the floor 3.17 s)
-    //      SP capture (re/sp-abby-fist-sounds-1026.log): the pinning hit plays 0.53 s before the finisher intro takes over (ours was 0.87 s) - the
+    //  SP capture (re/sp-abby-fist-sounds-1026.log): the pinning hit plays 0.53 s before the finisher intro takes over (ours was 0.87 s) - the
     //      close push is cut at 0.55 s so the pin -> grab -> slam rhythm is SP's (slam 1.04 s into the finisher both ways)
     {"wall-combo-head-smash", 1, 2.4f, 3.22f, -1, 3, {CD_ABBY_PAIR("hwall-enter-npc-close-hit", 1.0f, 0.55f), CD_ABBY_PAIR("kill-hwall-combo-head-smash-intro", 1.0f, 0.0f), CD_ABBY_PAIR("kill-hwall-combo-head-smash", 1.0f, 0.0f)}},
     {"wall-combo-head-smash~far", 1, 2.4f, 3.22f, -1, 3, {CD_ABBY_PAIR("hwall-enter-npc-far-hit", 1.0f, 1.20f), CD_ABBY_PAIR("kill-hwall-combo-head-smash-intro", 1.0f, 0.0f), CD_ABBY_PAIR("kill-hwall-combo-head-smash", 1.0f, 0.0f)}},
@@ -163,7 +164,7 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     // ---- fists, low cover, COMBO: 05:35 pick up + head onto the ledge, 05:43 grab + head onto the ledge - push cut at the best match (0.16 / 0.33 m)
     //      (SP rules: a combo-only finisher needs the contextual low-cover swing first, whose opener window is the defender 0.5 .. 1.7 m from the
     //      cover frame (fist-low-cover-neck-attack-enter-close / -far: wall-min-range 0.5, wall-range 1.7, player-fisurgeonguild-contextual.bin) - cd_dmin)
-    //      The old pushes low-cover-combo-2 / -3-hit move the victim 0.03 / 0.00 m (both bodies are
+    //      The push did not move the characters: the old pushes low-cover-combo-2 / -3-hit move the victim 0.03 / 0.00 m (both bodies are
     //      already at the cover in them: they are the hits of a running combo). SP's push INTO the cover is the low-cover opener pair (contextual.bin
     //      fist-low-cover-neck-attack-enter-close / -shoulder-attack-enter-far): abby-fist-lc-enter-player-close-npc-close-neck-hit (victim authored
     //      0.59 m out -> 0.13 m, attacker 0.65 m) and -npc-far-shoulder-hit (2.02 m -> 0, attacker 2.18 m). Played from frame 0, cut where both bodies
@@ -179,7 +180,7 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     //      the high probe wins: "(if against-wall-result (= low-cover? #f) (= low-cover? #t))")
     //      push variants by distance (contextual.bin switchblade-wall-attack-enter-right / -right-far / -left-enter): victim authored start
     //      stab-enter-short-hit 0.60 m (cut 0.37 s), enter-hit-left 1.33 m (0.55 s), enter-hit 1.77 m (0.75 / 0.87 s) - each played from frame 0
-    //      The push was short and insta-cut to the wall death instead of a short fluid pause: SP's real combo
+    //      Ellie's wall knife takedown: the push was short and cut instantly to the wall death instead of a short fluid pause. SP's real combo
     //      path (re/sp-sandbox-runs/knife-1020b.named.log) is push -> combo-intro (attacker only; the victim keeps its slash-1 hit) 0.37-0.40 s -> combo-mid
     //      0.27-0.40 s (the pinned stab, both halves) -> end. The intro / mid / end joins are seamless (0.001-0.024 m); the pushes are cut where they match
     //      the intro's frame 0 (D 0.15-0.27 m; the old 0.37 s close cut was mid-lunge). Chain before the end: 1.67 s (long) / 1.50 s (left), was 0.37-0.87 s.
@@ -195,7 +196,7 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     {"knife-cover-ice-pick~mid", 2, 2.5f, 3.65f, 3, 2, {CD_ELLIE_PAIR("low-cover-combo-enter-hit", 1.0f, 0.87f), CD_ELLIE_PAIR("low-cover-kill-gut-to-ice-pick-end", 1.0f, 0.0f)}},
     {"knife-cover-ice-pick~far", 2, 2.5f, 3.65f, 3, 2, {CD_ELLIE_PAIR("low-cover-combo-enter-left-hit", 1.0f, 0.93f), CD_ELLIE_PAIR("low-cover-kill-gut-to-ice-pick-end", 1.0f, 0.0f)}},
     {"knife-cover-chest-stab", 2, 2.5f, 3.70f, 3, 2, {CD_ELLIE_PAIR("low-cover-kill-chest-stab-intro", 1.0f, 0.0f), CD_ELLIE_PAIR("low-cover-kill-chest-stab", 1.0f, 0.0f)}},
-    // ---- held MELEE WEAPONS. TLOU2's weapon wall / low-cover finishers
+    // ---- held MELEE WEAPONS (contextual takedowns also exist for melee weapons, except upgraded melees). TLOU2's weapon wall / low-cover finishers
     //      (player-1h-blade / -1h-blunt / -2h-blunt-finishers.bin, macro melee-player-wall-finisher-with-intro, context wall / low-cover; re/contextual-downs.md "Melee weapons"):
     //      the start lambda's weapon mask picks who may play it (cd_weapon_mask): style 1 = every 1h blade (machete, tomahawk, hatchet), 4 = the machete's own two, 0 = every 1h
     //      blunt, 5 = the crowbar / hammer / club / wrench neck jab, 2 = the 2h blunt (bat, 2x4, lead pipe). OPEN moves (from-open? = 1: the enemy one hit from going down) =
@@ -232,7 +233,8 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     //      upg-crowbar-eye-jab = 1h-blunt-abby-left-crowbar-head-jab-finisher-sync (player-1h-blunt-finishers.bin; anim-melee-abby-t2, resident, 97 f each half)
     //      upg-blade-gut-chop-kick = machete-slash-3-finisher-sync / 1h-blade-ledge-left-finisher-sync (player-1h-blade-finishers.bin; anim-melee-player-shared-t2,
     //      resident, attacker 205 f / victim 260 f)
-    //      The upgraded crowbar stab is replaced by TLOU2's hammer finishers (a one-hand blunt style, not a chop): the crowbar class (crowbar, hammers, 1h clubs, pipe wrench) plays Ellie's 1h blunt / hammer finishers below; the eye jab row stays
+    //      the crowbar stab upgraded melee anim is replaced by a one hand blunt style one, not a chop, using tlou2's
+    //      hammer finishers: the crowbar class (crowbar, hammers, 1h clubs, pipe wrench) plays Ellie's 1h blunt / hammer finishers below; the eye jab row stays
     //      only for t2r-upg-crowbar-stab.txt next to the exe (cd_upg_start never picks it otherwise).
     {"upg-crowbar-eye-jab", 0, 0.0f, 1.92f, 0, 1, {CD_RAW_PAIR("abby-crowbar-kill-left-head-jab--abby", "abby-crowbar-kill-left-head-jab--npc-f", 1.0f, 0.0f)}},
     //      The 1h blunt / hammer finishers (player-1h-blunt-finishers.bin moves 1h-blunt-left-head-stop-finisher, -left-swing-through-finisher, -quick-left,
@@ -256,7 +258,7 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     //      3 = open ground (SP's player dodge counter pairs: fist-dodge-back-attack-1 -> abby-fist-dodge-back-attack--abby + -hit--npc-f ...), 4 = high wall / 5 = low cover (TLOU2's contextual combo hit
     //      pairs of the same weapon sets: the engine's probe picks the variant, a wall never cancels the exchange).
     {"dc-fist-back", 3, 0.33f, 1.25f, -1, 1, {CD_RAW_PAIR("abby-fist-dodge-back-attack--abby", "abby-fist-dodge-back-attack-hit--npc-f", 1.0f, 0.0f)}},
-    // The counter punch has a bigger wind-up so it feels stronger and punchier: TLOU2's haymaker - its attacker-only intro (0.53 s, the
+    // TLOU2's haymaker - its attacker-only intro (0.53 s, the
     // held pull-back) then the main pair from the contact, cut into the stagger (the victim collapses by ~1.0 s of the main clip: hand-off 0.62 s into it).
     // The intro ends exactly on the main clip's first placement in the same apReference (offline check, ctxcam_lib), so the chain is seamless; the victim is
     // held on the main clip's first frame through the intro (paired.c, dc_seg0_hold). Preferred for fists over the plain dodge-back counter when loaded.
@@ -265,11 +267,11 @@ static const struct { const char *name; int kind; float dmax, end_s; int style, 
     {"dc-fist-fw", 3, 0.57f, 1.50f, -1, 1, {CD_RAW_PAIR("abby-fist-dodge-foward-attack--abby", "abby-fist-dodge-foward-attack-hit--npc-f", 1.0f, 0.0f)}},
     {"dc-1hblunt-back", 3, 0.43f, 1.30f, 0, 1, {CD_RAW_PAIR("abby-1hblunt-dodge-back-attack--abby", "abby-1hblunt-dodge-back-attack-hit--npc-f", 1.0f, 0.0f)}},
     {"dc-1hblunt-fw", 3, 0.43f, 1.30f, 0, 1, {CD_RAW_PAIR("abby-1hblunt-dodge-fw-attack--abby", "abby-1hblunt-dodge-fw-attack-hit--npc-f", 1.0f, 0.0f)}},
-    // knife (Ellie hits the attacker in the face with the bottom of her palm while the knife's in the hand): TLOU2's knife stun handle bash 2.
+    // knife (Ellie hits the attacker in the face with the bottom of her palm while the knife is in the hand): TLOU2's knife stun handle bash 2.
     // Offline (ctxcam poses): right (knife) wrist 0.20 m from the victim's head at the contact 0.37 s (solo-to-pair pose match, RMS 0.015 m), 0.43 m pull-back
     // over 0.33 s, 15.9 m/s; the knife victim half staggers (head 1.04 m at +0.5 s) and stays up - the 1hblade twin collapses, so the knife clip is used.
     // Preferred for knives over the fist haymaker (dc_plan); no knife-pak clip -> the knife falls back to the fist rows as before.
-    // The knife counter attack should be more of a backhand slash/hit than just a hit on the face: SP plays switchblade-stun-breaker-bash
+    // SP plays switchblade-stun-breaker-bash
     // (= handle-bash-2--ellie) for 368 ms only, then switchblade-stun-breaker-bash-hit (= handle-bash-2-hit--ellie) from the contact (SP trace MARK 17,
     // 3406426.7 -> 3406794.9); the plain clip played on past 0.37 s is its swing-through, which read as a backhand. Now the same chain: wind-up cut at
     // 0.37 s, the -hit pair from the contact, the victim held on its first frame through the wind-up (dc_seg0_hold). Contact +0.04 s into the -hit pair.
@@ -330,7 +332,7 @@ static int cd_is_move(const char *base, int p) { size_t l = cd_base_len(CD_PAIRS
 static int cd_has_push(int p) { return CD_PAIRS[p].nseg > 1 && strstr(CD_PAIRS[p].seg[0].att, "-enter") != NULL && strstr(CD_PAIRS[p].seg[0].att, "-hit") != NULL; }
 // SP's minimum defender distance from the surface frame: the fist combo-only finishers start from the contextual swing, whose opener needs
 // wall-min-range 0.5 m (player-fisurgeonguild-contextual.bin); open finishers (fists' open ones, every knife one) have min 0.0 (the lambda's 5th argument)
-// Most wall takedowns were throat punch anims: MP victims are mostly backed against the wall (< 0.5 m), where SP's opener window
+// MP victims are mostly backed against the wall (< 0.5 m), where SP's opener window
 // ruled the head smash out and left only the throat punch. The head smash's close push is authored with the victim 0.50 m out, within the push carry
 // limit from the wall itself, so it may start from 0 m (t2r-cd-headsmash-dmin.txt = the old 0.5 m)
 static int cd_is_move(const char *base, int p);
@@ -338,7 +340,7 @@ static float cd_dmin(int p) {
     if (cd_is_move("wall-combo-head-smash", p) && GetFileAttributesA("t2r-cd-headsmash-dmin.txt") == INVALID_FILE_ATTRIBUTES) return 0.0f;
     return CD_PAIRS[p].style == -1 && cd_has_push(p) ? 0.5f : 0.0f;
 }
-// v5-hatch: SP's hatchet disarms are STREAMED clips in anim-melee-abby-t2 (a header stub + chunks in
+// v5-hatch (a hatchet disarm is used): SP's hatchet disarms are STREAMED clips in anim-melee-abby-t2 (a header stub + chunks in
 // animstream97/*.stm: animate_ plays them as the bind pose). The data build makes them resident in place (tools/features/unstream_anims.py,
 // build_dll.stage_unstream_disarms). get-animation-duration reads the stub's total length, so it cannot tell the two apart: the build renames one
 // now-unused chunk ANIM to CD_UNSTREAM_MARKER, and a client without that pak (an ext-only update on the old data) treats these clips as NOT loaded
@@ -365,7 +367,7 @@ static int cd_unstreamed(const char *clip) {
     for (size_t k = 0; k < sizeof CD_UNSTREAMED / sizeof *CD_UNSTREAMED; k++) if (!strcmp(CD_UNSTREAMED[k], clip)) return 1;
     return 0;
 }
-// ps33: SP's third front disarm of a 1h-blunt holder, fist-1h-blunt-disarm-arm-break-finisher, has streamed -sync halves like the
+// ps33: SP's third front disarm of a 1h-blunt holder, fist-1h-blunt-disarm-arm-break-finisher (seen in SP runs), has streamed -sync halves like the
 // hatchet rows. tools/features/unstream_anims.py makes them resident in the same pak and renames a second chunk ANIM to CD_UNSTREAM_MARKER2. The data deployed
 // before ps33 has MARKER 1 only: there the row counts as NOT loaded (the pick skips it, the other 1h-blunt disarms play as before). t2r-duel-no-armbreak-dis.txt
 // = never use the row.
@@ -380,7 +382,7 @@ static int cd_unstream2_ok(void) {
     return ok;
 }
 static int cd_unstreamed2(const char *clip) { return !strcmp(clip, "abby-disarm-kill-1hblunt-arm-break--abby") || !strcmp(clip, "abby-disarm-kill-1hblunt-arm-break--npc-f"); }
-// The first play ever of
+// (both games crashed on the finisher; A [50172]-[50194] / B [47555]-[47581]): the first play ever of
 // mf-fist-1h-blade-disarm-back-hack-finisher (fists from behind on a tomahawk holder) froze BOTH games ~0.4 s into its SP intro
 // abby-disarm-kill-1hblade-sneak-hack-intro--abby (no EXCEPTION, no dump, no WER event; its pak clips are byte-identical to the game's). Until it is
 // reproduced and understood, the row counts as not loaded (the pick logs it as missing; the next finisher / the plain down blow takes the kill).
@@ -408,7 +410,7 @@ static float cd_seg_len(int p, int i) {
     return l / s;
 }
 // the finisher's real seconds to the hand-off: "pelvis on the floor" + CD_SLIDE_EXTRA (the victim went to the downed pose too
-// instantly - the slide plays a bit longer), never past the last segment's shorter half
+// instantly; the slide plays a little longer), never past the last segment's shorter half
 #define CD_SLIDE_EXTRA 0.70f
 static float cd_fin_len(int p) {
     if (CD_PAIRS[p].kind >= 3) return CD_PAIRS[p].end_s;     // dodge counter rows (dcounter.c): the hand-off is the row's end
@@ -440,7 +442,7 @@ static int cd_chain_of(uint64_t move, uint64_t *att, uint64_t *vic, float *spd, 
 // slide and a pose pop in the blend-in; SP only picks a move whose spots fit where the bodies already are)
 #define CD_VIC_MOVE_MAX 0.85f     // the victim's authored start spot may be this far (xz) from where it stands (psync blends it in)
 #define CD_ATT_MOVE_MAX 1.4f     // same for the attacker
-// A case (A [152450], no takedown at all): wall 1.18 m, every scan "2 over the carry limits" -
+// (A [152450], no takedown at all): wall 1.18 m, every scan "2 over the carry limits" -
 // wall-combo-head-smash victim 0.60 m (close push, authored ~0.6 m out) / 0.64 m (~far push, ~1.8 m out): the victim stood in the hole BETWEEN the
 // two push variants, so neither fit and the down hit was a plain knockdown. The variants of a push move must cover its whole SP window (0.5 .. 2.0 m):
 // the push's own shove carries the pull, so a push move's best variant may start up to 0.75 m from where the victim stands (half the widest gap
@@ -453,7 +455,7 @@ static int g_cd_rel_ok; static float g_cd_rel_clip[8];   // the clip's attacker 
 #define CD_PLAN_LIFE 150         // frames a good plan stays valid (a 5-punch combo outlived 45; cd_try re-checks the victim's authored spot)
 
 #define CD_NJOB 14                // replica rays: 5 chest-level (1.15 / 1.4 / 1.7 m centre, 1.3 m at +-0.35 m), knee, 6 vertical top rays
-// Grass still got treated as low cover for contextual takedowns: the static mask 0x207 stops on tall grass
+// (grass was still treated as low cover for contextual takedowns): the static mask 0x207 stops on tall grass
 // ~0.45 m up, so a grass field reads as a low wall and the shape tests (foliage / clutter rejections) cannot catch every clump. The cover rays use
 // winmm's shot mask instead (0x1b07: passes tall grass, stops on walls, cars, counters - the floor bake and the paired.c path gate use it
 // for the same reason); the victim's own capsule stays ignored.
@@ -630,7 +632,8 @@ static int cd_spots_at(int pair, uint64_t h, const float *ap7, const float *V, c
 static int cd_spots(int pair, uint64_t h, const float *ap7, const float *V, const float *me, float *mv, float *da, float *sa_out) {
     return cd_spots_at(pair, h, ap7, V, me, 0.0f, mv, da, sa_out, NULL);
 }
-// The push animation played without moving the characters, and the start into the push did not feel right: SP keeps ONE world ap for the whole chain and plays the chosen push FROM ITS FIRST FRAME (E=28: enter / combo / intro / finisher all on
+// The push animation played without moving the characters, and starting into the push (948b1f4) still did not feel right:
+// SP keeps ONE world ap for the whole chain and plays the chosen push FROM ITS FIRST FRAME (E=28: enter / combo / intro / finisher all on
 // the wall frame within 1 cm, the attacker's 0.83 m start error removed in 0.20 s, quadratic). The distance is matched by WHICH push plays: every move with
 // a push has variants by the victim's authored start distance ("move~far" rows); cd_pick keeps, per move, the variant whose authored start spots are nearest
 // the bodies (SP's contextual-swing ranking "wall dist / ideal dist"), and psync's pull removes the rest. The chain never starts into a clip any more.
@@ -663,7 +666,7 @@ static uint32_t cd_rand(void) {
     return g_cd.rng;
 }
 // the plan the attacker-spot check approved (t = the ray's fraction, -1 = no ray was needed)
-// ps35 (seven scans in a row read ONE wall behind slot 1 - 1.34, 1.24, 0.99, 0.91, 0.81, 0.62, 0.35 m, normal 2-10 deg, 4 of 5
+// ps35 (uc5 A [16591]-[16645]: seven scans in a row read ONE wall behind slot 1 - 1.34, 1.24, 0.99, 0.91, 0.81, 0.62, 0.35 m, normal 2-10 deg, 4 of 5
 // chest rays - while the victim was driven toward it, but one scan in between ([16603] 'chest height only') reset the streak: 'PIN not started: surface not
 // steady (plan streak 2) - a tree / foliage' at [16595], no wall push in the whole fight). Two plans in a row (<= 20 frames apart) whose surface frames lie on
 // one plane (normals within CD_AGREE_DEG, the second ap within CD_AGREE_M of the first one's plane) are a wall, not a trunk: melee_duel_pin.c mpn_steady takes
@@ -833,7 +836,7 @@ static int cd_sp_face_off(void) {
     return g_cd_sp_face_off;
 }
 // out: kind (1 wall, 2 cover, 0 none), perpendicular distance, outward normal (xz), why (note text)
-// Players can stand ~30 degrees angled to a wall instead of perpendicular, and SP turns both onto the surface: the surface normal
+// players can be about 30 degrees angled in a wall instead of being perpendicular (SP turns both onto the surface): the surface normal
 // from two hits along u at lateral offsets la / lb (s = (-u1, u0)); 1 = n set (facing the attacker, within 70 deg of -u), 0 = keep -u.
 static int cd_face_n(float da, float la, float db, float lb, float u0, float u1, float n_out[2]) {
     if (da < 0.0f || db < 0.0f || __builtin_fabsf(la - lb) < 0.2f) return 0;
@@ -854,7 +857,8 @@ static void cd_knee_n(float n_out[2]) {
     n_out[0] = -u0; n_out[1] = -u1;
     if (!cd_face_n(kl, 0.35f, kr, -0.35f, u0, u1, n_out) && !cd_face_n(kl, 0.35f, kc, 0.0f, u0, u1, n_out)) cd_face_n(kc, 0.0f, kr, -0.35f, u0, u1, n_out);
 }
-// a knee-height face from the centre knee hit dk and the side knee rays (+-0.35 m, fractions of CD_RAYLEN): one side within 0.45 m of the centre, or (a victim standing 50+ deg to a flat half wall read 0.70 m centre, 1.15 / 0.25 m sides: a perfectly straight face, rejected
+// a knee-height face from the centre knee hit dk and the side knee rays (+-0.35 m, fractions of CD_RAYLEN): one side within 0.45 m of the centre, or (
+// "pinning just doesnt work, half wall" - a victim standing 50+ deg to a flat half wall read 0.70 m centre, 1.15 / 0.25 m sides: a perfectly straight face, rejected
 // by the 0.45 m test) all three on one straight line no steeper than cd_face_n's limit. Foliage / clutter scatters and fails both.
 static int cd_knee_face_ok(float dk, float s0, float s1) {
     float a = s0 >= 0.0f && s0 < 1.0f ? s0 * CD_RAYLEN : -1.0f, b = s1 >= 0.0f && s1 < 1.0f ? s1 * CD_RAYLEN : -1.0f;
@@ -869,7 +873,7 @@ static int cd_classify(float *dist, float n_out[2], char *why, size_t wn) {
     n_out[0] = -u0; n_out[1] = -u1;
     *dist = 0;
     int tall = hit_d[2] >= 0.0f;      // a wall only when it rises above chest height (the 1.7 m ray); a car roof / counter / railing is a ledge
-    // Pinning failed at a half wall (attacker side log: "wall 1.94 m behind the victim - beyond 1.5 m" with all 5 chest rays at 2.2 m): the chest
+    // pinning did not work at a half wall (attacker side log: "wall 1.94 m behind the victim - beyond 1.5 m" with all 5 chest rays at 2.2 m): the chest
     // rays went OVER the half wall the victim stood at and hit a taller wall behind it. A knee ray hit clearly nearer than every chest hit = that low face is the surface.
     {
         float tk0 = rt[5], dk0 = (tk0 >= 0.0f && tk0 < 1.0f) ? tk0 * CD_RAYLEN : -1.0f, cmin = 99.0f;
@@ -931,7 +935,7 @@ static int cd_classify(float *dist, float n_out[2], char *why, size_t wn) {
     float tk = rt[5], dk = (tk >= 0.0f && tk < 1.0f) ? tk * CD_RAYLEN : -1.0f;
     float dn = dk;                                                     // the nearest low hit: the knee ray or a low chest ray (a railing's top rail)
     for (int i = 0; i < 5; i++) if (hit_d[i] >= 0.0f && (dn < 0.0f || hit_d[i] < dn)) dn = hit_d[i];
-    // (low-cover pushing over people who just have vines or grass behind them, or a huge space between them and actual cover; A/B logs: "ledge:
+    // Low-cover pushes were played on people who just have vines or grass behind them, or a huge space between them and actual cover (A/B logs: "ledge:
     // nearest 1.95 m (knee -1.00, 1 chest hits), beyond it the floor" = ONE chest-height ray hit (a vine / branch / thin prop, no knee ray hit at all) read as a ledge
     // up to 2 m out). SP's probe only ever reports a solid face (nav-mesh boundary edge with a collision hit at crouch height). A ledge / cover therefore needs the
     // KNEE ray (0.45 m up) to hit the face, and that face to be a plane (a knee ray 0.35 m to a side lands within 0.3 m of it).
@@ -959,7 +963,7 @@ static int cd_classify(float *dist, float n_out[2], char *why, size_t wn) {
             if (CD_TOP_D[j] <= dn + 0.04f) continue;
             float tt = rt[6 + j];
             float top = tt >= 0.0f && tt < 1.0f ? CD_TOP_Y0 - tt * CD_TOP_SPAN : -9.0f;
-            // A car top of 1.15-1.25 m put the victim INTO the hood (TLOU2's cover finishers are authored on ~0.9 m
+            // a car top of 1.15-1.25 m put the victim INTO the hood (TLOU2's cover finishers are authored on ~0.9 m
             // surfaces): cover / ledge tops 0.55-1.1 m only; higher = no takedown (a normal hit)
             if (top > CD_COVER_MAX) { snprintf(why, wn, "no surface: nearest hit %.2f m but its top is %.2f m up (cover / ledge tops are 0.55-1.35)", dn, top); g_cd.ref_dn = dn; return 0; }   // (the refine rays check the face: a car side under its roof line)
             if (top >= 0.55f && cd_plane_check()) {   // COVER = a low FACE: a knee ray at +-0.35 m lands within 0.3 m of the nearest hit (a clump / bush does not)
@@ -992,7 +996,7 @@ static int cd_classify(float *dist, float n_out[2], char *why, size_t wn) {
     snprintf(why, wn, "no surface: chest rays %d hit (%.2f %.2f %.2f %.2f %.2f), knee %.2f", nh, hit_d[0], hit_d[1], hit_d[2], hit_d[3], hit_d[4], dk);
     return 0;
 }
-// Most takedowns became low cover ones: every ray starts at / near the victim, inside its own capsule, and the static mask 0x207 still
+// Most takedowns came out as low cover ones: every ray starts at / near the victim, inside its own capsule, and the static mask 0x207 still
 // returns the puppet's capsule at t ~0 (A/B: 325 of 338 scans "ledge / cover: nearest 0.00-0.09 m ... beyond it the floor" on open ground -
 // the chest rays hit the victim itself, the floor behind made it a "ledge"). The rays ignore the victim's puppet now (kick-raycast's ignore object,
 // as paired.c's wall guard does for the same reason).
@@ -1023,7 +1027,7 @@ static void cd_kick_rays(const float *V, const float *u, uint64_t vic_h) {
 // anywhere in those 0.45 m (a door sill, a hood behind a bumper, a counter, a low wall), whatever is behind the far side; a step / crate / stair
 // stays out (its top is below 0.55 m there: walkable). Runs for every low hit the coarse rays could not settle, over the whole 2.0 m ray range. SP's own low-cover probe (MeleeProbe, C++) is not readable from
 // the DC data; its finishers / openers only take its high / low flags (re/contextual-downs.md).
-// (no push despite a ~0.6 m gap between the cover and the animation; A [139645] cover-face-smash on a pickup truck's
+// (no push, despite a ~0.6 m gap between the cover and the animation; A [139645] cover-face-smash on a pickup truck's
 // front): the knee ray (0.45 m up) hit the BUMPER, whose top is 0.51-0.56 m ("tops behind its face 0.55 0.54 0.53 0.51"), and the frame went on the
 // bumper's face. TLOU2's low-cover finishers are authored on ~0.9-1.0 m surfaces (the decoded halves: the victim's head meets the surface 1.0-1.2 m
 // up, at the frame's face), so the face smash slammed the head into the air in front of the grille / hood ~0.6 m behind the bumper, and a 0.65 m
@@ -1140,7 +1144,7 @@ static void cd_replica_finish(uint64_t h, const float *me, int style) {
     }
     cd_replica_cands(h, me, style, kind, dist, n, why);
 }
-// Grass still got counted as low cover: the static-world ray API (kick-raycast / wait-raycast-t) answers only a fraction, no
+// Grass was still counted as low cover: the static-world ray API (kick-raycast / wait-raycast-t) answers only a fraction, no
 // material / layer, so vegetation with collision cannot be named - it is told by its SHAPE. Every cover / ledge verdict (rays or step fit) must pass
 // a solidity probe before it is used: 9 horizontal rays at the face (0.25 / 0.50 / 0.75 m up x 0.30 m to the left / centre / right) must hit within
 // 0.35 m of the verdict's distance, the centre column's heights within 0.15 m of each other (a wall face is vertical; blades / bushes scatter), at
@@ -1176,7 +1180,7 @@ static void cd_solid_finish(uint64_t h, const float *me, int style) {
     float dist = g_cd.sol_face, lo = 99.0f, hi = -99.0f, clo = 99.0f, chi = -99.0f;
     int nh = 0, near_ok = 1, nuse = 0;
     for (int k = 0; k < 9; k++) {
-        // (real low cover rejected - the 0.75 m face rays pass OVER a cover whose top is lower and hit what stands behind it:
+        // ( A: real low cover rejected - the 0.75 m face rays pass OVER a cover whose top is lower and hit what stands behind it:
         // only the rays below the cover's top (surf_h - 0.1) judge its face)
         if (g_cd.surf_h > 0.0f && CD_SOL_H[k / 3] > g_cd.surf_h - 0.10f) continue;
         nuse++;
@@ -1199,7 +1203,7 @@ static void cd_solid_finish(uint64_t h, const float *me, int style) {
     if (nh * 10 < nuse * 7) bad = "face rays mostly miss (a gappy surface)";
     else if (!near_ok) bad = "face rays land far from the verdict's distance";
     else if (hi - lo > 0.45f) bad = "face rays scattered in depth";
-    // (real covers rejected - sloped / rounded faces (car sides, sandbags) and uneven tops failed the old 0.15 m vertical / flat-top
+    // ( A: real covers rejected - sloped / rounded faces (car sides, sandbags) and uneven tops failed the old 0.15 m vertical / flat-top
     // tests; grass is caught by the gap / depth-scatter tests, so these two only reject a clearly broken surface now)
     else if (chi - clo > 0.35f) bad = "face not vertical (centre column scattered)";
     else if (g_cd.surf_h >= 0.55f && nt < 1) bad = "no top behind the face";
@@ -1300,7 +1304,8 @@ static int cd_style_ok(int cur, int pair_style) {
     if (cur >= CD_WSET_BASE) return pair_style >= 0 && pair_style < 8 && (((cur - CD_WSET_BASE) >> pair_style) & 1);
     return cur == pair_style;
 }
-// A pin that switched to unarmed (with a 2h weapon) must end in an unarmed pin finisher too, not use the melee weapon: a duel pin that runs on the fist / knife set (2h weapon put away, or a gun
+// A pin that switches to an unarmed pin (a 2h weapon held) must also end in an unarmed pin finisher, not use the melee weapon:
+// a duel pin that runs on the fist / knife set (2h weapon put away, or a gun
 // in the hand with a melee item owned) sets this style for its finisher pick on that frame (melee_duel_pin.c mpn_fin_plan): -1 fists, 3 knife.
 static int g_cd_style_force, g_cd_style_force_on; static uint64_t g_cd_style_force_frame;
 static int cd_cur_style(void) {
@@ -1316,7 +1321,7 @@ static int cd_cur_style(void) {
     }
     return g_fem_knife_now ? 3 : -1;
 }
-// ps44 T10 (every open finisher row refused by walls -> do wall/halfwall finishers, as SP): melee_duel.c asks for a scan of the lethal
+// ps44 T10 (every open finisher row refused by walls -> do wall / half-wall finishers, as SP): melee_duel.c asks for a scan of the lethal
 // blow's victim at that moment (cd_force_scan44) - cd_scan_tick then scans every frame (not every 6th) and takes that victim even when cd_target picks another,
 // until the plan for it is ready or the window ends. The scan itself (engine MeleeProbe / ray replica, wall + low cover, spot path ray) is unchanged.
 static int g_cd_force44 = -1; static uint64_t g_cd_force44_until;
@@ -1357,7 +1362,7 @@ static void cd_scan_tick(void) {
         return;
     }
     if (g_frame % 6 && !cd_force44_on()) return;      // (ps44 T10: a forced scan runs every frame)
-    // (the plan is not expired here any more: a stale plan is still judged by cd_try against where the bodies are NOW - a 5-punch combo
+    // (the plan is not expired here any more: a stale plan is still judged by cd_try against where the bodies are NOW - A/B: a 5-punch combo
     // took 424 frames and the 150-frame life had killed the plan; scans that find nothing for a moment (hit reactions) no longer clear it either)
     float V[3];
     int slot = cd_target(me, V);
@@ -1383,14 +1388,14 @@ static void cd_scan_tick(void) {
         g_cd.u[0] = g_cd_uatt[0] * cs - g_cd_uatt[1] * sn; g_cd.u[1] = g_cd_uatt[0] * sn + g_cd_uatt[1] * cs;
     }
     float cfw = 0, csd = 0;                                           // melee-direction-check front: we are in their front half plane
-    // (A/B: puppet_locator's rotation said "faces away" on every scan of a test where the victim faced us; finisher_dir reads the
+    // (A/B: puppet_locator's rotation said "faces away" on every scan of a test that faced us; finisher_dir reads the
     // process locator the shiv / execution direction rules use)
     // (A/B: a wall plan died because the victim turned during the punch combo): "not from behind" - the front and the sides pass (cfw > -|side|);
     // only an attacker that is really in the victim's back half (behind by more than sideways) is refused. In MP the victim's facing flickers with the
     // hit reactions, TLOU2 itself only checks it at the move start.
     // A victim turned backwards to the attacker did not play at all: a victim facing away is taken too - the pair's
     // blend-in turns it to its authored facing. Only an unreadable direction refuses now; t2r-cd-front-only.txt = the old front-half rule.
-    // Match SP's behaviour exactly (A [63884]: a victim facing the wall was spun 168 deg in 0.2 s = a teleport): SP's
+    // match SP's behaviour exactly (A [63884]: a victim facing the wall was spun 168 deg in 0.2 s = a teleport): SP's
     // finisher lambdas start only with (melee-direction-check attacker defender (melee-bit-dir front) ...) = is-in-front?(defender, attacker, 180 deg):
     // the attacker in the victim's front HALF plane. NOT in MP (victims move freely) - any victim facing works as long as the attacker faces the victim and there is cover behind it; t2r-cd-sp-facing.txt = SP's front rule + the 90 deg turn limit.
     static int any_facing = -1; static uint64_t fo_chk;
@@ -1474,12 +1479,12 @@ static int cd_cam_tracks(uint64_t other_h, float end_s, int role) {
     // a victim joins a few ms late (its START skip): the track runs on the move's clock
     float off = g_ps.role ? (float)((psync_ms() - g_ps.t0 + g_ps.chain_shift) / 1000.0) : 0.0f;
     if (!(off > 0.0f && off < end_s - 0.5f)) off = 0.0f;
-    // ps32 (SP zooms in smoothly on a contextual takedown, which MP did not use;
-    // A 14250 'exec cam: ctxdown:mf-ellie-2h-blunt-right-ko-finisher-2 role 1 ... blend in 450 / out 1000 ms', 14306 'exec cam: +60 fov 79.43', 13081
+    // ps32 (SP has a smooth zoom in on a contextual takedown that MP did not use;
+    // rec21 A 14250 'exec cam: ctxdown:mf-ellie-2h-blunt-right-ko-finisher-2 role 1 ... blend in 450 / out 1000 ms', 14306 'exec cam: +60 fov 79.43', 13081
     // 'xcam: cam-swing - the blend-in of ctxdown:mf-fist-throat-punch-kill orbited 124 deg round our head'): on the ATTACKER's screen the duel rig keeps the
     // camera through the finisher / contextual takedown and pushes in on SP's curves (melee_spcam.c s32_fin_begin: only when the rig is up on this victim);
     // no authored takedown camera is started then. The blow kicks below are still collected - the rig plays them. t2r-ps32-cam-fin-old.txt = the old camera.
-    // ps34 (as the victim of a finisher the view quickly cut to the enemy's point of view; B 23454 'xcam victim:
+    // ps34 (as the victim of a finisher the view quickly cut to the enemy pov; uc3 B 23454 'xcam victim:
     // ctxdown:wall-throat-punch role 2: 2013 AUTHORED camera (... apReference-camera1 of the defender clip ...)'): on the VICTIM's screen the pin camera's
     // timed shot keeps (a finisher out of a pin) or takes (a side shot of the victim) the view through the move and eases into the downed camera
     // (melee_spcam.c s34_vic_take). t2r-ps34-cam-vicfin-old.txt / t2r-ps34-cam-pinvic-old.txt = the authored victim camera as before.
@@ -1548,35 +1553,48 @@ static int cd_refuse(int32_t dslot, const char *fmt, ...) {
     return 0;
 }
 
-// ---- empty hands for the FIST takedowns (build 4321dd8: even in the THROAT PUNCH contextual takedown the RIGHT HAND isn't animated
-// (doesn't punch), same as the shiv kill). A log 33423 (male, wall-throat-punch): the fists weapon object abby-unarmed (6ac05fba9c921900, drawn by
-// the punch combo) stayed in the hand through the whole move ("wpose: weapon 6ac05fba9c921900" at 33450 / 33480 / 33510), and its held-weapon arm
-// layer held the right arm over the abby-fist-hwall-* clip - the same thing 4b736f0 found for the female shiv (B 136240: fists drawn for the move).
+// ---- empty hands for the FIST takedowns (in the THROAT PUNCH contextual takedown the RIGHT HAND was not animated
+// (no punch), same as the shiv kill). In a male wall-throat-punch log the fists weapon object abby-unarmed (6ac05fba9c921900, drawn by
+// the punch combo) stayed in the hand through the whole move ("wpose: weapon 6ac05fba9c921900" on every pose log), and its held-weapon arm
+// layer held the right arm over the abby-fist-hwall-* clip - the same thing found for the female shiv (fists drawn for the move).
 // The abby-fist takedown clips carry their own put-away (PlayerHolsterWeaponAnimAction + an item-controller Holster request every frame:
-// "stow fix: PlayerHolsterWeaponAnimAction not begun" / "Holster item state request SKIPPED (attacker half)" from 0xbd91cf, 33423-33517) = SP
+// "stow fix: PlayerHolsterWeaponAnimAction not begun" / "Holster item state request SKIPPED (attacker half)" from 0xbd91cf) = SP
 // plays them with EMPTY hands; our holster gates (built for the 2013 gun executions, where the gun must stay in the hand) refused it, and the
-// fists were only put away after the release (A prev 126643 head smash: fists held to 126780, "wpose: no weapon" at 126810). Now a fist pair puts
+// fists were only put away after the release (head smash: fists held until the release, "wpose: no weapon" only afterwards). Now a fist pair puts
 // the held weapon away instantly at the START (our own call passes the gates; the downed state's instant holster empties the fists the same way,
-// A 16595 -> 16620 "wpose: no weapon"), the engine's melee unholster stays off and anything that shows up in the hand is put away again until
+// ending in "wpose: no weapon"), the engine's melee unholster stays off and anything that shows up in the hand is put away again until
 // the attacker is released. Knife pairs (style 3) keep the knife: the ellie-knife clips are authored with it.
 // the same on other screens: slot s's puppet is a half of a running fist pair (attacker or victim: the SP fist clips are authored empty-handed)
 static uint32_t cd_pair_uid(void) { return g_ps.uid; }
-// v5-armed (the 2x4's appearance was inconsistent; dlog4 25394-25653 "fist pair puppet: slot 0 item cae096b9f46d66d0 hidden for the paired move" on the
-// attacker's screen while the victim's own screen kept the 2x4 in the hand - clips 15-02-45 +1.6 s / 15-04-02 +1.0 s: the enemy's 2x4 vanishes at the first punch,
+// v5-armed (dlog4 25394-25653 "fist pair puppet: slot 0 item cae096b9f46d66d0 hidden for the paired move" on the
+// attacker's screen while the victim's own screen kept the 2x4 in the hand - recordings at +1.6 s / +1.0 s: the enemy's 2x4 vanishes at the first punch,
 // and the disarm's weapon was gone from the START instead of SP's take frame): the VICTIM's melee item is never hidden here - its own client keeps it in the hand
 // (SP: the defender holds its melee weapon through the blows), a disarm hides it at the take frame (cd_dis_tick, every screen); a gun / bow / throwable of the
 // victim is still emptied (its own client holsters it too: cd_vic_gun_tick). After a disarm's take frame the ATTACKER's new item (the taken weapon, given to it at
 // the take frame) is not hidden either. t2r-pup-hide-vic-melee.txt = the old rule (every item of both halves hidden).
 static uint64_t cd_dis_peer_weapon(int slot);
 static int cd_dis_after_take(int s);
-// Escaping a pin with a melee weapon in the hand played the unarmed escape with the weapon still held; it should be hidden,
+// Escaping a pin with a melee weapon in hand played the unarmed escape with the weapon in the hand. It should be hidden,
 // and for females the knife should be out for the duration of the anim. The pin ESCAPE rows (pe-*, melee_duel_pin.c mpn_escape -> dc_launch, style 9) went through
 // neither fist-pair rule (cd_hands_begin / cd_pup_hands_empty: style -1 only), so the escaper's held item stayed in the hand on both screens.
 static int cd_esc_row(int p) { return p >= 0 && !strncmp(CD_PAIRS[p].name, "pe-", 3); }
+// (brawl clips X6): the VICTIM of a pin blow pair / a pin finisher (the wall / low-cover takedown rows, kind 1 / 2) holds its melee weapon through the pair
+// ("its own screen keeps it" below: a 2x4 stayed in the hand during the fist pin pairs). The victim halves are authored empty-handed: the escape row's hide (visibility byte,
+// shown again at the pair's end) applies to the victim on every screen - the puppet path (cd_pup_hands_empty) and our own body (cd_esc_begin_vic / cd_esc_tick).
+// t2r-pin-victim-keeps-weapon.txt = the old rule.
+static int cd_pin_blow_row(int i);
+static int cd_pin_vic_row(int p) {
+    if (p < 0 || p >= (int)CD_N || GetFileAttributesA("t2r-pin-victim-keeps-weapon.txt") != INVALID_FILE_ATTRIBUTES) return 0;
+    return cd_pin_blow_row(p) || (CD_PAIRS[p].kind >= 1 && CD_PAIRS[p].kind <= 2 && !cd_mf_row(p));
+}
 static int cd_pup_hands_empty(uint32_t s) {
     if (s >= T2R_MAX_PEERS || !psync_active() || g_ps.kind != PS_CTXDOWN || g_ps.ended || !g_ps_pup[s].h) return 0;
     if ((int)s != g_ps.att && (int)s != g_ps.vic) return 0;
     int p = cd_pair_of_move(g_ps.move);
+    if ((int)s == g_ps.vic && cd_pin_vic_row(p)) {
+        static int nlv; if (LOGCAP(nlv, 60)) xlog("ctxdown: %s u%08x - the pinned victim slot %u's held item is hidden on its puppet for the pair (shown again after; t2r-pin-victim-keeps-weapon.txt = kept)", CD_PAIRS[p].name, g_ps.uid, s);
+        return 1;
+    }
     if (cd_esc_row(p)) {      // the escaper's puppet (its half = att): whatever it holds is hidden (the fist pair path: visibility byte, shown again after) - a female's knife stays out
         if ((int)s != g_ps.att) return 0;
         uint64_t w = cd_dis_peer_weapon((int)s);
@@ -1586,7 +1604,7 @@ static int cd_pup_hands_empty(uint32_t s) {
     static int old = -1; static uint64_t chk;
     if (old < 0 || GetTickCount64() - chk > 3000) { chk = GetTickCount64(); old = GetFileAttributesA("t2r-pup-hide-vic-melee.txt") != INVALID_FILE_ATTRIBUTES; }
     if (old) return 1;
-    // (where there is no pair for the weapons there is a both-unarmed clash - the weapons stay in the hands): a parry / clash
+    // Where there is no pair for the weapons there is a both-unarmed clash (the weapons stay in the hands): a parry / clash
     // pair (kind 7) never hides a melee item of either half.
     if (CD_PAIRS[p].kind == 7) { uint64_t w = cd_dis_peer_weapon((int)s); if (w && w != ~0ULL && (melee_class_of(base_weapon(w), NULL) >= 0 || melee_class_of(w, NULL) >= 0)) return 0; }
     if ((int)s == g_ps.vic) {
@@ -1612,7 +1630,7 @@ static void cd_esc_knife_send(void) {
 static void cd_esc_begin(int pair) {
     memset(&g_cd_esc, 0, sizeof g_cd_esc);
     if (GetFileAttributesA("t2r-esc-keep-weapon.txt") != INVALID_FILE_ATTRIBUTES) return;
-    g_cd_esc.uid = g_ps.uid; g_cd_esc.fem = own_female() && g_fem_knife_cur && !g_fem_knife_off;
+    g_cd_esc.uid = g_ps.uid; g_cd_esc.fem = own_knife() && g_fem_knife_cur && !g_fem_knife_off;
     uint64_t held = xr_held();
     if (g_cd_esc.fem) {
         if (held != g_fem_knife_cur) {
@@ -1639,9 +1657,15 @@ static void cd_esc_end(const char *why) {
     }
     memset(&g_cd_esc, 0, sizeof g_cd_esc);
 }
+// (X6): our own body is the pinned victim of a pin blow pair / finisher: the held item is hidden for the pair like the escaper's (male path of cd_esc_tick)
+static void cd_esc_begin_vic(int pair) {
+    memset(&g_cd_esc, 0, sizeof g_cd_esc);
+    g_cd_esc.uid = g_ps.uid; g_cd_esc.fem = 0;
+    xlog("ctxdown: pinned victim %s u%08x (us) - the held item %llx is hidden for the pair (shown again at its end; t2r-pin-victim-keeps-weapon.txt = kept)", CD_PAIRS[pair].name, g_ps.uid, (unsigned long long)xr_held());
+}
 static void cd_esc_tick(void) {
     if (!g_cd_esc.uid) return;
-    if (!(g_ps.role == 1 && g_ps.kind == PS_CTXDOWN && !g_ps.ended && g_ps.uid == g_cd_esc.uid)) { cd_esc_end("the pair is over"); return; }
+    if (!((g_ps.role == 1 || g_ps.role == 2) && g_ps.kind == PS_CTXDOWN && !g_ps.ended && g_ps.uid == g_cd_esc.uid)) { cd_esc_end("the pair is over"); return; }
     if (g_cd_esc.fem) {
         if (GetTickCount64() >= g_cd_esc.knife_next) { g_cd_esc.knife_next = GetTickCount64() + 500; cd_esc_knife_send(); }
         return;
@@ -1688,7 +1712,7 @@ static const struct { const char *move; float z, y; } CD_CONTACT[] = {
     {"knife-wall-chest-stab-long", 0.09f, 1.19f}, {"knife-wall-left-chest-stab", 0.15f, 1.35f}, {"knife-wall-kneed-gut-slice", 0.50f, 1.35f},
 };
 #define CD_HEAD_R 0.11f
-// ps46 STATURE (the machete throat slash wall finisher put the machete in the middle of the face: Abby is smaller than our MP bodies).
+// ps46 STATURE (the machete throat slash wall finisher had the machete in the middle of the face: Abby is smaller than the MP characters).
 // The attacker halves are authored on ellie-skel / abby-skel against a base-female victim; our MP bodies are base-male / base-female, which have the SAME
 // bind heights (headb 1.646, pelvis 1.030: re/female-characters.md 3, t2skel.py), so every victim half fits (rec45a A [21166]-[21256]: the victim puppet's
 // headb / pelvis over its root read 1.43 / 0.87, 1.52 / 0.93, 1.50 / 0.89 m at 0 / 250 / 500 ms = the decoded npc-f clip's 1.439 / 0.877, 1.520 / 0.943,
@@ -1716,7 +1740,7 @@ static const struct { const char *move; float dy, in1, out0, out1; } CD_STATURE[
     {"wpn-hammer-wall-neck-jab", 0.110f, 0.00f, 0.87f, 1.20f},
 };
 // ps46b: with the intro skipped (psync t0 = now - skip0: the duel path, D2) a row with in1 0.00 got its FULL weight on the pair's
-// first frame (w = pre / (pre + 0)) -> a one-frame 10-13 cm pop up + 3-8 cm sideways at the start of most finishers, added after the start-pull lerp
+// first frame (w = pre / (pre + 0)) -> a one-frame 10 to 13 cm pop up + 3-8 cm sideways at the start of most finishers, added after the start-pull lerp
 // (nothing eased it). Both stature weights are multiplied by a real-time smoothstep from the pair's first placement (this uid's first call here: the
 // first drive frame; a chain segment switch does not restart it), CD_STATURE_RAMP_S long, on every screen. t2r-cd-stature-ramp-ps46-old.txt = no ramp.
 // Proof line "ps46b stature ramp".
@@ -1774,8 +1798,8 @@ static float cd_stature_dy(int k, double now) {
     if (w >= 0.999f && !lfull[k]) { lfull[k] = 1; xlog("ctxdown: ps46 stature u%08x %s: %s puppet at the full %+.3f m (main clip %.2f s)", g_ps.uid, CD_PAIRS[p].name, k ? "victim" : "attacker", (double)dy, (double)tm); }
     return dy;
 }
-// ps46 FINISHER STATURE (mf-switchblade-quick-left-ice-pick: the knife stabbed into the air behind the victim's head
-// instead of the neck as in SP). The TLOU2 one-shot / duel finisher rows (CD_PAIRS kind 0: "mf-*", the upgraded one-shots) are psync PS_CTXDOWN pairs too
+// ps46 FINISHER STATURE (a recording at 7.2-7.5 s, mf-switchblade-quick-left-ice-pick: the knife stabbed into the air behind the victim's head
+// instead of the neck like in SP). The TLOU2 one-shot / duel finisher rows (CD_PAIRS kind 0: "mf-*", the upgraded one-shots) are psync PS_CTXDOWN pairs too
 // (A [112604] "PLAY role 1 kind 6") but none was in CD_STATURE, so their attacker half played at the MP body's x1.089 (Ellie rig) / x1.048 (Abby rig) with
 // the victim at the clip's height. Scaled about its root, the attacker's weapon hand lands (s - 1) x its height HIGHER and (s - 1) x its reach from the
 // attacker's root FURTHER along the pair line (past the victim's neck = behind the head). Same fix as CD_STATURE: the victim puppet raised by dy and pushed
@@ -1784,7 +1808,7 @@ static float cd_stature_dy(int k, double now) {
 // frames where the striking hand / weapon is on the victim's head or neck; dy = (s-1) x the hand's mean height there, dz = (s-1) x the hand's mean reach
 // from the attacker root along the line attacker root -> victim neck; ang = that line's mean direction off the ap's -z (deg, + = towards ap -x) - a weapon
 // tip moves with its hand, so the hand's error is the weapon's. Ramp times are s of the main clip (in to in1 from the chain's start; out out0 -> out1, ending
-// before the victim falls). s = 1.089 Ellie rows, 1.048 Abby rows. Played in the test logs: every kind 0 row of those logs is here.
+// before the victim falls). s = 1.089 Ellie rows, 1.048 Abby rows. Played in ablogs-1753 / rec45a: every kind 0 row of those logs is here.
 static const struct { const char *move; float dy, dz, ang, in1, out0, out1; } CD_FIN_STATURE[] = {
     // quick left ice pick: blade at the neck main 0..0.37 s (grip 0.15-0.17 m from the victim's neck, grip y 1.40-1.51, mean 1.456; reach 0.67-0.74, mean
     // 0.698-0.709, line +4..+9 deg); 0.0893 x 1.456 = 0.130 m (0.125-0.135), dz 0.062 (0.060-0.066); the knife pulls out 0.37-0.50 s, the victim is shoved
@@ -1826,8 +1850,8 @@ static int cd_fin_stature_old(void) {
     }
     return old;
 }
-// 1 = the GUESSED generic dy for unmeasured kind 0 rows is on (t2r-fin-stature-generic-ps46-on.txt, re-read every 2 s). Off by default (a guessed
-//  ~13 cm lift floats a lying / falling victim): only CD_FIN_STATURE's measured rows apply
+// 1 = the GUESSED generic dy for unmeasured kind 0 rows is on (t2r-fin-stature-generic-ps46-on.txt, re-read every 2 s). Off by default (
+// a guessed ~13 cm lift floats a lying / falling victim): only CD_FIN_STATURE's measured rows apply
 static int cd_fin_stature_generic_on(void) {
     static int on = -1; static uint64_t chk;
     uint64_t t64 = GetTickCount64();
@@ -1957,6 +1981,13 @@ static void cd_wear_tick(void) {
 // attacker, from the Melee Down branch of start_melee_hook / the confirmed down hit: 1 = the contextual down started (the caller sends no hit),
 // 0 = nothing happened, the normal knockdown follows
 static int mpn_down_takeover(int slot);    // melee_duel_pin.c
+// (brawl clips X7, Forest 17210 "START slot 2 wpn-blade-cover-hack: 2 segments (first ellie-1hblade-low-cover-combo-enter-close-hit--ellie ...)", "segment 2/2 at 1130 ms" at
+// 17313; the 4th hit's first half was just a push instead of the hit, which bugged both characters out): a pin finisher (melee_duel_pin.c mpn_fin_plan marks the frame
+// it re-arms the pin's plan) started a chain whose first segment is the enter / push pair - the pin had already pushed and hit, so the push played a second time. From a pin
+// the move clock starts at the end of the push segment (g_ps_start_skip_ms, the way a late START skips: every client takes the START's move time), so the kill clip plays
+// next with the usual pull from the poses the bodies stand in (the 50 ms of the push clip's last frames still run before the switch). Rows whose first segment is an intro
+// (no -enter pair) are unchanged. t2r-pin-fin-full-chain.txt = the full chain.
+static uint64_t g_cd_pin_fin_frame;
 static int cd_try(int32_t dslot) {
     typedef uint8_t *(*fn_peer)(uint32_t);
     if (!cd_enabled()) return 0;
@@ -2022,7 +2053,12 @@ static int cd_try(int32_t dslot) {
     xlog("ctxdown: START slot %d %s: %d segments (first %s on us, %s on them), ap (bf0, src %s) %.2f %.2f %.2f yaw %.0f, hand-off at %.2f s real; starts %.2f s into the first segment "
          "(the push plays from its first frame); victim carried %.2f m, we %.2f m",
          dslot, CD_PAIRS[pair].name, CD_PAIRS[pair].nseg, CD_ATT0(pair), CD_VIC0(pair), g_cd.plan_src ? "rays" : "engine", ap[0], ap[1], ap[2], cd_ap_yaw(ap), end_s, p0, mv, da);
-    g_ps_start_skip_ms = p0 * 1000.0f;        // psync_start: the move clock starts p0 in (sent as the move time: every client plays from there)
+    float pin_skip = 0.0f;
+    if (g_cd_pin_fin_frame && g_cd_pin_fin_frame == g_frame && cd_has_push(pair) && GetFileAttributesA("t2r-pin-fin-full-chain.txt") == INVALID_FILE_ATTRIBUTES) {
+        pin_skip = cd_seg_len(pair, 0) - 0.05f; if (pin_skip < 0.0f) pin_skip = 0.0f;
+        static int npf; if (LOGCAP(npf, 40)) xlog("ctxdown: pin finisher %s - the pin already played the push: the chain starts %.2f s in (the kill segment %s next; the push segment %s is not replayed)", CD_PAIRS[pair].name, (double)pin_skip, CD_PAIRS[pair].seg[1].att, CD_PAIRS[pair].seg[0].att);
+    }
+    g_ps_start_skip_ms = (p0 + pin_skip) * 1000.0f;        // psync_start: the move clock starts p0 in (sent as the move time: every client plays from there)
     for (int i = 0; i < CD_PAIRS[pair].nseg; i++)
         xlog("ctxdown:   segment %d: %s / %s x%.2f, %.2f s real%s", i + 1, CD_PAIRS[pair].seg[i].att, CD_PAIRS[pair].seg[i].vic, CD_PAIRS[pair].seg[i].spd,
              i + 1 < CD_PAIRS[pair].nseg ? cd_seg_len(pair, i) : cd_fin_len(pair), i + 1 < CD_PAIRS[pair].nseg ? "" : " (to the hand-off)");
@@ -2071,7 +2107,7 @@ static int cd_try(int32_t dslot) {
 // the hand-off (cd_victim_begin: 1 hp, no fall, its half blends into the lying pose). The pair is anchored on the victim (its authored frame-0 spot = where
 // it stands) and turned so the authored attacker spot points at us - psync's pull turns the victim to its authored facing (any angle), so the row is picked
 // by our side of the victim's facing first (finisher_dir: in front -> the front rows, behind -> the "-back-" rows; none loaded for that side -> any row of
-// the style), round robin among the side's loaded rows. The crowbar eye jab only with t2r-upg-crowbar-stab.txt next to the exe.
+// the style), round robin among the side's loaded rows. the crowbar eye jab only with t2r-upg-crowbar-stab.txt next to the exe.
 // 0 = not started (the caller sends the plain down hit, the ONETAP13_DMG marker).
 static int cd_upg_stab_on(void) {
     static int on = -1; static uint64_t chk;
@@ -2095,7 +2131,7 @@ static int cd_upg_stab_on(void) {
 // t2r-fin-turn-ps46-old.txt = off (the 40 / 65 deg refusal and the side filters as before), re-read every 2 s. Proof line "ctxdown: ps46 lethal turn ...".
 #define CD_T46_SIDE_LO 63.0f    /* [TUNING ps46] deg of our bearing off the victim's facing where side-on starts (= CD_FIN_TURN_MAX + the ps25 split 25 - 2) */
 #define CD_T46_TURN_MAX 180.0f  /* [TUNING ps46] deg the lethal finisher's victim may be turned into its row (180 = any facing) */
-// ps46b (pre-mortem of 5911abc5): with the intro skipped the blow lands ~0.2 s in, while a 180 deg turn eases over up to 1 s - the blow landed mid-spin. The
+// ps46b: with the intro skipped the blow lands ~0.2 s in, while a 180 deg turn eases over up to 1 s - the blow landed mid-spin. The
 // eased turn is accepted only when it ends before the blow (blow time >= turn time) or is at most CD_T46_TURN_SAFE; otherwise the row is refused like
 // before ps46 (the 40 deg refusal -> the caller's next row / D3 / the old path). t2r-fin-turn180-ps46-on.txt = the full CD_T46_TURN_MAX again
 // (re-read every 2 s). Proof line "ps46b lethal turn".
@@ -2130,10 +2166,16 @@ static int cd_upg_start(uint32_t slot, uint64_t w, int style) { return cd_upg_go
 // from behind), round robin among the loaded ones. -1 = none (the lethal blow stays the engine's contact + Melee Down). *why gets the reason.
 static const struct { const char *name; uint8_t back, chr; uint64_t dmask; } MDF_META[] = { MDF_META_DATA {NULL, 0, 0, 0} };
 static int cd_mf_row(int i) { return !strncmp(CD_PAIRS[i].name, "mf-", 3); }
+// a pin's blow pair (mp-*-wall-attack-*-hit, mp-*-low-cover-attack-*-hit rows; the pinner's chain of -hit pairs)
+static int cd_pin_blow_row(int i) {
+    if (i < 0 || i >= (int)CD_N) return 0;
+    const char *n = CD_PAIRS[i].name; size_t l = strlen(n);
+    return !strncmp(n, "mp-", 3) && l > 4 && !strcmp(n + l - 4, "-hit") && (strstr(n, "-wall-attack-") || strstr(n, "-cover-attack-"));
+}
 // v5 (the windup): an mf- row with SP's intro is a 2-segment chain, segment 0 = the attacker-only intro (the windup), segment 1 = the -sync pair
 static int cd_mf_intro(int p) { return p >= 0 && cd_mf_row(p) && CD_PAIRS[p].nseg > 1; }
 static int cd_mf_intro_move(uint64_t move) { return cd_mf_intro(cd_pair_of_move(move)); }
-// ps37 (A [19752], hatchet finisher mf-1h-blade-left-finisher: 'PLAY ... skip 467 ms (phase att 0.950 vic 0.189)' and 'takedown ... attacker 0.05 m /
+// ps37 (hatchet finisher mf-1h-blade-left-finisher: 'PLAY ... skip 467 ms (phase att 0.950 vic 0.189)' and 'takedown ... attacker 0.05 m /
 // 10 deg, victim 0.54 m / 30 deg off their spots at the start phase (467 ms in)' - in the frames the attacker stands almost on top of the victim and the blow
 // goes past its head): a finisher whose intro is passed over starts BOTH halves at the -sync switch, and the victim's clip is one clip over intro + -sync, so
 // its half starts an intro's length in. The pair was turned and placed with the victim clip's FRAME-0 spot though, 0.54 m / 30 deg from where that half
@@ -2172,13 +2214,13 @@ static int cd_fin_list_has(const char *list, const char *move) {
     }
     return 0;
 }
-// ---- v5 DISARM finishers (finisher blows against players that have a melee weapon (except the machete) are the disarms when you have no melee weapon yourself). SP (re/melee-dc/melee-dc.md "Disarms", melee-moves.json): player-fists-finishers-disarms (attacker mask 0x20) and
+// ---- v5 DISARM finishers (finisher blows against players that have a melee weapon (except the machete) are the disarms when we have no melee weapon ourselves). SP (re/melee-dc/melee-dc.md "Disarms", melee-moves.json): player-fists-finishers-disarms (attacker mask 0x20) and
 // player-switchblade-finishers-disarms (0x4), macro melee-player-finisher-with-intro like every mf- row, picked by the defender's weapon class
 // (defender_weapons_mask); the lethal swings' own auto lists name them next to the plain finishers (mduel_fin.h MDF_SWING_DATA). SP hands the defender's
 // weapon to the player (script give-player-weapon-instance, frame 29 of the arm-break sync; set-virtual-weapon-to-enemy-weapon 0-800 ms). Here: the rows are
 // mf- rows with MDF_META dmask != 0, played on a victim whose HELD weapon has that class while we are unarmed (fists / a female life's knife).
 // t2r-duel-no-disarm.txt = never pick them (the plain finishers only).
-// v5-fb1 (the disarm should work on a hatchet): SP's own front rows of the other classes are not resident in the MP
+// v5-fb1 (the disarm did not work on a hatchet): SP's own front rows of the other classes are not resident in the MP
 // paks (mduel_fin.h coverage: fist-1h-blade-disarm-iron-rhino / punch-n-hack, 1h-blunt arm-break / left-kick-knee / back-arm-break = SP-only), so a class
 // without a resident row of its own on that side borrows the closest resident row of the same grip (the weapon prop is the victim's real item, cd_dis_tick):
 //   fists  1h blade (hatchet / tomahawk) FRONT -> the 1h-blunt front rows (left-back-hand, shoulder-check: the same one-hand grip and arm grab)
@@ -2237,7 +2279,7 @@ static uint64_t cd_dis_peer_weapon(int slot) {      // the weapon in a peer's ha
     if (pl && !IsBadReadPtr(pl, 0x99)) memcpy(&w, pl + 0x91, 8);
     return w;
 }
-// A finisher swing sometimes started from the opposite side than the finisher blow swings from (not in SP): the hand/side a finisher row's
+// a finisher swing sometimes started from the opposite side than the finisher blow swings from (not in SP): the hand/side a finisher row's
 // blow comes from (-1 left, +1 right, 0 neutral: kicks, handle, back kills ...), read from its name, and the side of a swing's SP list (its rows all left =
 // a left-hand swing, all right = a right-hand one, mixed / neutral = 0: SP lists both sides there, nothing to keep).
 static int cd_fin_row_side(const char *n) { int l = strstr(n, "left") != NULL, r = strstr(n, "right") != NULL; return l == r ? 0 : l ? -1 : 1; }
@@ -2256,9 +2298,9 @@ static int cd_fin_pick(uint32_t slot, const char *swing, int alt, char *why, siz
     int style = cd_cur_style();
     if (style == -2) { snprintf(why, wl, "an upgraded melee keeps its own one-shot"); return -1; }
     float fw = 0.0f, sd = 0.0f;
-    int dir = finisher_dir((int32_t)slot, &fw, &sd), back = dir >= 0 && fw < 0.0f, fem = own_female();
+    int dir = finisher_dir((int32_t)slot, &fw, &sd), back = dir >= 0 && fw < 0.0f, fem = style == 3 ? 1 : style == -1 ? 0 : own_female();   // (unarmed rows follow the MELEE STYLE: knife = Ellie's, fists = Abby's)
     const char *vn = NULL; uint64_t vw = cd_dis_peer_weapon((int)slot), vm = cd_dis_class(vw, &vn);
-    // v5-dis4 (A/B A 45378: B carried its crowbar on the backpack with the pistol in the hand -> the plain fist kill, no disarm, no
+    // v5-dis4 (B carried its crowbar on the backpack with the pistol in the hand -> the plain fist kill, no disarm, no
     // drop): no melee weapon in the victim's hand but one carried (its MSG_MOWN, melee_drop.c) = that weapon's disarm rows; the victim's own client draws it
     // into the hand at the START (cd_dis_tick). Not over a held machete. t2r-dis-held-only.txt = the held weapon only (old rule).
     if ((style == -1 || style == 3) && !vm && !(vn && strstr(vn, "machete")) && !cd_dis_off() && !mown_dis_held_only()) {
@@ -2285,7 +2327,7 @@ static int cd_fin_pick(uint32_t slot, const char *swing, int alt, char *why, siz
         nm = nl = 0; mo = 0; miss[0] = 0;
         for (size_t i = 0; i < CD_N; i++) {
             if (CD_PAIRS[i].kind != 0 || !cd_mf_row((int)i) || !cd_style_ok(style, CD_PAIRS[i].style)) continue;
-            // (A fell through the map after a finisher): the SP slope-down kills are authored for a 30 deg downhill - the
+            // A fell through the map after a finisher: the SP slope-down kills are authored for a 30 deg downhill - the
             // victim half ends ~0.8 m under flat ground and the body drops through the floor at the hand-off. Out of the pool (t2r-fin-slope-ok.txt = in).
             if (strstr(CD_PAIRS[i].name, "-slope-") && GetFileAttributesA("t2r-fin-slope-ok.txt") == INVALID_FILE_ATTRIBUTES) continue;
             { uint64_t dmk = cd_mf_dmask((int)i); if (dpass ? !(dmk & vm) : dmk != 0) continue; }
@@ -2371,7 +2413,7 @@ static int cd_fin_pick(uint32_t slot, const char *swing, int alt, char *why, siz
              cd_mf_intro(pair) ? CD_PAIRS[pair].seg[0].att : "-", idur * 1000.0f, alt > 0 ? ", an alternative" : "");
     return pair;
 }
-// (a finisher did not play, B [41936]-[41940] Bookstore): the windup's pick was refused by the path gate (the victim's 2.12 m path met
+// A finisher did not play (B [41936]-[41940] Bookstore): the windup's pick was refused by the path gate (the victim's 2.12 m path met
 // clutter 0.6 m behind it) and the contact's alternative loop stepped the pick's round robin onto the same row - nothing else was tried, the plain down
 // blow took the slot. SP never gives up on a finisher while another one fits the room. This lists EVERY loaded finisher row of the weapon we hold that suits
 // the victim (front / back rows, our character, the disarm class, no slope rows - cd_fin_pick's filters), both hands / mirror rows included, sorted by
@@ -2380,7 +2422,7 @@ static int cd_fin_all(uint32_t slot, int *out, float *gap_o, int maxn) {
     int style = cd_cur_style();
     if (style == -2) return 0;
     float fw = 0.0f, sd = 0.0f;
-    int dir = finisher_dir((int32_t)slot, &fw, &sd), back = dir >= 0 && fw < 0.0f, fem = own_female();
+    int dir = finisher_dir((int32_t)slot, &fw, &sd), back = dir >= 0 && fw < 0.0f, fem = style == 3 ? 1 : style == -1 ? 0 : own_female();   // (unarmed rows follow the MELEE STYLE: knife = Ellie's, fists = Abby's)
     uint64_t vw = cd_dis_peer_weapon((int)slot), vm = (style == -1 || style == 3) && !cd_dis_off() ? cd_dis_class(vw, NULL) : 0;
     float fd = __builtin_sqrtf(fw * fw + sd * sd);
     uint64_t vh = puppet_handle(slot);
@@ -2411,7 +2453,7 @@ static int cd_fin_all(uint32_t slot, int *out, float *gap_o, int maxn) {
 // the death drop (g_peer_melee) from the victim to the attacker - no second copy, no ghost pickup. A move cut before the hand-off shows the item again.
 static struct { uint32_t uid; int pair, role, vic, att, hid, done, given; uint64_t w; float take_s; uint8_t *hw, *hdc; uint8_t vis; } g_cd_dis;
 static int cd_dis_late_give(void) { static int v = -1; static uint64_t at; if (v < 0 || GetTickCount64() - at > 3000) { at = GetTickCount64(); v = GetFileAttributesA("t2r-dis-give-at-handoff.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
-// v5-armed (the victim's weapon stays visible in the victim's hand until the SP disarm's take frame, then is in the attacker's hand): the
+// v5-armed (disarm: the victim's weapon stays visible in the victim's hand until the SP disarm's take frame, then is in the attacker's hand): the
 // attacker's own client takes the weapon AT the take frame (was: the hand-off, 0.6-0.8 s later - nobody held it in between). The fist takedown's hands hold
 // (cd_hands_*: no unholster, anything drawn is put away) ends here so the draw stays; the victim's client still removes it from its inventory at the hand-off,
 // and the attacker's puppet on the other screens shows it as soon as winmm's weapon sync gives it (cd_pup_hands_empty no longer hides it).
@@ -2450,7 +2492,7 @@ static uint8_t *cd_dis_held_proc(int role, uint64_t ent_vic) {     // the victim
     uint8_t *pn = ent_vic ? pst_npc(ent_vic) : NULL;
     return pn ? pst_current(pn) : NULL;
 }
-// Victims did not see the weapon properly in disarms: victim log A 81505 take frame -> 81564 puppet released -> 81570 "upgsync: slot 1 gun
+// live melee match (victims did not see the weapon properly in their disarms): victim log A 81505 take frame -> 81564 puppet released -> 81570 "upgsync: slot 1 gun
 // 8d6843d0484b5aa2 process" = the attacker's puppet on the screens that watch got the taken weapon only AFTER the pair (the attacker's own client has it in the hand from
 // the take frame: me log 68783), so the second half of the disarm showed the attacker's hand empty. At the take frame the puppet's winmm give block is re-armed with the
 // weapon (peer+0x91 = the taken item, last given peer+0x9e0 cleared: the same idiom as the g_pup_gone re-give), so winmm's own destroy + npc-give-weapon + hand attach runs now.
@@ -2527,7 +2569,7 @@ static void cd_dis_tick(double t) {
             } else { uint64_t c = mown_peer(g_ps.vic); if (cd_dis_class(c, NULL)) g_cd_dis.w = c; }
         }
         g_cd_dis.take_s = (cd_mf_intro(p) ? cd_seg_len(p, 0) : 0.0f) + CD_PAIRS[p].dmax;
-        // v5-distake (on a disarm the axe was not transferred until the second half of the animation, while the first half had a slash):
+        // v5-distake (the axe was not transferred properly until about the second half of the animation, and the first half had a slash):
         // the iron-rhino / punch-n-hack attacker clips swing the taken axe at frame 36-37 (their weapon-effect events 23/36/59, 21/37/60) - dmax (1.59 / 2.16 s)
         // is the kill blow, not the take. The take is frame 35 (1.15 s). t2r-dis-late-take.txt = dmax.
         // double-wrist (the 2x4 was not in the attacker's hands during the disarm, the knife in its place): ellie-disarm-kill-2hblunt-double-wrist--ellie
@@ -2544,7 +2586,7 @@ static void cd_dis_tick(double t) {
     if (g_cd_dis.done) return;
     if (!g_cd_dis.hid && t >= g_cd_dis.take_s) {
         uint8_t *w = cd_dis_held_proc(g_cd_dis.role, g_ps.ent_vic);
-        // v5-dishide (buggy axe behavior on disarm, on the disarmed player's view): on the victim's own screen the held lookup found no item
+        // v5-dishide (buggy axe behavior on the disarmed player's POV): on the victim's own screen the held lookup found no item
         // (A 22494 / 30940: the axe drawn instantly for the disarm is not the controller's held proc yet) - the axe stayed in our hand to the hand-off 1.5 s
         // later while the attacker swung its copy. Our own inventory's instance of the taken weapon is hidden instead.
         if (!w && g_cd_dis.role == 2) { uint8_t *me = ((uint8_t *(*)(void))VMA(0x180050390))(); if (me) w = hdebt_proc(me, g_cd_dis.w); }
@@ -2570,7 +2612,7 @@ static void cd_dis_tick(double t) {
         uint64_t w = g_cd_dis.w, has = dc_call(fnv64("has-weapon?"), 1, &w), r = 0;
         if (has != ~0ULL && (has & 0xff)) r = dc_call(fnv64("remove-player-weapon"), 1, &w);
         if (g_keep_melee && base_weapon(g_keep_melee) == base_weapon(w)) { xlog("ctxdown: disarm - our kept upgraded melee %llx is gone with it (no respawn copy)", (unsigned long long)g_keep_melee); g_keep_melee = 0; }
-        if (g_last_melee && base_weapon(g_last_melee) == base_weapon(w)) g_last_melee = 0;
+        if (g_last_melee && base_weapon(g_last_melee) == base_weapon(w)) melee_track_forget();
         uint64_t has2 = dc_call(fnv64("has-weapon?"), 1, &w);
         xlog("ctxdown: DISARMED (victim): %llx taken from us - has-weapon? %llx -> remove-player-weapon %llx -> has-weapon? %llx", (unsigned long long)w, (unsigned long long)has, (unsigned long long)r, (unsigned long long)has2);
         if (has2 != ~0ULL && (has2 & 0xff)) cd_dis_unhide("remove-player-weapon refused: the victim keeps it"); else g_cd_dis.hid = 0;   // (gone: nothing to show again)
@@ -2608,7 +2650,7 @@ static int cd49_off(void) { static int v = -1; static uint64_t at; uint64_t n = 
 static int mdg_slot_immune(uint32_t sl);   // melee_dodge.c
 static int cd_upg_go(uint32_t slot, uint64_t w, int style, int forced) {
     g_cd_fin_sync_spot = 0;
-    // (B's dodge was accepted on A ('immune for 380 ms') yet the lethal contact started the cover-face-smash surface takedown
+    // (recording at 75.1-77.8 s: B's dodge was accepted on A ('immune for 380 ms') yet the lethal contact started the cover-face-smash surface takedown
     // 20 ms BEFORE the duel's dodge ruling said DODGED - B was grabbed out of its dodge and killed): no takedown / finisher starts on a victim in dodge i-frames.
     if (!g_cd_fin_probe && slot < T2R_MAX_PEERS && mdg_slot_immune(slot) && GetFileAttributesA("t2r-takedown-on-dodger.txt") == INVALID_FILE_ATTRIBUTES) {
         static int nl; if (LOGCAP(nl, 30)) xlog("ctxdown: slot %u is in dodge i-frames - no takedown / finisher start (the dodge ruling decides the blow)", slot);
@@ -2657,7 +2699,7 @@ static int cd_upg_go(uint32_t slot, uint64_t w, int style, int forced) {
     float cv[8], ca[8];
     // v5-finwind: the intro passed over = the -sync pair starts from the intro's END spot: the pair is turned so THAT spot (not the intro's frame 0) lies toward us
     float att_t = g_cd_fin_windup && g_cd_fin_skip_intro && forced >= 0 && cd_mf_intro(pair) ? cd_seg_len(pair, 0) * 0.999f : 0.0f;
-    // v5-sfx (A [27214]-[27215]: the hammer finisher's attacker SNAPPED 0.85 m + 66 deg in one frame at the hand-over - "start 1.69 m / 66 deg
+    // v5-sfx (a recording at ~5.6 s, A [27214]-[27215]: the hammer finisher's attacker SNAPPED 0.85 m + 66 deg in one frame at the hand-over - "start 1.69 m / 66 deg
     // from the attacker's authored spot", 't=1 att ap(-0.65 0.58 y 132) exp(-0.02 1.13 y -162) err 0.84'; B [47098] the hatchet's 1.93 m / 75 deg, contact distance 0.30 m):
     // the intro is the attacker's own move - its align channel is not in the -sync pair's apReference frame - so its end spot read in that frame (0.87 m here, 0.30 m
     // for machete-slash-3) is not where the -sync attacker half starts (1.13 m at 19 deg). The pair is now turned onto the -sync attacker half's frame-0 spot, the
@@ -2693,7 +2735,7 @@ static int cd_upg_go(uint32_t slot, uint64_t w, int style, int forced) {
         float ye = cd_wrap180(uc4_yaw(sa) - uc4_yaw(me));
         // v5-guard75 (B 16649 fist-2h-blunt-disarm-back-grab-n-bash refused at 0.63 m): psync's SP
         // pull (quadratic ease-out over 0.20 s) closes up to 0.75 m without a pop. t2r-fin-guard-50.txt = 0.5 m.
-        // Pins / contextual takedowns activate from the sides: the turn tolerance is 40 deg (was 30).
+        // the turn tolerance is 40 deg (was 30), so pins / contextual takedowns can activate from the sides.
     float gmax = GetFileAttributesA("t2r-fin-guard-50.txt") == INVALID_FILE_ATTRIBUTES ? 0.75f : 0.5f;
         if (pe > gmax || __builtin_fabsf(ye) > CD_FIN_TURN_MAX) {
             xlog("melee upgrade: %s on slot %u REFUSED - we stand %.2f m / %.0f deg off its attacker start (max 0.5 m / 40 deg): no one-frame snap - another finisher or the plain down blow",
@@ -2775,7 +2817,7 @@ static int cd_upg_go(uint32_t slot, uint64_t w, int style, int forced) {
             }
         }
     }
-    // A 44821: the victim was 101 deg off its authored spot at the start (it had dodged away) - the SP pull dragged it ~2 m and turned it over 1 s, the blow landed
+    // (A 44821): the victim was 101 deg off its authored spot at the start (it had dodged away) - the SP pull dragged it ~2 m and turned it over 1 s, the blow landed
     // mid-pull. Same tolerance as our own guard above (30 deg; the victim is placed where it stands, so only its facing can be off). t2r-fin-no-spot-guard.txt = off.
     if (forced >= 0 && !g_cd_fin_probe && !t46ok && cd_mf_row(pair) && GetFileAttributesA("t2r-fin-no-spot-guard.txt") == INVALID_FILE_ATTRIBUTES && __builtin_fabsf(vturn) > CD_FIN_TURN_MAX) {
         xlog("melee upgrade: finisher refused: victim 0.00 m / %.0f deg off (max 0.5 m / 40 deg) - %s on slot %u not started, the swing plays as a normal blow / miss", (double)__builtin_fabsf(vturn), CD_PAIRS[pair].name, slot);
@@ -2821,7 +2863,7 @@ static int cd_upg_go(uint32_t slot, uint64_t w, int style, int forced) {
     {   uint64_t me0 = SID_PLAYER, r = dc_call(0x394888944e949d5fULL /* cancel-melee-action */, 1, &me0);
         xlog("melee upgrade: our swing on slot %u cancelled for %s (-> %llx)", slot, CD_PAIRS[pair].name, (unsigned long long)r); }
     g_ps_fin_pull = forced >= 0;      // the duel finisher: the attacker's run-in pull (paired.c), not SP's 4.15 m/s snap
-    // v5 (kick / hard punch finishers played right away, skipping the first half of the anim, the windup): the row's
+    // v5 (kick / hard punch finishers played right away, skipping the first half of the anim (the windup)): the row's
     // SP intro (segment 0) plays from its frame 0 on this press frame; the -sync pair follows at the intro's end. t2r-duel-fin-no-intro.txt = the old start
     // straight into the -sync pair (the move clock starts at the hand-over: the intro is passed over, both screens).
     int no_intro = cd_mf_intro(pair) && (g_cd_fin_skip_intro || GetFileAttributesA("t2r-duel-fin-no-intro.txt") != INVALID_FILE_ATTRIBUTES);
@@ -2957,13 +2999,13 @@ static struct { uint32_t uid; int pair; size_t i, n; struct { uint16_t ms; uint8
                 int native; float att_free_ms; int att_freed;
                 int att_rel;            // the attacker half really went back to locomotion (psync_att_out, not t2r-cd-att-hold.txt): our move is over for the stuck guard
                 uint64_t t60_0; int fx_ours, fx_engine, fx_fail; } g_cd_sfx;
-// The exact same stab / slash and foley sounds as the references: the clips' own TLOU2 sound events (tools/ctxsfx_gen.py:
+// The takedowns use the references' exact stab / slash and foley sounds: the clips' own TLOU2 sound events (tools/ctxsfx_gen.py:
 // event type 0xe46e6156, name + joint; their sounds are in wpn-melee-switchblade / wpn-melee-unarmed / gbl-fight, all in the MP level adds)
 // fire through play-sound-at-joint on the half's body at their clip frame on the chain clock; our hand-mixed hit / heavy / whoosh / impact
 // cues are then off for the move (grunts / pain stay). t2r-cd-pcm-cues.txt next to the exe = the old PCM cues instead.
 #include "ctx_sfx_events.h"
 static const struct { const char *pair; int seg, role, ms; uint64_t name, joint; } CTX_SFX[] = { CTX_SFX_DATA {NULL, 0, 0, 0, 0, 0} };
-// (the hammer wall uppercut: the finisher audio and hit times were wrong): the weapon takedowns ("wpn-" rows) have no CD_HITS entry, so their blows sat at 35 % / 70 % of the finisher - the uppercut's ONE blow (33 ms into
+// The hammer wall uppercut had wrong finisher audio and hit times: the weapon takedowns ("wpn-" rows) have no CD_HITS entry, so their blows sat at 35 % / 70 % of the finisher - the uppercut's ONE blow (33 ms into
 // its main clip) got two generic pipe PCM hits 450 / 930 ms late. SP plays these with the melee system: the attacker clip's weapon-effect whoosh, the victim
 // clip's melee-effect (hit / finisher at a joint), wall-impact-slam and bodyfall-torso. ctx_hit_events.h (tools/ctxhit_gen.py) has their clip frames;
 // cd_sfx_arm / cd_cam_kicks put the cues and kicks there, and a blunt row plays the held weapon's SP whoosh / hit / finisher events (mws_native).
@@ -2972,8 +3014,7 @@ static const struct { const char *pair; int seg, role, ms; uint64_t name, joint;
 static const struct { const char *pair; int seg, role, ms, kind, tier, zone; } CTX_HIT[] = { CTX_HIT_DATA {NULL, 0, 0, 0, 0, 0, 0} };
 static struct { int on, blunt, zh, zf; } g_cdw;
 static int cdw_old(void) { static int v = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (v < 0 || n - at > 2000) { at = n; v = GetFileAttributesA("t2r-wpn-hit-old.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
-// The knife takedowns' blood stream must match TLOU2 SP exactly:
-// the clips' own blood part-effect events (type 0xc0d9313c7f55b23e, tools/ctxfx_gen.py: EVERY param of the event verbatim - group, joint,
+// The knife takedowns' blood must match TLOU2 SP exactly: the clips' own blood part-effect events (type 0xc0d9313c7f55b23e, tools/ctxfx_gen.py: EVERY param of the event verbatim - group, joint,
 // offset, the per-effect knobs, blood-mask UVs, world splatters) fire through the engine's own event path on the half's body at their clip
 // frame on the chain clock (clipfx.c clipfx_fire). t2r-cd-pcm-cues.txt (the old cues) turns them off as well; t2r-clipfx-off.txt = the old
 // spawn-particles-at-joint spawns of the joint-bound ones (default knobs).
@@ -3036,7 +3077,7 @@ static void melee_hit_fx(uint64_t ent, uint64_t weapon) {
     snprintf(key, sizeof key, "%s%u", PFX[cls], rr[cls]++ % (unsigned)N[cls] + 1);
     if (LOGCAP(nl, 40)) xlog("melee hit fx: %s (%s) on %s -> %s", nm, PFX[cls], ent == SID_PLAYER ? "our own body" : "the hit puppet", key);
     melee_weapon_hit_sfx(ent, weapon, ent == SID_PLAYER);
-    // Blood effects did not fit blunt weapons (slash blood spawned on hits): the 2h / 1h blunt rotation stamped
+    // night60 (blood effects did not fit blunt weapons, slash blood spawned on hits): the 2h / 1h blunt rotation stamped
     // the bat combo-3 / dodge-back clips' bm-knife-wound-cloth CUT mask and blood sprays on every blunt hit (combo-1/2 in SP carry only dust-melee-eff), and a duel
     // pair already plays its own -hit clip's SP events through the engine. Blunt hits keep the impact gore (gore-minimal, teeth burst, drops), no cut / spray.
     // t2r-blunt-cut-blood.txt = the old rows.
@@ -3050,15 +3091,16 @@ static void melee_hit_fx(uint64_t ent, uint64_t weapon) {
         armor_fx_spawn(fnv64("blood-drops-burst-eff"), ent, "spined");
     } else if (cls == 2 && !fx_off_extra()) armor_fx_spawn(fnv64("blood-drops-burst-eff"), ent, "spined");
 }
-// The bat had no bat hit sound effects, only the fists: a melee weapon's contact on a player played winmm's PlayLocalHitFeedback list
+// The bat had no bat hit sound effects, only the fists': a melee weapon's contact on a player played winmm's PlayLocalHitFeedback list
 // (sfx-unarmed-hit-*), the fists' punch, whatever was swung. Now (melee_hit_sfx_swap silences that list while a melee weapon is held) each weapon class plays
 // TLOU2's own waves through the PCM mixer on the hit body, on the attacker's screen (puppet we hit) and the victim's (our body; blades there already get the
 // slash cue from hitfx): wood layers for the bat / 2x4 / wooden clubs, the pipe set for pipes / crowbar / hammers, the blade cues for machete / axes.
 // t2r-no-melee-weapon-sfx.txt = off (and winmm's fist list back).
 static int mws_off(void) { static int off = -1; static uint64_t at; if (off < 0 || g_frame - at >= 120) { at = g_frame ? g_frame : 1; off = GetFileAttributesA("t2r-no-melee-weapon-sfx.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
 static int melee_weapon_sfx_wanted(uint64_t w) { const char *n = NULL; return w && w != ~0ULL && !mws_off() && (melee_class_of(base_weapon(w), &n) >= 0 || melee_class_of(w, &n) >= 0) && !knife_weapon_id(w); }
-// v5-sfx: every duel / plain / pin / counter
-// blow of a melee weapon above played the PCM mixer's waves - the 2013-style lead-pipe torso set (EXS_HIT_PIPE_TORSO) for the hammer, crowbar, wrench and short pipe, the bat's wood layers for the clubs, the machete cue for the axes.
+// v5-sfx (the hammer and other weapons used the wrong hit sfx, not the SP ones): every duel / plain / pin / counter
+// blow of a melee weapon above played the PCM mixer's waves - the 2013-style lead-pipe torso set (EXS_HIT_PIPE_TORSO) for the hammer, crowbar, wrench and short pipe
+// (A log [26977]-[27151] / B [21841]-[22029] "melee weapon sfx: hammer-modern ... (pipe set)"), the bat's wood layers for the clubs, the machete cue for the axes.
 // SP plays the weapon's OWN event at the victim on the impact frame (re/melee-duel-sp-spec.md audio table: the victim -hit clip's melee-effect, +32..+45 ms):
 // sfx-<weapon>-<tier>-<zone> from the weapon's bank (sp-common soundbank4/wpn-melee-<weapon>.bnk, every one of them in the MP level adds,
 // dc_data_patches SP_MELEE_BANKS): tier hit / breaker (the combo's last blow, SP round2 hammer F25588) / finisher (the kill), zone gut at the pelvis (SP's light
@@ -3141,13 +3183,13 @@ static int cd_sfx_label(int style, int act) {
     return -1;
 }
 // the blow of a duel finisher: the weapon's own SP finisher sound event on the victim's head (banks wpn-melee-* / gbl-fight are in the MP level adds)
-// v5-sfx: a hammer finisher
+// v5-sfx: the hammer finisher (A [27240] / B [22117] "duel finisher blow sfx-unarmed-finisher-face-skin ... (weapon fists)")
 // played the FIST finisher: g_ps.weapon was 0 - the duel read dc_weapon() at the windup's contact while the SP intro ran on us (it answered abby-unarmed; also the
-// hatchet case). The weapon now comes from the pair's style + the duel swing's own weapon (melee_duel.c mdu_blow_weapon), and on the victim's
+// hatchet case B [47098] 'weapon 0'). The weapon now comes from the pair's style + the duel swing's own weapon (melee_duel.c mdu_blow_weapon), and on the victim's
 // screen from the attacker's net record when the START carried none. The event = the weapon's own SP kill sound (mws_event: hammer / club / bat / pipe ->
 // sfx-<w>-finisher-face-skin, machete -head-hair, hatchet -slice-gut, axe -gut; the old table gave the wrench / crowbar / short pipe the hammer's and the 2x4 the
 // bat's), plus SP's weapon kill layers: the swung weapon's whoosh is cd_mf_whoosh. 1 = the SP weapon event played (the PCM heavy cue then stays off).
-// v5-disfix (a disarm sounded like a punch hit instead of the heavy crowbar SP disarm sound, probably all disarms; the log read 'mf-fist-1h-blunt-disarm-left-back-hand-finisher
+// v5-disfix (a disarm sounded like a punch hit instead of the heavy crowbar SP disarm sound; B 15472: 'mf-fist-1h-blunt-disarm-left-back-hand-finisher
 // - 1 native TLOU2 sound event(s) of the clips armed, our hit / impact cues off'): a disarm row is a FIST style row (the attacker starts empty-handed), so the whole finisher sound
 // set took the fist branch - cd_mf_weapon answered the fists, cd_mf_impact played sfx-unarmed-finisher-face-skin and the PCM fist finisher punch played on top, and the clips' one
 // event (967 ms) was all that was left of SP's disarm audio (SP plays the rest from the melee move data: re/melee-duel-sp-spec.md 'Disarms seen in the clip'). A disarm row now
@@ -3241,7 +3283,7 @@ static void cd_mf_whoosh(uint64_t att) {
     uint64_t r = dc_call(fnv64("play-sound-at-joint"), 5, a), r2 = dc_call(fnv64("play-sound-at-joint"), 5, b);
     if (LOGCAP(nl, 40)) xlog("ctxdown: duel finisher swing - SP %s + sfx-gear-swish-cotton at the attacker's wrist -> %llx / %llx", ev, (unsigned long long)r, (unsigned long long)r2);
 }
-// v5-knife (a pipe execution: the body hit sounded like a bat hit and then the head hit like a proper pipe hit;
+// v5-knife (a pipe execution's body hit sounded like a bat hit and the head hit like a proper pipe hit;
 // A [19502] / B [12672] "execution sfx: pipe-execute-left: hit-pipe-torso -> TLOU2 wave 92" = lead-pipe-hit-rattle + hammer-hit-gut-break-rib, a thin 3-8 kHz rattle
 // over the 2013 recording's dull torso thud): the 2013 weapon executions (pipe-execute / -left, machete-decapitate / -execute-right, the pipe-mod finishers) play
 // every blow as the HELD weapon's own SP event at the victim, the same events its duel blows use (mws_event; review-1029/sfx/bnk/names.txt): torso blow
@@ -3294,6 +3336,7 @@ static int exw_contact(int label, const char *pair) {
     if (g_ex.vic_ent == SID_PLAYER) g_mws_native_t60 = g_t60 ? g_t60 : 1;
     return 1;
 }
+// The disarm sounds were wrong (no sound when the wrench actually hit the head):
 // the kill blow of a disarm row. The row's dmax (gen_duel_fin.py) is not a contact time for every row (the knife's 1h-blunt left-overhead has dmax 33 ms = the take tick),
 // and with neither a CD_HITS entry nor dmax cd_sfx_arm fell back to 35 % of the move (1121 ms chain = 654 ms into a 1.87 s clip: 150 ms after the weapon change, ~750 ms
 // BEFORE the wrench hit the head; the camera's second kick shared the guess). SP puts the kill blow on the victim's death voice event (re/melee-duel-sp-spec.md, 'Disarms seen
@@ -3376,15 +3419,15 @@ static void cd_sfx_arm(int pair) {
             EV(hm, CD_PAIRS[pair].nseg > 1 ? CE_HEAVY : CE_HIT); EV(hm + 40.0f, CE_PAIN);
         } else if (CD_PAIRS[pair].kind == 6) {
             // melee sequence pair (melee_seq.c): its clips begin AT the contact and carry no sound events of their own (ctxsfx_gen.py finds none); the blow's own
-            // impact already played when it landed - in a live test the pair ran silent. The attacker's effort
+            // impact already played when it landed - in live play the pair ran silent (audible jank). The attacker's effort
             // and the victim's pain voice now ride the pair's contact.
             EV(0.0f, CE_GRUNT); EV(40.0f, CE_PAIN);
         }
     } else if (cd_mf_row(pair)) {
-        // melee DUEL finisher (final blows were silent and lacked punch): the clips carry only a few sound events of their own (the blow itself is
+        // melee DUEL finisher (final blows were silent and lacked impact): the clips carry only a few sound events of their own (the blow itself is
         // the melee system's hit event in SP), so the blow gets the weapon's SP finisher event + our heavy cue (cd_mf_impact, the cue below is not muted by the
         // clips' native events), the attacker's effort before it, the victim's pain / cry after it; the body fall is the clips' own event or our cue. Camera kick: cd_cam_kicks.
-        // (the finishing blow looked weird and instant, washed out - dmax is the row's max start skip (0.067 s), not its contact: the heavy cue
+        // (the finishing blow looked instant and washed out - dmax is the row's max start skip (0.067 s), not its contact: the heavy cue
         //  fired 67 ms in, ~290 ms before the fist landed. The blow is the clip's first measured contact (CD_HITS), else 35 % of the move)
         float b = h1;
         if (!f1 && cd_mf_dmask(pair) && CD_PAIRS[pair].dmax > 0.2f) b = sf + CD_PAIRS[pair].dmax * 1000.0f;   // (v5 disarm rows: no measured contact - the clips' own impact event / SP damage tick, gen_duel_fin.py)
@@ -3448,6 +3491,22 @@ static void cd_sfx_arm(int pair) {
     // engine drops a stopped clip's root motion in one frame: the shoved swinger stood still mid-stumble). A parry / clash pair releases its swinger half at the
     // parrier's authored exit through psync_att_out below (0.25 s fade with the clip's root kept by the blend-out drive); the hand-off follows MDP_OUT_TAIL_MS later.
     // The same move time on every client (from the START's kill_s). t2r-parry-ps27.txt = no release (0).
+    // (brawl clips: Forest 47613 "attacker released at 0.95 s (final blow + 0.45 s), the victim half plays on to 2.59 s", 17359 "released at 1.62 s" of a 3.83 s
+    // clip): the pin's finishers are the wall / low-cover takedown rows (wall-*, cover-*, wpn-*-wall-*, wpn-*-cover-*; kind 1 / 2), not "mf-" rows - the exemption above
+    // missed them and the attacker half was cut at 35-45 % of its clip. A surface finisher ends the life like an mf- row: the attacker plays its clip to the end.
+    // t2r-pin-fin-early-release.txt = the old 0.45 s release.
+    if (CD_PAIRS[pair].kind >= 1 && CD_PAIRS[pair].kind <= 2 && !cd_mf_row(pair) && g_cd_sfx.att_free_ms > 0.0f && GetFileAttributesA("t2r-pin-fin-early-release.txt") == INVALID_FILE_ATTRIBUTES) {
+        static int npf; if (LOGCAP(npf, 20)) xlog("ctxdown: pin finisher %s: the attacker half plays its clip to the end (no release at %.0f ms)", CD_PAIRS[pair].name, (double)g_cd_sfx.att_free_ms);
+        g_cd_sfx.att_free_ms = 0.0f;
+    }
+    // (brawl clips: LEAD 251821 "ctxdown: attacker released at 2.70 s (final blow + 0.45 s)" of a 3.33 s drag): the pull-out drag's pounce is the clip's last 0.63 s of
+    // root motion (melee_pullout.c) - the 0.45 s release cut it and the pounce never played. A pull-out row that is followed by another pair (pu-drag, pu-grap) plays its
+    // attacker half to the end. t2r-pullout-early-release.txt = the old release.
+    if (CD_PAIRS[pair].kind == 8 && g_cd_sfx.att_free_ms > 0.0f && (!strncmp(CD_PAIRS[pair].name, "pu-drag", 7) || !strncmp(CD_PAIRS[pair].name, "pu-grap", 7))
+        && GetFileAttributesA("t2r-pullout-early-release.txt") == INVALID_FILE_ATTRIBUTES) {
+        static int npe; if (LOGCAP(npe, 20)) xlog("ctxdown: pull-out %s: the attacker half plays its clip to the end (no release at %.0f ms; the pounce is the clip's last root motion; t2r-pullout-early-release.txt = old)", CD_PAIRS[pair].name, (double)g_cd_sfx.att_free_ms);
+        g_cd_sfx.att_free_ms = 0.0f;
+    }
     { float pf = mdp_att_free_ms(pair); if (pf > 0.0f) g_cd_sfx.att_free_ms = pf; }
     {
         static int pcm_only = -1; static uint64_t chk;
@@ -3622,7 +3681,7 @@ static void cd_fx_summary(const char *why) {
          CD_PAIRS[g_cd_sfx.pair].name, g_cd_sfx.fx_ours, (int)g_cd_sfx.fn, g_cd_sfx.fx_engine, g_cd_sfx.fx_fail, why);
     g_cd_sfx.fn = 0;
 }
-// ps47 (the finisher punch played late; B [18103]-[18136], 60 fps): the haymaker's punch wave
+// ps47 (the finisher punch sound was delayed; B [18103]-[18136], clip 10.0-10.4 s at 60 fps): the haymaker's punch wave
 // played on the chain clock's contact (1079 ms = 546 ms after the -sync START) while the victim's head snapped back ~180 ms earlier on B's screen. For a FIST
 // finisher the next punch event is now fired on the frame the attacker's fist is closest to the victim (mct_reach_dist: fist -> head / chest), when that frame
 // comes inside 350 ms before the scheduled time: the hand gets within 0.30 m and then moves away again (0.03 m). Otherwise the table time stands.
@@ -3679,7 +3738,7 @@ static void cd_sfx_tick(double t_ms) {
         if (act == CE_PAIN) { if (!cd_vox_has()) gx_play(GXS_PAIN, vic, 0); continue; }
         if (act == CE_CRY) { if (!cd_vox_has()) gx_play(GXS_PAIN, vic, 1); continue; }
         if (g_cd_sfx.native && act == CE_HEAVY && (CD_PAIRS[g_cd_sfx.pair].style == 3 || CD_PAIRS[g_cd_sfx.pair].style == 1)) {
-            // the clips carry no sound for the blade coming back out and no blood: the pair's extract cue
+            // (clip 10-50-57): the clips carry no sound for the blade coming back out and no blood: the pair's extract cue
             // (blade_sfx BLADE_CD post, BLADE_POST_MS after the final blow) and the blood stream on the victim
             const char *pn = CD_PAIRS[g_cd_sfx.pair].name;
             for (size_t i = 0; i < sizeof BLADE_CD / sizeof BLADE_CD[0]; i++)
@@ -3691,11 +3750,11 @@ static void cd_sfx_tick(double t_ms) {
                     }
             // (SP sandbox: SP's own blood of these finishers is the clips' part-effect events, fired by cd_fx_tick with SP's params -
             // the extra neck stream of throat_blood is not in SP; it stays only on the old path, t2r-clipfx-off.txt)
-            // no blood stream came out of the stab wound - SP's stream (blood-ribbon-stream-eff) sits in the combo-mid
+            // No blood stream came out of the stab wound - SP's stream (blood-ribbon-stream-eff) sits in the combo-mid
             // segment MP's chain skips, so the victim's stream stays on every path (the clips' own events fire on top)
             int oldfx = clipfx_off() || !cfxe_check();
             throat_blood_start(vic);
-            // v5-dishit (the knife disarm's last hit felt very weak at the end, like a bump): a knife disarm's kill blow is the TAKEN weapon's
+            // v5-dishit (the knife disarm's last hit felt weak, like a bump): a knife disarm's kill blow is the TAKEN weapon's
             // (double-wrist: the 2x4) - its SP kill sound plays too, not only the blade extract cue.
             if (cd_mf_row(g_cd_sfx.pair) && (CD_PAIRS[g_cd_sfx.pair].style == 1 || (cd_mf_dis_row(g_cd_sfx.pair) && !cd_dis_sfx_off()))) cd_mf_impact(vic);   // v5-sfx: SP's blade kill sound (melee-effect) on top of the clips' events
             xlog("ctxdown: %s final blow - blade extract cue armed, blood stream on the victim%s", pn, oldfx ? "" : " (+ the clips' own events)");
@@ -3717,7 +3776,7 @@ static void cd_sfx_tick(double t_ms) {
                     && mws_native(vic, wn, act == CE_HEAVY ? MWS_FINISHER : MWS_HIT, act == CE_HEAVY ? g_cdw.zf : g_cdw.zh, "weapon takedown blow")) continue;
             }
         }
-        // A counter with the crowbar did not feel like a crowbar (A 54396-54402 dc-1hblunt-back with the crowbar): a blunt weapon's dodge counter
+        // (the counter anim did not feel like a crowbar's; A 54396-54402 dc-1hblunt-back with the crowbar): a blunt weapon's dodge counter
         // (kind 3-5, not fists / knife / blade) fell through to the generic pipe waves - pipe-whoosh + hit-pipe-torso PCM on top of the counter's own normal
         // hit, which already plays the held weapon's SP hit (sfx-crowbar-one-hand-hit-face-skin). Now its whoosh is the weapon's SP whoosh and the pipe hit
         // wave is gone. t2r-dc-pipe-sfx.txt = the old pipe waves.
@@ -3733,8 +3792,8 @@ static void cd_sfx_tick(double t_ms) {
         int palm = strstr(CD_PAIRS[g_cd_sfx.pair].name, "-palm") != NULL;           // knife palm bash counter: a punch, not a stab
         if (g_cd_sfx.native && !palm && CD_PAIRS[g_cd_sfx.pair].style != -1 && (act == CE_HIT || act == CE_HEAVY) && !(act == CE_HEAVY && cd_mf_row(g_cd_sfx.pair))) continue;   // the clips' own sounds play (a duel finisher's blow keeps our heavy cue)
         if (CD_PAIRS[g_cd_sfx.pair].kind >= 3 && (act == CE_HIT || act == CE_HEAVY) && (palm || CD_PAIRS[g_cd_sfx.pair].style == -1) && vic) {
-            // counterattack sfx made punchier: TLOU2's own unarmed finisher layers on the victim's head under our PCM punch
-            // (palm: + SP's own contact sound of the palm bash, sfx-unarmed-hit-face-skin - SP capture)
+            // TLOU2's own unarmed finisher layers on the victim's head under our PCM punch
+            // (palm: + SP's own contact sound of the palm bash, sfx-unarmed-hit-face-skin -  SP capture)
             static const char *const L[3] = {"sfx-unarmed-finisher-face-chin", "sfx-unarmed-breaker-face-skin", "sfx-unarmed-hit-face-skin"};
             for (int q = 0; q < (palm ? 3 : 2); q++) { uint64_t a[5] = {fnv64(L[q]), vic, fnv64("headb"), 0, 0}; uint64_t r = dc_call(fnv64("play-sound-at-joint"), 5, a);
                 static int nq; if (LOGCAP(nq, 40)) xlog("ctxdown: counter punch layer %s -> %llx", L[q], (unsigned long long)r); }
@@ -3776,19 +3835,24 @@ static int cd_open_finisher(uint64_t move) { int p = cd_pair_of_move(move); retu
 static int cd_counter_move(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && !strncmp(CD_PAIRS[p].name, "dc-", 3); }
 static int cd_local_move(uint64_t move) { int p = cd_pair_of_move(move); const char *n = p >= 0 ? CD_PAIRS[p].name : "";
     if (strstr(n, "wall") || strstr(n, "cover")) return 0;   // pin pairs (mp-*-wall- / -low-cover-) stay on the surface frame
-    // v5-finap (the two screens showed a finisher out of sync): the victim's local fit moved a finisher's ap
+    // v5-finap (a finisher bugged out with a large mismatch between screens): the victim's local fit moved a finisher's ap
     // 1.64 m (A 28694); the victim fell where A saw the pair, the attacker stood where B saw it, and the attacker's release 0.45 s after the last blow
     // handed its puppet back to the net 1+ m away mid-clip (B swung at the air on A's screen). A finisher ends the life: both screens play it on the
     // attacker's sent ap (the victim's body is pulled onto its spot by SP's 0.35 s pull). t2r-fin-local-fit.txt = the local fit again.
     if (!strncmp(n, "mf-", 3) && GetFileAttributesA("t2r-fin-local-fit.txt") == INVALID_FILE_ATTRIBUTES) return 0;
     return !strncmp(n, "md-", 3) || !strncmp(n, "mf-", 3) || !strncmp(n, "mp-", 3) || !strncmp(n, "dc-", 3); }
 static int pul_fail_move(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && !strncmp(CD_PAIRS[p].name, "pu-fail", 7); }
+static int pul_failkill_off(void);   // melee_pullout.c
+static int cd_pul_fail_vic_now(void) { return g_ps.role == 2 && g_ps.kind == PS_CTXDOWN && pul_fail_move(g_ps.move) && !pul_failkill_off(); }
 static int pul_drag_move(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && CD_PAIRS[p].kind == 8; }
 static const char *pul_pair_name(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && CD_PAIRS[p].kind == 8 ? CD_PAIRS[p].name : NULL; }   // paired.c psync_baked_root
 static int cd_wall_move(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && strstr(CD_PAIRS[p].name, "wall") != NULL; }
+// a low-cover takedown / pin row (cover-*, *-low-cover-*): authored against its cover prop like a wall row against its wall
+static int cd_cover_move(uint64_t move) { int p = cd_pair_of_move(move); return p >= 0 && strstr(CD_PAIRS[p].name, "cover") != NULL; }
+static uint64_t mhr_punch_at(uint64_t ent, int str, const char *who); static int g_mhr_punch_thud;   // melee_hitreact.c (the bystander fist impact in cd_tick)
 static int mpn_hold_att(void);   // melee_duel_pin.c: we pin someone - our attacker half stays on until the next blow
 static void cdl_tick(void);
-// ps40 D1 (the blade finisher's corpse lies at 117.800, stands at 117.834, hangs in the air to ~131 s; again at 174.03).
+// ps40 D1 (rec39a, sheets rev39b zA_corpse_117 / zB_corpse_174: the blade finisher's corpse lies at 117.800, stands at 117.834, hangs in the air to ~131 s; again at 174.03).
 // The ps39 hold never ran: A [15476] 'slot 0 puppet released (contextual down hand-off, alive)', [15480] 'slot 0 puppet dead here 0 -> 1 (net dead 0, downed 0, hp 0.0)',
 // 'fling: ... held at ... for 45 frames', 'deathreact: slot 0 died (standing)'; B [17550] 'finisher by a blade (machete): the victim dies at the kill frame (hp 32.0 ...)',
 // [17551] 'our victim body taken over at t=1797 ms (Death state before the kill)', [17552] 'hand-off at 2.28 s (role 2 ...)'. Causes: 1) the fate wait asked for <= 1.5 hp, a
@@ -3802,9 +3866,10 @@ static void cdl_tick(void);
 #define CD_OWN_LIMP_T 8     // [TUNING ps40] ticks at most between our own limp call and the hand-off (ends on the ragdoll bit)
 static int cd_kill_row_off40(void) { static int off = -1; static uint64_t chk; uint64_t n = GetTickCount64(); if (off < 0 || n - chk > 2000) { chk = n; off = GetFileAttributesA("t2r-cd-kill-row-ps39.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
 static int cd_row_kills40(void) {
-    if (!g_ps.role || g_ps.kind != PS_CTXDOWN || !g_ps.weapon || cd_kill_row_off40()) return 0;
+    if (!g_ps.role || g_ps.kind != PS_CTXDOWN || cd_kill_row_off40()) return 0;
     int p = cd_pair_of_move(g_ps.move);
-    return p >= 0 && cd_mf_row(p) && melee_blade_kills(g_ps.weapon);
+    if (p >= 0 && CD_PAIRS[p].kind == 8 && !strncmp(CD_PAIRS[p].name, "pu-fail", 7) && !pul_failkill_off()) return 1;   // (the fail blow kills - corpse hold, never let go alive)
+    return p >= 0 && g_ps.weapon && cd_mf_row(p) && melee_blade_kills(g_ps.weapon);
 }
 static void cd_blade_kill_note(void) {     // t2r-ext.c: our own blade finisher death, called right before the kill
     if (g_ps.role != 2 || g_ps.kind != PS_CTXDOWN || g_ps.ent_vic != SID_PLAYER || cd_kill_row_off40()) return;
@@ -3813,8 +3878,8 @@ static void cd_blade_kill_note(void) {     // t2r-ext.c: our own blade finisher 
 }
 #define CD_FATE_WAIT_T 15   // [TUNING ps39] ticks (0.25 s: the death arrived 4 frames late at 9 ms one-way in rec38a)
 #define CD_DEAD_HOLD_T 36   // [TUNING ps39] ticks (0.6 s: the standing phase before the ragdoll measured 0.3-0.6 s in rec38a)
-// v5-armed (the victim's gun stayed in its hand: the victim of the wall takedown
-// abby-fist-kill-hwall-combo-head-smash, kept the rifle in its hands through the whole half on its own screen - log 50609 "stow fix: PlayerHolsterWeaponAnimAction
+// v5-armed (a victim's gun stayed stuck to its hand; recording at +3.8 s: the tester, victim of the wall takedown
+// abby-fist-kill-hwall-combo-head-smash, kept the rifle in its hands through the whole half on its own screen - dlog4 50609 "stow fix: PlayerHolsterWeaponAnimAction
 // not begun (no put-away arm layer, victim half)": our holster gates refuse the NPC clip's own put-away on the victim, while every other screen hid the gun
 // (cd_pup_hands_empty)). The victim halves are authored empty-handed: the victim of a paired melee move puts a GUN / bow / throwable away with our own instant
 // holster at its START (passes the gates; a long gun goes onto its sling like any instant holster), as the execution victims do (vic_unarm_tick). A melee item stays
@@ -3857,7 +3922,7 @@ static void cd_vic_gun_tick(void) {
 //           intro (the default PUNCH windup passes the SP intro over; bystanders); where an intro played the gasp was said at its first frame (once per finisher).
 //  attacker (our own screen only): SP says `player-melee-killed-enemy` a median 600 ms after the -sync pair starts (57 of 59 requested, 5 audible: the engine drops it
 //           while the attacker's effort voice is busy). MP already HAS the attacker's line - the team voice kind VX_DOWN ("we downed an enemy"), but only 1.1 s after
-//           the victim's MSG_DOWNED = ~3.3 s after the -sync start (A [20947] FINISHER -> [21146] line). Now the same line is asked P31V_KILL_MS after the
+//           the victim's MSG_DOWNED = ~3.3 s after the -sync start (rec19 A [20947] FINISHER -> [21146] line). Now the same line is asked P31V_KILL_MS after the
 //           -sync start; like SP it is dropped when our voice is busy (is-speaking?), and then the old after-the-down line still comes. When it plays, VX_DOWN's
 //           5 s cooldown drops the later one. t2r-fin-voices-ps30.txt = off (the gasp too).
 #define P31V_KILL_MS 600             // SP: median 600 ms after the -sync start
@@ -3897,6 +3962,7 @@ static void cd_tick(void) {
         if (g_cd_sfx.uid != g_ps.uid) {                           // arm the takedown's sounds once per move, on every client
             int pr = cd_pair_of_move(g_ps.move);
             if (pr >= 0) cd_sfx_arm(pr); else { memset(&g_cd_sfx, 0, sizeof g_cd_sfx); g_cd_sfx.uid = g_ps.uid; }
+            if (pr >= 0 && g_ps.role == 2 && g_ps.ent_vic == SID_PLAYER && !g_cd_esc.uid && cd_pin_vic_row(pr)) cd_esc_begin_vic(pr);
             if (pr >= 0 && cd_mf_row(pr)) p31v_arm(pr, t * 1000.0);    // ps31 D: the victim's gasp + our kill line
             // a late start (the victim's START skip): the cues of the part never played are dropped, not fired at once
             double t0ms = t * 1000.0 - 30.0;
@@ -3905,6 +3971,31 @@ static void cd_tick(void) {
             for (size_t k = 0; k < g_cd_sfx.fn; k++) if ((double)g_cd_sfx.fx[k].ms < t0ms) g_cd_sfx.fx[k].done = 1;
         }
         cd_sfx_tick(t * 1000.0);
+        // (a report: a bystander of a weapon blow heard nothing): a melee -hit pair of two OTHER players (role 3) carries no sound events and none of the
+        // hit hooks (victim recv / attacker send / mhr_recv) runs for it, so the blow was silent. The pair's clips begin at the contact: the weapon's hit sound + blood
+        // play once on the victim's puppet at +30 ms of the move clock (a pair that arrives later than 600 ms after it is not replayed). Weapons only (fists: mhr_punch_at).
+        {
+            static uint32_t bh_uid;
+            if (g_ps.role == 3 && bh_uid != g_ps.uid && t * 1000.0 >= 30.0) {
+                bh_uid = g_ps.uid;
+                int bp = cd_pair_of_move(g_ps.move);
+                const char *bn = bp >= 0 ? CD_PAIRS[bp].name : "";
+                size_t bl = strlen(bn);
+                int hitrow = bp >= 0 && (CD_PAIRS[bp].kind == 6 || CD_PAIRS[bp].kind == 7) && !strstr(bn, "parry") && !strstr(bn, "sync") &&
+                             (!strncmp(bn, "md-", 3) || !strncmp(bn, "ms-", 3) || (!strncmp(bn, "mp-", 3) && bl > 4 && !strcmp(bn + bl - 4, "-hit")));
+                if (hitrow && t * 1000.0 < 600.0 && g_ps.ent_vic && g_ps.ent_vic != SID_PLAYER && g_ps.weapon && g_ps.weapon != ~0ULL && GetFileAttributesA("t2r-no-bystander-hit-sfx.txt") == INVALID_FILE_ATTRIBUTES) {
+                    g_mws_tier = strstr(bn, "breaker") ? MWS_BREAKER : MWS_HIT; g_mws_zone = MWS_GUT;
+                    melee_hit_fx(g_ps.ent_vic, g_ps.weapon);
+                    g_mws_tier = MWS_HIT; g_mws_zone = MWS_GUT;
+                    static int nbh; if (LOGCAP(nbh, 40)) xlog("ctxdown: bystander of %s (slot %d hits slot %d, weapon %llx): hit sfx + blood on the victim's puppet at %.0f ms of the move", bn, g_ps.att, g_ps.vic, (unsigned long long)g_ps.weapon, t * 1000.0);
+                } else if (hitrow && t * 1000.0 < 600.0 && strstr(bn, "-fist") && g_ps.ent_vic && g_ps.ent_vic != SID_PLAYER && GetFileAttributesA("t2r-no-bystander-hit-sfx.txt") == INVALID_FILE_ATTRIBUTES) {
+                    // (brawl clips X4/X5: no impact sound for a bystander's fist blows; the weapon branch above is weapons only): the duel contact's punch (melee_duel.c mdu_contact:
+                    // the ripped thud waves, str 1) at the victim's puppet, once per pair at +30 ms of the move clock. t2r-no-bystander-hit-sfx.txt = silent as before.
+                    g_mhr_punch_thud = 1; mhr_punch_at(g_ps.ent_vic, 1, "bystander fist blow (pair clock)"); g_mhr_punch_thud = 0;
+                    static int nbf; if (LOGCAP(nbf, 40)) xlog("ctxdown: bystander of %s (slot %d hits slot %d): fist impact sound on the victim's puppet at %.0f ms of the move", bn, g_ps.att, g_ps.vic, t * 1000.0);
+                }
+            }
+        }
         p31v_tick(t * 1000.0);                                    // ps31 D: our kill line 600 ms after the -sync start
         // The attacker must not stay locked until the victim is downed (it needs time to escape if shot): the
         // attacker half blends back to locomotion 0.45 s after the final blow on every screen (psync_att_out), and our takedown camera ends;
@@ -3913,7 +4004,7 @@ static void cd_tick(void) {
             static int hold = -1; static uint64_t hchk;
             if (hold < 0 || GetTickCount64() - hchk > 2000) { hchk = GetTickCount64(); hold = GetFileAttributesA("t2r-cd-att-hold.txt") != INVALID_FILE_ATTRIBUTES; }
             g_cd_sfx.att_freed = 1;
-            // A pinned player was teleported out of bounds (the first hit punched it far away): a pin blow pressed after
+            // A/B (A pinned B and got teleported out of bounds): a pin blow pressed after
             // this release started its swing on a body whose top animation instance no longer carried the pair's apReference - the engine's
             // melee swing takes its ap from that instance, so the low-cover / wall swing aligned to the world origin and dragged us 300 m
             // (313 -> 194 -> 0, 404 -> 139 in 3 frames). Blows pressed before the release were clean. While we pin, our half is not released early:
@@ -3999,8 +4090,59 @@ static void cd_tick(void) {
             static uint32_t fw_uid; static uint64_t fw_until;
             uint8_t *pe39 = ((fn_peer39)t2r_peer)((uint32_t)g_ps.vic); float nh = pe39 && !IsBadReadPtr(pe39 + 0xa5, 4) ? *(float *)(pe39 + 0xa5) : 100.0f;
             if (nh <= 1.5f) {
-                if (fw_uid != g_ps.uid) { fw_uid = g_ps.uid; fw_until = g_t60 + CD_FATE_WAIT_T; xlog("ctxdown: hand-off at %.2f s waits up to %d ticks - the victim (slot %d) is at %.1f hp: its down / death has not arrived yet (role %d; ps39)", t, CD_FATE_WAIT_T, g_ps.vic, (double)nh, g_ps.role); }
+                if (fw_uid != g_ps.uid) {
+                    int fwt = CD_FATE_WAIT_T;
+                    // (brawl clips: LEAD 257957 "hand-off at 1.76 s waits up to 15 ticks - the victim (slot 2) is at 1.0 hp", the down arrived later and the body had stood up): a pull-out fail
+                    // victim on a puppet waits up to 60 ticks (1 s) for its down / death, held on the clip's last frame (paired.c). t2r-pullout-death-hold-off.txt = 15.
+                    { int pr5 = cd_pair_of_move(g_ps.move); if (pr5 >= 0 && CD_PAIRS[pr5].kind == 8 && !strncmp(CD_PAIRS[pr5].name, "pu-fail", 7) && GetFileAttributesA("t2r-pullout-death-hold-off.txt") == INVALID_FILE_ATTRIBUTES) fwt = 60; }
+                    fw_uid = g_ps.uid; fw_until = g_t60 + fwt; xlog("ctxdown: hand-off at %.2f s waits up to %d ticks - the victim (slot %d) is at %.1f hp: its down / death has not arrived yet (role %d; ps39)", t, fwt, g_ps.vic, (double)nh, g_ps.role); }
                 dh_wait = g_t60 < fw_until;
+            }
+        }
+        // (brawl clips X5; Hospital 226246 "hand-off at 1.51 s (role 3 ...): both halves blend out", 226256 "ABORT u0308e5e5 from slot 3 (not running here)" + the next START
+        // ~10 frames later - both puppets fell to the net replay in between = a visible cut / double play): a pin blow pair on a screen that is not the pinner's runs on its OWN move
+        // clock (x1.2 catch-up) and reached kill_s before the pinner's cut (its ABORT / the next blow's START) arrived. While the chain is open the pair is held past kill_s
+        // (the sender's ABORT / next START ends it as before), at most 1.5 s, then the hand-off runs as before. t2r-no-pin-blow-hold.txt = hand off at kill_s.
+        if (!dh_wait && !own_dead40 && t >= g_ps.kill_s && t < g_ps.kill_s + 1.5 && g_cd.ended_uid != g_ps.uid && (g_ps.role == 2 || g_ps.role == 3) && cd_pin_blow_row(cd_pair_of_move(g_ps.move))
+            && !(g_ps.ent_vic && psync_dead(g_ps.ent_vic)) && GetFileAttributesA("t2r-no-pin-blow-hold.txt") == INVALID_FILE_ATTRIBUTES) {
+            static uint32_t pbh_uid; static int npbh;
+            if (pbh_uid != g_ps.uid) { pbh_uid = g_ps.uid; if (LOGCAP(npbh, 60)) xlog("ctxdown: pin blow %s (role %d, slot %d -> %d): hand-off at %.2f s held for the pinner's cut (its ABORT / next START; hard limit +1.5 s)", CD_PAIRS[cd_pair_of_move(g_ps.move)].name, g_ps.role, g_ps.att, g_ps.vic, t); }
+            dh_wait = 1;
+        }
+        // (brawl clips: LEAD 252083 "ABORT (contextual down hand-off)" 9 frames before the pu-fail START, 252094 "pose pop (rise): slot 3 pelvis 0.13 -> 0.84"): a pull-out
+        // grapple / drag whose successor pair (pu-fail / pu-ok / the next grapple) is on its way is not handed to the net at kill_s - the net locator stands the victim up. On the victim's
+        // screen and the bystanders' it is held on the clip's pose until the next pull-out START replaces it (paired.c pull-out chain) or a timeout of one-way + 150 ms (cap 400 ms)
+        // runs out, then the hand-off runs as before. t2r-pullout-chain-hold-off.txt = hand off at kill_s.
+        if (!dh_wait && !own_dead40 && (g_ps.role == 2 || g_ps.role == 3) && t >= g_ps.kill_s && g_cd.ended_uid != g_ps.uid && g_ps.kind == PS_CTXDOWN) {
+            int pr = cd_pair_of_move(g_ps.move);
+            if (pr >= 0 && CD_PAIRS[pr].kind == 8 && (!strncmp(CD_PAIRS[pr].name, "pu-grap", 7) || !strncmp(CD_PAIRS[pr].name, "pu-drag", 7)) && !(g_ps.ent_vic && psync_dead(g_ps.ent_vic))
+                && GetFileAttributesA("t2r-pullout-chain-hold-off.txt") == INVALID_FILE_ATTRIBUTES) {
+                static uint32_t pch_uid; static uint64_t pch_until; static int npch;
+                if (pch_uid != g_ps.uid) {
+                    float ow = psync_oneway(g_ps.att) + 150.0f; if (ow > 400.0f) ow = 400.0f;
+                    pch_uid = g_ps.uid; pch_until = GetTickCount64() + (uint64_t)ow;
+                    if (g_ps.ent_vic) psync_hold_end_pose(g_ps.ent_vic, g_ps.vic_sid, g_ps.vic_dur, "pull-out chain hold");
+                    if (LOGCAP(npch, 60)) xlog("ctxdown: pull-out %s (role %d, slot %d -> %d): hand-off at %.2f s held %.0f ms on the clip's pose for the next pull-out START (one-way %.0f ms + 150, cap 400; t2r-pullout-chain-hold-off.txt = off)", CD_PAIRS[pr].name, g_ps.role, g_ps.att, g_ps.vic, t, (double)ow, (double)psync_oneway(g_ps.att));
+                }
+                dh_wait = GetTickCount64() < pch_until;
+            }
+        }
+        // (Bookstore bots: the victim did not stay in its pose until dead but stood up; A [24674] down -> [24677] hand-off -> [24713] 'pose pop (rise)
+        // pelvis 0.16 -> 0.95 while downed' -> [24752] DEATH PUNCH): SP's fail victim stays in the fail pair's end pose until the death punch kills it. A pu-fail victim that is alive
+        // at kill_s (downed or not) is not handed to the net / the downed state: its half holds the clip's last frame until the death (the dead holds above take it from there),
+        // at most 3 s, then the hand-off runs as before. Every screen. t2r-pullout-death-hold-off.txt = old.
+        if (!dh_wait && !own_dead40 && t >= g_ps.kill_s && g_cd.ended_uid != g_ps.uid && g_ps.kind == PS_CTXDOWN && g_ps.ent_vic) {
+            int pr16 = cd_pair_of_move(g_ps.move);
+            int vdead16 = g_ps.ent_vic == SID_PLAYER ? psync_own_dead_now() : psync_dead(g_ps.ent_vic);
+            if (pr16 >= 0 && CD_PAIRS[pr16].kind == 8 && !strncmp(CD_PAIRS[pr16].name, "pu-fail", 7) && !vdead16 && GetFileAttributesA("t2r-pullout-death-hold-off.txt") == INVALID_FILE_ATTRIBUTES) {
+                static uint32_t pf_uid; static uint64_t pf_until; static int npf;
+                if (pf_uid != g_ps.uid) {
+                    pf_uid = g_ps.uid; pf_until = GetTickCount64() + 3000;
+                    if (LOGCAP(npf, 60)) xlog("ctxdown: pull-out %s (role %d, slot %d -> %d): hand-off at %.2f s held - the victim is alive (downed %d): it keeps the fail pose until its death (max 3 s; t2r-pullout-death-hold-off.txt = old)",
+                                              CD_PAIRS[pr16].name, g_ps.role, g_ps.att, g_ps.vic, t, g_ps.ent_vic == SID_PLAYER ? g_downed : (g_ps.vic >= 0 && g_ps.vic < T2R_MAX_PEERS ? g_peer_downed[g_ps.vic] : -1));
+                }
+                if (g_ps.vic_dur > 0.2f && t > g_ps.vic_dur * 0.6 && psync_phase(g_ps.ent_vic, g_ps.vic_sid) < 0.5f) psync_hold_end_pose(g_ps.ent_vic, g_ps.vic_sid, g_ps.vic_dur, "pull-out fail hold");
+                dh_wait = GetTickCount64() < pf_until;
             }
         }
         if (t >= g_ps.kill_s && g_cd.ended_uid != g_ps.uid && !dh_wait) {   // (per move: a client that was the attacker once is victim / third party of the next)
@@ -4008,12 +4150,15 @@ static void cd_tick(void) {
             g_cd_upg_slot = -1; g_cd_upg_w = 0;
             xlog("ctxdown: hand-off at %.2f s (role %d, slot %d -> %d): both halves blend out%s", t, g_ps.role, g_ps.att, g_ps.vic,
                  g_ps.role == 2 ? ", the victim goes down now" : g_ps.role == 1 ? ", we are free" : " (third party)");
-            // (spamming punch did nothing for 3 s: [184601] a duel parry-sync pair on us took the victim melee lock, the duel ended at [184621]
+            // (live report: a player limped around doing nothing when spamming punch: [184601] a duel parry-sync pair on us took the victim melee lock, the duel ended at [184621]
             // before the pair did (its 'pair over' unlock never ran), the pair's hand-off at [184670] downed nobody (no pending down), and the 240-frame victim lock ran on to [184849] = 3 s of
             // dead punches). A hand-off that goes to no down releases the victim lock itself.
             if (g_ps.role == 2 && g_melee_lock_victim && !g_cd_vic_down && !g_down_at) { g_melee_lock_from = 0; xlog("melee input unlocked at the hand-off (no down follows)"); }
             cd_cam_end("contextual down hand-off");
             cd_fx_summary("hand-off");
+            g_cdfin_ms = GetTickCount64(); g_cdfin_slot = g_ps.vic;      // (logging only): the dead-height log of t2r-ext.c
+            { const char *pn_ = pul_pair_name(g_ps.move);      // the victim of a pull-out pair (supine down / downed flinch / death fall rules, t2r-ext.c pul_end_recent)
+              if (pn_ && g_ps.role && g_ps.vic >= 0) { g_pul_end_ms = GetTickCount64(); g_pul_end_who = g_ps.role == 2 ? T2R_US : g_ps.vic; } }   // (the attacker's screen too)
             psync_abort("contextual down hand-off", 0);
             g_ps_corpse_keep40 = 0;
             g_cd_att_free = 0;
@@ -4026,7 +4171,7 @@ static void cd_tick(void) {
         g_cfxe_watch = 0;
         if (g_cd.cam_fin) cd_cam_end("psync over");
     }
-    // the clip's own camera did not come up (attacker log: "finisher cam: no animated camera 30 frames in"): the exec pair-framing camera
+    // the clip's own camera did not come up (A/B attacker log: "finisher cam: no animated camera 30 frames in"): the exec pair-framing camera
     // (cinematic, smooth in / out) takes over from there so the attacker never keeps the plain gameplay camera for a takedown
     if (g_cd.cam_fin && g_cd.cam_check && g_frame == g_cd.cam_check) {
         uint8_t *d = fincam_director();
@@ -4077,7 +4222,7 @@ static int cd_swing_start(void) {
 }
 
 // ---------------------------------------------------------------------------------------------------- v5-lethal: the lethal CONTACT outside a duel
-// Reported case (female, switchblade): the last hit did not activate a finisher, just a normal hit with no sound. VERIFIED main log [53269]-[53582]:
+// (female, switchblade): the last hit did not activate a finisher, just a normal hit with no sound. VERIFIED main log [53269]-[53582]:
 // the duel had ended idle ([53269]); the lethal swing started 2.96 m from the victim ([53553]), past the duel's 2.4 m engage reach, so no duel swing armed an
 // SP finisher; the engine's lunge + lock-on glide carried it to a contact ([53568]) and park_hook knew only ctxdown's wall / cover plan - a cover plan made
 // 293-308 frames earlier 1.5-3.6 m away (the scans stop beyond 2.5 m and a 'no surface' scan of the same victim keeps the old plan) - cd_try refused it as
@@ -4103,7 +4248,7 @@ static int cdl_off(void) {
 // the plain knockdown hit of a connected would-kill blow: our own type 3 hit, lethal 0 (their recv_hit_hook cuts it to 1 hp and downs them), WITH the contact's
 // sound + blood on the puppet. VERIFIED ([53568], no 'knife hit sfx' / 'melee hit fx' line after it, the whoosh at [53556] was the only cue): winmm parks only
 // the hits it predicts lethal (park_hook), so the downing blow never ran hitsend_hook / directhit_hook, where every other melee contact plays its sound
-// (knife_hit_native for a female's knife, melee_hit_fx for a weapon, the fist punch) - the knockdown was the one silent hit.
+// (knife_hit_native for a female's knife, melee_hit_fx for a weapon, the fist punch) - the knockdown was the one silent hit (v3 pt92 the same).
 static void kd_plain_hit(uint32_t ks, uint64_t weapon, float dmg, const char *why) {
     if (ks >= T2R_MAX_PEERS) return;
     uint8_t m[0x16]; uint64_t ammo = 0;

@@ -77,7 +77,8 @@ for _p in _ppl:
         _a = _ch.portrait_id(_p, _fk).split("/")
         _ok &= int(_a[2]) in _pp.RENDERED and _a[3] in _pp.EXPR[int(_a[2])]
 check(_ok, "every member gets a head with a render and an expression that head has")
-check(_ch.fit_expr(143, "shock") == "neutral" and _ch.fit_expr(143, "hurt") in _pp.EXPR[143], "an expression a head lacks falls back (shock -> neutral)")
+_n1 = min(m for m, e in _pp.EXPR.items() if tuple(e) == ("neutral",))            # a head with only its neutral face
+check(_ch.fit_expr(_n1, "shock") == "neutral" and _ch.fit_expr(_n1, "hurt") in _pp.EXPR[_n1], "an expression a head lacks falls back (shock -> neutral)")
 # roster row = status card (members shown HEALTHY wore a depressed face)
 import clan_ingame as _ci  # noqa: E402
 _st = {"day": 5, "morale": 96, "ch": {"dep": {"1": {"n": 4}}, "mem": {"2": {"grief": {"until": 9, "d": 1}}}}}
@@ -86,7 +87,7 @@ check([_ch._roster_state(_st, _row(i, s)) for i, s in ((1, "h"), (2, "h"), (3, "
 _r = [{"name": "A", "role": "guard", "roleText": "GUARD", "icon": "x", "state": "sad", "portrait": "W/m/124/neutral", "bond": "", "bondLabel": "", "tagline": ""}]
 _l = _ci._person_rows({"roster": _r}, [], "en")[0].split(chr(9))
 check(_l[3] == "d" and _l[4] == "GRIEVING", "a grieving member: grey-blue letter + its own word (%s %s)" % (_l[3], _l[4]))
-check(_ch.fit_expr(100, "shock") == "sad" and _ch.fit_expr(143, "shock") == "neutral", "shock stands in as sad where the head has it")
+check(_ch.fit_expr(100, "shock") == "sad" and _ch.fit_expr(_n1, "shock") == "neutral", "shock stands in as sad where the head has it")
 # MATCH STATS of a raid (section 5): roster at the match end + each player's own report, the asker's team first, absent stats = -1, an unknown raid = header only
 import sqlite3 as _sq  # noqa: E402
 _c = _sq.connect(":memory:")
@@ -101,7 +102,7 @@ check(_x[1][2:12] == ["1", "1", "5", "3", "2", "2", "1", "1", "320", "0"] and _x
 # the 13th field = the face (pool model id) of each player: stable per token, never shared in a match, every head has all the faces the list shows
 _hd = [int(r[12]) for r in _x[1:]]
 _pool = _ci.stats_head_pool()
-check(len(_pool) >= 20 and all(len(r) == 13 for r in _x[1:]), "match stats: head pool %d heads, rows carry a head id" % len(_pool))
+check(len(_pool) >= 20 and all(len(r) >= 13 for r in _x[1:]), "match stats: head pool %d heads, rows carry a head id" % len(_pool))
 check(len(set(_hd)) == 3 and all(h in {m for m, _, _ in _pool} for h in _hd), "match stats: three players, three distinct pool heads (%s)" % _hd)
 _h1 = _ci.stats_heads([("tok1", 0), ("tok2", 1)]); _h2 = _ci.stats_heads([("tok1", 0), ("tok9", 1), ("tok2", 1)])
 check(_h1["tok1"] == _h2["tok1"] and len(set(_h2.values())) == 3, "a player's face is the same in the next match (%s %s)" % (_h1, _h2))

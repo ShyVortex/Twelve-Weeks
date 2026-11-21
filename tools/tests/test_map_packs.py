@@ -54,7 +54,7 @@ def report(d, token, hashes):
 # ------------------------------------------------------------------ zero entries change nothing
 d = load_daemon("0")
 ref_maps, ref_pool = list(d.MAPS), d.map_pool()
-check([m[2] for m in ref_maps][:8] == BASE and len(ref_maps) == 24, "flag off: the 8 base maps first, list padded to PACK_BASE with the SP-section maps (Train Station is always on)")
+check([m[2] for m in ref_maps][:8] == BASE and len(ref_maps) == 25, "flag off: the 8 base maps first, list padded to PACK_BASE with the SP-section maps (Train Station is always on)")
 d = load_daemon("1", write_reg([]))
 check(d.MAPS == ref_maps and d.map_pool() == ref_pool and d.map_pool([A, B]) == ref_pool, "flag on, empty registry: same list and pool")
 check(not d.PACKS.maps(), "empty registry: no pack maps")

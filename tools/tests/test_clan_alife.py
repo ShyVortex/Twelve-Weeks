@@ -375,5 +375,57 @@ check(AL.load(cc, "bb" * 12) is None, "a new run deletes the old simulation")
 os.environ.pop("T2R_CLAN_ALIFE", None)
 cc.close()
 
+# ------------------------------------------------------------------ camp incidents (clan_alife_text_g.py; re/clan-events-1117.md): text only, own random stream
+INC = ("inc_spoil", "inc_tres", "inc_horde", "inc_sick")
+check(all(p in AL.BY_POOL and AL.BY_POOL[p] for p in INC), "the four incident pools are registered")
+for p in INC:
+    rows = AL.POOLS[p]
+    check(all(not X.vars_of(en) and not X.vars_of(pl) for _s, _t, en, pl in rows), "%s: the templates name people only (no place / thing / number variable)" % p)
+    check(all(not re.search(r"\d", en + pl) for _s, _t, en, pl in rows), "%s: no figure in the text (nothing a player could hold against the clan's numbers)" % p)
+    check(all(X.letters_of(en) == X.letters_of(pl) == {"A", "B"} for _s, _t, en, pl in rows), "%s: EN and PL both speak of A and B" % p)
+for p in ("inc_spoil", "inc_tres"):
+    check({sc for sc, _t, _e, _p in AL.POOLS[p]} == {"W", "S"}, "%s has its own rows for each faction" % p)
+check(all(not re.search(r"\b(died|dead|killed|lost a|bitten|wounded|zgin|zabit|ugryz|rann)", en + " " + pl, re.I) for p in INC for _s, _t, en, pl in AL.POOLS[p]),
+      "no incident kills, bites or wounds anyone")
+
+
+def inc_rows(log):
+    return [(e, r) for e in log for r in e["rows"] if r["kind"] == "alife" and any(AL.REG[i][0] in INC for i in r["lid"][3:].split("+"))]
+
+
+inc_total, inc_sick_bad, inc_changed = 0, [], []
+for fac, pol, seed, start in SEEDS[:4] + SEEDS[6:]:
+    AL.INCIDENTS = True
+    drawn = []
+
+    def inc_hook(c, tid, ent):
+        al = AL.load(c, tid)
+        if al and al["cool"].get("inc") == ent["day"]:
+            drawn.append(ent["day"])
+    c1, t1, log1 = R.simulate(fac, start, 84, seed=seed, alife=True, parts_fn=pol, hook=inc_hook)
+    AL.INCIDENTS = False
+    c0, t0, log0 = R.simulate(fac, start, 84, seed=seed, alife=True, parts_fn=pol)
+    AL.INCIDENTS = True
+    found = inc_rows(log1)
+    inc_total += len(found)
+    # the authoritative numbers do not move with the incidents on or off
+    if [(e["clan"]["healthy"], e["clan"]["hungry"], e["clan"]["sick"], e["clan"]["day"], e["clan"]["status"]) for e in log1] != \
+            [(e["clan"]["healthy"], e["clan"]["hungry"], e["clan"]["sick"], e["clan"]["day"], e["clan"]["status"]) for e in log0]:
+        inc_changed.append(("numbers", seed))
+    # up to the first incident DRAWN (told or not: the two people in it were in a scene that day) the two histories are word for word the same:
+    # the incidents draw from their own random stream
+    first = min(drawn, default=10 ** 6)
+    if [[r["text"] for r in e["rows"]] for e in log1 if e["day"] < first] != [[r["text"] for r in e["rows"]] for e in log0 if e["day"] < first]:
+        inc_changed.append(("history before the first incident", seed))
+    if inc_rows(log0):
+        inc_changed.append(("an incident with the switch off", seed))
+    for e, r in found:
+        if any(AL.REG[i][0] == "inc_sick" for i in r["lid"][3:].split("+")) and not any(p["s"] == "s" for p in (e.get("people") or [])) and "people" in e:
+            inc_sick_bad.append((seed, e["day"]))
+check(inc_total >= 6, "the simulated months tell camp incidents (%d rows over 6 runs)" % inc_total)
+check(not inc_changed, "the incidents change no number and nothing before the first of them (%s)" % inc_changed)
+check(not inc_sick_bad, "a night in the sick tent is only told on a day somebody is sick (%s)" % inc_sick_bad)
+check(all(len(inc_rows(log)) <= len([i for p in INC for i in AL.BY_POOL[p]]) for _f, log in all_rows_by_run), "an incident template is told at most once per run")
+
 print("\nFAILED: %d" % len(FAILS) if FAILS else "\nall clan A-Life tests passed")
 sys.exit(1 if FAILS else 0)

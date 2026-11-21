@@ -100,7 +100,7 @@ def add_deny_notes(wdir):
             continue
         anim = next(i for i in items if i["name"] == "anim-group")
         by = {i["name"]: i for i in items}
-        new = _build(items, anim["guid"], GROUP, by.get("pickerPanel") or by["lst"], by.get("pickerTitle") or by["title"], _first(items, "Image"),
+        new = _build(items, anim["guid"], GROUP, by.get("pickerPanel") or by["lst"], by.get("pickerTitle") or by.get("title") or by["edHdTx"], _first(items, "Image"),
                      _first(items, "Polyline"), 7.0)
         items.extend(new)
         json.dump(w, open(path, "w", encoding="utf-8"), indent=4)

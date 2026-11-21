@@ -204,7 +204,7 @@ s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.clos
 os.environ.update(T2R_HOST="127.0.0.1", T2R_PORT=str(port), T2R_CLAN_GRACE="1")
 import daemon  # noqa: E402
 daemon.DB_PATH = os.path.join(tmp, "daemon.db")
-daemon.AC = None                    # this file tests the clan arithmetic with instant 1500-part reports
+daemon.AC = None                    # this file tests the clan arithmetic with instant 1500-part reports; the anti-cheat limits are tested in test_anticheat.py
 threading.Thread(target=daemon.tcp_server, daemon=True).start()
 time.sleep(0.3)
 

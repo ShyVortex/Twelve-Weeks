@@ -179,7 +179,7 @@ LINES["death_mercy"] = [
     X("It was {A}'s choice in the end. {B} did it quick. Nobody should carry that, but someone had to."),
     X("{A} begged us to end it. {B} did. We all stood outside and listened to nothing."),
     X("There was nothing left to try. {A} asked and {B} said yes. That's how it ends now."),
-    X("{B} put {A} out of {A_his} misery tonight. It was kind, and it was awful, and neither cancels the other."),
+    X("{B} put {A} out of {A_his} misery tonight. It was a kindness, and it was awful. One does not cancel the other."),
     X("We couldn't watch {A} suffer one more night. {B} took the walk with {A_him}. {B} came back alone."),
     X("{A} was in so much pain. In the end we all agreed. It was mercy. It still feels like murder."),
     X("{B} held {A}'s hand and told {A_him} it was okay to go. Then it was done. {ill} can't hurt {A_him} anymore."),
@@ -189,10 +189,10 @@ LINES["death_mercy"] = [
     W("{A} didn't want to turn into one of them. {B} made sure {A_he} didn't. Isaac calls that what soldiers do. Doesn't make it easier."),
     W("Put {A} out of {A_his} misery today. {ill} left no other way. Jesus, what a world."),
     W("Nobody wanted the job. {B} took it. {B_He} cleaned the pistol after and didn't say a word until supper."),
-    W("It was quick. That's all I'll say about {A}. It was quick, and {A} thanked us, and I can't stop hearing that."),
+    W("It was quick. That's all I'll say about {A}. {A} thanked us at the end, and I can't stop hearing it."),
     S("{A} asked the Prophet for release, and {B} was the hand that gave it. It does not make it lighter."),
     S("The healer and {B} sat with {A} at the end. A pillow, a prayer, and it was over. We do not speak of it."),
-    S("{A} was suffering beyond our herbs and our songs. {B} gave {A_him} peace. May the Prophet forgive us both."),
+    S("{A} was suffering beyond our herbs and our songs. {B} gave {A_him} peace. May the Prophet forgive {B_him}, and all of us."),
     S("We took {A} to the water and {B} gave {A_him} a quiet end. The sisters sang the whole time."),
     S("Mercy is also a weight. {B} carries {A} now, and I do not know how {B_he} will bear it."),
     S("{A} did not want to linger. The Elders agreed. {B} did it. We stood in silence an hour afterward."),
@@ -479,6 +479,44 @@ LINES["event_warn"] = [
     S("Smoke from the Wolves' camp, and drums. {A} says they mean to strike at dawn. We must train every hand."),
     S("The Elders say the Wolves hunger for our home. We will teach our young to fight, though it breaks the heart."),
     S("Wolf patrols are thicker every day. {A} says they are measuring us. Let them see what the Seraphites can do."),
+]
+
+# ---- the attack told as a horde of infected (clan.AN_HORDE: days 30, 65; re/clan-events-1117.md). Same triggers as event_warn / event_hold /
+# event_heavy / event_massacre / death_attack / death_attack_many. No enemy faction is named.
+LINES["event_warn_h"] = [
+    X("The watch counted infected past the tree line until they ran out of numbers. A horde. We have a few days to get ready."),
+    X("{A} came back from the ridge without a word and started stacking sandbags. A horde is on the move, and we're in its way."),
+    X("You can hear them at night now, far off, like a river. {A} says three days. Nobody is sleeping much."),
+    X("Word came in this morning: a horde is coming. Dig in, sharpen up, and run through your drills."),
+]
+
+LINES["event_hold_h"] = [
+    X("The horde hit the wall and the wall held. We lost {lost}. {A} says the drills did that, and {A} is right."),
+    X("They came all night and we were ready all night. {lost} gone, and it could have been all of us."),
+    X("{A} and {B} held the gap until the last of them dropped. We lost {lost}. The camp is still ours."),
+]
+
+LINES["event_heavy_h"] = [
+    X("It was bad. The horde got over the wall twice. We pushed it back, but {lost} didn't make it through."),
+    X("We survived the horde, but at a price. {lost} gone. The training helped, but it wasn't enough."),
+    X("There was a moment it looked like they would bury us. {A} kept the line together. We lost {lost}."),
+]
+
+LINES["event_massacre_h"] = [
+    X("The horde went through us. {lost} dead. I don't know how the rest of us are standing."),
+    X("We weren't ready, and the infected don't wait. {lost} gone in one night."),
+    X("{A} is still out there burning what's left. {lost} of ours. The wall was never going to hold."),
+]
+
+LINES["death_horde"] = [
+    X("{A} died on the wall when the horde came. {B} saw it and can't talk about it."),
+    X("{A} didn't make it through the night. The infected got over the wall where {A_he} stood."),
+    X("{A} died fighting the horde. {B} dragged {A_him} back inside, but it was already over."),
+]
+
+LINES["death_horde_many"] = [
+    X("The horde took {n} of us, {A} and {B} among them. The rest are still on the wall, because nobody knows where else to be."),
+    X("{n} dead after the horde. {A}, {B}. We burn them at first light, the way it has to be done."),
 ]
 
 LINES["event_heavy"] = [

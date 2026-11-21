@@ -1,6 +1,6 @@
 // supplybox.c - 2013 Factions supply box ("loot crate") contents for t2r-ext. Included from
-// t2r-ext.c after skills.c. Everything a box gives comes from here (the F2013 supply
-// box drop logic is used for everything); winmm's fill FUN_18004ce10 only provides the slots / xforms.
+// t2r-ext.c after skills.c. Everything a box gives comes from here (use the 2013 supply
+// box drop logic for EVERYTHING); winmm's fill FUN_18004ce10 only provides the slots / xforms.
 //
 // Source: TLOU1 PS3 patch1.psarc bin/dc1/ss-multiplayer/ss-region-spawn-pickups.bin (the per-player
 // box script, t1final/t1/src/game/script/ss-multiplayer/ss-region-spawn-pickups.dc), disassembled
@@ -40,18 +40,20 @@ static const struct { const char *gun; uint8_t pistol, big, small, ideal[3]; con
     {"pistol-glock",               1, 8, 3, {13, 10, 7}, "pistol-burst"},
     {"pistol-revolver-taurus",     1, 5, 2, {9, 6, 4}, "pistol-revolver"},
     {"pistol-cz75-enforcer",       1, 5, 2, {9, 6, 4}, "deagle (Enforcer)"},
+    {"pistol-snubby",              1, 5, 2, {9, 6, 4}, "Snubby (the revolver's clone and ammo; no 2013 row)"},
     {"shotgun-shorty",             1, 4, 2, {5, 4, 2}, "pistol-shotgun (Shorty)"},
     {"rifle-remington-bolt",       0, 3, 2, {7, 4, 3}, "rifle-bolt"},
     {"rifle-vepr",                 0, 5, 2, {10, 7, 5}, "variable-rifle"},
     {"rifle-m14-semi",             0, 4, 2, {8, 6, 4}, "assault-rifle-semi-automatic"},
     {"rifle-burst",                0, 8, 3, {13, 10, 7}, "rifle-improvised-assault (Burst Rifle)"},
     {"rifle-mpx5",                 0, 8, 3, {13, 10, 7}, "ak-74 (Full-Auto)"},
-    {ASSAULT_ID,                   0, 3, 3, {6, 5, 4}, "Assault Rifle (was missing = no kill drops; 'boxes should not give that much ammo': 3 per pickup, box tops up to 4 at most)"},
+    {ASSAULT_ID,                   0, 3, 3, {6, 5, 4}, "Assault Rifle (was missing = no kill drops; a small ammo share: 3 per pickup, box tops up to 4 at most)"},
     {"shotgun-baserri-over-under", 0, 4, 2, {6, 4, 2}, "shotgun-hunting"},
     {"bow-ellie",                  0, 3, 2, {4, 3, 2}, "bow"},
     {"crossbow",                   0, 3, 2, {4, 3, 2}, "crossbow (net10 94b0435b has a def + ammo item, max carried 15; the box pickup sizes / ideal reserve are not in the data: the bow's row)"},
     {"shotgun-tactical",           0, 4, 2, {6, 4, 2}, "tactical shotgun (box ammo like the hunting shotgun)"},
     {"rifle-frontier",             0, 4, 2, {10, 6, 4}, "rifle-short (Frontier; reserve cap 15; pickup sizes not in the data: between the hunting rifle and the M14)"},
+    {"rifle-vintage",              0, 3, 2, {7, 4, 3}, "Vintage Rifle (no 2013 gun: the hunting rifle's row, same ammo)"},
     // not assessed in 2013 (power weapons / purchasables): El Diablo, pump + tactical shotgun
 };
 // Recipe gaps: holding none of the crafted item and none of an ingredient -> the box spawns one
@@ -63,7 +65,7 @@ static const struct { const char *item; uint64_t ing[3]; uint8_t all_pct; } B13_
     {"smoke-bomb", {ING_EXPLOSIVE, ING_CANISTER, 0}, 10},
     {"pipe-bomb",  {ING_EXPLOSIVE, ING_CANISTER, ING_ALCOHOL}, 10},
     {"shiv",       {ING_BINDING, ING_BLADE, 0}, 10},
-    // A player was not getting rags, medkits or snacks despite being low constantly: rags only ever came from the
+    // (a player kept getting no rags, medkits or snacks despite being low): rags only ever came from the
     // molotov gap, so a hurt player holding a molotov never got one. Not a 2013 row: only while we are hurt (B13_GAP_HURT).
     {"health-kit", {ING_ALCOHOL, ING_RAG, 0}, 10},
 };
@@ -212,7 +214,7 @@ static void b13_crafting(int fgc, int first_life_box) {
         g_b13.e[k] = g_b13.e[--g_b13.n];
     }
     for (int i = 0; i < extra; i++) { uint64_t ing = b13_random_ing(); b13_add(ing, b13_ing_size(ing), B13_K_ING); }
-    // Per supplies.md and the 2013 box script, a box gives NO supplies item and no satchel. Its only clan income is the parts pickup
+    // (supplies.md + the 2013 box script): a box gives NO supplies item and no satchel. Its only clan income is the parts pickup
     // pickup-parts-mp-medium-1 = 100 PARTS, and only for a player whose rating is fgc <= -2 (losing). Parts are parts in the match; the
     // post-match day turns them into supplies on its own (2013 ProcessClanDay: bottles + parts / 50).
     if (parts && g_b13.from_open) award(100, sk_me(), "Supplies");   // (2013 pickup text of pickup-parts-mp-medium-1)
@@ -230,7 +232,7 @@ static void b13_health(void) {
     float pct = (float)hp / (float)mx + g_box_mods.health_pct_bias;
     // the snack bars (inventory health-small, level actor health-pickup-base) replace the low-health medkit; the medkit still
     // drops, rarely (15 %); never at full health.
-    // Every snack bar pickup was REFUSED by spawn-item-pickup ("-> pickup handle 0", the MP level has no
+    // (desync.log): every snack bar pickup was REFUSED by spawn-item-pickup ("-> pickup handle 0", the MP level has no
     // spawnable snack object), so a box at <= 50 % gave nothing 85 % of the time. Back to the 2013 rule (a health kit at <= 50 %) until a
     // snack spawn is proven; t2r-box-snacks.txt = the snack bars again (testing).
     static int nosnack = -1;
@@ -247,7 +249,7 @@ static void b13_health(void) {
 
 // ---- 3. comeback item / weapon, 4. melee (2x4)
 // The 2013 rules only decide WHEN a melee weapon drops (its "2x4"); WHICH one is any of MELEE_DROPS at random
-// (all melee weapons keep dropping, not just the 2x4).
+// (all melee weapons must keep dropping, not just the 2x4).
 // Variety: the style first (1h blunt / 1h blade = the tomahawk hatchet / 2h blunt, a third each - a uniform pick over MELEE_DROPS gave the
 // six 1h blunt clubs 60 % and the tomahawk 10 %), then a weapon of that style's pool (MELEE_DROP_POOL), never the same weapon twice in a row.
 static const char *b13_melee_name(void) {
@@ -278,7 +280,7 @@ static int b13_holds_melee(void) {
     uint64_t none = 0, h = dc_call(SID_HAS_MELEE_WEAPON, 0, &none);
     return (h != ~0ULL && (h & 0xff)) || g_machete_owned || machete_carrying();   // a bought / held machete = no other melee from boxes
 }
-// the 2013 2x4 rule (the old rule): none until both teams used 4 of 40 lives, then by pool thresholds, B13_MELEE_GAP boxes apart.
+// the 2013 2x4 rule (the earlier rule): none until both teams used 4 of 40 lives, then by pool thresholds, B13_MELEE_GAP boxes apart.
 // t2r-box-melee-2013.txt next to the exe brings it back.
 static void b13_melee_2013(int fgc) {
     // 2x4: allowed once the remaining lives of both teams are down to the threshold
@@ -335,8 +337,8 @@ static void b13_comeback_and_melee(int fgc) {
     }
     if (g_melee_always && !wpn) { b13_add_melee(); return; }
     if (wpn) return;
-    // Melee weapons were too hard to find: they needed 10% of lives lost by the team to spawn, and after you picked one up and
-    // lost it, it was very hard to find another one even after looting all supply boxes; they are now more prominent. The 2013 2x4
+    // Melee weapons used a ruling of 10% of lives having to be lost by the team for them to spawn, and after picking one up and
+    // losing it, it was very hard to find another one even after looting all supply boxes; melee weapons are more prominent now. The 2013 2x4
     // rule (b13_melee_2013: none until both teams used 4 of 40 lives, pool thresholds, B13_MELEE_GAP boxes apart) is off by default: from the
     // match start every box a player WITHOUT a melee weapon opens gives one (guaranteed - a lost weapon is replaced at the next box), a player
     // who holds one gets another one (a swap / a different type) with B13_MELEE_SPARE_PCT %. The machete owner still gets none (as before).
@@ -618,7 +620,7 @@ static void b13_fill_end(uint64_t box) {
 }
 // 2013 refill: 110-140 s after the open (ss-region-respawn-check; it also paused the timer while
 // the player stood in the box's region - not done here). winmm set 120 s at the open.
-// Loot was too frequent with more supply boxes: 2013 levels had exactly 4 boxes (winmm's table is 4 hard-coded
+// (loot was too frequent, more supply boxes made it too much): 2013 levels had exactly 4 boxes (winmm's table is 4 hard-coded
 // entries), our maps carry 5-10. The refill is scaled by the boxes the map really has, so the whole map gives the supply per second of a
 // 4-box 2013 level: delay x (boxes / 4), never below 1 (a map with 4 or fewer boxes = the exact 2013 110-140 s). The box count is read from
 // winmm's table (records that hold item positions), so more / fewer boxes in a pak and the later loot spawn spots follow with no code change.
@@ -644,10 +646,10 @@ static void b13_after_open(uint64_t *box, int was_opened) {
     xlog("supply box 2013: refills in %.0f s (%d boxes on the map, x%.2f of 2013's 110-140 s%s)", t, nb, scale, flat ? ", flat" : "");
 }
 
-// ---- the opening gesture (a non-locking opening animation, so boxes do not just open on their own)
+// ---- the opening gesture (supply boxes need a non-locking opening animation, they just opened on their own)
 // The box opens the moment E is pressed (box_open_gate -> FUN_18004ee40: lid, latch / lid sounds, the fill). The player's arm now reaches for it: TLOU2's own
 // pickup GESTURE (the SP scav pickup reach, "...-right-arm--move-fw-part--gesture": a PARTIAL arm clip layered over whatever the legs / camera / aim do, the same
-// mechanism as the revive hand-out, the mark point and the stun cough - it never touches input, movement or aim, so nothing is locked). Standing: the 50 cm
+// mechanism as the revive hand-out of the mark point and the stun cough - it never touches input, movement or aim, so nothing is locked). Standing: the 50 cm
 // reach (a crate is knee / hip high), crouched: the 60 cm crouch reach; the next loaded clip of the row when the first is missing, a logged no-op when none is.
 // Own body = the request from bo_tick (the open call itself runs inside the engine's per-frame box check: the request is queued, not made there); every other screen:
 // MSG_BOXOPEN 0x95 [u8 1 start][u8 stance 0 standing / 1 crouched] -> the same gesture on our puppet there, [u8 0] = it was cancelled (clear-gesture, 0.25 s blend).
@@ -655,7 +657,7 @@ static void b13_after_open(uint64_t *box, int was_opened) {
 // (0.87 s clip). Not played while sprinting / aiming at the moment of the open either (the box still opens). t2r-no-box-gesture.txt next to the exe = off.
 // Logs: "boxreach: ..." (own request, puppet request, answer of gesture_, cancel reason); expected on one open: own request line + "own reach over".
 #define MSG_BOXOPEN 0x95
-// Candidate reaches (SP trace: No Return chests play ellie-scav-tense-[crouch-]pickup-<h>cm-<arm>-arm--move-*-part--gesture as a partial gesture,
+// Candidate reaches (SP trace No Return chests play ellie-scav-tense-[crouch-]pickup-<h>cm-<arm>-arm--move-*-part--gesture as a partial gesture,
 // Abby crouched adds abby-pickup-crouch-idle-{low|floor}-forward-{l|r}-hand-gesture): height class by the box vs our feet, arm by the box's side.
 // Table index + 1 is sent to peers (MSG_BOXOPEN byte 3) so they play the same reach.
 static const struct { const char *gesture, *clip; int stance, h, left; } BOXC[] = {
@@ -670,11 +672,11 @@ static const struct { const char *gesture, *clip; int stance, h, left; } BOXC[] 
 #define BOXC_N ((int)(sizeof BOXC / sizeof BOXC[0]))
 #define BOXG_SPRINT_SPEED 4.8f
 #define BOXG_BLEND_OUT 0.25f
-// The open itself is now DEFERRED to the hand's contact. box_open_gate no longer opens at
+// (a hand reach animation for opening the supply boxes): the open itself is now DEFERRED to the hand's contact. box_open_gate no longer opens at
 // once: bo_defer() parks the box, bo_tick decides (reach possible?) and plays the reach at BOXG_SPEED x; the real open (lid + latch sounds, the fill) runs at the
 // hand contact (BOXG_CONTACT of the clip / speed, at most BOXG_MAX_DELAY_MS after E), or at once when no reach is played. The reach is cut at BOXG_END of the
 // clip with a 0.25 s blend. Refused open (engine said no): the reach is cleared and the next E goes straight through for BOXG_COOL_MS.
-// The SP crate clip (t2r-abby-scav-low-crate-open-start, full-body script-AP) is NOT used: SP-only, would lock the body.
+// The SP crate clip (t2r-abby-scav-low-crate-open-start, full-body script-AP) is NOT used: SP-only, would lock the body (design).
 #define BOXG_SPEED 1.0f     // was 1.8 - fluidity over fast: no forced clip rates above 1.0 (contact still lands at 0.30 s, inside BOXG_MAX_DELAY_MS)
 #define BOXG_CONTACT 0.30f
 #define BOXG_END 0.80f
@@ -831,7 +833,7 @@ static void bo_tick(void) {
                     wh = stance ? (dy < 0.05f ? 0 : 60) : (dy > 0.80f ? 110 : 50);   // origin height unverified: only a clearly high box leaves the 50 / 60 cm default (log shows dy)
                     xlog("boxreach: box %.2f m away, %.2f m above our feet, %.2f m to our %s -> %s %d cm %s arm", __builtin_sqrtf(dx * dx + dz * dz), dy, side < 0 ? -side : side,
                          side > 0 ? "left" : "right", stance ? "crouch" : "stand", wh, wleft ? "left" : "right");
-                    // The character did not reach out to open it like No Return in SP: the NR crate's own player part is
+                    // (the character did not reach out to open it like No Return in SP): the NR crate's own player part is
                     // player-simulate-pickup(crate locator + (0, 0.5, 0), 1, 0, 0, 1) = the engine's generic pickup gesture picked by that point's height
                     // (SP trace re/nr-supply-box-trace-1102.md: abby-scav-tense-crouch-pickup-40cm-left-arm--forward + the idle-low-forward gesture, free
                     // again 0.92 s after the press). Tried first; a native that is missing / answers ~0 falls through to the old partial-arm reach.

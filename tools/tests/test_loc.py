@@ -6,6 +6,7 @@
 Run: python tools/tests/test_loc.py   (needs the msys gcc of tools/win/ext)."""
 import os
 import re
+import struct
 import subprocess
 import sys
 import tempfile
@@ -19,7 +20,7 @@ import locdata  # noqa: E402
 
 GCC = None
 for c in (os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "tools", "win", "ext", "msys64", "ucrt64", "bin", "gcc.exe"),
-          os.path.join(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..")), "tools/win/ext/msys64/ucrt64/bin/gcc.exe"), "gcc"):
+          r"./tools/win/ext/msys64/ucrt64/bin/gcc.exe", "gcc"):
     if os.path.exists(c) or c == "gcc":
         GCC = c
         break

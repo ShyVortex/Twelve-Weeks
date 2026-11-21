@@ -229,7 +229,7 @@ static uint64_t bd_voice_sid(int idx, int slow, char *desc, size_t dn) {
         look = fl_core_shown(&g_fl, (uint32_t)idx, &team); fac = vx_fac_of_slot((uint32_t)idx, &why); fem = slot_female((uint32_t)idx);
     }
     if ((fac != 0 && fac != 1) || look < 0) { snprintf(desc, dn, "faction %d / look %d not known", fac, look); return 0; }
-    int v = vx_voice_of_look(fac, look), n = VXB_RANGE[fac][fem][v][slow][1];
+    int v = vx_voice_of_body(own ? T2R_US : idx, fac, look), n = VXB_RANGE[fac][fem][v][slow][1];
     if (n <= 0) { snprintf(desc, dn, "no takes"); return 0; }
     // A Polish molotov death fell back to a 24 kHz Ellie wave: the fire-death takes are non-verbal efforts, language-neutral. polish.psarc carries none of
     // the 540+ efforts (only english.psarc does) and the engine resolves them from the English archive in every voice language - the same way SP plays its deaths and
@@ -291,6 +291,7 @@ static uint64_t prv_dtor_hook(void *s) {
     return g_prv_dtor_tramp(s);
 }
 static volatile LONG g_prv_ri;
+static const char *prv_exit_txt(uint32_t c);
 static void prv_note(int which, void *ctl, void *req, uint64_t r) {
     int i = (int)(InterlockedIncrement(&g_prv_ri) & 31);
     g_prv_ring[i].code_ok = g_prv_exit_tid == GetCurrentThreadId(); g_prv_ring[i].code = g_prv_ring[i].code_ok ? g_prv_exit_code : 0xffffu; g_prv_exit_tid = 0;
@@ -307,6 +308,14 @@ static void prv_note(int which, void *ctl, void *req, uint64_t r) {
     // else the gate calls 0x32d6d0(process): dead = process null OR [process+0xc] & 1 (destroyed - the player kill watch logs +c 07 on a kill) OR the Character IsDead vfunc 0xce0 (0x3f24d0: health comp
     // [process+0x610] vfunc 0x28 = GetHealth() <= 0); only request types 0x1a / 0x1b pass a dead owner. EXIT 19 therefore means: THIS controller's owner process is a destroyed / 0 hp object - not the
     // live body the ext sees. 'vox owner:' logs the controller's owner against our live Player process on every EXIT 19 (the next run names which of the three it is).
+#ifndef T2R_RELEASE
+    {   // KELLIE voice (dev): every request with its answer, so a silent body shows the engine's reason and its character id (ctl+660)
+        static int nl;
+        if (nl < 300) { nl++; xlog("vox req: %s ret %u EXIT %s ctl %p ctl+660 %llx ctl+7c0 %x speaker team %d req %llx %llx", which ? "event" : "record", g_prv_ring[i].r,
+                                    g_prv_ring[i].code_ok ? prv_exit_txt(g_prv_ring[i].code) : "unseen", ctl, (unsigned long long)g_prv_ring[i].c660, g_prv_ring[i].f7c0,
+                                    g_prv_ring[i].own_ok ? (int)g_prv_ring[i].own_team : -1, (unsigned long long)g_prv_ring[i].k0, (unsigned long long)g_prv_ring[i].k1); }
+    }
+#endif
     if (which == 1 && g_prv_ring[i].code_ok && g_prv_ring[i].code == 19) {
         static int nv; char *o = NULL; char *slot = NULL; uint32_t gen58 = 0xffffffffu;
         if (ctl && !IsBadReadPtr((char *)ctl + 0x50, 16)) { slot = *(char **)((char *)ctl + 0x50); gen58 = *(uint32_t *)((char *)ctl + 0x58); if (slot && !IsBadReadPtr(slot, 16)) o = *(char **)(slot + 8); }
@@ -718,6 +727,12 @@ static int dr_puppet_begin(uint32_t slot, uint64_t h, int from_down, int exec_de
 static int dr_puppet_begin_i(uint32_t slot, uint64_t h, int from_down, int exec_death, uint64_t *hold_t60) {
     if (hold_t60) *hold_t60 = 0;
     if (slot >= T2R_MAX_PEERS || !h || exec_death) return 0;
+    // (brawl clips: LEAD 258182 "deathreact: slot 2 died (standing)" after a pull-out fail): a body that just came out of a pull-out pair lies - the death is a lying one.
+    // t2r-pullout-death-hold-off.txt = old.
+    if (!from_down && pul_end_recent((int)slot, 6000) && GetFileAttributesA("t2r-pullout-death-hold-off.txt") == INVALID_FILE_ATTRIBUTES) {
+        static int npd; if (LOGCAP(npd, 30)) xlog("deathreact: slot %u died right after a pull-out pair - classified as a lying death, not a standing one (t2r-pullout-death-hold-off.txt = old)", slot);
+        from_down = 1;
+    }
     if (g_finisher_frame && g_t60 - g_finisher_frame < 300) return 0;                 // our finisher on them plays: the paired move kills them
     if (gx_busy_slot(slot) || psync_busy_slot(slot)) return 0;                       // an execution plays on them
     uint64_t nowm = GetTickCount64();

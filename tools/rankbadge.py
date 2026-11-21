@@ -30,15 +30,22 @@ def key(name):
 
 
 def wire(rows):
-    """rows = [(shown name, symbol, weeks)] -> the reply text (first row wins for a duplicate key; unknown ranks (0, 0) are still listed so a
-    low rank draws as rank 0 / 0 weeks, the same as the player's own page)."""
+    """rows = [(shown name, symbol, weeks[, role])] -> the reply text (first row wins for a duplicate key; unknown ranks (0, 0) are still listed so a
+    low rank draws as rank 0 / 0 weeks, the same as the player's own page).
+    An entry with a role (tools/roles.py: 1 OG, 2 admin, 3 dev, 4 lead dev) carries it as a 4th field "HHHHHHHH:r:w:role" (the badge colour,
+    the lead's nametag outline). An older ext reads the first three fields and skips the rest of the word, so the field is safe to add."""
     seen, out = set(), []
-    for name, rk, wk in rows:
+    for row in rows:
+        name, rk, wk = row[0], row[1], row[2]
+        role = int(row[3]) if len(row) > 3 and row[3] else 0
         k = key(name)
         if not k or k in seen:
             continue
         seen.add(k)
-        out.append("%08x:%d:%d" % (k, max(0, min(9, int(rk))), max(0, min(999, int(wk)))))
+        e = "%08x:%d:%d" % (k, max(0, min(9, int(rk))), max(0, min(999, int(wk))))
+        if 0 < role <= 4:
+            e += ":%d" % role
+        out.append(e)
     return ("n=%d " % len(out)) + " ".join(out)
 
 

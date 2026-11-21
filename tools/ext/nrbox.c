@@ -22,7 +22,7 @@
 //   hidden until +0.12 s (the lid is moving), the unlock-crate-haptic comes at +0.12 s, the backpack insert sound at +0.37 s (all measured from the anim
 //   start). A box another player opened (flag edge seen here, polled EVERY frame now) gets the same anim + sounds + reveal at the edge (no backpack
 //   sound / haptic: not our body). Floating marker (listen-mode-visible + buddy-draw 1, SP's two natives) on a closed crate, off at the open, on again at the refill.
-//   t2r-old-crate-open.txt next to the exe = the earlier behaviour (15-frame poll, sounds on the player, hub-style delays, no marker / hidden loot).
+//   t2r-old-crate-open.txt next to the exe = the pre-behaviour (15-frame poll, sounds on the player, hub-style delays, no marker / hidden loot).
 //   t2r-no-crate-marker.txt = no marker. t2r-crate-clip-sounds.txt = do not play the three sounds ourselves (the open clip's own events do it).
 #define NRB_MAX 16
 static struct { uint64_t hash, obj; uint8_t open; int tried; float pos[4], q[4]; uint64_t loot_at; uint64_t reveal_ms; int marker; uint8_t *e; int kin, kin_tries; uint32_t fix_n; uint64_t anim_until; int flr; int pn; uint64_t ph[32]; float pp[32][4], pq[32][4]; } g_nrb[NRB_MAX];
@@ -149,7 +149,7 @@ static uint64_t nrbox_spawn(int i, uint64_t spawner_hash, uint8_t *e) {
     nrbox_move_slots(e, pos, rot);
     return o;
 }
-// A/B: winmm places the box's pickups from positions it took before nrbox moved the itempos spawners, so the loot lay in the grass in
+// winmm places the box's pickups from positions it took before nrbox moved the itempos spawners, so the loot lay in the grass in
 // front of the crate. After the open, the box's own spawned list (record +0x30, std::vector of handles, as b13_fill_end fills it) is
 // moved onto the lining: slot k = NRB_LOC[k] in the crate frame. Run at the open edge and again 15 and 45 frames later (late spawns).
 static const char *const NRB_KINDN[5] = {"ammo", "ingredient", "throwable", "health", "melee"};
@@ -186,7 +186,7 @@ static int nrb_melee_extent(const char *wn, const float *q, float *lo, float *hi
     return 0;
 }
 static int nrb_slot_kind(int k) { return k == 0 ? 1 : k == 1 ? 0 : k == 2 ? 3 : k == 3 ? 4 : k == 4 ? 2 : -1; }   // B13_K_* -> NRB_KQ index (ammo 0, ingredient 1, throwable 2, health 3, melee 4)
-// layout: the crate has ONE melee slot (the weapon lies along the long axis in the lower half), 'item' slots in the upper half and 'spare' slots (lower half) that are used
+// Layout: the crate has ONE melee slot (the weapon lies along the long axis in the lower half), 'item' slots in the upper half and 'spare' slots (lower half) that are used
 // only when the box has no melee weapon or more items than item slots. The kind of each loot handle comes from box_spawn (box_kind_of). Logged per open.
 // crate-local position of a loot item in slot sl (the slot, a second layer 3 cm up, a melee weapon fitted inside the interior)
 static void nrb_local_pose(int i, int sl, int layer, int kind, uint64_t it, uint64_t handle, float *vv) {
@@ -325,7 +325,7 @@ static void nrbox_move_loot(int i, uint8_t *e) {
         uint64_t bf = dc_call(0x871ec52cc86b7427ULL /* alloc-bound-frame */, 5, bfa);
         uint64_t la[2] = {b[k], bf};
         uint64_t r = bf && bf != ~0ULL ? dc_call(fnv64("set-object-locator"), 2, la) : 0;
-        // (loot sometimes ended up on the floor after opening a supply box): the spawned crate prop has no Havok body (nr-supply-box.md section 6) and the stock chest's
+        // (items sometimes still ended up on the floor when a supply box opened): the spawned crate prop has no Havok body (nr-supply-box.md section 6) and the stock chest's
         // small collision only carries the middle slots, so a loot pickup moved onto the lining was a DYNAMIC body with nothing under it and dropped through to the floor (the
         // outer slots, and every slot once the chest was hidden / the lid animates). Loot is now made KINEMATIC the moment it is placed (the melee drops' md_make_kinematic:
         // Body::RequestMotionType 1, still pickable, nothing pushes it); every pass (frames 1/2/8/15/45 after the open) repeats it, a body created late is caught by the later ones.
@@ -388,7 +388,7 @@ static void nrbox_hide_loot(int i, uint8_t *e) {       // loot stays invisible u
         dc_call(fnv64("hide-object-for-one-frame"), 1, a);
     }
 }
-// (the crate tilted 30 degrees after the open, then got stuck in front of the player and followed it): the spawned crate keeps the actor's own
+// (a recording: the crate tilted 30 degrees after the open, then stuck in front of the player and followed it): the spawned crate keeps the actor's own
 // Havok collision (rl-cache-crate-military, 4 convex shapes) and it is a DYNAMIC body: the loot / melee pickup spawned inside its volume shoved it (tilt), and the player's capsule then
 // pushed it along as they walked and turned (always in front of B's camera). Fix: the crate is made KINEMATIC (md_make_kinematic = Body::RequestMotionType 1, retried until its bodies exist)
 // and every 3 frames its locator is compared with its placement; a crate that drifted > 3 cm / tilted is put straight back (set-object-locator). t2r-no-crate-lock.txt = off.
@@ -495,7 +495,7 @@ static void nrbox_tick(void) {
     for (uint8_t *e = beg; e < end; e += 0x48) {
         if (*(uint64_t *)(e + 0x18) == *(uint64_t *)(e + 0x20)) continue;        // an unused slot (no item positions)
         uint64_t h = *(uint64_t *)e;
-        // A/B: the winmm table's order/empty slots shift during a match, so keying our state by table position respawned a crate
+        // the winmm table's order/empty slots shift during a match, so keying our state by table position respawned a crate
         // (old one never deleted) on the same spawner -> two crates, one animated open, one closed. Key by spawner hash.
         int i = -1;
         for (int j = 0; j < NRB_MAX; j++) if (g_nrb[j].hash == h) { i = j; break; }
@@ -525,8 +525,8 @@ static void nrbox_tick(void) {
 }
 
 // ---------------------------------------------------------------- supply boxes on another floor: the RADAR icon changes
-// Supply boxes that aren't on your level (with some leeway, so you don't need to be exactly the same Y as the box) are grayed out, and the grayed-out boxes get
-// a tiny white arrow up or down - on the RADAR (not in the 3D world; the engine's 3D crate marker is untouched). This file only keeps the state: g_nrb[i].flr = 0 same
+// Boxes that are not on the player's level (with some leeway, so the Y need not match exactly) are grayed out, and the grayed-out boxes have
+// a tiny white arrow up or arrow down - on the RADAR (not in the 3D world; the engine's 3D crate marker is untouched). This file only keeps the state: g_nrb[i].flr = 0 same
 // floor, 1 = box ABOVE us, 2 = box BELOW us; radar_box.c swaps the radar icon of that box for the grey-crate-with-arrow texture (radar-box-up / radar-box-down, make_icons.radar_box_floor).
 //   same level  = |dy| <= 2.0 m (dy = box y - our feet y, player_locator); another floor at |dy| > 2.0, our floor again at |dy| < 1.85 (15 cm hysteresis against flicker on a stair landing).
 //   Why 2.0: Bookstore's floors are at y about -1, 4.4 and 8 (storeys 3.6 - 4.4 m apart; a crate stands ~0.25 m above its floor), so a box on the NEXT floor is at least ~3.3 m off, a box

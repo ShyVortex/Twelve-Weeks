@@ -1,6 +1,6 @@
 // ---------------------------------------------------------------- DEV TEST BOT (compiled out under T2R_RELEASE; included after pairtest.c in t2r-ext.c)
 //
-// Lets us test MP melee / dodge / hit reactions / dodge counter / escape between the local A and B with no human. t2r-bot.txt next to the exe
+// Lets a developer test MP melee / dodge / hit reactions / dodge counter / escape between the local A and B with no human. t2r-bot.txt next to the exe
 // is a COMMAND PROGRAM (one command per line, '#' comments), re-read whenever its modification time changes (polled every 500 ms) - a new/changed file restarts the
 // program at line 1. Every command and its result is logged with the prefix "bot:" so tools/win/ab_melee_scenarios.py can assert outcomes:
 //     bot: program loaded (N lines, file mtime ...)            bot: #3 melee BEGIN ...    bot: #3 melee OK|FAIL <why> tms N    bot: DONE tms N   bot: MARK <name> tms N
@@ -230,7 +230,7 @@ static const char *bot_weapon_id(const char *w) {
     if (!strcmp(w, "pipe")) return "lead-pipe";
     if (!strcmp(w, "bat")) return "baseball-bat";
     // A male life never keeps the knife (t2r-ext.c male_knife_strip removes it 1 frame later - the bot fought unarmed); a male gets the hatchet (one-handed blade)
-    if (!strcmp(w, "knife")) return own_female() ? "knife-survival-mel-player" : "hatchet";
+    if (!strcmp(w, "knife")) return own_knife() ? "knife-survival-mel-player" : "hatchet";
     return w;
 }
 // ---- named scenarios
@@ -523,6 +523,75 @@ static int bot_step(char *cmd, const char *args, char *why, size_t wn) {
     float me[16]; const float *l = uc4_my_loc(me);
     float o[8];
     if (!strcmp(cmd, "wait")) { return el >= (uint64_t)atoi(args) ? 1 : 0; }
+    if (!strcmp(cmd, "posedump")) {  // faction choice art: "posedump <tag>" = our body's joint world pos + quat (get-joint-locator) and the held weapon -> t2r-pose-<tag>.json
+        static const char *const PJ[] = {"root", "pelvis", "spinea", "spineb", "spinec", "spined", "neck", "heada", "headb", "jaw", "l_clavicle", "r_clavicle",
+            "l_shoulder", "r_shoulder", "l_elbow", "r_elbow", "l_wrist", "r_wrist", "l_palm", "r_palm", "l_hand_prop", "r_hand_prop", "l_hand_prop_attachment",
+            "r_hand_prop_attachment", "spine_prop", "spine_prop_attachment", "r_upper_leg", "l_upper_leg", "r_knee", "l_knee", "r_ankle", "l_ankle", "r_ball", "l_ball",
+            "r_toe", "l_toe", "r_heel", "l_heel", "l_thumba", "r_thumba", "l_thumbb", "r_thumbb", "l_thumbc", "r_thumbc", "l_index_meta", "r_index_meta", "l_indexa",
+            "r_indexa", "l_indexb", "r_indexb", "l_indexc", "r_indexc", "l_middle_meta", "r_middle_meta", "l_middlea", "r_middlea", "l_middleb", "r_middleb", "l_middlec",
+            "r_middlec", "l_ring_meta", "r_ring_meta", "l_ringa", "r_ringa", "l_ringb", "r_ringb", "l_ringc", "r_ringc", "l_pinky_meta", "r_pinky_meta", "l_pinkya",
+            "r_pinkya", "l_pinkyb", "r_pinkyb", "l_pinkyc", "r_pinkyc", "l_eyeball", "r_eyeball"};
+        char tag[64]; if (sscanf(args, "%63s", tag) != 1) { snprintf(why, wn, "need a tag"); return -1; }
+        if (!bot_ready()) return el > 15000 ? (snprintf(why, wn, "not in a live match"), -1) : 0;
+        char fn[96]; snprintf(fn, sizeof fn, "t2r-pose-%s.json", tag);
+        FILE *f = exe_side_open(fn, "w"); if (!f) { snprintf(why, wn, "cannot write %s", fn); return -1; }
+        uint64_t wid = current_weapon(), z = 0, aim = dc_call(fnv64("player-is-aiming?"), 1, &z);
+        fprintf(f, "{\"tag\": \"%s\", \"weapon_id\": \"%016llx\", \"aiming\": %d, \"joint_format\": \"x y z qx qy qz qw (world)\",\n", tag, (unsigned long long)wid, aim != ~0ULL && (aim & 0xff));
+        float lb[16]; const float *pl = puppet_locator(SID_PLAYER, lb);
+        if (pl && !IsBadReadPtr(pl, 32)) fprintf(f, " \"locator\": [%.5f, %.5f, %.5f, %.6f, %.6f, %.6f, %.6f],\n", pl[0], pl[1], pl[2], pl[4], pl[5], pl[6], pl[7]);
+        fprintf(f, " \"joints\": {");
+        int n = 0;
+        for (size_t i = 0; i < sizeof PJ / sizeof *PJ; i++) {
+            uint64_t a[2] = {SID_PLAYER, fnv64(PJ[i])};
+            uint64_t r = dc_call(0x6b8812bd30c5cd5dULL /* get-joint-locator */, 2, a);
+            // (first run: 0 joints - the answer is a boxed locator, not raw floats at r. The position comes from winmm's reader (as gx_joint_pos);
+            //  the raw 64 bytes go out too, so the rotation's place is read offline.)
+            typedef char (*fn_lpos)(void *, float *);
+            float t[4] = {0};
+            if (!r || r == ~0ULL || IsBadReadPtr((void *)r, 64)) { if (!i) xlog("bot: posedump %s: joint %s answer %llx", tag, PJ[i], (unsigned long long)r); continue; }
+            uint64_t cp[8]; memcpy(cp, (const void *)r, 64);      // (first: winmm's reader runs a native whose answer reuses the same scratch)
+            int pok = ((fn_lpos)VMA(0x1800171E0))((void *)r, t) != 0;
+            const float *w = (const float *)cp;
+            fprintf(f, "%s\n  \"%s\": {\"pos\": [%.5f, %.5f, %.5f], \"pos_ok\": %d, \"raw\": [", n ? "," : "", PJ[i], t[0], t[1], t[2], pok);
+            for (int k = 0; k < 16; k++) fprintf(f, "%s%.6g", k ? ", " : "", __builtin_isfinite(w[k]) ? w[k] : 0.0f);
+            fprintf(f, "], \"raw_q\": [");
+            for (int k = 0; k < 8; k++) fprintf(f, "%s\"%016llx\"", k ? ", " : "", (unsigned long long)cp[k]);
+            fprintf(f, "]");
+            for (int k = 0; k < 4; k++) {         // a word that is a pointer: its first 48 bytes as floats (the locator may sit behind one)
+                uint64_t pw = cp[k];
+                if (pw < 0x10000 || pw > 0x7fffffffffffULL || IsBadReadPtr((void *)pw, 48)) continue;
+                fprintf(f, ", \"deref%d\": [", k);
+                for (int q = 0; q < 12; q++) { float v = ((const float *)pw)[q]; fprintf(f, "%s%.6g", q ? ", " : "", __builtin_isfinite(v) ? v : 0.0f); }
+                fprintf(f, "]");
+            }
+            fprintf(f, "}"); n++;
+        }
+        // (the melee blade direction in the faction art was wrong): the HELD WEAPON's own transform, from its process
+        // (get-player-weapon-process-id) - joint locators of the weapon object, same boxed-locator read as the body joints
+        fprintf(f, "\n },\n \"weapon\": {");
+        {
+            uint64_t none = 0, wp = dc_call(fnv64("get-player-weapon-process-id"), 0, &none);
+            static const char *const WJ[] = {"root", "grip", "attach", "prop", "r_hand_prop", "handle", "blade", "tip", "muzzle"};
+            int nw = 0;
+            fprintf(f, "\"process\": \"%016llx\"", (unsigned long long)wp);
+            for (size_t k = 0; wp && wp != ~0ULL && k < sizeof WJ / sizeof *WJ; k++) {
+                uint64_t a[2] = {wp, fnv64(WJ[k])};
+                uint64_t r = dc_call(0x6b8812bd30c5cd5dULL /* get-joint-locator */, 2, a);
+                if (!r || r == ~0ULL || IsBadReadPtr((void *)r, 64)) continue;
+                uint64_t cp[8]; memcpy(cp, (const void *)r, 64);
+                typedef char (*fn_lpos)(void *, float *);
+                float t[4] = {0};
+                int pok = ((fn_lpos)VMA(0x1800171E0))((void *)r, t) != 0;
+                const float *w = (const float *)cp;
+                fprintf(f, ",\n  \"%s\": {\"pos\": [%.5f, %.5f, %.5f], \"pos_ok\": %d, \"raw\": [", WJ[k], t[0], t[1], t[2], pok);
+                for (int q = 0; q < 16; q++) fprintf(f, "%s%.6g", q ? ", " : "", __builtin_isfinite(w[q]) ? w[q] : 0.0f);
+                fprintf(f, "]}"); nw++;
+            }
+            if (!nw) xlog("bot: posedump %s: weapon process %llx gave no joint locator", tag, (unsigned long long)wp);
+        }
+        fprintf(f, "\n }}\n"); fclose(f);
+        snprintf(why, wn, "posedump %s: %d joints, weapon %016llx, aiming %llx", fn, n, (unsigned long long)wid, (unsigned long long)aim); return 1;
+    }
     if (!strcmp(cmd, "mark")) { xlog("bot: MARK %s tms %llu", args, PT_MS); return 1; }
     if (!strcmp(cmd, "target")) { g_bot.tslot = !strcmp(args, "nearest") || !*args ? -1 : atoi(args); return 1; }
     if (!strcmp(cmd, "god")) { g_bot.god = atoi(args); return 1; }
@@ -601,6 +670,14 @@ static int bot_step(char *cmd, const char *args, char *why, size_t wn) {
         uint64_t ret[64] = {0}, give[4] = {fnv64(w), 0, 0, (uint64_t)(n > 0 ? n : 1)};
         if (g_give_orig) g_give_orig(ret, 4, give, 0);
         snprintf(why, wn, "%s x%d given", w, n); return 1;
+    }
+    if (!strcmp(cmd, "reserve")) {  // "reserve <ammo item> <n>": add n to an ammo pool (player-inventory-add-item-quantity, what an ammo pickup does; 'give ammo-x n' adds nothing)
+        if (!bot_ready()) return el > 15000 ? (snprintf(why, wn, "not in a live match"), -1) : 0;
+        char w[64]; int n = 1; if (sscanf(args, "%63s %d", w, &n) < 1) { snprintf(why, wn, "no item"); return -1; }
+        int before = (int)inv_qty(fnv64(w));
+        dc_direct(0x7258db3b9e03e625ULL, fnv64(w), (uint64_t)(n > 0 ? n : 1), 0);
+        int after = (int)inv_qty(fnv64(w));
+        snprintf(why, wn, "%s %d -> %d", w, before, after); return after > before ? 1 : -1;
     }
     if (!strcmp(cmd, "weapon")) {
         if (!bot_ready()) return el > 15000 ? (snprintf(why, wn, "not in a live match"), -1) : 0;
@@ -743,6 +820,38 @@ static int bot_step(char *cmd, const char *args, char *why, size_t wn) {
             snprintf(why, wn, "%s held %d ms (wrapper: joypad-command-active? answers yes - only script-side readers see it)", c, ms); return 1;
         }
         snprintf(why, wn, "%s held %d ms (pad)", c, ms); return 1;
+    }
+    if (!strcmp(cmd, "aimat")) {    // weapons test: "aimat <ms> [height m]" = turn the camera (right stick) onto the opponent's body (feet + height, default 1.2 m)
+                                    // for ms, blocking (hold aim first: the aim follows the camera). Closed loop on the live camera ray; the stick sign of each
+                                    // axis is learned (flipped when the error grows while the stick pushes)
+        int ms = 1500; float h = 1.2f; sscanf(args, "%d %f", &ms, &h);
+        static float sy = 1.0f, sp = 1.0f, pey, pep; static uint64_t pt;
+        int s = bot_opp(o);
+        float cp[3], cd[3];
+        if (s < 0 || !l || !cam_pos_dir(cp, cd)) return el > 10000 ? (snprintf(why, wn, "no live enemy / no camera"), -1) : 0;
+        if (g_bot.ph == 0) { padinj_install(); padinj_nofocus(1); g_bot.ph = 1; pt = 0; }
+        float tx = o[0] - cp[0], ty = o[1] + h - cp[1], tz = o[2] - cp[2], fl = __builtin_sqrtf(tx * tx + tz * tz);
+        float ey = bot_wrap(__builtin_atan2f(tx, tz) - __builtin_atan2f(cd[0], cd[2]));
+        float ep = __builtin_atan2f(ty, fl) - __builtin_atan2f(cd[1], __builtin_sqrtf(cd[0] * cd[0] + cd[2] * cd[2]));
+        if (!pt || now - pt >= 250) {
+            if (pt) {
+                if (__builtin_fabsf(pey) > 0.05f && __builtin_fabsf(ey) > __builtin_fabsf(pey) + 0.01f) sy = -sy;
+                if (__builtin_fabsf(pep) > 0.05f && __builtin_fabsf(ep) > __builtin_fabsf(pep) + 0.01f) sp = -sp;
+            }
+            pey = ey; pep = ep; pt = now;
+        }
+        // proportional with a floor (the stick has a dead zone / slow start: 2.5x alone stalled at 5 to 10 deg off)
+        float rx = sy * ey * 4.0f, ry = sp * ep * 4.0f;
+        if (__builtin_fabsf(rx) < 0.2f) rx = rx < 0 ? -0.2f : 0.2f;
+        if (__builtin_fabsf(ry) < 0.2f) ry = ry < 0 ? -0.2f : 0.2f;
+        rx = rx > 1 ? 1 : rx < -1 ? -1 : rx; ry = ry > 1 ? 1 : ry < -1 ? -1 : ry;
+        if (__builtin_fabsf(ey) < 0.008f) rx = 0;
+        if (__builtin_fabsf(ep) < 0.008f) ry = 0;
+        padinj_stick(0, 0, rx, ry, 60, g_bot.pad_swap);
+        if (el < (uint64_t)ms) return 0;
+        padinj_stick_off();
+        snprintf(why, wn, "camera on slot %d: yaw error %.1f deg, pitch error %.1f deg (stick signs %+.0f %+.0f), dist %.1f m", s, ey * 57.2958f, ep * 57.2958f, sy, sp, fl);
+        return 1;
     }
     if (!strcmp(cmd, "stick")) {    // "stick <lx> <ly> <rx> <ry> <ms>" = both sticks (-1..1, ly > 0 forward, rx > 0 look right) for ms (blocking for ms): camera turns,
                                     // walk / strafe in any direction without the approach steering

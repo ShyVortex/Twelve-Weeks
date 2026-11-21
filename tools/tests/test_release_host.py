@@ -1,4 +1,4 @@
-"""Release host folder: build_release.HOST_FILES must hold everything daemon.py imports (gunlimit.py was once missing and the
+"""Release host folder: build_release.HOST_FILES must hold everything daemon.py imports (gunlimit.py was missing and the
 server did not start). Run: python tools/tests/test_release_host.py   (plain python; copies into a temp folder, imports the daemon with a temp DB)."""
 import importlib.util, os, shutil, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
@@ -16,14 +16,13 @@ def check(cond, what):
     if not cond:
         FAILS.append(what)
 
-for f in [f for f in br.HOST_FILES if f not in br.OPTIONAL_HOST_FILES]:
+for f in br.HOST_FILES:
     check(os.path.exists(os.path.join(TOOLS, f)), "HOST_FILES: tools/%s exists" % f)
 with tempfile.TemporaryDirectory() as td:
     host = os.path.join(td, "host")
     os.makedirs(host)
     for f in br.HOST_FILES:
-        if os.path.exists(os.path.join(TOOLS, f)):
-            shutil.copy(os.path.join(TOOLS, f), host)
+        shutil.copy(os.path.join(TOOLS, f), host)
     try:
         br.check_host(host)
         check(True, "daemon.py imports from a folder holding exactly HOST_FILES")

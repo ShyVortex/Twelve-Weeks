@@ -50,12 +50,22 @@ def _keystream_chunk(c, i0):
 
 
 def keystream_xor(buf):
-    nq = len(buf) // 8
-    c = np.frombuffer(buf[:nq * 8], dtype="<u8")
-    step = 1 << 22                                     # (qwords per task; numpy drops the GIL in these ufuncs)
+    """-> bytearray (same length). XORs a copy in place, task by task: peak memory = input + output + the tasks' temporaries.
+    The old version kept every encrypted part and joined their tobytes() copies (~4x the payload at once) and hit
+    MemoryError on a 1.2 GB Part I side build while another game held the commit charge."""
+    out = bytearray(buf)
+    nq = len(out) // 8
+    c = np.frombuffer(out, dtype="<u8", count=nq)
+    step = 1 << 20                                     # (qwords per task; numpy drops the GIL in these ufuncs. 1 << 22 held about
+                                                       # 160 MB of temporaries per worker - it was one of these 32 MiB arrays that failed)
+
+    def task(a):
+        c[a:a + step] = _keystream_chunk(c[a:a + step], a)
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=_workers()) as ex:
-        parts = list(ex.map(lambda a: _keystream_chunk(c[a:a + step], a), range(0, nq, step)))
-    return b"".join(x.tobytes() for x in parts) + bytes(buf[nq * 8:])
+        list(ex.map(task, range(0, nq, step)))
+    del c
+    return out
 
 
 def fnv_payload_py(buf):
@@ -162,18 +172,53 @@ def dsar_read(buf):
     assert magic == b"DSAR", magic
     mv = memoryview(buf)
 
+    # each chunk goes straight into one preallocated buffer (peak ~1x the payload; a list + join was ~2x and hit MemoryError next to two running
+    # game instances). Returns a bytearray.
+    ents = [struct.unpack_from("<QII", buf, 0x28 + i * 0x20) for i in range(n)]
+    starts, pos = [], 0
+    for _off, usz, _csz in ents:
+        starts.append(pos)
+        pos += usz
+    assert pos == total, (pos, total)
+    out = bytearray(total)                               # zero-filled: all-zero chunks (csz == 0, stock archives) need no write
+    om = memoryview(out)
+
     def one(i):
-        off, usz, csz = struct.unpack_from("<QII", buf, 0x28 + i * 0x20)
+        off, usz, csz = ents[i]
         if csz == 0:
-            return b"\0" * usz                           # stock archives: all-zero chunk
+            return
         if csz == usz:
-            return bytes(mv[off:off + csz])              # stored (stock game archives have some)
-        return lz4.block.decompress(mv[off:off + csz], uncompressed_size=usz)
+            om[starts[i]:starts[i] + usz] = mv[off:off + csz]    # stored (stock game archives have some)
+            return
+        om[starts[i]:starts[i] + usz] = lz4.block.decompress(mv[off:off + csz], uncompressed_size=usz)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=_workers()) as ex:    # (python-lz4 drops the GIL)
-        out = b"".join(ex.map(one, range(n), chunksize=16))
-    assert len(out) == total, (len(out), total)
+        list(ex.map(one, range(n), chunksize=16))
+    del om
     return out
+
+
+def dsar_digest(buf):
+    """blake2b of the data a DSAR decodes to, chunk by chunk in order - what dsar_read() would return, without the full-size copy
+    (split_payload's round-trip check)."""
+    magic, ver, n, data_start, total = struct.unpack_from("<4sIIIQ", buf, 0)
+    assert magic == b"DSAR", magic
+    mv = memoryview(buf)
+    h = hashlib.blake2b()
+    pos = 0
+    for i in range(n):
+        off, usz, csz = struct.unpack_from("<QII", buf, 0x28 + i * 0x20)
+        if csz == 0:
+            h.update(bytes(usz))
+        elif csz == usz:
+            h.update(mv[off:off + csz])
+        else:
+            d = lz4.block.decompress(mv[off:off + csz], uncompressed_size=usz)
+            assert len(d) == usz, (i, len(d), usz)
+            h.update(d)
+        pos += usz
+    assert pos == total, (pos, total)
+    return h.digest()
 
 
 def _workers():
@@ -257,7 +302,7 @@ def dsar_write(data, cuts, align=None):
         while a < b:
             spans.append((a, min(b, a + DSAR_CHUNK)))
             a = spans[-1][1]
-    # Every chunk is an lz4 block - stored (csz == usz) chunks broke every mod PNG (custom icons, map images) under either entry
+    # every chunk is an lz4 block - stored (csz == usz) chunks broke every mod PNG (custom icons, map images) under either entry
     # tag, the game does not read them. An lz4 block of EXACTLY usz bytes would read back as stored, so that chunk is encoded as a
     # literal-only lz4 block instead (always usz + 1 + (usz - 15) // 255 + 1 bytes, a valid block every decoder accepts).
     n = len(spans)
@@ -288,23 +333,28 @@ def dsar_write(data, cuts, align=None):
     for off, usz, csz, uend, tag in entries:
         dir_ += struct.pack("<QIIQQ", off, usz, csz, tag, uend)
     dir_ = dir_[:-8]                                     # last 8 bytes overlap the data start
-    return head + bytes(dir_) + b"".join(blocks)
+    # ONE join (head + dir + b"".join(blocks) built the archive twice - with the Part I side data that is 4 GB of blocks, a 4 GB
+    # join and a second 4 GB copy for the concatenation; two data builds died here with MemoryError on a full PC). Same bytes.
+    return b"".join([head, bytes(dir_)] + blocks)
 
 
 # ------------------------------------------------------------------ PSARC layer
-def psarc_read(psar):
+def psarc_read(psar, expect=None):
+    """expect: {path: bytes} the archive was written from (the round-trip check of a build). A file whose stored bytes equal the expected
+    ones is returned as THAT object instead of a new copy: the check then holds one copy of the stage less (6 GB; two builds ended in
+    MemoryError here with 27 GB of commit free)."""
     magic, vmaj, vmin, comp, toc_len, esz, n, bsize, flags = struct.unpack_from(">4sHH4sIIIII", psar, 0)
     assert magic == b"PSAR" and comp == b"zlib" and esz == 30, (magic, comp, esz)
     toc = []
     for i in range(n):
-        e = psar[32 + i * 30: 32 + (i + 1) * 30]
+        e = bytes(psar[32 + i * 30: 32 + (i + 1) * 30])     # bytes: the md5 is a dict key (dsar_read returns a bytearray)
         toc.append((e[:16], int.from_bytes(e[16:20], "big"),
                     int.from_bytes(e[20:25], "big"), int.from_bytes(e[25:30], "big")))
     bt_off = 32 + n * 30
     nblk = (toc_len - bt_off) // 2
     bsizes = struct.unpack_from(f">{nblk}H", psar, bt_off)
 
-    def file_bytes(bi, usz, off):
+    def file_bytes(bi, usz, off, like=None):
         # fast path: a file whose blocks are all stored raw (what psarc_write makes) is one contiguous slice
         raw, o2, got = True, off, 0
         while got < usz:
@@ -316,6 +366,8 @@ def psarc_read(psar):
             o2 += cs
             got += want
         if raw:
+            if like is not None and len(like) == o2 - off and memoryview(psar)[off:o2] == like:
+                return like
             return bytes(psar[off:o2])
         out = bytearray()
         while len(out) < usz:
@@ -340,7 +392,7 @@ def psarc_read(psar):
     order = []
     for md5, bi, usz, off in toc[1:]:
         p = by_md5[md5]
-        files[p] = file_bytes(bi, usz, off)
+        files[p] = file_bytes(bi, usz, off, expect.get(p) if expect else None)
         order.append((off, p))
     data_order = [p for _, p in sorted(order)]           # physical order in the archive
     return {"flags": flags, "paths": paths, "data_order": data_order, "trail": trail}, files
@@ -367,7 +419,7 @@ def psarc_write(meta, files):
     pieces, layout, bi = [], {}, 0
     for p in order:
         data = manifest if p is None else files[p]
-        # (MemoryError next to a running game: the block slices + their join copied every file twice; the sizes come
+        # (MemoryError in build 166 next to a running game: the block slices + their join copied every file twice; the sizes come
         # from arithmetic now and the file bytes go in as they are - the same bytes as joining its consecutive PSARC_BLOCK slices)
         nfull, rest = divmod(len(data), PSARC_BLOCK)
         sizes = [PSARC_BLOCK] * nfull + ([rest] if rest or not nfull else [])
@@ -401,12 +453,21 @@ def psarc_write(meta, files):
     return out, cuts
 
 
-def split_payload(meta, files, side_paths, delta=0, modulus=0x10000):
+def split_payload(meta, files, side_paths, delta=0, modulus=0x10000, check=None):
     """T2R_P1_SIDE_VIRT (re/part1/side-files.md): the same archive as pack_bytes builds, but the data of `side_paths` is laid out LAST and cut off.
     -> (phys, side, info): phys = the T2ME payload (encrypted DSAR up to the first side chunk), side = the encrypted remainder (the side file's
     bytes). Playing them back to back (phys, then side starting at payload position T) is byte-identical to the unsplit encrypted DSAR, so every
     offset in the directory, the keystream index and the PSARC TOC stay valid; T satisfies (delta + T) % modulus == 0, i.e. if the payload
-    starts `delta` bytes into a 64 KiB-aligned file view, the side file mapped right behind the view starts on a view boundary."""
+    starts `delta` bytes into a 64 KiB-aligned file view, the side file mapped right behind the view starts on a view boundary.
+    check (build #18 run 1 ended in MemoryError with 23 GB of commit free: the stage is 6.9 GB, and stage + PSARC image + DSAR +
+    its encrypted copy were alive together, then the round-trip check decoded one more PSARC image):
+      None  = as before: nothing checked here, `files` untouched (the caller does its own round trip);
+      True  = the round trip is checked HERE in two halves that never hold a second image - the PSARC image is read back against
+              `files` while it exists, and the DSAR must decode (dsar_digest) to exactly that image - and `files` is EMPTIED once the
+              PSARC image is written and checked: the compression then runs with one stage-sized buffer, not two;
+      False = no check (T2R_FAST_PACK), `files` emptied all the same.
+    info["files"] = the file count (the dict may be empty on return), info["checked"]."""
+    nfiles = len(files)
     sp = set(p for p in side_paths if p in files)
     meta2 = dict(meta, data_order=[p for p in meta["data_order"] if p not in sp] + sorted(sp))
     psar, cuts = psarc_write(meta2, files)
@@ -422,7 +483,20 @@ def split_payload(meta, files, side_paths, delta=0, modulus=0x10000):
         assert offs, "split_payload: none of the %d side files found in the PSARC TOC" % len(sp)
         first = min(offs)
     align = (first, modulus, (-delta) % modulus) if first is not None else None
+    digest = None
+    if check:
+        m2, f2 = psarc_read(psar, files)
+        assert f2 == files and m2["paths"] == meta["paths"], "round-trip mismatch (PSARC layer)"
+        del m2, f2
+        digest = hashlib.blake2b(psar).digest()
+    if check is not None:
+        files.clear()
     dsar = dsar_write(psar, cuts, align)
+    # (build #18 run 1: MemoryError in keystream_xor with 23 GB of commit free at the start - the stage is 6.9 GB now and the
+    # PSARC image, one more stage-sized copy, was still alive here though nothing reads it after dsar_write)
+    del psar
+    if digest is not None:
+        assert dsar_digest(dsar) == digest, "round-trip mismatch (DSAR layer)"
     t = len(dsar)
     if first is not None:                                # DSAR position of the chunk that holds PSARC offset `first`
         n_ent = struct.unpack_from("<I", dsar, 8)[0]
@@ -436,7 +510,10 @@ def split_payload(meta, files, side_paths, delta=0, modulus=0x10000):
         else:
             raise AssertionError("first side chunk not found")
     enc = keystream_xor(dsar)
-    return enc[:t], enc[t:], {"cut": t, "dsar": dsar, "size": len(dsar), "first": first}
+    # (no second copy of the payload: the tail is copied out, the head is the same bytearray cut short in place)
+    side = bytes(memoryview(enc)[t:])
+    del enc[t:]
+    return enc, side, {"cut": t, "dsar": dsar, "size": len(dsar), "first": first, "files": nfiles, "checked": bool(check)}
 
 
 # ------------------------------------------------------------------ DLL layer
@@ -466,7 +543,7 @@ def write_dll(dll_bytes, t2me):
     struct.pack_into("<H", out, pe.DOS_HEADER.e_lfanew + 4 + 2, pe.FILE_HEADER.NumberOfSections + 1)
     soi_off = pe.OPTIONAL_HEADER.get_file_offset() + 56
     struct.pack_into("<I", out, soi_off, (rva + len(t2me) + sa - 1) // sa * sa)
-    # the old resource now holds a dead copy of the unpatched DLL blob (~160 MB, incompressible):
+    # the old resource now holds a dead copy of the original mod blob (~160 MB, incompressible):
     # zero it so archives of the DLL compress it away (the client .rar had doubled)
     out[off:off + ent.Size] = b"\0" * ent.Size
     out += b"\0" * (raw_ptr - len(out))
@@ -487,16 +564,56 @@ def pack_split_bytes(dll, in_dir, side_paths, delta):
     """T2R_P1_SIDE virt build: like pack_bytes, but the data of `side_paths` is cut off (split_payload) and returned as the side file.
     -> (image bytes with the cut payload, side file bytes = encrypted tail + 16-byte build id, info {size1, size2, build_id, ...})"""
     meta, files = load_dir(in_dir)
-    phys, side, info = split_payload(meta, files, side_paths, delta)
+    phys, side, info = split_payload(meta, files, side_paths, delta, check=os.environ.get("T2R_FAST_PACK") != "1")
+    del files                                            # (emptied by split_payload; the round trip was checked there)
     t2me = struct.pack("<4sIQQ", b"T2ME", 4, len(phys), fnv_payload(phys)) + phys
     out = write_dll(dll if isinstance(dll, (bytes, bytearray)) else open(dll, "rb").read(), t2me)
     assert read_t2me(out)[0] == phys, "T2ME blob in the image differs from the one built"
-    if os.environ.get("T2R_FAST_PACK") != "1":
-        m2, f2 = psarc_read(dsar_read(info["dsar"]))
-        assert f2 == files and m2["paths"] == meta["paths"], "round-trip mismatch"
     bid = hashlib.sha256(phys).digest()[:16]
-    print(f"{len(files)} files, blob {len(t2me) / 1e6:.1f} MB + side {len(side) / 1e6:.1f} MB, verified")
+    print(f"{info['files']} files, blob {len(t2me) / 1e6:.1f} MB + side {len(side) / 1e6:.1f} MB, verified")
     return out, side + bid, {"size1": len(phys), "size2": len(side), "build_id": bid, "cut": info["cut"], "delta": delta}
+
+
+STUB_PAYLOAD = 0x10000      # T2R_PACK_FILE: payload bytes kept in the image (tools/features/pack_file.py STUB)
+
+
+def write_dll_stub(dll_bytes, prefix):
+    """T2R_PACK_FILE (tools/features/pack_file.py): a small T2ME blob (header + the payload's first bytes) written IN PLACE of the original
+    resource; the resource entry's size becomes the stub size so shrink_rsrc drops the rest from the file. No `.t2rc` section: SizeOfImage
+    stays the base image's. The loader checks the stub (magic, version, size, FNV) as before; the cave then points [d0]/[d8] at the file."""
+    pe, ent, off = find_blob(dll_bytes)
+    t2me = struct.pack("<4sIQQ", b"T2ME", 4, len(prefix), fnv_payload(prefix)) + bytes(prefix)
+    assert len(t2me) <= ent.Size and len(t2me) < 0x100000, (len(t2me), ent.Size)
+    out = bytearray(dll_bytes)
+    out[off:off + ent.Size] = b"\0" * ent.Size
+    out[off:off + len(t2me)] = t2me
+    struct.pack_into("<I", out, ent.get_file_offset() + 4, len(t2me))
+    struct.pack_into("<I", out, pe.OPTIONAL_HEADER.get_file_offset() + 64, 0)   # CheckSum: not enforced for DLLs
+    return bytes(out)
+
+
+def pack_file_bytes(dll, in_dir, side_paths=()):
+    """T2R_PACK_FILE build: the whole encrypted payload goes to t2r-data.bin (pack_file.write_data_file), the image keeps a stub.
+    side_paths (P1-side builds): their data is laid out last and cut at a 64 KiB boundary (split_payload, delta 0: the payload starts on a
+    view boundary in t2r-data.bin) and returned as part1.dat bytes.
+    -> (image bytes, payload, side file bytes (encrypted tail + 16-byte build id) or None, info {size1, size2, build_id, fnv})"""
+    meta, files = load_dir(in_dir)
+    phys, side, info = split_payload(meta, files, side_paths, 0, check=os.environ.get("T2R_FAST_PACK") != "1")
+    del files                                            # (emptied by split_payload; the round trip was checked there)
+    if side_paths:
+        assert side and len(phys) % 0x10000 == 0, "pack file: the Part I cut is not on a 64 KiB boundary"
+    fnv = fnv_payload(phys)
+    out = write_dll_stub(dll if isinstance(dll, (bytes, bytearray)) else open(dll, "rb").read(), phys[:STUB_PAYLOAD])
+    enc, _h = read_t2me(out)
+    assert enc == phys[:STUB_PAYLOAD], "T2ME stub in the image differs from the one built"
+    del info["dsar"]
+    bid = hashlib.sha256(phys).digest()[:16]
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "features"))
+    import pack_file
+    sfnv = pack_file.sampled_fnv(phys)
+    print(f"{info['files']} files, data file payload {len(phys) / 1e6:.1f} MB" + (f" + side {len(side) / 1e6:.1f} MB" if side else "") + ", verified")
+    return out, phys, (side + bid) if side else None, {"size1": len(phys), "size2": len(side), "build_id": bid, "fnv": fnv, "cut": info["cut"], "delta": 0,
+                                                 "sfnv": sfnv}
 
 
 # ------------------------------------------------------------------ commands
@@ -567,7 +684,7 @@ def pack_bytes(dll, in_dir, drop=()):
     # self-check: the blob inside the image is the one we built, and it decodes back to the files (dsar -> psarc layers)
     assert read_t2me(out)[0] == t2me[0x18:], "T2ME blob in the image differs from the one built"
     if os.environ.get("T2R_FAST_PACK") != "1":       # (A/B test builds skip the 14 s decode-back; the T2ME blob check above stays)
-        m2, f2 = psarc_read(dsar_read(dsar))
+        m2, f2 = psarc_read(dsar_read(dsar), files)
         assert f2 == files and m2["paths"] == meta["paths"], "round-trip mismatch"
     print(f"{len(files)} files, blob {len(t2me) / 1e6:.1f} MB, verified")
     return out

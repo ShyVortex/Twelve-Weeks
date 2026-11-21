@@ -7,7 +7,7 @@
 //   fail / death            sfx-ellie-death-pullout-fail + vox-eff-gen-player-death-pullout-fail, screen-blood-splatter, music -> the set's decay
 // Ours: grab = camera kick + grabbed grunt, the struggle screen while the drag runs, fail = the death-pullout sfx + vox + decay of the playing set;
 // escape = the loop stays (it never stopped). Requests to feature_combat_music via g_ms_pull (1 grab = hold, 2 escape, 3 fail = decay).
-// t2r-no-pullout-sting.txt next to the exe: off. t2r-pullout-riser.txt = the earlier grab riser / end tag instead of SP's hold / decay. Logs 'pullout sting: ...'.
+// t2r-no-pullout-sting.txt next to the exe: off. t2r-pullout-riser.txt = the grab riser / end tag instead of SP's hold / decay. Logs 'pullout sting: ...'.
 // Included from t2r-ext.c after shiv_sting.c.
 #define PUS_HOLD_MS 900
 static uint64_t g_pus_spike_until;
@@ -21,7 +21,7 @@ static int g_pus_on, g_pus_dof_on, g_pus_esc;
 #define PUS_DOF_AT_MS 2950
 #define PUS_SPIKE_MS 900            // the spike override holds ~0.9 s after the blow
 static int pus_opt(const char *f, int *v, uint64_t *at) { return pul_flag(f, v, at); }
-// (force-camera-dof-focus(<puppet handle>, ...) crashed on its first call - exe+133da80 locator read on the handle, int99 [11902].
+// (force-camera-dof-focus(<puppet handle>, ...) crashed A on its first call - exe+133da80 locator read on the handle, int99 [11902].
 //  Opt-in t2r-pullout-dof-on.txt until the native's object argument is known.)
 static int pus_dof_off(void)   { static int v = -1; static uint64_t at; return !pus_opt("t2r-pullout-dof-on.txt", &v, &at); }
 static int pus_spike_off(void) { static int v = -1; static uint64_t at; return pus_opt("t2r-pullout-spike-off.txt", &v, &at); }
@@ -52,7 +52,7 @@ static void pullsting_grab(void) {
     mfk_rumble("melee-standing-finisher-strong-rumble-settings");   // SP trace: start-rumble at the drag sync
     xlog("pullout sting: grab (drag on us) - camera kick, grabbed grunt in 150 ms, struggle screen on%s", pullsting_riser() ? ", combat riser (t2r-pullout-riser.txt)" : ", music held");
 }
-// Ellie's grunts were audible in the pull-out: the SP victim lines (infected-struggle, player-choked-enter, struggle-escape,
+// (Ellie's grunts were audible in the pull-out): the SP victim lines (infected-struggle, player-choked-enter, struggle-escape,
 // player-death-pullout-fail) exist only in the SP player voices - on a male look the engine resolves them to Ellie. A male look says the
 // generic combat efforts (its own voice) instead; a female look keeps SP's lines (fem_effort_sid swaps the take by kind as before).
 static void pus_say(const char *sp_line, const char *male_line, int vxe) {
@@ -66,7 +66,7 @@ static void pullsting_result(int ok) {
     g_ms_pull = ok ? 2 : 3;
     if (!ok) {
         ui_sfx("sfx-ellie-death-pullout-fail");
-        // Grunts carried over to the death screen: the death groan here ran from the verdict, 1 s before the punch,
+        // (grunts carried over to the death screen): the death groan here ran from the verdict, 1 s before the punch,
         // on into the death screen. Now the verdict is silent (the sfx only) and the blow says ONE death cry (pullsting tick). t2r-pullout-verdict-vox.txt = old.
         if (GetFileAttributesA("t2r-pullout-verdict-vox.txt") != INVALID_FILE_ATTRIBUTES) pus_say("vox-eff-gen-player-death-pullout-fail", "vox-eff-gen-death-med", VXE_DEATH);
     }

@@ -1,6 +1,6 @@
 """Live matches survive a daemon restart (re/premortem-matchmaking.md H3): offline tests, plain python, temp DB, no sockets.
 Run: python tools/tests/test_live_restart.py"""
-import os, sys, tempfile, time, struct
+import os, sys, tempfile, time, json, struct
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

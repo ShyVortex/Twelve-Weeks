@@ -7,12 +7,13 @@
 // every 12 s (2.5 s while a name was missing) as long as some screen asked for a rank in the last 15 s. The map vote's roster carries its ranks itself (0xEB pk<i> / pw<i>).
 // Included after rank13.h, before clan13.c / friends13.c (the lobby rows and the friends panel call rkb_draw / rkb_draw_me / rkb_draw_at).
 #define RKB_MAX 400
-static struct { uint32_t h; uint8_t rk; uint16_t wk; } g_rkb[RKB_MAX];     // guarded by g_clan_cs
+static struct { uint32_t h; uint8_t rk, ro; uint16_t wk; } g_rkb[RKB_MAX];     // guarded by g_clan_cs; ro = role (tools/roles.py): 0 none 1 OG 2 admin 3 dev 4 lead dev
 static int g_rkb_n;
 static volatile LONG g_rkb_ver, g_rkb_dead;                                  // g_rkb_dead: an older daemon ignores the op (2 unanswered tries stop the polling)
 static volatile uint64_t g_rkb_want_at;                                      // GetTickCount64 of the last lookup
 static volatile LONG g_rkb_miss;                                             // the last lookup found nothing: ask again soon
 
+static void nrim_tick(uint64_t now);                                        // namerim.c (included after friends13.c)
 static uint32_t rkb_hash(const char *name) {                                // = tools/rankbadge.py key()
     uint32_t h = 2166136261u; int any = 0;
     for (const unsigned char *p = (const unsigned char *)name; *p; p++) {
@@ -30,14 +31,17 @@ static uint32_t rkb_hash(const char *name) {                                // =
     return any ? h : 0;
 }
 static void rkb_parse(const char *t) {                                       // worker thread (clan_worker)
-    static struct { uint32_t h; uint8_t rk; uint16_t wk; } tmp[RKB_MAX];
+    static struct { uint32_t h; uint8_t rk, ro; uint16_t wk; } tmp[RKB_MAX];
     int n = 0;
     while (*t && n < RKB_MAX) {
         while (*t == ' ') t++;
         unsigned h; int r, w, used = 0;
         if (sscanf(t, "%8x:%d:%d%n", &h, &r, &w, &used) == 3 && used > 0) {
-            tmp[n].h = h; tmp[n].rk = (uint8_t)(r < 0 ? 0 : r > 9 ? 9 : r); tmp[n].wk = (uint16_t)(w < 0 ? 0 : w > 999 ? 999 : w); n++;
+            tmp[n].h = h; tmp[n].rk = (uint8_t)(r < 0 ? 0 : r > 9 ? 9 : r); tmp[n].wk = (uint16_t)(w < 0 ? 0 : w > 999 ? 999 : w); tmp[n].ro = 0;
             t += used;
+            int ro, u2 = 0;                                                  // optional 4th field ":role" (tools/rankbadge.py wire)
+            if (*t == ':' && sscanf(t, ":%d%n", &ro, &u2) == 1 && u2 > 0) { tmp[n].ro = (uint8_t)(ro < 0 || ro > 4 ? 0 : ro); t += u2; }
+            n++;
         } else { const char *s = strchr(t, ' '); if (!s) break; t = s; }       // "n=<k>" or junk: skip the word
     }
     EnterCriticalSection(&g_clan_cs);
@@ -48,18 +52,21 @@ static void rkb_parse(const char *t) {                                       // 
     InterlockedIncrement(&g_rkb_ver);
     static int lg; if (LOGCAP(lg, 6)) xlog("rankbadge: table of %d players", n);
 }
-// 1 = known (rk / wk filled). A name the table does not know sets the "ask again soon" flag.
-static int rkb_lookup(const char *name, int *rk, int *wk) {
+// 1 = known (rk / wk / ro filled). A name the table does not know sets the "ask again soon" flag.
+static int rkb_lookup_ro(const char *name, int *rk, int *wk, int *ro) {
     g_rkb_want_at = GetTickCount64();
     uint32_t h = name ? rkb_hash(name) : 0;
     if (!h) return 0;
     int hit = 0;
     EnterCriticalSection(&g_clan_cs);
-    for (int i = 0; i < g_rkb_n; i++) if (g_rkb[i].h == h) { *rk = g_rkb[i].rk; *wk = g_rkb[i].wk; hit = 1; break; }
+    for (int i = 0; i < g_rkb_n; i++) if (g_rkb[i].h == h) { *rk = g_rkb[i].rk; *wk = g_rkb[i].wk; if (ro) *ro = g_rkb[i].ro; hit = 1; break; }
     LeaveCriticalSection(&g_clan_cs);
     if (!hit) g_rkb_miss = 1;
     return hit;
 }
+static int rkb_lookup(const char *name, int *rk, int *wk) { return rkb_lookup_ro(name, rk, wk, NULL); }
+// the role of the player shown as `name` (0 = none / unknown); the nametags ask for it (feature_nametags: the lead dev's pink outline)
+static int rkb_role_of(const char *name) { int rk, wk, ro = 0; return rkb_lookup_ro(name, &rk, &wk, &ro) ? ro : 0; }
 // a row with no player: empty, the page's template texts ("SEARCHING", "PLAYER 3", "-") - never a badge (a stray badge showed on every empty SEARCHING row)
 static int rkb_placeholder(const char *name) {
     if (!name || !name[0] || !strcmp(name, "-") || !strncmp(name, "PLAYER", 6)) return 1;
@@ -69,16 +76,16 @@ static int rkb_placeholder(const char *name) {
 // THE badge call: the symbol image `icon` + weeks text `num` (full widget paths) for the player shown as `name`. No player = both hidden. A real name the table does not
 // list (yet): the lowest rank (symbol 0, 0 weeks) once the daemon has answered at least once - a new player starts at rank 0 (otherwise unknown players showed no badge).
 static void rkb_draw(const char *icon, const char *num, const char *name) {
-    int rk = -1, wk = 0;
+    int rk = -1, wk = 0, ro = 0;
     if (rkb_placeholder(name)) { rank_ui(icon, num, -1, 0); return; }
-    if (!rkb_lookup(name, &rk, &wk)) { rk = g_rkb_ver > 0 ? 0 : -1; wk = 0; }
-    rank_ui(icon, num, rk, wk);
+    if (!rkb_lookup_ro(name, &rk, &wk, &ro)) { rk = g_rkb_ver > 0 ? 0 : -1; wk = 0; ro = 0; }
+    rank_ui_role(icon, num, rk, wk, ro);
 }
-// our own badge, straight from the clan state (0xE1 rk= / wk=), no name needed
+// our own badge, straight from the clan state (0xE1 rk= / wk= / ro=), no name needed
 static void rkb_draw_me(const char *icon, const char *num) {
     clan_t c = clan_get();
     g_rkb_want_at = GetTickCount64();
-    rank_ui(icon, num, c.ok && c.rk >= 0 ? c.rk : 0, c.ok && c.rk >= 0 ? c.wk : 0);      // no clan state yet = a new player = the lowest rank, never no badge
+    rank_ui_role(icon, num, c.ok && c.rk >= 0 ? c.rk : 0, c.ok && c.rk >= 0 ? c.wk : 0, c.ok ? c.ro : 0);      // no clan state yet = a new player = the lowest rank, never no badge
 }
 // row helper for a widget group "<base>" holding <leaf_icon> / <leaf_num> (the lobby rows, the friends rows ...)
 static void rkb_draw_at(const char *base, const char *leaf_icon, const char *leaf_num, const char *name, int me) {
@@ -140,4 +147,5 @@ static void rkb_tick(uint64_t now) {
         if (clan_send(0xBF, NULL, 0)) { next = now + (g_rkb_miss ? 2500 : 12000); g_rkb_miss = 0; }
     }
     rkb_sb_tick(now);
+    nrim_tick(now);                                                           // namerim.c: the lead dev's pink rim on the lobby / scoreboard names
 }

@@ -1,4 +1,4 @@
-// Kick notice: an admin kick or the AFK
+// Kick notice (a notification that has to be closed, like the launch notice): an admin kick or the AFK
 // removal was a 12 s toast next to the menu title (in the match it was cut by the match end the next frame, then it came back ~27 s later
 // on the menu) - easy to miss. Now the kick text opens to1/kick-notice (tools/features/notice_widgets.py build_kick_page) on the MP menu:
 // dim + box (KICKED FROM THE MATCH, the reason / the AFK seconds), one CLOSE button. It stays until closed (select / back / click; the first

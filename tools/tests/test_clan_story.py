@@ -1,6 +1,6 @@
 """Offline tests for the clan feed generator (tools/clan_story.py).
 Run: python tools/tests/test_clan_story.py   (plain python; temp DB only, never tools/t2r.db or port 7001)."""
-import os, random, re, sqlite3, sys, tempfile
+import json, os, random, re, sqlite3, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

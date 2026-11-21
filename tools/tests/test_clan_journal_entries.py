@@ -1,4 +1,4 @@
-"""Journal entry authorship (journal entries had far too many authors with 1-2 events each).
+"""Journal entry authorship ().
 One entry = 3..6 events, ONE author (two only when the lead event names exactly two), authors rotate, no event is dropped.  Temp DBs only.
 Run: python tools/tests/test_clan_journal_entries.py"""
 import os, sqlite3, sys, tempfile

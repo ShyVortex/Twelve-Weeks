@@ -79,7 +79,7 @@ static void ih_hide_all(void) {
 }
 // The ring = 3 arcs of IH_RP pieces (interrogation_hud_widgets.ring_pieces: rg0..rg(RP-1) arc 1, then arc 2, arc 3; the gaps are the 2 checkpoints + the 12 o'clock start).
 // frac 0..1 over the whole safe: arc i holds frac * 3 - i of itself, so a finished stage stays solid (its checkpoint) while the next arc fills. The piece being filled is shown with
-// the fraction of it as alpha (the arc used to fill in visible steps): the fill is continuous at any frame rate. ring = 0: the whole ring (track + fill) is hidden (not interacting).
+// the fraction of it as alpha (the arc filled in visible steps): the fill is continuous at any frame rate. ring = 0: the whole ring (track + fill) is hidden (not interacting).
 static void ih_marker(int k, int show, float wx, float wy, int edge, float frac, int dist_m, int ring, float fade) {   // k 0 ATTACK / 1 DEFEND; wx, wy = the circle's centre in 1280 x 720 units
     if (!show) { if (g_ih.mvis[k] != 0) { w_visible(g_ih.mk[k], 0); g_ih.mvis[k] = 0; } return; }
     // Same projection (tag_project), same frame and same hook as the nametags and the teammate health bars (mhw_show: w_pivot from the draw hook).
@@ -116,8 +116,8 @@ static void ih_marker(int k, int show, float wx, float wy, int edge, float frac,
         g_ih.arrow[k] = ar;
     }
 }
-// the safebox UI was too hard to read; it only hides when actually aiming towards it: no fade near the
-// crosshair and none in a melee duel (the earlier version had both) - the marker goes away only while we aim down sights (aim command / right mouse / zoom blend, the same read as vzoom_tick)
+// (the safe marker was too hard to read; it should hide only when actually aiming towards it): no fade near the
+// crosshair and none in a melee duel (72ff0267 had both) - the marker goes away only while we aim down sights (aim command / right mouse / zoom blend, the same read as vzoom_tick)
 // AND it sits on the aim point (within IH_AIM_R px at 1080p of the screen centre; eased back in over 60 px).
 #define IH_AIM_R 130.0f
 static int ih_ads(void) {
@@ -130,13 +130,13 @@ static int ih_ads(void) {
     v = (ra != ~0ULL && (ra & 0xff)) || (game_focused() && (GetAsyncKeyState(VK_RBUTTON) & 0x8000)) || (z > 0.05f && z < 8.0f);
     return v;
 }
-// The tracking method was switched from the correct, nametag style one to a different one, so the marker lagged behind. The projection itself never changed
+// (the tracking method had been switched from the nametag style one to a different one, so the marker lagged behind). The projection itself never changed
 // (tag_project = the nametags' call, same draw hook, every frame, the safe's fixed table position). What differs: a nametag is TEXT queued in the frame it is projected, the marker is a
-// gui2 WIDGET whose transform is drawn one frame after w_pivot sets it (the marker trailed the camera). An earlier version compensated that frame, a later one dropped the
-// compensation ("same hook as the nametags" - but not the same draw path), another hid it with the engine's attachable trackers, and going back to the widget brought the lag again.
+// gui2 WIDGET whose transform is drawn one frame after w_pivot sets it (46b364f8: the marker trailed the camera). 46b364f8 compensated that frame, 97494c9b dropped the
+// compensation ("same hook as the nametags" - but not the same draw path), 47812629 hid it with the engine's attachable trackers, 84cb2dcc went back to the widget = the lag again.
 // Now the point is projected for the camera of the frame the widget is DRAWN in, so on screen it sits where a nametag on that point would: the render camera (rcam, captured each
 // frame) is extrapolated one frame (position + lens axis), and the safe's point is moved by the rotation + translation from that predicted camera to the current one before the same
-// tag_project. Off when the frames are not consecutive, the camera cut / jumped (> 25 deg or > 2 m in a frame), or t2r-int-mk-no-lead.txt is next to the exe (test). Log: 'inthud: lead'.
+// tag_project. Off when the frames are not consecutive, the camera cut / jumped (> 25 deg or > 2 m in a frame), or t2r-int-mk-no-lead.txt is next to the exe (A/B). Log: 'inthud: lead'.
 static struct { uint64_t fr; int ok; float cp[3], cd[3], pp[3], pd[3]; } g_ihc;
 static int ih_lead_off(void) { static uint64_t at; static int off; return feel_flag("t2r-int-mk-no-lead.txt", &at, &off, 120); }
 static void ih_cam_frame(void) {
@@ -179,12 +179,12 @@ static void ih_lead_point(const float *p, float *q) {
         if (tag_screen(p, &x0, &y0) && tag_screen(q, &x1, &y1)) { nl++; lt = GetTickCount64(); xlog("inthud: lead - marker set %.1f, %.1f px (1080p) ahead of this frame's projection (%.0f, %.0f) for the frame it is drawn in", (x1 - x0) * 1.5f, (y1 - y0) * 1.5f, x0, y0); }
     }
 }
-// the safe marker was still laggy with the one-frame lead: the marker is now an ATTACHABLE widget (interrogation_hud_widgets.add_marker_attachables:
+// (the safe marker was still laggy with the one-frame lead): the marker is now an ATTACHABLE widget (interrogation_hud_widgets.add_marker_attachables:
 // hud-buddy-status/t2r-int-mk0 / mk1 = the same disc, track, ring, icon and distance under a Gui2::AttachableWidget root) shown on the lockbox object every frame - the engine
 // places it in the frame it draws, as the buddy + and the mark triangle (which the nametags match), so it cannot trail the camera; off screen the engine pins it to the border
 // with the stock offscreen arrow (clampType default). The ring / distance / alpha go to the instance's children (gui2-build-widget-path on the instance, as world_prompt's
 // textAction). The w_pivot widget above stays the fallback (no lockbox object, an old pak without the files: the show answers 0) and t2r-int-mk-widget.txt next to the exe forces
-// it (test). Log: 'inthud: attachable'.
+// it (A/B). Log: 'inthud: attachable'.
 static const char *const IH_ATT_NAME[2] = {"hud-buddy-status/t2r-int-mk0", "hud-buddy-status/t2r-int-mk1"};
 static struct { uint64_t inst, rg[IH_RING], tr[6], dist, frame; signed char pv[IH_RING]; int trvis, lead, mdist, nnew, nfail, dimm; float leada, al; } g_iha[2];
 static int ih_att_off(void) { static uint64_t at; static int off; return feel_flag("t2r-int-mk-widget.txt", &at, &off, 120); }
@@ -250,13 +250,13 @@ static int feature_int_hud(void) {
     if (off) return 0;
     if (!int_live() && !g_ih.ok) return 1;               // load the widgets only once an Interrogation match is live (no "widget HUD up" in a Supply Raid match); the text HUD is off outside Interrogation anyway
     if (!ih_load()) return 0;
-    // match start: the rest of the HUD is held back too - the winmm text layer (g_text_hide: loading screen, intro black hold, HUD option off), the
+    // match start: the rest of the HUD is held back too - the winmm text layer (g_text_hide: loading screen, intro black hold, DISABLE MP UI), the
     // title card (g_tc_t0 .. TC_OUT_TO, feature_hud_fade holds every hudRoot child but the t2r overlays), the intro swoop (g_intro_tags_until, like
     // the nametags) - and fades in with the radar (g_radar_alpha follows the HUD's fade ramp)
     int tc_hold = g_tc_hud_delay && g_tc_t0 && GetTickCount64() - g_tc_t0 < TC_OUT_TO;
     int intro = g_text_hide || tc_hold || g_icam_on || (g_intro_tags_until && GetTickCount64() < g_intro_tags_until);
-    // consistency is key: exactly the native HUD's visibility - hud_hidden() (t2r-ext.c): the ESC menu and ALL its sub-pages (winmm's pause-on-stack gate), the
-    // backpack / TAB, loading / intro / HUD option off / freecam, the death black, our death / spectating, the finisher cam, match over - plus this mode's own conditions.
+    // consistency: exactly the native HUD's visibility - hud_hidden() (t2r-ext.c): the ESC menu and ALL its sub-pages (winmm's pause-on-stack gate), the
+    // backpack / TAB, loading / intro / DISABLE MP UI / freecam, the death black, our death / spectating, the finisher cam, match over - plus this mode's own conditions.
     int hide = hud_hidden() || !int_live() || g_int_ended_sent || intro;
     if (hide) { ih_hide_all(); return 1; }
     if (g_ih.al != (int)g_radar_alpha) {
@@ -290,8 +290,8 @@ static int feature_int_hud(void) {
         int tm = k ? team : enemy;                       // the lockbox this marker sits on (ATTACK -> theirs, DEFEND -> ours)
         float p[3], x = 0, y = 0;
         int edge = 0, show = 0;
-        // a marker with a question mark appeared on the safe: the attachable siege trackers draw hud/interactions/safe.png, which is not resident in the MP
-        // texture packs = a tiny circled '?' stuck on the safe. Now: the lockbox marker belongs to the team that EARNED the reveal
+        // (a marker with a question mark showed on the safe, A/B): the attachable siege trackers draw hud/interactions/safe.png, which is not resident in the MP
+        // texture packs (re/no-return-analysis.md 3.6 point 4) = a tiny circled '?' stuck on the safe. Now: the lockbox marker belongs to the team that EARNED the reveal
         // only (2013: after the interrogations) - ATTACK on the enemy lockbox - and nothing is drawn for our own lockbox / a team that has not earned it. It is our own
         // screen-space marker (tag_project + edge clamp + progress ring) above the safe; t2r-int-tracker-attach.txt next to the exe = the NR attachable trackers again.
         int want = (k ? g_int.p[enemy] >= (g_int.need > 0 ? g_int.need : 5) : g_int.rev[team]) && g_int.st[k ? enemy : team] < 3 && int_lockbox(tm, p);
@@ -345,7 +345,7 @@ static int feature_int_hud(void) {
         if (show && ih_att_marker(k, tm, *dp > 1.0f ? 1.0f : *dp, dist_m, ring_on, g_ih.fade[k])) ih_marker(k, 0, 0, 0, 0, 0, 0, 0, 1.0f);   // the attachable is up: no pivot widget
         else ih_marker(k, show, x, y, edge, *dp > 1.0f ? 1.0f : *dp, dist_m, ring_on, g_ih.fade[k]);
     }
-    // hold prompt: interrogating a downed enemy. the interrogation is HOLD-to-continue. The button glyph + the clockwise hold ring is the engine's
+    // hold prompt: interrogating a downed enemy. The interrogation is HOLD-to-continue. The button glyph + the clockwise hold ring is the engine's
     // own interactable prompt over the victim (world_prompt, interrogation.c); here the band under it: "LET GO TO STOP INTERROGATING" on the feathered dark panel.
     // (The lockbox UNLOCKING has no text / bar any more: the dial sound + the safe's dial-anim, interrogation.c.)
     int mode = 0;       // the dark band + "LET GO TO STOP INTERROGATING" is gone - the white native hold prompt (world_prompt) is the only UI

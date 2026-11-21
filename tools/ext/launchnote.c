@@ -1,7 +1,7 @@
-// Launch notice: once per game start, the unfinished-state notice (to1/launch-notice, tools/features/notice_widgets.py). It is
-// shown once per run. It is pushed on the MP menu while the TWELVE WEEKS entry page (loadseq.c, TITLE stack, drawn over the
+// Launch notice: once per game start, the unfinished-state notice (to1/launch-notice, tools/features/notice_widgets.py; look =
+// launch_notice_preview.py mockup v2). It is pushed on the MP menu while the TWELVE WEEKS entry page (loadseq.c, TITLE stack, drawn over the
 // menu stack) still covers the screen, and loadseq holds its hand-off fade until the notice is up - so when the title fades out the notice
-// is already there, under the TWELVE WEEKS loading screen.
+// is already there (it happens under the twelve weeks loading screen).
 //   - I ACKNOWLEDGE is locked for LN_READ_MS from the moment the title has gone (countdown in its label, a bar along the box's bottom edge
 //     empties); CLOSE / CLOSE, DON'T SHOW AGAIN are greyed until it is ticked. Back does nothing (the notice must be acknowledged).
 //   - CLOSE, DON'T SHOW AGAIN writes t2r-notice.txt ("seen <LN_VER>") next to the exe; LN_VER goes up when the text changes enough to show
@@ -11,7 +11,7 @@
 //   - keyboard / pad: up / down / left / right + select; mouse: hover focuses, a click acts on the control under the cursor.
 // t2r-test-autofind.txt (A/B automation): ticks + closes itself once unlocked.   Logs: 'notice: ...'.   Included from t2r-ext.c before the clan event code.
 #define LN_READ_MS 10000
-#define LN_VER 1
+#define LN_VER 2                       // 2 = public release: shown again once to everyone, even after DON'T SHOW AGAIN on 1
 #define LN_EM "<font color=\"#ECE9E2\">"
 static struct { int st, pushes; uint64_t pushed_at, hold_t0; } g_ln;    // st: 0 unknown, 1 due, 2 pushed, 3 up, 4 done
 static uint64_t g_ln_page;

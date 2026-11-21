@@ -1,4 +1,4 @@
-"""Journal rules (seen in game): a clan on day 1 must never show entries of later days (a previous run's diary stayed in clan_feed), and the journal keeps
+"""Journal rules (in game): a clan on day 1 must never show entries of later days (a previous run's diary stayed in clan_feed), and the journal keeps
 only written stories as cards, the one-liners as timeline lines between them.  Temp DBs only.  Run: python tools/tests/test_clan_journal_days.py"""
 import os, sqlite3, sys, tempfile
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401

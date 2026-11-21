@@ -1,12 +1,12 @@
-"""to1/launch-notice the unfinished-state notice shown once per game start. t2r-ext (notice.c) pushes it on the MP menu
+"""to1/launch-notice: the unfinished-state notice shown once per game start. t2r-ext (notice.c) pushes it on the MP menu
 while the TWELVE WEEKS entry page still covers the screen, so the notice is already there when that page fades out.
 
-Look: built from the Clan Overview pieces: dimmed backdrop, black box with a
+Look = tools/features/launch_notice_preview.py (approved mockup v2), built from the Clan Overview pieces: dimmed backdrop, black box with a
 thin grey frame, the TWELVE WEEKS title texture, the text (t2r-ext fills it: English with <font color> emphasis, the loc tables translate
 it piece by piece), an I ACKNOWLEDGE box locked for READ_S seconds (countdown in its label + a bar along the box's bottom edge), and two
 buttons (CLOSE / CLOSE, DON'T SHOW AGAIN) greyed until the box is ticked; the focused control has the white frame.
 
-Canvas 3840 x 2160 (every number is a 1920 x 1080 layout x 2). Text slots are sized for the longer language (PL)
+Canvas 3840 x 2160 (the mockup is 1920 x 1080: every number here is the mockup's x 2). Text slots are sized for the longer language (PL)
 with the engine's ~1.7 line height (48 pt ~ 82 units a line)."""
 import copy
 import json
@@ -125,7 +125,7 @@ def add_notice_page(wdir):
     return 1
 
 
-# ---- to1/kick-notice: the admin kick / AFK
+# ---- to1/kick-notice (a notification that has to be closed, similar to the launch notice): the admin kick / AFK
 # removal text as a box on the MP menu that stays until CLOSE, instead of the 12 s toast next to the title. Same look as the launch notice:
 # dim, black box with the grey frame, a title, a rule, the message (t2r-ext kicknote.c fills it), one CLOSE button (focused; locked for a
 # moment so a held button does not close it unread) and the select prompt under the box.

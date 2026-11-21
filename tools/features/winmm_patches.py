@@ -1,5 +1,5 @@
 """Feature patches for the T2R client winmm.dll (code edits, applied on top of the
-unpatched DLL + server-address patch).
+original mod DLL + server-address patch).
 
   python winmm_patches.py <in.dll> <out.dll> [patch ...]      # default: all patches
   python winmm_patches.py --list
@@ -14,7 +14,7 @@ TEXT_DELTA = 0x180000000 + 0xC00
 
 PATCHES = {
     # Matchmaking lobby list for 4v4 ("5 in queue" showed 4 / 4): the find-match page's lobby (FUN_180065760,
-    # the client's net-gui2.cpp fillLobby) has 8 rows (kLobbyRows) but fills / counts kLobbySlots = kMaxNetPlayers = 4. -> 8.
+    # the base client's net-gui2.cpp fillLobby) has 8 rows (kLobbyRows) but fills / counts kLobbySlots = kMaxNetPlayers = 4. -> 8.
     "lobby8-found-loop": dict(vma=0x180065A9D, orig=bytes.fromhex("41 83 fe 04"), new=bytes.fromhex("41 83 fe 08"), desc="lobby: found-match roster rows < 8"),
     "lobby8-fill-test": dict(vma=0x180065AA7, orig=bytes.fromhex("41 83 fe 03"), new=bytes.fromhex("41 83 fe 07"), desc="lobby: placeholder rows while filled <= 7"),
     # (the unused-rows clear is a do-while ending on 'cmp ebp, 8; je': started at 8 it would never end. With all
@@ -96,9 +96,9 @@ PATCHES = {
     ),
     "version-text": dict(
         vma=0x18012279F,
-        orig=bytes.fromhex("76 31 2e 30 38 20 42 45 54 41"),
+        orig=b"v1.08 BETA",
         new=b"v0.14 BETA",
-        desc="main menu version text",
+        desc="main menu shows v0.14 BETA",
     ),
     "mark-without-perk": dict(
         vma=0x18001D6C9,

@@ -75,7 +75,7 @@ for m in re.finditer(r"lo_write_obj(?:_forced)?\(([^;\n]*)\)", ext):
     check(a.startswith("lo_of(") or a in ("wsrc", "&want", "l"), "lo_write_obj* caller passes a table object (or the spawn's own copy): %r" % a)
 # the one copy that is written back (&want) is written AFTER sk4_on_write set g_sk4_cur from the class, so its price is the class's
 i1 = ext.index("static int lo_write_obj_forced(const loadout_t *l) {")
-fwd = ext[i1:ext.index("// Mid-match change (skills were applied", i1)]
+fwd = ext[i1:ext.index("// Mid-match change (skills must apply", i1)]
 check(fwd.count("sk4_on_write(l);") == 1, "forced write sets g_sk4_cur from the class before any copy is priced")
 check("pre-match write refused by lo_valid" in ext, "lo_write_obj logs a refusal (no silent class drop)")
 # the old failure, reproduced by the model: pricing a class through a lobby 4th skill gives 12 + that skill

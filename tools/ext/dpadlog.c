@@ -43,9 +43,9 @@ static const char *const DPL_Q[] = {
 static const char *const DPL_ITEM[] = {"pipe-bomb", "brick", "molotov", "bottle", "health-kit", "tennis-ball", "stun-bomb", "smoke-bomb", "trap-bomb",
                                        "fire-trap", "gift", "shiv", "trap-mine", "melee-upgrade"};
 #define DPL_NI (int)(sizeof DPL_ITEM / sizeof *DPL_ITEM)
-static const char *const DPL_WPN[] = {"pistol-beretta", "pistol-glock", "pistol-revolver-taurus", "pistol-xcaliber", "pistol-cz75-enforcer", "pistol-el-diablo",
+static const char *const DPL_WPN[] = {"pistol-beretta", "pistol-glock", "pistol-revolver-taurus", "pistol-xcaliber", "pistol-cz75-enforcer", "pistol-el-diablo", "pistol-snubby",
     "shotgun-shorty", "rifle-remington-bolt", "rifle-vepr", "rifle-m14-semi", "rifle-burst", "rifle-mpx5", "rifle-assault-firefly", "rifle-galil",
-    "rifle-frontier", "rifle-milsniper", "shotgun-baserri-over-under", "shotgun-remington-pump", "shotgun-tactical", "bow-ellie", "bow-explosive", "crossbow",
+    "rifle-frontier", "rifle-milsniper", "rifle-vintage", "shotgun-baserri-over-under", "shotgun-dragon", "shotgun-remington-pump", "shotgun-tactical", "bow-ellie", "bow-explosive", "crossbow",
     "flamethrower", "machete", "hatchet", "two-by-four", "baseball-bat", "fireman-axe", "pipe", "hammer", "crowbar", "switchblade", "dagger-scar-lev-player",
     "knife-survival-mel-player", "abby-unarmed", "ellie-unarmed"};
 #define DPL_NW (int)(sizeof DPL_WPN / sizeof *DPL_WPN)

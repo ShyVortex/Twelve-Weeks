@@ -5,6 +5,7 @@ maps (team start / intro spawns, player, respawns, supply boxes) must lie in the
   - not inside / on the far side of the placed invisible walls (props 'invisible-block-*' / 'invis-collision'): navmesh flood from team 0's start where
     every navmesh edge crossing a wall footprint is cut; every point must be reached from team 0's start AND team 1's start.
 Run: python tools/tests/test_closed_areas.py [key...]   (needs re/maps/seeds/<key>-nav.json; maps without it are listed and skipped)"""
+import json
 import math
 import os
 import sys
