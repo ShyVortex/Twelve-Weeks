@@ -108,7 +108,7 @@ def main(code):
           "- [x] Scoreboard / end banners (VICTORY, DEFEAT, WLF WIN ...), honours [Match flow - banners, Match honours]",
           "- [x] HUD messages and prompts (revive / execute / shiv / buy / box), award popups [Prompts, hints and HUD messages, Award popups ...]",
           "- [x] Store / buy menu [Gear Up - weapon names (ARMOUR, SHOP, %s AMMO ...), weapon upgrades]",
-          "- [x] Options rows, name entry [Options and name entry, Options menu rows added by the mod]",
+          "- [x] Options rows, name entry [Options and name entry, Options menu rows added by the mod revival]",
           "- [x] Server messages (daemon 0x11 notes, ban, version mismatch) and winmm connection messages [Match flow - connection and server messages]",
           "- [x] Interrogation mode [Interrogation mode]",
           "- [x] Static widget labels baked by tools/features/*widgets*.py (moved to text ciphers, all languages) - same keys as above", "",
