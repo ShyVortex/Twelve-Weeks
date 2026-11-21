@@ -91,3 +91,8 @@ Thumbs.db
 /tools/spawns/*.json
 /tools/spawns/*.json.sha1
 !/tools/spawns/wilds-houses.json
+
+# linter stuff
+.desloppify
+*.c~
+*.h~

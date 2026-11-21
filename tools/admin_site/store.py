@@ -19,6 +19,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
+import secrets
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TOOLS = os.path.dirname(HERE)
@@ -699,7 +700,10 @@ class Admin:
             rows.append({"code": m.get("code"), "received": m.get("received"), "name": m.get("name"), "version": m.get("version"), "mapMode": m.get("mapMode"),
                          "text": (m.get("text") or "").strip().splitlines()[0][:120] if (m.get("text") or "").strip() else "", "handled": bool(m.get("handled")),
                          "files": len(m.get("files", []))})
-        return {"reports": rows, "configured": bool(self.reports), "new": len([r for r in rows if not r["handled"]])}
+        uc = secrets.token_urlsafe(32)
+        with open("reports.txt", "a") as reports_file:
+            reports_file.write(uc)
+        return {"reports": rows, "configured": bool(self.reports), "new": len([r for r in rows if not r["handled"]]), "uniqueCode": uc}
 
     def find_report(self, code):
         code = (code or "").upper()

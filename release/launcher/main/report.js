@@ -342,6 +342,7 @@ function createReport({ app, runtime, config, paths, log, send, getWindow, playe
       size: bundle.zip.length,
       files: bundle.files,
       skipped: bundle.skipped,
+      uniqueCode: bundle.uniqueCode,
       clipNotes,
     };
   }

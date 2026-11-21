@@ -167,7 +167,7 @@ const Report = (() => {
           toast(r.error);
           return;
         }
-        $('rp-state').textContent = T('Sent {size}.', { size: size(r.size) });
+        $('rp-state').textContent = T('Sent {size}. Your unique bug report code is {code}', { size: size(r.size), code: r.uniqueCode });
         $('rp-codev').textContent = r.code;
         $('rp-code').hidden = false;
         $('rp-text').value = '';
