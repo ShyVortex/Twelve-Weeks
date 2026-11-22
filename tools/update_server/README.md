@@ -25,6 +25,18 @@ entry's `https://` url and `zurl` as they are and does not look for its blob loc
 `/manifest.json`, news and status stay here. Needs the `gh` CLI, logged in with write access to the repository. `--dry-run` prints the
 plan and uploads nothing.
 
+Switching players over: launchers up to 0.1.44 cannot rebuild `t2r-data.bin` from a slim client, so until every player runs a launcher
+with the slim rebuild, publish each build twice. `build_release.py` writes both clients: `<out>/client` (slim) and `<out>/client-full`
+(the same files with `t2r-data.bin`, hardlinked).
+```
+python tools/update_server/publish.py <out>/client-full --data <data> --channel stable --version 198                         # older launchers, served from here
+python tools/update_server/publish_github.py <out>/client --repo <owner>/<repo> --channel stable-slim --version 198 --data <data>
+```
+New launchers ask for `<channel>-slim` first and fall back to `<channel>`. Both manifests carry the same `launcher` entry, so an older
+launcher downloads the full build as before and then updates itself at PLAY. One whose self-update fails (it tries once per version)
+keeps playing the full build. The launcher change for the shipping 0.1.44 source is `release/launcher/patches/0.1.44-slim-data.patch`
+(the repo's launcher tree is older than 0.1.44). Give the new launcher a higher version (0.1.45), or 0.1.44 is not offered it.
+
 The launcher's own updates go the same way:
 ```
 python tools/update_server/publish_github.py --repo <owner>/<repo> --launcher TwelveWeeks-Launcher-0.1.45.exe \

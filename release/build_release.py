@@ -158,6 +158,26 @@ def build_ext(no_cache):
     return dll
 
 
+def _link_or_copy(src, dst):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    try:
+        os.link(src, dst)
+    except OSError:
+        shutil.copy2(src, dst)
+
+
+def full_client(client, data_file, dst):
+    for root, dirs, names in os.walk(client):
+        if root == client:
+            dirs[:] = [d for d in dirs if d != "slim"]
+        rel = os.path.relpath(root, client)
+        for n in names:
+            if rel == os.path.join("t2r-maps", "main") and n == "t2r-data.slim":
+                continue
+            _link_or_copy(os.path.join(root, n), os.path.join(dst, rel, n))
+    _link_or_copy(data_file, os.path.join(dst, "t2r-maps", "main", "t2r-data.bin"))
+
+
 def slim_data_build(data_file, client, check):
     if os.name != "nt":
         raise SystemExit("T2R_SLIM_DATA: the client's t2r-slim.exe is a Windows build (run the release build on Windows, or set T2R_SLIM_DATA=0)")
@@ -464,6 +484,9 @@ def main():
         open(os.path.join(client, "sp-maps.txt"), "w").write((sp_env or "none") + "\n")
     with step("wait for the host folder (copy + import checks, ran beside the data build)"):
         host_job.result()
+    if slim_data:
+        with step("client-full: the same client with t2r-data.bin (hardlinks) for launchers older than the slim rebuild"):
+            full_client(client, data_file, os.path.join(out, "client-full"))
 
     # the player zip needs a server address: Play.bat stops with "No server address" without one (server.txt is empty without --server)
     if a.p1_side:

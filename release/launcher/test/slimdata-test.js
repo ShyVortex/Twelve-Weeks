@@ -164,5 +164,50 @@ const target = (gd) => path.join(gd, 't2r-maps', 'main', 't2r-data.bin');
   });
 
   delete process.env.NODE_OPTIONS;
+
+  await T('manifest channel: <channel>-slim first, then the plain channel; Linux keeps <channel>-linux first; errors are not swallowed', async () => {
+    const http = require('http');
+    const upd = require('../lib/update');
+    let have = new Set();
+    let fail500 = false;
+    const asked = [];
+    const srv = http.createServer((req, res) => {
+      const ch = new URL(req.url, 'http://x').searchParams.get('channel');
+      asked.push(ch);
+      if (fail500 && ch.endsWith('-slim')) {
+        res.writeHead(500);
+        return res.end('{}');
+      }
+      if (!have.has(ch)) {
+        res.writeHead(404, { 'Content-Type': 'application/json' });
+        return res.end('{"error":"no such channel/version"}');
+      }
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ version: ch, channel: ch, files: [] }));
+    });
+    await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+    const host = `http://127.0.0.1:${srv.address().port}`;
+    const mk = (isLinux) => require('../main/paths').createPaths({ app: { isPackaged: false }, runtime: { userData: mkTmp('ud-'), isLinux }, config: { values: {} } });
+    const ch = require('../defaults').channel();
+    try {
+      have = new Set([ch, `${ch}-slim`]);
+      upd.resetDown();
+      assert.strictEqual((await mk(false).getManifest(host)).version, `${ch}-slim`);
+      assert.strictEqual((await mk(true).getManifest(host)).version, `${ch}-slim`);
+      have = new Set([ch, `${ch}-slim`, `${ch}-linux`]);
+      assert.strictEqual((await mk(true).getManifest(host)).version, `${ch}-linux`);
+      assert.strictEqual((await mk(false).getManifest(host)).version, `${ch}-slim`);
+      have = new Set([ch]);
+      assert.strictEqual((await mk(false).getManifest(host)).version, ch);
+      assert.strictEqual((await mk(true).getManifest(host)).version, ch);
+      fail500 = true;
+      asked.length = 0;
+      await assert.rejects(mk(false).getManifest(host), /HTTP 500/);
+      assert.ok(!asked.includes(ch), 'a broken -slim channel must not fall back to the full client');
+    } finally {
+      srv.close();
+    }
+  });
+
   console.log(`slimdata-test: ${passed} passed`);
 })();
