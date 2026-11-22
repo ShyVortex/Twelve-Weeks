@@ -209,6 +209,12 @@ PING_GRACE_S = 45.0
 PING_FRESH_S = 90.0
 PING_HIGH = {}           # (token, mid) -> time its ping to the host was first seen above the limit (cleared when it drops below)
 PING_KICKED = set()      # (token, mid) removed for ping (once per match)
+# Same-region matchmaking: with more searchers than one match holds, the searchers of the lead region (most searchers; tie = the earliest
+# one's) go first, queue order kept inside each group; a joiner prefers a running match whose host is in its own region. Regions = EU /
+# NA-east / NA-west from the Steam ping location ('other' never counts as same). A searcher waiting MM_REGION_WAIT_S or more keeps its
+# queue place. T2R_MM_REGION=0 = off.
+MM_REGION_ON = os.environ.get("T2R_MM_REGION", "1") != "0"
+MM_REGION_WAIT_S = float(os.environ.get("T2R_MM_REGION_WAIT_S", "90"))
 QUEUE_HOLD_MAX = float(os.environ.get("T2R_QUEUE_HOLD_MAX", "75"))  # s the oldest searcher may sit in the second-match queue hold; then the searchers start their own match (0 = hold forever)
 PARTY_HOLD_S = float(os.environ.get("T2R_PARTY_HOLD_S", "120"))   # s a ready party short of players holds the solos back from a tiny match of their own (0 = off)
 MAX_WAIT = float(os.environ.get("T2R_MAX_WAIT", "150"))              # s the oldest searcher may wait for a fuller lobby: then the match forms with everybody searching (JIP fills it later)
@@ -3557,6 +3563,14 @@ LOC_SPIKES = {}  # token -> consecutive spiked samples
 REGION = {}      # token -> stable region
 REGION_CAND = {} # token -> (region, count) waiting to confirm a change
 
+def mm_region(token):
+    """Matchmaking region of a token: the stable region, else the decode of its last ping location; None = unknown."""
+    try:
+        import hostmig as _hm
+        return REGION.get(token) or _hm.region_of(PING_LOC.get(token))
+    except Exception:                                          # noqa: BLE001
+        return None
+
 LOC_MAX = 900                                              # the helper reads < 1100 B; a real Steam location string is a few hundred
 LOC_OK = __import__("re").compile(r"^[A-Za-z0-9=+,:/_. -]+$")
 
@@ -4127,6 +4141,17 @@ class MatchMaker:
                     return None, None
             else:
                 self._hold_since = 0.0
+            # SAME-REGION priority: see MM_REGION_ON
+            try:
+                if MM_REGION_ON and len(ready) > MATCH_SIZE:
+                    pri, lead = hostmig.region_first(ready, mm_region, members_fn=PARTIES.members,
+                                                     waited_fn=lambda t: now - self.queue.get(t, now), max_wait=MM_REGION_WAIT_S)
+                    if lead and pri != ready:
+                        log("REGION priority: %s searchers first" % lead, sum(1 for t in ready if mm_region(t) == lead), "of", len(ready), "searchers",
+                            "(" + ", ".join("%s=%s" % (tag(t), mm_region(t)) for t in ready) + ")")
+                        ready = pri
+            except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
+                log("REGION priority failed", repr(ex))
             players = social.pick_units(ready, PARTIES, MATCH_SIZE) if len(ready) >= want else []     # whole parties only, 2p - 1 players for a party of p
             # (party of 4 + two solos): the solos formed a 1v1 and the ready party (needs 2p - 1 = 7 players) was left behind with no
             # word why. A ready party that is short of players holds the solos back for PARTY_HOLD_S s (from its oldest member's queue time) so
@@ -4611,7 +4636,7 @@ class MatchMaker:
                     why_not.append("%s: left < %.0f s ago" % (mid, JIP_REUSE_S)); continue
                 if cur_map not in map_pool(active + [token], support=[token]):
                     why_not.append("%s: map %s not in the pool for this joiner" % (mid, MAPS[cur_map][2])); continue
-                score = (MATCH_SIZE + 3, ck[0])                  # its own match before any other
+                score = (3, 0, 0, ck[0])                          # its own match before any other
                 if best is None or score > best[0]:
                     best = (score, mid, pl.index(token))
                 continue
@@ -4693,7 +4718,16 @@ class MatchMaker:
             if cur_map not in map_pool(new_active, support=[token]):
                 why_not.append("%s: map %s not in the pool for %d players / this joiner" % (mid, MAPS[cur_map][2], len(new_active))); continue
             # the old host: its own match first; a party mate: the friends' match; others: fullest, then most time left
-            score = (MATCH_SIZE + 3 if rejoin_host else MATCH_SIZE + 2 if (anchor and forced) else len(active), ck[0])
+            # (same region: among the others a match whose host is in the joiner's region comes first, then fullest, then most time left)
+            tier = 3 if rejoin_host else 2 if (anchor and forced) else 1
+            same = 0
+            if tier == 1 and MM_REGION_ON:
+                try:
+                    jr = mm_region(token)
+                    same = 1 if jr in hostmig.MM_REGIONS and jr == mm_region(pl[hslot]) else 0
+                except Exception:                              # noqa: BLE001
+                    same = 0
+            score = (tier, same, len(active) if tier == 1 else 0, ck[0])
             if best is None or score > best[0]:
                 best = (score, mid, slot)
         return best

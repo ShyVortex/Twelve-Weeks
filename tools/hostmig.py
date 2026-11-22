@@ -152,6 +152,49 @@ def region_of(loc):
     return best[1] if best else None
 
 
+MM_REGIONS = ("EU", "NA-east", "NA-west")   # 'other' lumps South America + Asia + Oceania together: never a "same region" for matchmaking
+
+
+def region_first(tokens, region_fn, members_fn=None, waited_fn=None, max_wait=None):
+    """Matchmaking order with same-region priority: the queue-ordered `tokens`, players of the lead region first, queue order
+    kept inside each group (stable). Lead region = the known region (EU / NA-east / NA-west) with the most searchers; a tie goes to the region
+    of the earliest searcher. A party counts as the region of its first member that has one (members_fn(t) -> the party's tokens). A player
+    that has waited max_wait s or more keeps its queue place whatever its region (waited_fn(t) -> seconds), so nobody waits forever.
+    Returns (ordered list, lead region); lead None = no known region, list unchanged."""
+    tokens = list(tokens)
+    reg = {}
+    for t in tokens:
+        if t in reg:
+            continue
+        group = list(members_fn(t)) if members_fn else [t]
+        if t not in group:
+            group = [t] + group
+        r = None
+        for m in group:
+            mr = region_fn(m)
+            if mr in MM_REGIONS:
+                r = mr
+                break
+        for m in group:
+            reg[m] = r
+    cnt = {}
+    for t in tokens:
+        if reg[t]:
+            cnt[reg[t]] = cnt.get(reg[t], 0) + 1
+    if not cnt:
+        return tokens, None
+    top = max(cnt.values())
+    lead = next(reg[t] for t in tokens if reg[t] and cnt[reg[t]] == top)
+
+    def first(t):
+        if reg[t] == lead:
+            return 0
+        if waited_fn is not None and max_wait is not None and waited_fn(t) >= max_wait:
+            return 0
+        return 1
+    return sorted(tokens, key=first), lead
+
+
 def parse_pins(text):
     """'76561198000000042:EU,1234:NA-east' -> {steamid: region}"""
     out = {}
