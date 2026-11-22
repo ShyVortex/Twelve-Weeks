@@ -13,6 +13,7 @@ const upd = require('../update');
 const { exists, readTrim, withTimeout, copyFileP, noProgress, sameLocation } = require('./util');
 const { cleanName, nameToken } = require('./identity');
 const { getDllTarget, verifyWinmm } = require('./dll');
+const slimdata = require('./slimdata');
 
 const MARKER = 't2r-installing.txt'; // game folder: an install that has not finished
 const SLIM_OUT_BYTES = 1024 * 1024 * 1024; // t2r-slim.exe writes the full winmm.dll (~850 MB) next to the old one
@@ -223,22 +224,43 @@ async function buildSlimMod({ clientDir, game, src, dst, slimDat, extra, log, pr
   try {
     fs.unlinkSync(dst + '.tmp');
   } catch {} // t2r-slim's own temp copy (up to ~850 MB): it removes it itself unless it was killed
-  if (r.code !== 0) {
-    const why = (r.stderr.trim().split(/\r?\n/).pop() || `exit code ${r.code}`).replace(
-      /^t2r-slim: /,
-      '',
-    );
-    const space = /space|ENOSPC|error 112|disk full|cannot create/i.test(why),
-      run = /running|error 5\b|error 32\b|denied|being used/i.test(why);
-    throw new Error(
-      space && run
-        ? `Could not prepare the mod from your game files: ${why} (the drive of the game folder is probably full: free about 1 GB and try again) (close the game and the Steam helper, wait for the antivirus scan to finish, then try again)`
-        : space
-          ? `Could not prepare the mod from your game files: ${why} (the drive of the game folder is probably full: free about 1 GB and try again)`
-          : run
-            ? `Could not prepare the mod from your game files: ${why} (close the game and the Steam helper, wait for the antivirus scan to finish, then try again)`
-            : `Could not prepare the mod from your game files: ${why}`,
-    );
+  if (r.code !== 0) throw slimFailure(r, '1 GB');
+}
+
+function slimFailure(r, freeHint) {
+  const why = (r.stderr.trim().split(/\r?\n/).pop() || `exit code ${r.code}`).replace(/^t2r-slim: /, '');
+  const space = /space|ENOSPC|error 112|disk full|cannot create/i.test(why),
+    run = /running|error 5\b|error 32\b|denied|being used/i.test(why);
+  const spaceText = ` (the drive of the game folder is probably full: free about ${freeHint} and try again)`;
+  const runText = ' (close the game and the Steam helper, wait for the antivirus scan to finish, then try again)';
+  return new Error(`Could not prepare the mod from your game files: ${why}${space ? spaceText : ''}${run ? runText : ''}`);
+}
+
+async function buildSlimData({ clientDir, game, extra, log, progress, onChild }) {
+  const todo = slimdata.slimTargets(clientDir, game).filter((t) => !slimdata.dataCurrent(t.slim, t.target));
+  if (!todo.length) return;
+  const slimExe = path.join(clientDir, 'slim', 't2r-slim.exe');
+  if (!exists(slimExe)) throw new Error('slim\\t2r-slim.exe is missing from the client files.');
+  for (const t of todo) {
+    const head = slimdata.readSlimHead(t.slim);
+    if (!head) throw new Error(`${t.shown.replace(/\.bin$/, '.slim')} in the client files is damaged. Press REPAIR INSTALL in Settings > Files, then Play again.`);
+    fs.mkdirSync(path.dirname(t.target), { recursive: true });
+    try {
+      fs.unlinkSync(t.target + '.tmp');
+    } catch {}
+    upd.ensureSpace(path.dirname(t.target), head.outSize, 'the mod files');
+    log(`Preparing ${t.shown} from your game files (one time per update, a minute or two) ...`);
+    let r;
+    if ((extra.platform || process.platform) === 'linux') {
+      const sc = linux.slimCommand({ clientDir, files: [t.slim, game, t.target], dataDir: extra.userData, deps: extra.linuxDeps });
+      r = await runSlim(sc.cmd, sc.args, { progress, onChild, timeout: 30 * 60 * 1000, spawnOpts: { env: sc.env, cwd: sc.cwd } });
+    } else r = await runSlim(slimExe, [t.slim, game, t.target], { progress, onChild, timeout: 30 * 60 * 1000 });
+    try {
+      fs.unlinkSync(t.target + '.tmp');
+    } catch {}
+    if (r.code !== 0) throw slimFailure(r, `${Math.ceil(head.outSize / 1e9) + 1} GB`);
+    if (!slimdata.dataCurrent(t.slim, t.target))
+      throw new Error(`Could not prepare the mod from your game files: ${t.shown} was not written correctly. Press REPAIR INSTALL in Settings > Files, then Play again.`);
   }
 }
 
@@ -292,6 +314,7 @@ async function copyModJobs({ clientDir, game, src, dst, slimDat, progress }) {
   const maps = path.join(clientDir, 't2r-maps');
   if (exists(maps))
     for (const f of listFiles(maps)) {
+      if (slimdata.isSlimManaged(f)) continue;
       const d = path.join(game, 't2r-maps', path.relative(maps, f));
       if (!exists(d) || filesDiffer(f, d)) jobs.push([f, d]);
     }
@@ -453,6 +476,7 @@ async function installMod(clientDir, cfg, log, progress = noProgress, onChild = 
       progress,
       onChild,
     });
+  await buildSlimData({ clientDir, game: p.game, extra, log, progress, onChild });
   await copyModJobs({
     clientDir,
     game: p.game,
@@ -507,10 +531,13 @@ function missingModFiles(clientDir, gameDir) {
   const maps = path.join(clientDir, 't2r-maps');
   if (exists(maps))
     for (const f of listFiles(maps)) {
+      if (slimdata.isSlimManaged(f)) continue;
       const d = path.join(gameDir, 't2r-maps', path.relative(maps, f));
       if (!exists(d) || filesDiffer(f, d))
         out.push('t2r-maps/' + path.relative(maps, f));
     }
+  for (const t of slimdata.slimTargets(clientDir, gameDir))
+    if (!slimdata.dataCurrent(t.slim, t.target)) out.push(t.shown);
   return out;
 }
 

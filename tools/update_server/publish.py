@@ -184,6 +184,8 @@ def verify_version(data, channel, version):
         m = json.load(f)
     bad = []
     for ent in m["files"]:
+        if str(ent.get("url", "")).startswith("https://"):
+            continue
         p = os.path.join(data, "blobs", ent["sha256"])
         if not os.path.isfile(p) or os.path.getsize(p) != ent["size"]:
             bad.append(ent["path"])

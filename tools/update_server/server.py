@@ -190,12 +190,15 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
                 m = json.loads(json.dumps(m))
                 # a manifest that names a blob the server does not have (a publish still copying, a blob removed by hand) would send every client
                 # into a 404 half-way through its download: answer "try again" instead, before the first byte
-                gone = [f["path"] for f in m.get("files", []) if not os.path.isfile(os.path.join(store.blobs, f["sha256"]))]
+                remote = lambda f: str(f.get("url", "")).startswith("https://")
+                gone = [f["path"] for f in m.get("files", []) if not remote(f) and not os.path.isfile(os.path.join(store.blobs, f["sha256"]))]
                 if gone:
                     sys.stderr.write("manifest %s/%s: %d blob(s) missing (%s ...)\n" % (ch, m.get("version"), len(gone), gone[0]))
                     return self._json({"error": "this version is not fully published yet, try again in a minute"}, 503, head)
                 base = self._base()
                 for f in m["files"]:
+                    if remote(f):
+                        continue
                     f["url"] = base + "/files/" + f["sha256"]
                     ext = ZEXT.get(f.get("enc"))
                     if ext and f.get("zsize") and os.path.isfile(os.path.join(store.blobs, f["sha256"] + "." + ext)):
@@ -203,12 +206,14 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
                     else:
                         f.pop("zsize", None)
                         f.pop("enc", None)
-                la = store.read_json("launcher.json", None)
-                if la:
-                    m["launcher"] = {"version": la["version"], "sha256": la["sha256"], "size": la.get("size"),
-                                     "url": base + "/files/" + la["sha256"]}
-                else:
-                    m["launcher"] = None
+                def launcher_entry(name):
+                    la = store.read_json(name, None)
+                    if not la:
+                        return None
+                    url = la.get("url") if str(la.get("url", "")).startswith("https://") else base + "/files/" + la["sha256"]
+                    return {"version": la["version"], "sha256": la["sha256"], "size": la.get("size"), "url": url}
+                m["launcher"] = launcher_entry("launcher.json")
+                m["launcher_linux"] = launcher_entry("launcher-linux.json")
                 return self._json(m, 200, head)
             if p == "/news.json":
                 return self._json(store.read_json("news.json", []), 200, head)

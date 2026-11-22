@@ -9,7 +9,7 @@
   "private": true,
   "scripts": {
     "start": "electron .",
-    "test": "node test/selftest.js && node test/linux-test.js && node test/robust-test.js && node test/steam-gate-test.js && node test/sp-switch-test.js && node test/attach-test.js && node test/clientupdate-test.js && node test/sticky-test.js && node test/playerreport-test.js && node test/social-test.js && node test/install-test.js && node test/players-test.js && node test/maps-test.js && node test/maps-convert-test.js && node test/server-target-test.js && node test/steam-shortcut-test.js && node test/steam-helper-test.js && node test/ban-test.js && node test/rpc-ingame-test.js",
+    "test": "node test/selftest.js && node test/linux-test.js && node test/robust-test.js && node test/steam-gate-test.js && node test/sp-switch-test.js && node test/attach-test.js && node test/clientupdate-test.js && node test/sticky-test.js && node test/playerreport-test.js && node test/social-test.js && node test/install-test.js && node test/slimdata-test.js && node test/players-test.js && node test/maps-test.js && node test/maps-convert-test.js && node test/server-target-test.js && node test/steam-shortcut-test.js && node test/steam-helper-test.js && node test/ban-test.js && node test/rpc-ingame-test.js",
     "dist": "electron-builder --win portable",
     "dist:linux": "electron-builder --linux AppImage tar.gz --x64",
     "dist:linux:deb": "electron-builder --linux deb --x64",

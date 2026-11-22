@@ -158,6 +158,26 @@ def build_ext(no_cache):
     return dll
 
 
+def slim_data_build(data_file, client, check):
+    if os.name != "nt":
+        raise SystemExit("T2R_SLIM_DATA: the client's t2r-slim.exe is a Windows build (run the release build on Windows, or set T2R_SLIM_DATA=0)")
+    sys.path.insert(0, os.path.join(ROOT, "tools", "features"))
+    import slim
+    crate = os.path.join(ROOT, "tools", "slim-rs")
+    subprocess.run(["cargo", "build", "--release", "--locked"], cwd=crate, check=True)
+    exe = os.path.join(crate, "target", "release", "t2r-slim.exe")
+    out = os.path.join(client, "t2r-maps", "main", "t2r-data.slim")
+    stage = os.path.join(ROOT, "re", "modfs_feat")
+    cache = os.path.join(ROOT, "tools", "local", "build-cache", "slim-rs")
+    subprocess.run([exe, "make", data_file, stage, slim.game_dir(), out, "--cache", cache,
+                    "--jobs", os.environ.get("T2R_SLIM_DELTA_JOBS", "4"), "--xz-threads", os.environ.get("T2R_SLIM_XZ_THREADS", "4")], check=True)
+    if check:
+        subprocess.run([exe, "check", data_file, out, slim.game_dir()], check=True, stdout=subprocess.DEVNULL)
+    os.makedirs(os.path.join(client, "slim"))
+    shutil.copy(exe, os.path.join(client, "slim", "t2r-slim.exe"))
+    print("slim data: client/t2r-maps/main/t2r-data.slim %.1f MB instead of t2r-data.bin %.1f MB" % (os.path.getsize(out) / 1e6, os.path.getsize(data_file) / 1e6))
+
+
 # ---------------------------------------------------------------------------------------------------- slim rebuild check
 def _sha_file(p):
     h = hashlib.sha256()
@@ -370,6 +390,7 @@ def main():
         if not os.path.isfile(data_file) or os.path.getmtime(data_file) < wall_start:
             raise SystemExit("T2R_PACK_FILE: %s was not written by this build" % data_file)
         print("mod data file %s: %d bytes" % (data_file, os.path.getsize(data_file)))
+    slim_data = bool(data_file) and os.environ.get("T2R_SLIM_DATA", "1") != "0"
     # with the data file out of the image the gate is the size players' PCs are known to load
     _max = int(os.environ.get("T2R_SOI_MAX", "0x71A4E000" if pack_file_on else "0x75C00000"), 16)
     if _soi >= _max:
@@ -397,7 +418,11 @@ def main():
             shutil.copy(feat, os.path.join(client, "winmm.dll"))
             if data_file:      # the launcher copies client/t2r-maps/** into the game folder (by size + first/last 64 KB; the build id is in both)
                 os.makedirs(os.path.join(client, "t2r-maps", "main"))
-                shutil.copy(data_file, os.path.join(client, "t2r-maps", "main", "t2r-data.bin"))
+                if not slim_data:
+                    shutil.copy(data_file, os.path.join(client, "t2r-maps", "main", "t2r-data.bin"))
+        if slim_data:
+            with step("slim data: t2r-data.slim + slim/t2r-slim.exe (tools/slim-rs make + check)"):
+                slim_data_build(data_file, client, os.environ.get("T2R_SLIM_CHECK", "1") != "0")
         chk_job = None
     with step("wait for the t2r-ext dll (compiled beside the data build)"):
         ext_dll = ext_job.result()
@@ -471,7 +496,7 @@ def main():
     srv = open(os.path.join(client, "server.txt")).read().strip()
     if not re.fullmatch(r"[^:\s]+:\d{1,5}", srv):
         print("WARNING: client/server.txt is %r (no --server host:port given): players cannot connect until it is filled in" % srv)
-    if not slim_on and not a.p1_side:
+    if not slim_on and not slim_data and not a.p1_side:
         print("WARNING: T2R_SLIM is not 1: this is the FULL client (about 900 MB zipped); the Windows player download is built with T2R_SLIM=1")
 
     # the zip holds ONLY the client folder (the host folder stays local, not sent to players); written under a temp name
@@ -480,7 +505,7 @@ def main():
         write_zip(tmpz, client, out)
         with zipfile.ZipFile(tmpz) as z:
             names = set(z.namelist())
-    required = [m for m in ZIP_REQUIRED if not (sid_in_dat and m == "client/tlou-ii-mp/sidbase.bin")] + (["client/t2r-slim.dat"] if sid_in_dat else [])         + (["client/t2r-maps/main/t2r-data.bin"] if data_file else [])
+    required = [m for m in ZIP_REQUIRED if not (sid_in_dat and m == "client/tlou-ii-mp/sidbase.bin")] + (["client/t2r-slim.dat"] if sid_in_dat else [])         + ((["client/t2r-maps/main/t2r-data.slim", "client/slim/t2r-slim.exe"] if slim_data else ["client/t2r-maps/main/t2r-data.bin"]) if data_file else [])
     missing = [m for m in required if m not in names]
     size = os.path.getsize(tmpz)
     if missing or (a.max_zip_mb and size > a.max_zip_mb * 1_000_000):
