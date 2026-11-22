@@ -4175,13 +4175,13 @@ class MatchMaker:
             # stay in the queue for a lobby they fit (a later pass, a join in progress)
             if MM_PING_GATE and PING_KICK_MS > 0 and len(ready) >= 2:
                 try:
-                    kept, dropped, gh, ginfo = hostmig.ping_fit(ready, lambda a, b: _ping_fresh(a, b, now), PING_KICK_MS,
+                    kept, dropped, gh, ginfo = hostmig.ping_fit(ready, lambda a, b: _ping_gate(a, b, now), PING_KICK_MS,
                                                                 units_fn=PARTIES.members, host_ok=lambda t: not no_host(t))
                     if dropped:
                         if now - getattr(self, '_pgate_logged', 0.0) >= 20.0:
                             self._pgate_logged = now
                             log("PING-GATE", ginfo, "- not matched with them (over %d ms to that host):" % PING_KICK_MS,
-                                ", ".join("%s %s ms" % (tag(t), _ping_fresh(gh, t, now)) for t in dropped), "| kept", [tag(t) for t in kept])
+                                ", ".join("%s %s ms" % (tag(t), _ping_gate(gh, t, now)) for t in dropped), "| kept", [tag(t) for t in kept])
                         ready = kept
                 except Exception as ex:                               # noqa: BLE001 - never breaks the queue
                     log("PING-GATE failed", repr(ex))
@@ -6268,7 +6268,31 @@ def interrogation_op(pl):
         return None
     token, sub, seq, args = req
     readopt_claim(token)            # a poll right after a daemon restart must find the restored record (it answered on=0 and the HUD fell back to Supply Raid)
+    int_rebind(token)
     return msg(interrogation.OP_REPLY, INT.event(token, sub, seq, args).encode())
+
+def int_rebind(token):
+    """INT.by_token kept pointing at the player's PREVIOUS match when the new one has no Interrogation record (a Supply Raid match, or a join
+    in progress into one): a player who crashed out of a running Interrogation match and joined a match on another map got the old match's
+    state (its map, its lockbox spots far off the new map, its intel). The token's current match decides: its Interrogation record when it
+    has one, else none (on=0). A token in no match keeps its record (an ended match shows its win to late clients)."""
+    try:
+        cur = MM.mid_of(token)
+        if cur is None:
+            return
+        with INT.lock:
+            had = INT.by_token.get(token)
+            if had is None or had == cur:
+                if had is None and cur in INT.matches:
+                    INT.by_token[token] = cur
+                return
+            if cur in INT.matches:
+                INT.by_token[token] = cur
+            else:
+                INT.by_token.pop(token, None)
+        log("INTERROGATION rebind", tag(token), "from match", had, "to", cur if cur in INT.matches else "none (its match %s has no record)" % cur)
+    except Exception as ex:                                       # noqa: BLE001 - the HUD state never breaks the request
+        log("INTERROGATION rebind ERR", repr(ex))
 
 ABORT_AWARDED = set()   # mids whose abort award ran
 
@@ -8123,6 +8147,10 @@ def live_export(now=None):
                          "clock": list(ck) if ck else None, "lives": list(lv) if lv else None,
                          "late_bonus": {t: list(MM.late_bonus[t]) for t in pl if t in MM.late_bonus and MM.late_bonus[t][0] == mid},
                          "late_mult": {t: list(MM.late_mult[t]) for t in pl if t in MM.late_mult and MM.late_mult[t][0] == mid},
+                         # the in-match team swaps (auto balance / admin). Without them a restart put every swapped player
+                         # back on its slot-parity team in every roster reply, while the mover's own ext kept its new team: one-sided
+                         # friendly fire, wrong nametags.
+                         "team_swap": dict(TEAM_SWAP.get(mid) or {}),
                          "saved": now})
     for r in recs:
         key = frozenset(r["players"])
@@ -8258,6 +8286,9 @@ def _readopt_apply(mid, r, claimant, now):
         for t, a in joining.items(): MM.joining[t] = (mid, now - a)      # a join in progress that the restart interrupted: finished below / by the reaper
         for t, v in (r.get("late_bonus") or {}).items(): MM.late_bonus[t] = (v[0], v[1])
         for t, v in (r.get("late_mult") or {}).items(): MM.late_mult[t] = (v[0], v[1])
+        sw = {t: int(v) for t, v in (r.get("team_swap") or {}).items() if t in pl and int(v) in (0, 1)}
+        if sw:
+            TEAM_SWAP[mid] = sw                       # the in-match team swaps survive the restart (roster replies + the 0xA7 block)
     key = frozenset(pl)
     if r.get("map") is not None: MATCH_MAP[key] = r["map"]
     if r.get("p2p") is not None: MATCH_P2P[key] = r["p2p"]
@@ -8743,6 +8774,20 @@ def _ping_fresh(a, b, now):
     at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
     return pair_ping(a, b) if now - at <= PING_FRESH_S else None
 
+# The ping gates (match formation, join in progress) read the fresh ping only. Searchers are not connected to each other, so
+# their pair pings go stale within 90 s and an unknown ping passes: a player at 287 ms to the host was matched (EVT ping-ms had the 287), and a
+# joiner refused at 262 ms one second earlier joined when the same ping turned stale; both were removed 60 s in. The gates fall back to the
+# last measured ping up to PING_GATE_AGE_S old (two homes' route changes slowly). ping_check (the in-match removal timer) stays on fresh pings.
+PING_GATE_AGE_S = float(os.environ.get("T2R_PING_GATE_AGE_S", "3600"))
+
+def _ping_gate(a, b, now):
+    """The ping the gates judge: the fresh pair ping, else the last measured one when it is at most PING_GATE_AGE_S old, else None."""
+    ms = _ping_fresh(a, b, now)
+    if ms is not None:
+        return ms
+    at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
+    return pair_ping(a, b) if at and now - at <= PING_GATE_AGE_S else None
+
 def jip_ping_block(token, mid, host, active, joining, now):
     """Join in progress: the joiner's fresh ping to the host when ping_check would remove it for that ping, else None (unknown ping, under the
     limit, limit off for the match, or most players high to the host - ping_check removes nobody then). Match 8bb74ec7: a match hosted in the
@@ -8750,7 +8795,7 @@ def jip_ping_block(token, mid, host, active, joining, now):
     Called with MM.lock held (reads only)."""
     if PING_KICK_MS <= 0 or PRIV.rule(mid, "ping") == 0 or token == host:
         return None
-    ms = _ping_fresh(token, host, now)
+    ms = _ping_gate(token, host, now)
     if ms is None or ms <= PING_KICK_MS:
         return None
     if MM_PING_GATE:
