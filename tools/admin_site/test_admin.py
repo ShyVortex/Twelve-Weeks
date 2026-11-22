@@ -153,6 +153,29 @@ class TestLogIndex(Fixture):
         li.refresh(0)
         self.assertEqual(len([e for e in li.events if e["kind"] == "queue"]), 0)
 
+    def test_rename_rotation_keeps_events_without_rereading(self):
+        # The daemon renames daemon.log -> daemon.log.1 at 8 MB; the index reads the old file's tail under its new name and follows
+        # the new file, without the full re-read that hung the site
+        p = os.path.join(self.tmp, "rot.log")
+        hdr = time.strftime("%a %b %d %H:%M:%S %Y")
+        open(p, "w").write("# daemon %s\n[01:00:00] EVT queue Alice queued: 1 waiting\n" % hdr)
+        li = logindex.LogIndex(p)
+        li.refresh(0)
+        read_to = os.path.getsize(p)
+        open(p, "a").write("[01:00:05] EVT queue Bob queued: 2 waiting\n")        # written after the last read, before the rotation
+        os.replace(p, p + ".1")
+        open(p, "w").write("# daemon log continued %s\n[01:00:09] EVT queue Cleo queued: 3 waiting\n" % hdr)
+        calls = []
+        orig = li._read_new
+        li._read_new = lambda path, pos: (calls.append((os.path.basename(path), pos)), orig(path, pos))[1]
+        li.refresh(0)
+        self.assertEqual([e["body"].split()[0] for e in li.events if e["kind"] == "queue"], ["Alice", "Bob", "Cleo"])
+        self.assertEqual(calls, [("rot.log.1", read_to), ("rot.log", 0)])
+        self.assertEqual(len(li.errors), 0)
+        open(p, "a").write("[01:00:12] HANDLER ERR boom\n[01:00:13] all fine here\n")
+        li.refresh(0)
+        self.assertEqual([e["line"] for e in li.errors], ["HANDLER ERR boom"])
+
 
 class TestStore(Fixture):
     def test_overview_log_mode(self):
