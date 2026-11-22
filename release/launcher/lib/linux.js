@@ -27,7 +27,7 @@ const {
 } = require('./linux/steam');
 const { findProton, naturalCmp, protonEnv, helperArgs, slimCommand } = require('./linux/proton');
 const { procList, gameProcs, helperProcs } = require('./linux/processes');
-const { patchUserReg, userRegFor, prepareGamePrefix, REG_EDITS } = require('./linux/registry');
+const { patchUserReg, userRegFor, findUserReg, prepareGamePrefix, REG_EDITS } = require('./linux/registry');
 const { readState, writeState, stopHelper, startHelper } = require('./linux/helper');
 const { winPath } = require('./linux/util');
 const { steamLaunchCommand, whichSync, waitForGame } = require('./linux/launch');
@@ -51,6 +51,7 @@ module.exports = {
   helperProcs,
   patchUserReg,
   userRegFor,
+  findUserReg,
   prepareGamePrefix,
   launchOptions,
   stopHelper,

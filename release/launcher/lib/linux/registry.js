@@ -3,8 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const { APP_ID } = require('./constants');
-const { exists } = require('./util');
+const { exists, real } = require('./util');
 const { gameProcs } = require('./processes');
+const { steamRoots, steamLibraries } = require('./steam');
 
 /**
  * Find a registry section header and the line where it ends.
@@ -95,6 +96,39 @@ function userRegFor(gameDir) {
   return path.join(path.dirname(common), 'compatdata', APP_ID, 'pfx', 'user.reg');
 }
 
+/**
+ * Find the game's Proton prefix registry. Steam normally keeps compatdata/<appid> in the library that holds the game, but a game moved
+ * to another library (Steam Deck: internal storage <-> SD card) can keep its prefix in the old library. So the game's own library comes
+ * first, then every other Steam library; of several prefixes found elsewhere, the most recently written one (the one Steam used last).
+ * @param {string} gameDir
+ * @param {{home?: string}} [options]
+ * @returns {{reg: string|null, looked: string[]}}
+ */
+function findUserReg(gameDir, { home } = {}) {
+  const own = userRegFor(gameDir);
+  const looked = [],
+    seen = new Set();
+  const add = (f) => {
+    const k = real(path.dirname(path.dirname(f)));
+    if (seen.has(k)) return;
+    seen.add(k);
+    looked.push(f);
+  };
+  if (own) add(own);
+  for (const lib of steamLibraries(steamRoots(home)))
+    add(path.join(lib, 'steamapps', 'compatdata', APP_ID, 'pfx', 'user.reg'));
+  if (own && exists(own)) return { reg: own, looked };
+  const mtime = (f) => {
+    try {
+      return fs.statSync(f).mtimeMs;
+    } catch {
+      return -1;
+    }
+  };
+  const found = looked.filter((f) => f !== own && exists(f)).sort((x, y) => mtime(y) - mtime(x));
+  return { reg: found[0] || null, looked };
+}
+
 const REG_EDITS = [
   {
     section: 'Software\\Wine\\DllOverrides',
@@ -114,17 +148,18 @@ const REG_EDITS = [
  * @param {{procDir?: string}} [options]
  * @returns {object} { ok, changed } or { ok: false, reason }
  */
-function prepareGamePrefix(gameDir, { procDir = '/proc' } = {}) {
-  const reg = userRegFor(gameDir);
-  if (!reg)
+function prepareGamePrefix(gameDir, { procDir = '/proc', home } = {}) {
+  if (!userRegFor(gameDir))
     return {
       ok: false,
       reason:
         'The game folder is not inside a Steam library (steamapps/common), so its Proton prefix cannot be found.',
     };
-  if (!exists(reg)) {
+  const { reg, looked } = findUserReg(gameDir, { home });
+  if (!reg) {
     return {
       ok: false,
+      looked,
       reason:
         'The game has never been started through Steam on this computer, so its Proton prefix does not exist yet. Start The Last of Us Part II once from Steam (until its menu), close it, then press PLAY again.',
     };
@@ -136,13 +171,13 @@ function prepareGamePrefix(gameDir, { procDir = '/proc' } = {}) {
     };
   const old = fs.readFileSync(reg, 'utf8');
   const next = patchUserReg(old, REG_EDITS);
-  if (next === old) return { ok: true, changed: false };
+  if (next === old) return { ok: true, changed: false, reg };
   const bak = reg + '.t2r-backup';
   if (!exists(bak)) fs.copyFileSync(reg, bak);
   const tmp = reg + '.t2r-new';
   fs.writeFileSync(tmp, next);
   fs.renameSync(tmp, reg);
-  return { ok: true, changed: true };
+  return { ok: true, changed: true, reg };
 }
 
 module.exports = {
@@ -151,6 +186,7 @@ module.exports = {
   regInsertIndex,
   patchUserReg,
   userRegFor,
+  findUserReg,
   REG_EDITS,
   prepareGamePrefix,
 };

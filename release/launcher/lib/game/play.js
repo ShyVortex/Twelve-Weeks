@@ -445,8 +445,14 @@ function prepareLinuxPrefix(gameDir, ldeps, log) {
   // Linux: the game's Proton prefix must load the mod's winmm.dll (native override) - done while the game is closed, before anything starts
   const pr = linux.prepareGamePrefix(gameDir, {
     procDir: ldeps.procDir,
+    home: ldeps.home,
   });
-  if (!pr.ok) throw new Error(pr.reason);
+  if (!pr.ok) {
+    if (pr.looked) log('Proton prefix not found; looked for: ' + pr.looked.join(', '));
+    throw new Error(pr.reason);
+  }
+  if (pr.reg && pr.reg !== linux.userRegFor(gameDir))
+    log('Proton prefix found in another Steam library: ' + pr.reg);
   if (pr.changed)
     log(
       "The game's Proton prefix now loads the mod (winmm override set; no Steam launch option needed).",
