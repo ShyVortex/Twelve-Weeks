@@ -217,6 +217,53 @@ PINS = parse_pins(os.environ.get("T2R_HOST_REGION_PIN", ""))     # steamid -> re
 REGION_GUARD_MS = _envi("T2R_REGION_GUARD_MS", 60)   # the region rule may cost the lobby at most this many ms of worst-case ping (0 = no guard)
 
 
+def ping_fit(players, pair, limit, units_fn=None, host_ok=None):
+    """Ping gate for a match being formed: players are not matched together when the match cannot be hosted within the ping limit
+    (a lobby of two players from one continent and one from another, 250+ ms to the host, got the far player removed 60 s into the match).
+    Every player of a match plays through the host, so a lobby fits when ONE host candidate has every other player at or under `limit` ms.
+    players: the formation's pick (queue order). pair(a, b) -> ms or None (unknown = not judged, kept). units_fn(t) -> the tokens that join
+    together with t (a party: dropped whole). host_ok(t) -> may t host (no-host list).
+    Returns (kept, dropped, host, info): the host candidate that keeps the most players (tie: lower worst ping to the kept players, then
+    queue order) and the players it keeps (queue order). No pair ping known, or limit <= 0 = everybody kept, host None."""
+    players = list(players)
+    if limit <= 0 or len(players) < 2:
+        return players, [], None, "off" if limit <= 0 else "one player"
+    unit = {}
+    for t in players:
+        if t in unit:
+            continue
+        g = [m for m in (units_fn(t) if units_fn else [t]) if m in players]
+        if t not in g:
+            g = [t] + g
+        for m in g:
+            unit[m] = tuple(g)
+    if not any(pair(a, b) is not None for i, a in enumerate(players) for b in players[i + 1:]):
+        return players, [], None, "no pings known"
+    best = None
+    for h in players:
+        if host_ok is not None and not host_ok(h):
+            continue
+        bad = set()
+        for t in players:
+            if t == h:
+                continue
+            ms = pair(h, t)
+            if ms is not None and ms > limit:
+                bad.update(unit[t])
+        if h in bad:                              # a member of the host's own party is over the limit to it: not a host for this lobby
+            continue
+        kept = [t for t in players if t not in bad]
+        known = [pair(h, t) for t in kept if t != h and pair(h, t) is not None]
+        key = (-len(kept), max(known) if known else 0, players.index(h))
+        if best is None or key < best[0]:
+            best = (key, h, kept)
+    if best is None:
+        return players, [], None, "no host candidate"
+    _, h, kept = best
+    dropped = [t for t in players if t not in kept]
+    return kept, dropped, h, "host %s keeps %d of %d" % (str(h)[:6], len(kept), len(players))
+
+
 def region_pool(players, region, steamid, pair, pins=None, everyone=None):
     """(candidate subset, info text). region(token)/steamid(token)/pair(a, b) are lookups. A pinned player in the match
     forces its region; else the majority region (tie: lower combined ping inside the region; a tie that ping cannot break =

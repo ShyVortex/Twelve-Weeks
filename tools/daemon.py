@@ -215,6 +215,14 @@ PING_KICKED = set()      # (token, mid) removed for ping (once per match)
 # queue place. T2R_MM_REGION=0 = off.
 MM_REGION_ON = os.environ.get("T2R_MM_REGION", "1") != "0"
 MM_REGION_WAIT_S = float(os.environ.get("T2R_MM_REGION_WAIT_S", "90"))
+# Ping gate: players are only matched with each other when the match can be hosted within the ping limit.
+#  - formation: searchers are only matched together when one host candidate has all of them at or under PING_KICK_MS (hostmig.ping_fit);
+#    the others stay in the queue;
+#  - host pick: a host candidate with nobody over PING_KICK_MS wins over one that would get somebody removed;
+#  - join in progress: a joiner over PING_KICK_MS to the host never joins, also when most players are high to the host (jip_ping_block);
+#  - ping_check: a stale (unknown) reading keeps the removal timer running instead of restarting it.
+# Unknown pings are not judged. T2R_MM_PING_GATE=0 = off.
+MM_PING_GATE = os.environ.get("T2R_MM_PING_GATE", "1") != "0"
 QUEUE_HOLD_MAX = float(os.environ.get("T2R_QUEUE_HOLD_MAX", "75"))  # s the oldest searcher may sit in the second-match queue hold; then the searchers start their own match (0 = hold forever)
 PARTY_HOLD_S = float(os.environ.get("T2R_PARTY_HOLD_S", "120"))   # s a ready party short of players holds the solos back from a tiny match of their own (0 = off)
 MAX_WAIT = float(os.environ.get("T2R_MAX_WAIT", "150"))              # s the oldest searcher may wait for a fuller lobby: then the match forms with everybody searching (JIP fills it later)
@@ -3844,6 +3852,13 @@ def best_host_order(players):
             return cap_first(players)
     pool, rinfo = host_pool(players)
     log("HOST-PICK", "region:", rinfo)
+    if MM_PING_GATE and PING_KICK_MS > 0:          # (MM_PING_GATE) the ping limit beats the region rule and capacity: never a host that gets a player removed when another would not
+        fit = [h for h in host_allowed(players) if max(pair_ping(h, o) for o in players if o != h) <= PING_KICK_MS]
+        if fit:
+            fpool = [h for h in pool if h in fit] or fit
+            if fpool != pool:
+                log("HOST-PICK", "ping limit %d ms: candidates" % PING_KICK_MS, [tag(h) for h in fpool], "instead of", [tag(h) for h in pool])
+                pool = fpool
     for h in pool:
         pings = [pair_ping(h, o) for o in players if o != h]
         pen = perf_penalty(h)
@@ -4081,6 +4096,10 @@ class MatchMaker:
                         return False
                     ck = self.clock.get(mid)
                     if mid not in self.started:                       # forming: lobby / countdown / loading
+                        # (MM_PING_GATE) searchers that are all over the ping limit to its host (slot 0, best_host_order) can never join it: no hold,
+                        # else the ones the gate kept out of it would wait here until it started instead of forming their own match
+                        if MM_PING_GATE and pl and all(jip_ping_block(t, mid, pl[0], pl, set(self.joining), now) is not None for t in ready):
+                            return False
                         return now - self.formed.get(mid, now) < 180
                     # 4 searchers held for 2-player 4e2fc74b; at its GAME-START it had no clock report yet, the hold dropped and
                     # the 4 formed their own match the same second. A match that just started (no clock yet, formed < 300 s ago) still holds.
@@ -4152,6 +4171,20 @@ class MatchMaker:
                         ready = pri
             except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
                 log("REGION priority failed", repr(ex))
+            # PING GATE (see MM_PING_GATE): only searchers within the ping limit of one common host are matched together; the rest
+            # stay in the queue for a lobby they fit (a later pass, a join in progress)
+            if MM_PING_GATE and PING_KICK_MS > 0 and len(ready) >= 2:
+                try:
+                    kept, dropped, gh, ginfo = hostmig.ping_fit(ready, lambda a, b: _ping_fresh(a, b, now), PING_KICK_MS,
+                                                                units_fn=PARTIES.members, host_ok=lambda t: not no_host(t))
+                    if dropped:
+                        if now - getattr(self, '_pgate_logged', 0.0) >= 20.0:
+                            self._pgate_logged = now
+                            log("PING-GATE", ginfo, "- not matched with them (over %d ms to that host):" % PING_KICK_MS,
+                                ", ".join("%s %s ms" % (tag(t), _ping_fresh(gh, t, now)) for t in dropped), "| kept", [tag(t) for t in kept])
+                        ready = kept
+                except Exception as ex:                               # noqa: BLE001 - never breaks the queue
+                    log("PING-GATE failed", repr(ex))
             players = social.pick_units(ready, PARTIES, MATCH_SIZE) if len(ready) >= want else []     # whole parties only, 2p - 1 players for a party of p
             # (party of 4 + two solos): the solos formed a 1v1 and the ready party (needs 2p - 1 = 7 players) was left behind with no
             # word why. A ready party that is short of players holds the solos back for PARTY_HOLD_S s (from its oldest member's queue time) so
@@ -5167,6 +5200,11 @@ def host_from_team(big, players):
         keyed.append((c, hostmig.host_key(pings, perf_penalty(c))))
     if not keyed:
         return None
+    if MM_PING_GATE and PING_KICK_MS > 0:          # (MM_PING_GATE) same rule as best_host_order: a host that gets nobody removed for ping wins
+        fit = [kc for kc in keyed if max(pair_ping(kc[0], o) for o in players if o != kc[0]) <= PING_KICK_MS]
+        if fit and len(fit) < len(keyed):
+            log("HOST-PICK", "bigger team: ping limit %d ms leaves" % PING_KICK_MS, [tag(kc[0]) for kc in fit])
+            keyed = fit
     best = min(keyed, key=lambda c: c[1])[0]
     if hostcap.MODE >= 2:
         try:
@@ -8715,6 +8753,10 @@ def jip_ping_block(token, mid, host, active, joining, now):
     ms = _ping_fresh(token, host, now)
     if ms is None or ms <= PING_KICK_MS:
         return None
+    if MM_PING_GATE:
+        # One player already in at a high ping made 'most players high' true with the joiner's own ping counted, so high-ping joiners got in
+        # and were removed later. A joiner over the limit never joins (the exception below is for players already in).
+        return ms
     known = [ms] + [v for v in (_ping_fresh(p, host, now) for p in active if p not in (host, token) and p not in joining) if v is not None]
     high = [v for v in known if v > PING_KICK_MS]
     if len(known) >= 2 and len(high) * 2 > len(known):
@@ -8757,6 +8799,11 @@ def ping_check(now=None):
                 continue
             key = (p, mid)
             live.add(key)
+            if pings.get(p) is None and MM_PING_GATE:
+                # The pair ping goes stale (> PING_FRESH_S) between Steam estimates about once a minute; counting the unknown value as 'back under'
+                # restarted the 60 s timer every ~70 s, so a high-ping player was never removed. Unknown keeps the timer as it is; the removal still
+                # needs a fresh reading over the limit.
+                continue
             if p not in high:
                 if PING_HIGH.pop(key, None) is not None:
                     log("ping:", tag(p), "back under %d ms to the host in match %s (%s ms)" % (PING_KICK_MS, mid, pings.get(p)))
