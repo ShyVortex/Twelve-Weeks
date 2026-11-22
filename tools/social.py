@@ -28,10 +28,10 @@ import threading
 import time
 
 OP_REQ, OP_REPLY = 0xD8, 0xD9
-S_STATE, S_SEARCH, S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY = range(1, 13)
+S_STATE, S_SEARCH, S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY, S_MSG, S_CHAT = range(1, 15)
 SUB_NAMES = {S_STATE: "state", S_SEARCH: "search", S_ADD: "add", S_ACCEPT: "accept", S_REMOVE: "remove", S_INVITE: "invite", S_JOIN: "join",
-             S_DECLINE: "decline", S_LEAVE: "leave", S_KICK: "kick", S_PROMOTE: "promote", S_READY: "ready"}
-WRITE_SUBS = frozenset((S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY))
+             S_DECLINE: "decline", S_LEAVE: "leave", S_KICK: "kick", S_PROMOTE: "promote", S_READY: "ready", S_MSG: "msg", S_CHAT: "chat"}
+WRITE_SUBS = frozenset((S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY, S_MSG))
 PRESENCE_TTL = 60.0            # a launcher / game seen this recently is online
 SEEN_WRITE_S = 30.0            # last-seen rows are rewritten at most this often per account
 INVITE_TTL = 300.0
@@ -43,6 +43,15 @@ NOTE_KEEP_S = 30.0             # a note waits this long for the 6 s notice poll
 SEARCH_MAX = 8
 PARTY_GRACE = 45.0             # a party member that was in neither the game nor the launcher for this long leaves its party
 RANK = {"match": 0, "search": 1, "menu": 2, "launcher": 3, "off": 4}
+# private messages between FRIENDS only (S_MSG arg "<friend id>\n<text>", S_CHAT arg "<friend id>" -> reply "chat"): stored in social_msgs, the newest
+# MSG_KEEP per pair, none older than MSG_AGE_S; removing a friend deletes the pair's messages. The daemon passes at most 200 bytes of argument.
+MSG_LEN = 200                  # characters of one message
+MSG_PER_MIN = 20               # messages one account may send per minute (on top of OPS_PER_MIN)
+MSG_KEEP = 100
+MSG_AGE_S = 30 * 86400
+CHAT_SHOW = 60                 # messages one S_CHAT reply carries
+CHAT_BYTES = 24000             # ... and at most this much text (the 0xD9 frame length is a u16)
+_CTRL = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]")
 
 # in-game lines (kind p of the notice poll), English / Polish: {n} = a player name
 NOTES = {
@@ -420,6 +429,8 @@ class Social:
         self.seq = NOTE_BASE
         self.seen_w = {}               # account -> time of its last last-seen row write
         self.rate = {}                 # account -> [times of write ops]
+        self.mrate = {}                # account -> [times of sent messages]
+        self._mgc_at = 0.0
         self.qnote = {}                # party id -> time of the last "leader searches" note
         self._om = (0.0, {}, set())
         self._tick_at = 0.0
@@ -481,6 +492,9 @@ class Social:
         c.execute("CREATE TABLE IF NOT EXISTS social_friends(a TEXT, b TEXT, state INT, since REAL, PRIMARY KEY(a, b))")
         c.execute("CREATE INDEX IF NOT EXISTS social_friends_b ON social_friends(b)")
         c.execute("CREATE TABLE IF NOT EXISTS social_seen(acct TEXT PRIMARY KEY, name TEXT, last REAL)")
+        c.execute("CREATE TABLE IF NOT EXISTS social_msgs(id INTEGER PRIMARY KEY AUTOINCREMENT, a TEXT, b TEXT, ts REAL, body TEXT, rd INT DEFAULT 0)")
+        c.execute("CREATE INDEX IF NOT EXISTS social_msgs_to ON social_msgs(b, rd)")
+        c.execute("CREATE INDEX IF NOT EXISTS social_msgs_pair ON social_msgs(a, b, id)")
 
     def _adopt(self, c, token, key):
         """The token's Steam id became known: the rows of its old install account move to the Steam account (only when there are some)."""
@@ -651,14 +665,17 @@ class Social:
         return [(m, self.h.name(m) or "PLAYER", m == lead) for m in self.p.members(token) if m != token]
 
     # --- ops
-    def _limited(self, key):
+    def _limited(self, key, table=None, per_min=OPS_PER_MIN):
+        table = self.rate if table is None else table
         now = self.h.now()
-        l = [t for t in self.rate.get(key, ()) if now - t < 60.0]
+        l = [t for t in table.get(key, ()) if now - t < 60.0]
         l.append(now)
-        self.rate[key] = l
-        if len(self.rate) > 2000:
-            self.rate = {k: v for k, v in self.rate.items() if v and now - v[-1] < 60.0}
-        return len(l) > OPS_PER_MIN
+        table[key] = l
+        if len(table) > 2000:
+            fresh = {k: v for k, v in table.items() if v and now - v[-1] < 60.0}
+            table.clear()
+            table.update(fresh)
+        return len(l) > per_min
 
     def handle(self, token, lang, sub, arg=""):
         """One launcher request -> the reply dict (always a fresh state plus ok / err)."""
@@ -691,6 +708,17 @@ class Social:
                     self.p.leave(token)
                 elif sub == S_READY:
                     err = self.p.set_ready(token, arg.strip() != "0")
+                elif sub == S_MSG:
+                    key, _, text = (arg or "").partition("\n")
+                    err = self._msg(c, me, key.strip(), text)
+                    if not err:
+                        res["chat"] = self._chat(c, me, key.strip())
+                elif sub == S_CHAT:
+                    key = (arg or "").strip()
+                    if self._rel(c, me, key) != "friend":
+                        err = "notfriend"
+                    else:
+                        res["chat"] = self._chat(c, me, key)
                 elif sub != S_STATE:
                     err = "bad"
                 self._drain()
@@ -816,8 +844,47 @@ class Social:
         if not re.fullmatch(r"[st]:[0-9a-f]{1,20}", key):
             return "bad"
         c.execute("DELETE FROM social_friends WHERE (a=? AND b=?) OR (a=? AND b=?)", (me, key, key, me))
+        c.execute("DELETE FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?)", (me, key, key, me))     # an ex-friend's messages go too
         c.commit()
         return None
+
+    # --- private messages (friends only)
+    def _msg(self, c, me, key, text):
+        if not re.fullmatch(r"[st]:[0-9a-f]{1,20}", key or ""):
+            return "bad"
+        if self._rel(c, me, key) != "friend":
+            return "notfriend"
+        body = " ".join(_CTRL.sub(" ", text or "").split())[:MSG_LEN]
+        if not body:
+            return "bad"
+        if self._limited(me, self.mrate, MSG_PER_MIN):
+            return "rate"
+        now = self.h.now()
+        c.execute("INSERT INTO social_msgs(a, b, ts, body, rd) VALUES(?, ?, ?, ?, 0)", (me, key, now, body))
+        # the pair keeps its newest MSG_KEEP; once an hour everything older than MSG_AGE_S goes
+        c.execute("DELETE FROM social_msgs WHERE ((a=? AND b=?) OR (a=? AND b=?)) AND id NOT IN (SELECT id FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?) "
+                  "ORDER BY id DESC LIMIT ?)", (me, key, key, me, me, key, key, me, MSG_KEEP))
+        if now - self._mgc_at > 3600.0:
+            self._mgc_at = now
+            c.execute("DELETE FROM social_msgs WHERE ts < ?", (now - MSG_AGE_S,))
+        c.commit()
+        return None
+
+    def _chat(self, c, me, key):
+        """The conversation with one friend, oldest first; what the friend sent is marked read."""
+        rows = c.execute("SELECT id, a, ts, body FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?) ORDER BY id DESC LIMIT ?",
+                         (me, key, key, me, CHAT_SHOW)).fetchall()
+        if c.execute("SELECT 1 FROM social_msgs WHERE a=? AND b=? AND rd=0 LIMIT 1", (key, me)).fetchone():
+            c.execute("UPDATE social_msgs SET rd=1 WHERE a=? AND b=? AND rd=0", (key, me))
+            c.commit()
+        now = self.h.now()
+        out, size = [], 0
+        for i, a, ts, body in rows:                     # newest first; the reply frame is u16-sized, so the history stops at CHAT_BYTES
+            size += len(body.encode("utf-8")) + 48
+            if size > CHAT_BYTES and out:
+                break
+            out.append({"id": i, "me": a == me, "t": body, "age": max(0, int(now - (ts or now)))})
+        return {"with": key, "msgs": out[::-1]}
 
     def _party_op(self, c, token, me, sub, arg, om):
         key = (arg or "").strip()
@@ -879,8 +946,9 @@ class Social:
         pinv = []
         for inviter, age in self.p.invites_for(token):
             pinv.append({"id": self.acct(inviter), "name": self.h.name(inviter) or "PLAYER", "age": int(age)})
+        unread = {a: n for a, n in c.execute("SELECT a, COUNT(*) FROM social_msgs WHERE b=? AND rd=0 GROUP BY a", (me,)).fetchall()}
         return {"v": 1, "me": {"id": me, "name": self.h.name(token) or token_name_fallback(token)}, "friends": friends, "in": inc, "out": out,
-                "party": party, "pinv": pinv, "max": self.p.MAX}
+                "party": party, "pinv": pinv, "max": self.p.MAX, "unread": unread}
 
 
 def token_name_fallback(token):

@@ -306,6 +306,61 @@ check(S.p.pid(b) is None, "the last mate offline: the party is gone, nobody is h
 S.hb[a] = H.t; S.p.invite_token(b, a); H.t += 11; S.party_tick(H.t)
 check(S.p.invites_for(a) != [], "a launcher-only invitee stays alive for the party tick")
 
+# ------------------------------------------------------------ private messages (friends only)
+H.t += 120
+check(call("Alice", social.S_STATE)["friends"][0]["name"] == "Bob", "(Alice + Bob are friends)")
+r = call("Alice", social.S_MSG, key("Bob") + "\nhi bob")
+check(r["ok"] == 1 and r["chat"]["with"] == key("Bob") and [(m["me"], m["t"]) for m in r["chat"]["msgs"]] == [(True, "hi bob")], "Alice messages Bob: the reply carries the chat")
+check(r["unread"] == {}, "the sender has nothing unread")
+r = call("Bob", social.S_STATE)
+check(r["unread"] == {key("Alice"): 1}, "Bob's state counts 1 unread from Alice: " + str(r["unread"]))
+r = call("Bob", social.S_CHAT, key("Alice"))
+check(r["ok"] == 1 and [(m["me"], m["t"]) for m in r["chat"]["msgs"]] == [(False, "hi bob")] and r["unread"] == {}, "Bob opens the chat: message shown, marked read")
+r = call("Bob", social.S_MSG, key("Alice") + "\nhey\nsecond line \x07 bell \u202e flip \u200b")
+check(r["chat"]["msgs"][-1]["t"] == "hey second line bell flip", "newlines / control / bidi characters become spaces: " + repr(r["chat"]["msgs"][-1]["t"]))
+r = call("Bob", social.S_MSG, key("Alice") + "\n" + "x" * 300)
+check(len(r["chat"]["msgs"][-1]["t"]) == social.MSG_LEN, "long message cut to MSG_LEN")
+r = call("Bob", social.S_MSG, key("Alice") + "\n   \x01 ")
+check(r["ok"] == 0 and r["err"] == "bad", "empty message refused")
+r = call("Alice", social.S_MSG, key("Hal") + "\nhello stranger")
+check(r["ok"] == 0 and r["err"] == "notfriend" and "chat" not in r, "message to a non-friend refused")
+r = call("Alice", social.S_CHAT, key("Hal"))
+check(r["err"] == "notfriend" and "chat" not in r, "chat with a non-friend refused")
+r = call("Alice", social.S_MSG, "garbage\nhi")
+check(r["err"] == "bad", "malformed id refused")
+with H.db() as c:
+    check(c.execute("SELECT COUNT(*) FROM social_msgs WHERE a=? AND b=?", (key("Alice"), key("Hal"))).fetchone()[0] == 0, "nothing stored for the refused message")
+H.t += 61
+oks = [call("Alice", social.S_MSG, key("Bob") + "\nflood %d" % i)["ok"] for i in range(social.MSG_PER_MIN + 2)]
+check(oks[:social.MSG_PER_MIN] == [1] * social.MSG_PER_MIN and oks[-1] == 0, "more than MSG_PER_MIN messages a minute -> rate")
+H.t += 61
+check(call("Alice", social.S_MSG, key("Bob") + "\nafter a minute")["ok"] == 1, "a minute later sending works again")
+for i in range(social.MSG_KEEP + 30):
+    if i % 15 == 0: H.t += 61
+    call("Bob" if i % 2 else "Alice", social.S_MSG, (key("Alice") if i % 2 else key("Bob")) + "\nkeep %d" % i)
+with H.db() as c:
+    n = c.execute("SELECT COUNT(*) FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?)", (key("Alice"), key("Bob"), key("Bob"), key("Alice"))).fetchone()[0]
+check(n == social.MSG_KEEP, "a pair keeps its newest MSG_KEEP messages: %d" % n)
+r = call("Alice", social.S_CHAT, key("Bob"))
+check(len(r["chat"]["msgs"]) == social.CHAT_SHOW and r["chat"]["msgs"][-1]["t"] == "keep %d" % (social.MSG_KEEP + 29), "chat shows the newest CHAT_SHOW, oldest first")
+H.t += 61
+for i in range(15):
+    call("Alice", social.S_MSG, key("Bob") + "\n" + "\U0001F600" * social.MSG_LEN)
+r = call("Bob", social.S_CHAT, key("Alice"))
+check(len(social.reply_json(r)) < 40000 and r["chat"]["msgs"][-1]["t"].startswith("\U0001F600"), "emoji-heavy history stays well under the u16 frame: %d bytes" % len(social.reply_json(r)))
+# age purge (hourly) + unfriend wipes the pair
+H.t += social.MSG_AGE_S + 10
+S._mgc_at = 0.0
+r = call("Alice", social.S_MSG, key("Bob") + "\nnew month")
+check([m["t"] for m in r["chat"]["msgs"]] == ["new month"], "messages older than MSG_AGE_S are deleted")
+r = call("Bob", social.S_REMOVE, key("Alice"))
+with H.db() as c:
+    n = c.execute("SELECT COUNT(*) FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?)", (key("Alice"), key("Bob"), key("Bob"), key("Alice"))).fetchone()[0]
+check(r["ok"] == 1 and n == 0, "unfriending deletes the pair's messages")
+call("Alice", social.S_ADD, "Bob"); call("Bob", social.S_ACCEPT, key("Alice"))
+r = call("Alice", social.S_CHAT, key("Bob"))
+check(r["ok"] == 1 and r["chat"]["msgs"] == [] and r["friends"][0]["name"] == "Bob", "friends again: the chat starts empty")
+
 # ------------------------------------------------------------ the daemon: op 0xD8 over TCP + matchmaking
 s = socket.socket(); s.bind(("127.0.0.1", 0)); port = s.getsockname()[1]; s.close()
 os.environ.update(T2R_HOST="127.0.0.1", T2R_PORT=str(port), T2R_MATCH_SIZE="8", T2R_ENGINE_SLOTS="8", T2R_MIN_PLAYERS="2",
@@ -345,6 +400,12 @@ r = sreq(0, social.S_ADD, "P1")
 check(r["ok"] == 1 and r["out"][0]["name"] == "P1", "TCP: friend request by name")
 r = sreq(1, social.S_ACCEPT, dk(0))
 check(r["ok"] == 1 and r["friends"][0]["name"] == "P0" and r["friends"][0]["status"] in ("menu", "launcher"), "TCP: accepted, friend online")
+r = sreq(1, social.S_MSG, dk(0) + "\nzażółć gęślą jaźń")
+check(r["ok"] == 1 and r["chat"]["msgs"][-1]["t"] == "zażółć gęślą jaźń", "TCP: private message (UTF-8)")
+r = sreq(0, social.S_STATE)
+check(r["unread"] == {dk(1): 1}, "TCP: the friend sees it unread")
+r = sreq(0, social.S_CHAT, dk(1))
+check(r["chat"]["msgs"][-1]["me"] is False and sreq(0, social.S_STATE)["unread"] == {}, "TCP: opening the chat reads it")
 def quiet(payload):
     c = socket.create_connection(("127.0.0.1", port), timeout=0.6)
     c.sendall(struct.pack("<H", len(payload) + 1) + bytes([0xD8]) + payload)
