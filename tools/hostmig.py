@@ -224,7 +224,8 @@ def ping_fit(players, pair, limit, units_fn=None, host_ok=None):
     players: the formation's pick (queue order). pair(a, b) -> ms or None (unknown = not judged, kept). units_fn(t) -> the tokens that join
     together with t (a party: dropped whole). host_ok(t) -> may t host (no-host list).
     Returns (kept, dropped, host, info): the host candidate that keeps the most players (tie: lower worst ping to the kept players, then
-    queue order) and the players it keeps (queue order). No pair ping known, or limit <= 0 = everybody kept, host None."""
+    queue order) and the players it keeps (queue order). No pair ping known, or limit <= 0 = everybody kept, host None.
+    A far player (see below) is dropped even by a host whose ping to it is unknown, and a far host keeps nobody it has no ping to."""
     players = list(players)
     if limit <= 0 or len(players) < 2:
         return players, [], None, "off" if limit <= 0 else "one player"
@@ -239,16 +240,25 @@ def ping_fit(players, pair, limit, units_fn=None, host_ok=None):
             unit[m] = tuple(g)
     if not any(pair(a, b) is not None for i, a in enumerate(players) for b in players[i + 1:]):
         return players, [], None, "no pings known"
+    # Far players: every known ping to the others is over the limit (and at least half of them, min 2, are known). An unknown ping is not
+    # a pass for them: a Southeast Asia player at 381-414 ms to all four South Americans whose pings were known was matched because two
+    # players who had just queued had no ping to him yet, so one of them "kept everybody"; he was removed 60 s in, every match.
+    far = set()
+    for t in players:
+        others = [o for o in players if o not in unit[t]]
+        known = [ms for ms in (pair(t, o) for o in others) if ms is not None]
+        if others and len(known) >= max(2, (len(others) + 1) // 2) and min(known) > limit:
+            far.update(unit[t])
     best = None
     for h in players:
         if host_ok is not None and not host_ok(h):
             continue
-        bad = set()
+        bad = set(far) - set(unit[h])
         for t in players:
             if t == h:
                 continue
             ms = pair(h, t)
-            if ms is not None and ms > limit:
+            if (ms is not None and ms > limit) or (ms is None and h in far and t not in unit[h]):
                 bad.update(unit[t])
         if h in bad:                              # a member of the host's own party is over the limit to it: not a host for this lobby
             continue

@@ -584,7 +584,7 @@ def apply_match(c, tid, mid, parts, left_early=False, counts=None, mult=1.0, for
     meta = meta_of(new)
     try:                                                    # supplies per category (tools/clan_supply.py): the same engine numbers, split; the stock persists in meta["sup"]
         stock, r["sup"] = clan_supply.book((meta.get("sup") or {}).get("stock"), r["supplies"], r["needed"], clan["healthy"] + clan["hungry"] + clan["sick"],
-                                           r["parts"], counts, bool(r.get("left")))
+                                           r["parts"], counts, bool(r.get("left")), bool(forgive))
         meta["sup"] = {"stock": stock}
     except Exception:                                       # noqa: BLE001 - a presentation split never breaks the day
         r.pop("sup", None)
