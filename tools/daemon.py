@@ -1201,6 +1201,16 @@ CLAN_LAST_DEPART = {}  # mid -> (time, token) of the latest departure from the r
 CLAN_EXCUSED = set()   # (token, mid)
 CLAN_LINK_EXCUSES = {}  # token -> [times]: 'my link was lost' excuses granted (client-reported flag 4, cannot be proven: capped so pulling the cable is not a free way out)
 CLAN_LINK_EXCUSE_MAX, CLAN_LINK_EXCUSE_WINDOW = 2, 86400.0
+# Closing the game window during a match (Alt+F4, the X)
+# dropped the session like a crash, so the leave was excused. The ext now sends op 0xBC sub 3 just before its window closes in a match
+# (CLAN_CLOSING): a session lost within CLAN_CLOSING_S (20 s) of it is the player's own leave. A kill the ext cannot see (Task Manager, pulled cable) still
+# looks like a crash: those excuses are capped per player (CLAN_LOST_EXCUSE_MAX in CLAN_LOST_EXCUSE_WINDOW s), the rest count as left early.
+CLAN_CLOSING = {}      # token -> (time, mid) of its 'my window is closing' notice
+CLAN_CLOSE_DROPS = set()   # (token, mid): its session dropped within CLAN_CLOSING_S of that notice - the verdict comes SESSION_GRACE_S later
+CLAN_CLOSING_S = float(os.environ.get("T2R_CLAN_CLOSING_S", "20"))   # (short: a close the game asks to confirm and the player cancels must not turn a later crash into a leave)
+CLAN_LOST_EXCUSES = {}  # token -> [times]: crash / lost-connection excuses granted
+CLAN_LOST_EXCUSE_MAX = int(os.environ.get("T2R_CLAN_LOST_EXCUSE_MAX", "3"))
+CLAN_LOST_EXCUSE_WINDOW = float(os.environ.get("T2R_CLAN_LOST_EXCUSE_WINDOW", "86400"))
 _clanlock = threading.Lock()
 
 def clan_key(c, token):
@@ -2558,6 +2568,22 @@ SESSIONS = Sessions()
 SESSION_GRACE_S = float(os.environ.get("T2R_SESSION_GRACE", "60"))
 SESS_LOST = {}                         # token -> (time.time() the session conn was lost, match id)
 
+def clan_closed_book(token, mid):
+    """A closed game sends no match report, and a clan day is booked only from one: book the left-early day (0 parts) here. Finalised
+    after the re-attach window + 20 s, so the leave verdict (leave_running_match) and a match end come first. A start / end grace or update excuse
+    still applies: no day then (like any excused leave)."""
+    if CLAN_MATCH.get(token) != mid or CLAN_DONE.get(token) == mid:
+        return
+    ex = clan_leave_excuse(token, mid, "session lost")
+    if ex is not None:
+        log("CLAN closed", tag(token), "mid", mid, "- excused (%s): no day" % ex)
+        return
+    CLAN_QUITTERS.add((token, mid))
+    with _clanlock:
+        CLAN_PENDING.setdefault(token, (mid, 0, 0, {}))
+    CLAN_DUE[token] = time.time() + SESSION_GRACE_S + 20
+    log("CLAN closed", tag(token), "mid", mid, "- no report comes from a closed game: left-early day (0 parts) booked in %.0f s" % (SESSION_GRACE_S + 20))
+
 def note_session_lost(token, conn):
     """A registered session conn of `token` closed. In a launched, not ended match: remember it for SESSION_GRACE_S (re-attach window)."""
     try:
@@ -2571,6 +2597,14 @@ def note_session_lost(token, conn):
         if not running:
             return False
         SESS_LOST[token] = (time.time(), mid)
+        cl = CLAN_CLOSING.get(token)
+        if cl and time.time() - cl[0] <= CLAN_CLOSING_S and cl[1] in (None, mid):
+            # the leave verdict comes after the re-attach window (SESSION_GRACE_S), long after CLAN_CLOSING_S: decide 'closed' now
+            if len(CLAN_CLOSE_DROPS) > 4000:
+                CLAN_CLOSE_DROPS.clear()
+            CLAN_CLOSE_DROPS.add((token, mid))
+            log("CLAN closed", tag(token), "mid", mid, "- its session dropped %.1f s after its window-close notice: its own leave" % (time.time() - cl[0]))
+            clan_closed_book(token, mid)
         evt("session-lost", mid, tag(token), "session socket lost in a running match; waiting %.0f s for it to re-attach" % SESSION_GRACE_S)
         return True
     except Exception as e:
@@ -6243,6 +6277,13 @@ def modeq_op(pl):
     token, sub, mode = req
     if not is_token(token):
         return None
+    if sub == 3:                                   # "my game window is closing" (Alt+F4 / the X during a match): its session drop is its own leave
+        mid_ = MM.mid_of(token)
+        CLAN_CLOSING[token] = (time.time(), mid_)
+        if len(CLAN_CLOSING) > 4000:
+            for _k in list(CLAN_CLOSING)[:1000]:
+                CLAN_CLOSING.pop(_k, None)
+        log("CLAN closing", tag(token), "mid", mid_, "- its game window is closing (a session drop now counts as its own leave)")
     if sub == 1:
         if MODEQ.set(token, mode):
             log("MODEQ", tag(token), "picks", "ANY (quick match)" if mode == modeq.ANY else modeq.MODES[mode])
@@ -6330,13 +6371,20 @@ def abort_award(mid, others, host, why):
     with MM.lock:
         joining = {t for t, (m, _) in MM.joining.items() if m == mid}
     others = [p for p in (others or []) if p not in joining]      # a join-in-progress player that has not started yet is not 'left over'
+    closed = [p for p in others if (p, mid) in CLAN_CLOSE_DROPS]   # a player who closed its window is not 'left over' - its session is just
+    if closed:                                                    # still inside the re-attach window. Its own leave stays 'left early'.
+        others = [p for p in others if p not in closed]
+        for p in closed:
+            if clan_leave_excuse(p, mid, "session lost") is None:
+                CLAN_QUITTERS.add((p, mid))
+        log("ABORT-AWARD", mid, "not for", [tag(p) for p in closed], "(closed the game window)")
     if not others:
         return False
     with MM.lock:
         if mid in MM.ended or mid not in MM.started:
             return False                    # a normal end already ran / the match never went live
     ABORT_AWARDED.add(mid)
-    if host and clan_why_deliberate(why) and clan_leave_excuse(host, mid, why) is None:      # a deliberate host quit stays 'left early' (a crash / timeout / start- or end-grace leave does not)
+    if host and clan_leave_excuse(host, mid, why) is None:      # (a closed window / an over-cap lost link counts too) a deliberate host quit stays 'left early' (a crash / timeout / start- or end-grace leave does not)
         CLAN_QUITTERS.add((host, mid))
     clan_match_ended(others, mid)
     MM.end(mid)
@@ -6349,17 +6397,38 @@ def abort_award(mid, others, host, why):
 def clan_why_deliberate(why):
     return any(d in (why or "") for d in CLAN_DELIBERATE_WHY)
 
+_CLAN_LOST_COUNTED = set()   # (token, mid) already counted against CLAN_LOST_EXCUSE_MAX
+
 def clan_leave_excuse(token, mid, why):
     """None = a deliberate leave of a running match that counts as 'left early'; else the reason it is excused (crash / timeout / ...)."""
     if CLAN_NO_PENALTY:
         return "no clan penalties on this server (T2R_CLAN_NO_PENALTY)"
     if not clan_why_deliberate(why):
         w = (why or "").lower()
-        kind = ("crash / lost connection (session socket lost, never came back)" if "session lost" in w else
-                "timeout (no packets from the player)" if "timed out" in w else
-                "never loaded the level" if "never loaded" in w or "never started" in w else
-                "removed by an admin" if "admin" in w else "not its own choice (%s)" % why)
-        return kind
+        lost = "session lost" in w or "timed out" in w
+        cl = CLAN_CLOSING.get(token)
+        if lost and ((token, mid) in CLAN_CLOSE_DROPS or (cl and time.time() - cl[0] <= CLAN_CLOSING_S and cl[1] in (None, mid))):
+            why = "closed the game window"              # the player's own leave: the grace windows / the update excuse below still apply
+        else:
+            kind = ("crash / lost connection (session socket lost, never came back)" if "session lost" in w else
+                    "timeout (no packets from the player)" if "timed out" in w else
+                    "never loaded the level" if "never loaded" in w or "never started" in w else
+                    "removed by an admin" if "admin" in w else "not its own choice (%s)" % why)
+            if lost and CLAN_LOST_EXCUSE_MAX > 0:
+                now = time.time()
+                key = (token, mid)
+                ex = [t for t in CLAN_LOST_EXCUSES.get(token, []) if now - t < CLAN_LOST_EXCUSE_WINDOW]
+                if key not in _CLAN_LOST_COUNTED:                    # (one match counts once: abort_award asks again for the same leave)
+                    _CLAN_LOST_COUNTED.add(key)
+                    if len(_CLAN_LOST_COUNTED) > 4000:
+                        _CLAN_LOST_COUNTED.clear()
+                    ex.append(now)
+                CLAN_LOST_EXCUSES[token] = ex
+                if len(ex) > CLAN_LOST_EXCUSE_MAX:
+                    log("CLAN excuse", tag(token), "mid", mid, "%s refused - %d such exits in the last %.0f h (cap %d): counts as left early"
+                        % (kind, len(ex), CLAN_LOST_EXCUSE_WINDOW / 3600, CLAN_LOST_EXCUSE_MAX))
+                    return None
+            return kind
     # the new client ext force-closes the game 60 s after the server's 'update available' notice (kind 'u') reaches it in a match:
     # a player still on an older build than the published one leaves on the update's word, not by choice
     try:
@@ -6411,6 +6480,8 @@ def leave_running_match(token, why):
             if _rep is not None and _rep <= hostmig.REPLACED_EXCUSE_S:
                 _why_ex = "replaced as host by a migration %.0f s before (its game left on the server's word)" % _rep
         if _why_ex is not None:
+            if (token, pre_mid) in CLAN_CLOSE_DROPS:
+                CLAN_QUITTERS.discard((token, pre_mid))     # (a later excuse wins over the closed-window day: clan_closed_book)
             CLAN_EXCUSED.add((token, pre_mid))
             CLAN_EXCUSE_WHY[(token, pre_mid)] = _why_ex
             log("CLAN excuse", tag(token), "mid", pre_mid, "leaves (%s): %s" % (why, _why_ex), "- no left-early penalty")
