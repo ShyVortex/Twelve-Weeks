@@ -26,6 +26,19 @@ static void kn_parse(const char *t, char *out, size_t n) {
         for (const char *p = q; *p && p != e && k + 1 < sizeof r; p++) if (*p != '<' && *p != '>') r[k++] = *p;
         r[k] = 0;
     }
+    // packet loss limit (daemon SRV_TEXT loss_kicked / loss_kicked_free): "... lost <pct>% of its packets for over <s> seconds (limit <lim>%) ..." /
+    // PL "... gubiÅo <pct>% pakietÃ³w przez ponad <s> s (limit <lim>%) ...". It showed the admin text before (no Reason, no "ping").
+    const char *ls = strstr(t, "of its packets") ? strstr(t, "lost ") : strstr(t, "pakiet") ? strstr(t, "gubi") : NULL;
+    if (ls) {
+        int v[3] = {0, 0, 0}, k = 0;
+        for (const char *c = ls; *c && k < 3; c++) if (*c >= '0' && *c <= '9') { v[k++] = atoi(c); while (c[1] >= '0' && c[1] <= '9') c++; }
+        int now_ok = strstr(t, "search again now") || strstr(t, "od razu");
+        g_kn.title = "REMOVED FOR PACKET LOSS";
+        if (k == 3) snprintf(out, n, now_ok ? "YOUR CONNECTION LOST %d PERCENT OF ITS PACKETS FOR OVER %d SECONDS (LIMIT %d PERCENT). YOU CAN SEARCH AGAIN NOW."
+                                            : "YOUR CONNECTION LOST %d PERCENT OF ITS PACKETS FOR OVER %d SECONDS (LIMIT %d PERCENT), THE SECOND TIME IN A SHORT WHILE.", v[0], v[1], v[2]);
+        else snprintf(out, n, "YOUR CONNECTION LOST TOO MANY PACKETS.");
+        return;
+    }
     // ping limit: "... your ping to the host was <ms> ms for over <s> seconds (limit <lim> ms)." / PL "... ping do hosta wynosi\xc5\x82 <ms> ms przez ponad <s> s (limit <lim> ms)."
     const char *pg = strstr(t, "ping");
     if (pg) {
