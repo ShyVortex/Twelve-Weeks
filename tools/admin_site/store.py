@@ -97,6 +97,8 @@ class Admin:
         self.seen_state = {}                       # pid -> (state, since)
         self.live_state = {"t": 0.0, "v": None}
         self.probe_state = {"t": 0.0, "v": None}
+        self._dm = (None, [])                      # (event-list key, derive_matches result): re-derived only when the log has new events
+        self._alife_sum = {}                       # clan key -> (clan_alife.updated, summary): a state is decoded again only when it changed
 
     # ------------------------------------------------------------------ helpers
     def cached(self, key, ttl, fn):
@@ -213,7 +215,15 @@ class Admin:
         if not ls:
             return []
         now = time.time()
-        ms = logindex.derive_matches(ls["events"])
+        ev = ls["events"]
+        key = (len(ev), ev[0]["ts"] if ev else 0, ev[-1]["ts"] if ev else 0, ev[-1]["kind"] if ev else "")
+        with self.lock:
+            hit = self._dm
+        if hit[0] != key:                          # the log index trims old events, so the first event is part of the key too
+            hit = (key, logindex.derive_matches(ev))
+            with self.lock:
+                self._dm = hit
+        ms = [dict(m) for m in hit[1]]             # the cleanup below sets top-level fields only: a shallow copy keeps the cached list clean
         st = ls["status"]
         idle = bool(st and now - st["ts"] < 45 and st["matches"] == 0)
         for m in ms:
@@ -630,6 +640,31 @@ class Admin:
                 "feed": clanfeed_view.view(self.db, "", 40, 0, lang, key=k)}
 
     def clans(self):
+        return self.cached("clans", 10.0, self._clans)
+
+    def _alife_summaries(self, c, keys):
+        """{clan key: clan_alife.summary}; a state (about 4 KB of JSON each) is decoded only when its `updated` changed since the last call."""
+        try:
+            upd = dict(c.execute("SELECT token_id,updated FROM clan_alife").fetchall())
+        except sqlite3.Error:
+            return {}
+        out = {}
+        for k in keys:
+            if k not in upd:
+                out[k] = {}
+                continue
+            with self.lock:
+                hit = self._alife_sum.get(k)
+            if hit and hit[0] == upd[k]:
+                out[k] = hit[1]
+                continue
+            sm = clan_alife.summary(c, k)
+            with self.lock:
+                self._alife_sum[k] = (upd[k], sm)
+            out[k] = sm
+        return out
+
+    def _clans(self):
         pg = self.player_groups()
         rows = []
         seen = set()
@@ -661,13 +696,17 @@ class Admin:
         try:
             c = self.connect()
             try:
-                for g in pg.values():
-                    k = g["clan_key"]
-                    if k and clan_alife:
-                        sm = clan_alife.summary(c, k)
-                        for r in rows:
-                            if r["ownerId"] == g["id"]:
-                                r["alife"] = sm
+                if clan_alife:
+                    # (one dict lookup per player instead of a scan of every row, and cached summaries: this loop was 75 % of the site's CPU)
+                    by_owner = {}
+                    for r in rows:
+                        by_owner.setdefault(r["ownerId"], []).append(r)
+                    sums = self._alife_summaries(c, {g["clan_key"] for g in pg.values() if g["clan_key"]})
+                    for g in pg.values():
+                        k = g["clan_key"]
+                        if k:
+                            for r in by_owner.get(g["id"], ()):
+                                r["alife"] = sums.get(k, {})
             finally:
                 c.close()
         except sqlite3.Error:
@@ -1121,6 +1160,7 @@ class Admin:
             return {"ok": False, "error": "daemon admin listener not reachable (%s). The clan reset needs the daemon build that has it (restart)." % getattr(e, "reason", e)}
         with self.lock:
             self.cache.pop("players", None)
+            self.cache.pop("clans", None)
         return r
 
     def clan_backups(self, pid):
@@ -1142,4 +1182,5 @@ class Admin:
             return {"ok": False, "error": str(getattr(e, "reason", e))}
         with self.lock:
             self.cache.pop("players", None)
+            self.cache.pop("clans", None)
         return r

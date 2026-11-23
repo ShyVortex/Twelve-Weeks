@@ -153,6 +153,20 @@ class TestLogIndex(Fixture):
         li.refresh(0)
         self.assertEqual(len([e for e in li.events if e["kind"] == "queue"]), 0)
 
+    def test_derived_matches_cache_follows_new_events(self):
+        # matches are re-derived only when the log has new events, and a caller's edits never reach the cached list
+        p = os.path.join(self.tmp, "dm.log")
+        with open(p, "w", encoding="utf-8") as f:
+            f.write(log_text(time.time()))
+        a = self.mk(daemon_log=p)
+        first = {m["id"]: m["state"] for m in a.derived_matches(a.logsnap())}
+        a.derived_matches(a.logsnap())[0]["state"] = "scribbled"
+        self.assertEqual({m["id"]: m["state"] for m in a.derived_matches(a.logsnap())}, first)
+        with open(p, "a", encoding="utf-8") as f:
+            f.write("[%s] EVT match-formed m9 players ['Eve', 'Finn'] host Eve net steam-p2p ping-ms {} client-versions {}\n" % time.strftime("%H:%M:%S"))
+        a.log.checked = 0
+        self.assertIn("m9", {m["id"] for m in a.derived_matches(a.logsnap())})
+
     def test_rename_rotation_keeps_events_without_rereading(self):
         # The daemon renames daemon.log -> daemon.log.1 at 8 MB; the index reads the old file's tail under its new name and follows
         # the new file, without the full re-read that hung the site
