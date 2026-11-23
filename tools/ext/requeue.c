@@ -17,10 +17,16 @@
 // Cancelling the search (back on the search page) works as before: winmm sends 0x02, the daemon drops the ticket, the next poll clears the text.
 // Off: t2r-no-requeue.txt next to the exe (no flag 0x20, no auto search, no text swap).
 #define RQ_ARM_MS 300000                 // = the daemon's T2R_REQUEUE_TICKET_S default (tools/requeue.py ticket_s)
-#define RQ_SETTLE_MS 1500                // MP menu on top this long before the push (move_rejoin_tick waits 1.2 s; the clan pages push within 1 s of the menu)
+// (the persistent lobby now comes right after the post-match summary: 3-4 seconds of the plain MP menu there were confusing and FIND MATCH
+// pressed in that gap could break the search) the MP menu showed for 1.5 s of settle plus the ticket check's round trip.
+// The ticket is now checked while the post-match screens are still up (RQ_PRE_MS), so a fresh yes pushes the search 0.6 s after the menu is on top.
+// (The pages that can still come after the menu - clan post-match, event, GEAR UP - are their own gates below: g_pm / cl13_post_active / g_ev / g_lo_state.)
+#define RQ_SETTLE_MS 600                 // MP menu on top this long before the push
+#define RQ_PRE_MS 3000                   // the ticket check's rate while the post-match screens are up
+#define RQ_FRESH_MS 4000                 // a yes this young pushes at once (no second check)
 #define RQ_POLL_MS 1500                  // the waiting-text poll on the search page (modepick polls its counts at the same rate)
 static struct {
-    uint64_t armed, end_at, menu_since, asked_at, poll_at, chk, ans_t;
+    uint64_t armed, end_at, menu_since, asked_at, poll_at, chk, ans_t, pre_at;
     int off, ans_rq, ans_w, asked, pushed, ans_s, ans_b, ans_p;
 } g_rq = {.off = -1, .ans_rq = -1};
 static volatile LONG g_rqp_busy, g_rqp_have;
@@ -114,6 +120,8 @@ static void requeue_tick(void) {
         g_rq.ans_rq = rq; g_rq.ans_w = rq == 1 ? w : 0;
         g_rq.ans_t = now;
     }
+    // the ticket check runs ahead, while the post-match screens are up: the push below then needs no round trip of its own
+    if (!off && g_rq.armed && !g_rq.pushed && sub != 6 && !g_rqp_busy && !g_rqp_have && now >= g_rq.pre_at && rqp_ask()) g_rq.pre_at = now + RQ_PRE_MS;
     if (g_rq.armed && g_kick_ms > g_rq.armed) rq_disarm("kicked from the match - no requeue");
     if (g_rq.armed && now - g_rq.armed > RQ_ARM_MS) rq_disarm("no MP menu within 300 s of the match end - given up");
     int st = *(volatile int *)VMA(0x180167968);
@@ -155,8 +163,8 @@ static void requeue_tick(void) {
     if (fr_in_party() && !g_f13.me_leader) { rq_disarm("party member - the leader's search takes us along (ready state kept)"); return; }
     if (!g_rq.menu_since) { g_rq.menu_since = now; return; }
     if (now - g_rq.menu_since < RQ_SETTLE_MS) return;
-    if (!g_rq.asked) {
-        if (!g_rqp_busy && rqp_ask()) { g_rq.asked = 1; g_rq.asked_at = now; g_rq.ans_rq = -2; }
+    if (!g_rq.asked && !(g_rq.ans_rq == 1 && now - g_rq.ans_t < RQ_FRESH_MS)) {      // (a fresh yes from the check ahead: no second one)
+        if (!g_rqp_busy && !g_rqp_have && rqp_ask()) { g_rq.asked = 1; g_rq.asked_at = now; g_rq.ans_rq = -2; }
         return;
     }
     if (g_rq.ans_rq == -2) {                                   // the answer is on its way
@@ -167,6 +175,64 @@ static void requeue_tick(void) {
     g_rq.armed = 0; g_rq.pushed = now; g_rq.poll_at = now + 500;
     g_pq_auto = now;                                           // (a party leader's own push: fr_search_gate lets it through like the follow push)
     push_page_now("to1/find-match-menu");
-    xlog("requeue: post-match screens done, %.1f s after the match end - search page pushed (same mode; the lobby waits for the others of the last match)",
-         (now - g_rq.end_at) / 1000.0);
+    xlog("requeue: post-match screens done, %.1f s after the match end, %.1f s on the MP menu - search page pushed (same mode; the lobby waits for the others of the last match)",
+         (now - g_rq.end_at) / 1000.0, (now - g_rq.menu_since) / 1000.0);
+}
+
+// ---- closing the window in a match is not a way around the clan left-early day -------------------------------------------
+// Closing the game window in a match (Alt+F4, the title bar X) dropped the session like a crash, and the daemon excused crashes: the clan kept its
+// day. Just before the window handles the close, we tell the daemon (op 0xBC sub 3, waited for: the reply comes after the daemon stored it, so it
+// lands before the session drops); the daemon then counts the drop as the player's own leave. A crash never gets here (no close message).
+// A thread-local WH_CALLWNDPROC hook on the window thread sees the sent WM_SYSCOMMAND SC_CLOSE / WM_CLOSE before the window procedure runs.
+static HHOOK g_cw_hook;
+static volatile LONG g_cw_sent;
+static char g_cw_tok[65];
+static void cw_notify(const char *what) {
+    if (match_substate() != 6 || !g_cw_tok[0] || InterlockedCompareExchange(&g_cw_sent, 1, 0)) return;     // (in a match, once)
+    HMODULE ws = LoadLibraryA("ws2_32.dll");
+    t2r_sin a;
+    t2r_net net;
+    int ok = 0;
+    if (ws && hm_server(&a) && t2r_net_load(&net, ws)) {
+        uint8_t frame[3 + 66];
+        frame[0] = 67; frame[1] = 0; frame[2] = 0xBC;
+        memcpy(frame + 3, g_cw_tok, 64);
+        frame[3 + 64] = 3; frame[3 + 65] = 0;
+        char rep[512];
+        int sent = 0;
+        int got = t2r_rpc(&net, &a, frame, (int)sizeof frame, rep, (int)sizeof rep - 1, 700, 700, 900, &sent);
+        ok = sent && got >= 3 && (uint8_t)rep[2] == 0xBD;
+    }
+    xlog("clan: the game window is closing in a match (%s) - the server was told %s (the leave counts as your own)", what, ok ? "and answered" : "NOT (no answer)");
+    if (!ok) InterlockedExchange(&g_cw_sent, 0);                  // (WM_CLOSE after SC_CLOSE tries once more)
+}
+static LRESULT CALLBACK cw_proc(int code, WPARAM wp, LPARAM lp) {
+    if (code == HC_ACTION && lp) {
+        const CWPSTRUCT *c = (const CWPSTRUCT *)lp;
+        if (c->message == WM_SYSCOMMAND && (c->wParam & 0xFFF0) == SC_CLOSE) cw_notify("Alt+F4 / close");
+        else if (c->message == WM_CLOSE) cw_notify("WM_CLOSE");
+    }
+    return CallNextHookEx(NULL, code, wp, lp);
+}
+static BOOL CALLBACK cw_find(HWND h, LPARAM lp) {                   // the game's own visible top-level window (not owned by another)
+    DWORD pid = 0, tid = GetWindowThreadProcessId(h, &pid);
+    if (pid != GetCurrentProcessId() || !IsWindowVisible(h) || GetWindow(h, GW_OWNER)) return TRUE;
+    *(DWORD *)lp = tid;
+    return FALSE;
+}
+static void close_watch_tick(void) {
+    static int tried;
+    static uint64_t next;
+    if (g_cw_hook || tried > 5) return;
+    uint64_t now = GetTickCount64();
+    if (now < next) return;
+    next = now + 2000;
+    if (!g_cw_tok[0] && !clan_token(g_cw_tok)) { g_cw_tok[0] = 0; return; }
+    HWND fg = GetForegroundWindow();
+    DWORD pid = 0, tid = fg ? GetWindowThreadProcessId(fg, &pid) : 0;
+    if (pid != GetCurrentProcessId()) { tid = 0; EnumWindows(cw_find, (LPARAM)&tid); }   // (in front or not: a player who alt-tabs at boot is watched too)
+    if (!tid) return;                                                // (the game window's thread is the one that gets the close)
+    tried++;
+    g_cw_hook = SetWindowsHookExW(WH_CALLWNDPROC, cw_proc, NULL, tid);
+    xlog("clan: window-close watch on the window thread %lu %s", (unsigned long)tid, g_cw_hook ? "installed" : "FAILED");
 }

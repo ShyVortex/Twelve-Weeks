@@ -27,6 +27,7 @@ tmp = tempfile.mkdtemp(prefix="chatw-")
 os.makedirs(os.path.join(tmp, "to1"))
 for n in ("main-menu", "currency-hud", "pause-menu"):
     json.dump(main, open(os.path.join(tmp, "to1", n + ".widget.json"), "w"))
+json.dump(main, open(os.path.join(tmp, "hud-root.widget.json"), "w"))
 
 nadd = cw.add_chat(tmp)
 check(nadd > 40, "chat widgets built (%d)" % nadd)
@@ -36,15 +37,19 @@ src = open(os.path.join(ROOT, "tools", "ext", "chat.c"), encoding="utf-8").read(
 
 
 def items(page):
-    return json.load(open(os.path.join(tmp, "to1", page + ".widget.json"), encoding="utf-8"))["items"]
+    return json.load(open(os.path.join(tmp, page + ".widget.json" if page == "hud-root" else os.path.join("to1", page + ".widget.json")),
+                          encoding="utf-8"))["items"]
 
 
-hud = items("currency-hud")
+check(not any(i["name"] in ("chatHud", "t2rChat", "chatBox") for i in items("currency-hud")), "currency-hud no longer carries the box")
+hud = items("hud-root")
 by = {i["name"]: i for i in hud}
 box = by.get("chatBox")
 check(box is not None and box["visible"] == 0, "chatBox exists and starts hidden")
-check(by["chatBox"]["parent"] == by["chatHud"]["guid"] and by["chatHud"]["parent"] == by["root"]["guid"], "chatHud > chatBox under root")
-# every leaf chat.c looks up with hud_widget("chatHud", "chatBox", "<leaf>") or through a "%d" leaf list is a direct child of chatBox
+check(by["chatBox"]["parent"] == by["t2rChat"]["guid"] and by["t2rChat"]["parent"] == by["root"]["guid"], "hud-root t2rChat > chatBox under root")
+check(by["t2rChat"]["depth"] > 30.0, "t2rChat draws above t2rDeath (depth 30)")
+check('"canvas.hudRoot.t2rChat.chatBox"' in src, "chat.c resolves the box by its hudRoot path")
+# every leaf chat.c looks up under chatBox (by path, or hud_widget for the old pak) or through a "%d" leaf list is a direct child of chatBox
 kids = {i["name"] for i in hud if i["parent"] == box["guid"]}
 lits = set(re.findall(r'"(ch[A-Z][A-Za-z]*\d?)"', src))
 fmts = re.findall(r'"(ch[A-Z][A-Za-z]*)%d"', src)

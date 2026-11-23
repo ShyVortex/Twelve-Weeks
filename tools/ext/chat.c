@@ -48,6 +48,15 @@ static int chat_on(void) {
     if (g_ch_off_file < 0) { FILE *f = exe_side_open("t2r-no-chat.txt", "r"); g_ch_off_file = f != NULL; if (f) fclose(f); xlog("chat: %s", g_ch_off_file ? "off (t2r-no-chat.txt)" : "on"); }
     return !g_ch_off_file && !g_mp_hide[3];
 }
+// a player with a role (tools/roles.py: OG / admin / dev / lead dev) has the name in the role's colour on every
+// chat line, the nametags' and rank badges' colours (rank13.h); our own role comes from our clan state, the others' from the rank table (rankbadge.c)
+static const char *ch_name_col(const char *who, int own, const char *col) {
+    int ro = 0;
+    if (own) { clan_t c = clan_get(); ro = c.ok ? c.ro : 0; }
+    else if (who && who[0]) ro = rkb_role_of(who);
+    const char *hx = rank13_role_hex(ro);
+    return hx ? hx : col;
+}
 static void ch_add(int tab, const char *who, const char *col, const char *text) {
     if (tab < 0 || tab >= CH_NALL || !text || !text[0]) return;
     if (CHS.n[tab] >= CH_KEEP) { memmove(&CHS.l[tab][0], &CHS.l[tab][1], sizeof CHS.l[tab][0] * (CH_KEEP - 1)); CHS.n[tab] = CH_KEEP - 1; }
@@ -122,7 +131,7 @@ static void ch_send_peer(int chan, const char *text) {
     int len = ch_pkt_build(b, sizeof b, chan, ++g_ch_seq, text);
     if (!len) return;
     char me[40]; ch_own_name(me, sizeof me);
-    ch_add(chan, me, "#D9D86A", text);               // our own line: shown at once (the broadcast never comes back to us)
+    ch_add(chan, me, ch_name_col(me, 1, "#D9D86A"), text);               // our own line: shown at once (the broadcast never comes back to us)
     if (!g_send_tramp || match_substate() != 6) { xlog("chat: %s line kept local (no match session)", CH_TAB[chan]); return; }
     g_send_tramp(MSG_CHAT, b, (uint64_t)len, 0xff);
     for (int i = 0; i < 4; i++) if (!g_ch_rs[i].len) { memcpy(g_ch_rs[i].b, b, (size_t)len); g_ch_rs[i].len = len; g_ch_rs[i].k = 1; g_ch_rs[i].t0 = GetTickCount64(); break; }
@@ -150,7 +159,7 @@ static void ch_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
     char nm[40], who[48];
     imm_roster_name(slot, nm, sizeof nm);
     ch_clean(nm, strlen(nm), who, sizeof who, 24);
-    ch_add(chan, who, mate ? "#48A8D8" : "#E04848", t);
+    ch_add(chan, who, ch_name_col(nm, 0, mate ? "#48A8D8" : "#E04848"), t);
     static int nl; if (LOGCAP(nl, 60)) xlog("chat: %s line from slot %u (%s)", CH_TAB[chan], slot, who);
 }
 // ------------------------------------------------------------------ PARTY + the report log copy: the server (op 0xD8, own short connection, one request at a time)
@@ -206,14 +215,20 @@ static int ch_rpc(int sub, const char *arg) {        // 1 = a request went out
 #define CH_S_LCHAT 19
 static int g_ch_lobby_last = -1, g_ch_lobby_lk;
 static uint64_t g_ch_lpoll_at;
-static int ch_in_lobby(void) { return g_rq_back + g_rq_post > 0; }      // our search is a lobby's (requeue.c's last 0xBD answer)
+// The LOBBY channel is everyone on our search list (the daemon keys it by the queue). It used to need requeue.c's lobby counts, which only the
+// last match's players have, and only while their search is held: a fresh searcher, or a lobby that was released, had no LOBBY tab at all.
+static int ch_in_lobby(void) {
+    static uint64_t P_FM;
+    if (!P_FM) P_FM = page_id("find-match-menu");
+    return g_rq_back + g_rq_post > 0 || (top_page() == P_FM && *(volatile int *)VMA(0x180167968) == 3);    // (session state 3 = searching)
+}
 static void ch_lobby_lines(const ch_pchat_t *d) {
     if (d->lk && d->lk != g_ch_lobby_lk) { g_ch_lobby_lk = d->lk; g_ch_lobby_last = -1; CHS.n[CH_LOBBY] = 0; CHS.gen++; }   // another lobby: its own lines only
     for (int i = 0; i < d->n; i++) {
         if (d->l[i].id <= g_ch_lobby_last) continue;
         char me[40];
         if (d->l[i].me) ch_own_name(me, sizeof me);
-        ch_add(CH_LOBBY, d->l[i].me ? me : d->l[i].name, d->l[i].me ? "#D9D86A" : "#E6E6E6", d->l[i].t);
+        ch_add(CH_LOBBY, d->l[i].me ? me : d->l[i].name, ch_name_col(d->l[i].name, d->l[i].me, d->l[i].me ? "#D9D86A" : "#E6E6E6"), d->l[i].t);
     }
     if (d->last > g_ch_lobby_last) g_ch_lobby_last = d->last;
 }
@@ -232,7 +247,7 @@ static void ch_party_lines(const ch_pchat_t *d) {
         if (d->l[i].id <= g_ch_party_last) continue;
         char me[40];
         if (d->l[i].me) ch_own_name(me, sizeof me);
-        ch_add(CH_PARTY, d->l[i].me ? me : d->l[i].name, d->l[i].me ? "#D9D86A" : "#E6E6E6", d->l[i].t);
+        ch_add(CH_PARTY, d->l[i].me ? me : d->l[i].name, ch_name_col(d->l[i].name, d->l[i].me, d->l[i].me ? "#D9D86A" : "#E6E6E6"), d->l[i].t);
     }
     if (d->last > g_ch_party_last) g_ch_party_last = d->last;
 }
@@ -473,6 +488,10 @@ static void chtw_bind(chtw_t *t, uint64_t a, uint64_t b, chtw_set_t set, const c
     set(a, t->want); w_alpha(a, 1.0f);
     if (b) { set(b, t->want); w_alpha(b, 1.0f); }
     chtw_show(t);
+    // (the typing box's top rows still showed the template's preview names) the bind runs on the page's first frame,
+    // where these writes do not stick: the template's preview lines stayed, and every later "" was skipped as "already blank". want is now a string
+    // no caller passes, so the first chtw_text (even "") really writes the leaf
+    t->want[0] = 1; t->want[1] = 0;
 }
 static void chtw_write(chtw_t *t) {
     snprintf(t->wr, sizeof t->wr, "%s", t->want);
@@ -500,6 +519,7 @@ static void chw_set_menu(uint64_t w, const char *t) { ((fn_settext_t)VMA(0x18006
 // ---- the HUD leaves
 static struct {
     uint64_t page, w[CW_N]; int miss; uint64_t retry; char txt[CW_N][CH_BUF + 96]; int vis[CW_N]; int aq; unsigned gen; int mode;
+    int layer;                                       // 1 = the hud-root t2rChat box (path handles), 0 = the old currency-hud one
     chtw_t tw[CW_N];                                 // the double-buffered leaves (chw_has_twin)
 } CHW;
 static int chw_has_twin(int i) { return (i >= CW_L0 && i <= CW_L4) || i == CW_FTX; }
@@ -508,7 +528,7 @@ static void chw_text(int i, const char *t) {
     if (chw_has_twin(i)) { chtw_text(&CHW.tw[i], t); return; }
     if (!strcmp(CHW.txt[i], t)) return;
     snprintf(CHW.txt[i], sizeof CHW.txt[i], "%s", t);
-    chw_set_hud(CHW.w[i], t);
+    if (CHW.layer) chw_set_menu(CHW.w[i], t); else chw_set_hud(CHW.w[i], t);
 }
 static void chw_vis(int i, int on) {
     if (!CHW.w[i] || CHW.vis[i] == on + 1) return;
@@ -516,26 +536,45 @@ static void chw_vis(int i, int on) {
     if (chw_has_twin(i)) chtw_vis(&CHW.tw[i], on); else w_visible(CHW.w[i], on);
 }
 static void ch_hud_twins(void) { for (int i = CW_L0; i < CW_N; i++) if (chw_has_twin(i)) chtw_tick(&CHW.tw[i]); }
+// (the chat stays above the death screen, the match end screen and the match intro) the box is hud-root's own layer t2rChat
+// (chat_widgets HUD_DEPTH 40: above t2rDeath, t2rBanner and hudMenuStack; the title card and death fades skip hud-root children named t2r*).
+// Its handles are the fnv64 of the full path; the widget object (g2_find) is the instance key, a new match's hudRoot is a new object. An
+// older widget pak has the box in to1/currency-hud (hud_widget, keyed by that page).
+#define CH_ROOT_BOX "canvas.hudRoot.t2rChat.chatBox"
+static uint64_t ch_hud_key(int *layer) {
+    uint8_t *o = g2_find(fnv64(CH_ROOT_BOX));
+    if (layer) *layer = o != NULL;
+    return o ? (uint64_t)o : *(uint64_t *)VMA(0x180189BA0);
+}
+static uint64_t ch_find_leaf(int layer, const char *leaf) {
+    if (!layer) return hud_widget("chatHud", "chatBox", leaf);
+    char p[64];
+    if (leaf) snprintf(p, sizeof p, "%s.%s", CH_ROOT_BOX, leaf); else snprintf(p, sizeof p, "%s", CH_ROOT_BOX);
+    uint64_t h = fnv64_rt(p);
+    return g2_find(h) ? h : 0;
+}
 static int ch_hud_resolve(void) {
-    uint64_t page = *(uint64_t *)VMA(0x180189BA0);
+    int layer = 0;
+    uint64_t page = ch_hud_key(&layer);
     if (page == CHW.page && CHW.w[CW_BOX]) return 1;
     if (page == CHW.page && CHW.miss && GetTickCount64() < CHW.retry) return 0;
     memset(&CHW, 0, sizeof CHW);
-    CHW.page = page; CHW.aq = -1;
-    CHW.w[CW_BOX] = hud_widget("chatHud", "chatBox", NULL);
-    if (!CHW.w[CW_BOX]) { CHW.miss = 1; CHW.retry = GetTickCount64() + 3000; static int n; if (LOGCAP(n, 3)) xlog("chat: HUD widgets chatHud/chatBox not found (old widget pak?)"); return 0; }
+    CHW.page = page; CHW.aq = -1; CHW.layer = layer;
+    CHW.w[CW_BOX] = ch_find_leaf(layer, NULL);
+    if (!CHW.w[CW_BOX]) { CHW.miss = 1; CHW.retry = GetTickCount64() + 3000; static int n; if (LOGCAP(n, 3)) xlog("chat: HUD box not found (no hud-root t2rChat, no currency-hud chatHud: old widget pak?)"); return 0; }
     int ntw = 0;
     for (int i = 1; i < CW_N; i++) {
-        CHW.w[i] = hud_widget("chatHud", "chatBox", CW_LEAF[i]);
+        CHW.w[i] = ch_find_leaf(layer, CW_LEAF[i]);
         if (!CHW.w[i] || !chw_has_twin(i)) continue;
         char tn[16]; snprintf(tn, sizeof tn, "%sB", CW_LEAF[i]);
-        uint64_t b = hud_widget("chatHud", "chatBox", tn);
-        // a fresh page shows its template texts: blank them
-        chtw_bind(&CHW.tw[i], CHW.w[i], b, chw_set_hud, "", 0);
+        uint64_t b = ch_find_leaf(layer, tn);
+        // a fresh page shows its template texts (the widget pak's preview lines: the match started with messages already shown): blank them
+        chtw_bind(&CHW.tw[i], CHW.w[i], b, layer ? chw_set_menu : chw_set_hud, "", 0);
         CHW.vis[i] = 1;                              // (= hidden; ch_hud_tick shows what the mode needs)
         ntw += b != 0;
     }
-    xlog("chat: HUD box found (%d leaves, %d twins)", (int)(CW_N - 1), ntw);
+    xlog("chat: HUD box found in %s (%d leaves, %d twins)", layer ? "hud-root t2rChat (above the death / end / title screens)" : "currency-hud (old widget pak)",
+         (int)(CW_N - 1), ntw);
     return 1;
 }
 static void ch_tabs_text(char out[CH_NCH][96]) {
@@ -545,7 +584,7 @@ static void ch_tabs_text(char out[CH_NCH][96]) {
     }
 }
 static void ch_hud_tick(uint64_t now, int show) {
-    if (!show) { if (CHW.w[CW_BOX] && CHW.page == *(uint64_t *)VMA(0x180189BA0)) chw_vis(CW_BOX, 0); return; }   // (a handle of an older match page is never touched)
+    if (!show) { if (CHW.w[CW_BOX] && CHW.page == ch_hud_key(NULL)) chw_vis(CW_BOX, 0); return; }   // (a handle of an older match page is never touched)
     if (!ch_hud_resolve()) return;
     ch_hud_twins();
     int typing = g_ch_ed.on && g_ch_where == 1;
@@ -812,7 +851,9 @@ static void feature_chat(void) {
     if (CHS.tab >= CH_NCH) CHS.tab = 0;              // (LOBBY is the menu panel's only - the match box starts on MATCH)
     uint64_t top = top_page();
     int on_pause = top == ch_pause_page();
-    int hud = !hud_menu_up();
+    // (the chat stays above the death and end screens) the end screens after the match is decided (g_ff_ended) are
+    // pages over the HUD; the box and the typing line stay over them (the box draws above them, t2rChat). The ESC menu and the friends page keep theirs.
+    int hud = !hud_menu_up() || (g_ff_ended && !on_pause && !g_fr13_up);
     int foc = game_focused();
     if (g_ch_ed.on) {
         if (!foc) ch_close("game lost focus");

@@ -45,7 +45,23 @@ typedef struct {
     int voice;          // the face's own voice letter index (cz_face_voice), -1 = the pool look's (VX_LOOK_VOICE)
 } cz_body_t;
 static cz_body_t g_czb[CZB_N];
-static struct { cz_wire_t w; uint64_t at; } g_czw[T2R_MAX_PEERS];
+static struct { cz_wire_t w; uint64_t at; char nm[0x19]; } g_czw[T2R_MAX_PEERS];   // nm: the slot's player when the outfit came
+// A slot's outfit belongs to the player who sent it. The cache is per slot and outlives the match, so the next player in that slot (the next
+// match, a join in progress) wore the previous one's outfit until its own message came (one player showed in the outfit of the player
+// who held the slot one match before). Another name in the slot = that outfit is not used.
+static void cz_slot_name(uint32_t slot, char *nm) {
+    uint8_t *p = t2r_peer(slot);
+    nm[0] = 0;
+    if (p && !IsBadReadPtr(p, 0x20)) { memcpy(nm, p + 6, 0x18); nm[0x18] = 0; }
+}
+static int cz_wire_current(int body) {
+    char nm[0x19];
+    cz_slot_name((uint32_t)body, nm);
+    if (!nm[0] || !g_czw[body].nm[0] || !strcmp(nm, g_czw[body].nm)) return 1;
+    static int n; if (n++ < 40) CZ_LOG("customize look: slot %d outfit is %.24s's, the slot is %.24s's now - not used (defaults until its own outfit)", body, g_czw[body].nm, nm);
+    g_czw[body].w.ok = 0;
+    return 0;
+}
 static uint8_t g_cz_tx_counter;
 static int cz_face_voice(int fac, int sex, const cz_item_t *face);   // (defined below the body composer that calls it)
 
@@ -349,7 +365,7 @@ static int cz_outfit(int body, int fac, int *sex, uint8_t *it) {
         for (int c = 0; c < CZ_NWEAR; c++) it[c] = g_cz.it[fac][*sex][c];
         return 1;
     }
-    if (body < 0 || body >= T2R_MAX_PEERS || !g_czw[body].w.ok) return 0;
+    if (body < 0 || body >= T2R_MAX_PEERS || !g_czw[body].w.ok || !cz_wire_current(body)) return 0;
     *sex = slot_female((uint32_t)body) ? 1 : 0;
     if (*sex != g_czw[body].w.sex[fac]) {          // (the wire carries one sex's items per faction: the other sex wears its defaults)
         for (int c = 0; c < CZ_NWEAR; c++) it[c] = (uint8_t)CZ_DEFAULT[fac][*sex][c];
@@ -420,7 +436,10 @@ static void cz_net_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
     cz_wire_t w;
     if (!cz_recv(buf, (int)len, &w)) { CZ_LOG("customize look: slot %u outfit rejected (len %llu, version %u: other item lists)", slot, (unsigned long long)len, len ? buf[0] : 0); return; }
     int changed = !g_czw[slot].w.ok || memcmp(&g_czw[slot].w.sex, &w.sex, sizeof w.sex) || memcmp(&g_czw[slot].w.it, &w.it, sizeof w.it);
-    g_czw[slot].w = w; g_czw[slot].at = GetTickCount64();
+    char nm[0x19];
+    cz_slot_name(slot, nm);
+    changed = changed || strcmp(nm, g_czw[slot].nm);
+    g_czw[slot].w = w; g_czw[slot].at = GetTickCount64(); memcpy(g_czw[slot].nm, nm, sizeof nm);
     if (changed) CZ_LOG("customize look: slot %u outfit WLF %s %u/%u/%u/%u/%u, SERAPHITES %s %u/%u/%u/%u/%u (applies at its next spawn)", slot,
                         w.sex[0] ? "f" : "m", w.it[0][0], w.it[0][1], w.it[0][2], w.it[0][3], w.it[0][4],
                         w.sex[1] ? "f" : "m", w.it[1][0], w.it[1][1], w.it[1][2], w.it[1][3], w.it[1][4]);

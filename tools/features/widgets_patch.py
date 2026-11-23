@@ -532,7 +532,7 @@ def patch_widgets(pak_path):
             print(f"gui2-widgets: pause menu + scoreboard in the No Return frame (breadcrumb, US / THE ENEMY sections with totals, tile rows, YOU row, boxed prompts): {pause_restyle_widgets.add_pause_nr(tmp)} widgets added")
         if os.environ.get("T2R_CHAT", "1") != "0":                      # the in-game chat (t2r-ext chat.c, re/chat-proposal-1123); after the pause frame (CLAN NEWS's place)
             import chat_widgets
-            print(f"gui2-widgets: in-game chat: HUD box chatHud in currency-hud ({chat_widgets.add_chat_hud(tmp)} widgets), ESC menu CHAT block + P FRIENDS badge ({chat_widgets.add_pause_chat(tmp)} widgets)")
+            print(f"gui2-widgets: in-game chat: HUD box t2rChat in hud-root, above the death / end / title screens ({chat_widgets.add_chat_hud(tmp)} widgets), ESC menu CHAT block + P FRIENDS badge ({chat_widgets.add_pause_chat(tmp)} widgets)")
             print(f"gui2-widgets: MP menu layout: CHAT panel mnChat under the lobby box + online counter up on main-menu / find-match-menu ({chat_widgets.add_menu_chat(tmp)} widgets)")
         import rank_badge_widgets
         print(f"gui2-widgets: rank badge (symbol + weeks) before the names: {rank_badge_widgets.add_lobby_rows(tmp)} lobby row widgets, {rank_badge_widgets.add_scoreboards(tmp)} scoreboard rows (pause menu + end page)")

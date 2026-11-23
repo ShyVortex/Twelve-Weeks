@@ -935,9 +935,33 @@ static uint64_t g_frame;
 static uint64_t g_gk_frame[256]; static SHORT g_gk_val[256];
 static volatile LONG64 g_gk_calls, g_gk_real;
 static volatile DWORD g_tick_tid;   // (defined below; the cache is for the tick thread only: g_gk_* are plain, other threads ask the real function)
+// (typing an e in the chat on the death screen switched between spectating a teammate and the death screen)
+// while text is typed (the chat line or a GEAR UP name: g_kt_on, gearup13.c) the engine gets no keyboard (kt_grid_hook), but our own key reads
+// still saw the letters: E on the death screen (death_ui du_button) switched the spectate view, Q / E paged menus, and so on. Every key read on the tick
+// thread now answers "up" for the typed keys; the modifiers (Shift / Ctrl / Alt for the editor's own reads) and the mouse buttons still answer. The same
+// 500 ms keep-alive as the keyboard hook: a typing line that stops being polled frees the keys.
+static volatile LONG g_kt_on;                     // (gearup13.c: 1 = a line is typed)
+static volatile ULONGLONG g_kt_seen;              // (gearup13.c: the editor's last poll)
+static volatile uint8_t g_kt_down[256], g_kt_rdown[256];   // (gearup13.c: keys the keyboard hook / the raw-input gate ate, until their key-up)
+static uint8_t g_kt_held[256];                    // keys answered "up" while typing that were physically down (tick thread)
+static int t2r_typing_eats(int vk) {
+    if (!g_kt_on || GetTickCount64() - g_kt_seen >= 500) return 0;
+    if (vk <= VK_XBUTTON2 && vk != VK_CANCEL) return 0;                  // mouse buttons
+    if (vk == VK_SHIFT || vk == VK_CONTROL || vk == VK_MENU || (vk >= VK_LSHIFT && vk <= VK_RMENU) || vk == VK_LWIN || vk == VK_RWIN ||
+        vk == VK_CAPITAL || vk == VK_NUMLOCK) return 0;
+    return 1;
+}
 static SHORT t2r_gaks(int vk) {
     g_gk_calls++;
     if ((unsigned)vk > 255 || GetCurrentThreadId() != g_tick_tid) { g_gk_real++; return (GetAsyncKeyState)(vk); }
+    if (t2r_typing_eats(vk)) { if ((GetAsyncKeyState)(vk) & 0x8000) g_kt_held[vk] = 1; return 0; }
+    // a key typed into the line and still held when the typing ends (Esc that cancels a GEAR UP rename, Enter that sends a chat line) stays "up" until
+    // it is released: a reader that keeps its own held state would otherwise see a fresh press the frame after (gearup13 G.h_esc: the page backed out)
+    if (g_kt_held[vk] || g_kt_down[vk] || g_kt_rdown[vk]) {
+        SHORT v = (GetAsyncKeyState)(vk);
+        if (v & 0x8000) return 0;
+        g_kt_held[vk] = 0;                        // (the hooks' own marks clear on the key-up they see; the real read decides here, so none can stick)
+    }
     if (g_gk_frame[vk] == g_frame && g_frame) return g_gk_val[vk];
     g_gk_real++;
     SHORT v = (GetAsyncKeyState)(vk);
@@ -72333,6 +72357,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(feature_map_packs());                       // DLC map packs: report + never load a missing pack's map (before the flow)
     PF(feature_matchflow());
     PF(feature_names());
+    PF(close_watch_tick());                        // closing the window in a match tells the daemon first (requeue.c)
     PF(feature_missions());
     PF(ui_hover_highlight_tick());                 // mouse mode: only the element under the cursor stays lit
     PF(ui_fade_probe());

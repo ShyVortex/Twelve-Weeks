@@ -1,9 +1,12 @@
 """The in-game chat (proposal + mockups re/chat-proposal-1123), driven by t2r-ext chat.c:
 
-  to1/currency-hud: group "chatHud" (full page) > row "chatBox" (hidden; chat.c shows it and drives its alpha) BETWEEN the lives counter and the parts
-        counter, left: a faint box, the CHAT label, the tabs MATCH / TEAM / PARTY (the picked one in its colour and underlined), 5 lines, the typing line
-        (its underline in the tab's colour, the tab name at its right) and the key hint under the box; idle: a fainter, smaller box behind the newest 3
-        lines and the tab name. chat.c finds the leaves with hud_widget("chatHud", "chatBox", leaf) - they are direct children of chatBox.
+  hud-root: group "t2rChat" (full canvas, depth 40) > row "chatBox" (hidden; chat.c shows it and drives its alpha) BETWEEN the lives counter and the
+        parts counter, left: a faint box, the CHAT label, the tabs MATCH / TEAM / PARTY (the picked one in its colour and underlined), 5 lines, the typing
+        line (its underline in the tab's colour, the tab name at its right) and the key hint under the box; idle: a fainter, smaller box behind the newest
+        3 lines and the tab name. chat.c finds the leaves by their path canvas.hudRoot.t2rChat.chatBox.<leaf> - they are direct children of chatBox.
+        (11-23 user: "chat should stay on top of death screen, match end screen, and match intro hud hide": it was in to1/currency-hud, which the title
+        card and the death screen fade out and which draws under t2rDeath (depth 30), t2rBanner (20) and hudMenuStack. Depth 40 draws above all of
+        them, and the "t2r" name keeps it out of both HUD fades, which skip hud-root children named t2r*.)
   to1/pause-menu: group "pzChat" in CLAN NEWS's place (pause_restyle_widgets PNR_NEWS; hidden until chat.c shows it): the CHAT section row (its rule
         ends where the tabs start), the tabs, a box with 4 lines and the typing line. Group "pzPBadge": the red unread count chat.c puts at the
         P FRIENDS prompt's top right.
@@ -92,14 +95,17 @@ def _hud_line(who, col, text):
     return _pv('<font color="#%06X">%s:</font> %s' % (col & 0xFFFFFF, who, text))
 
 
+HUD_DEPTH = 40.0      # above t2rDeath (30), t2rBanner / t2rTitle (20-22) and hudMenuStack
+
+
 def add_chat_hud(wdir, main=None):
-    """to1/currency-hud: chatHud > chatBox (see the module text). Idempotent; returns the number of widgets added."""
-    path = os.path.join(wdir, "to1", "currency-hud.widget.json")
+    """hud-root: t2rChat > chatBox (see the module text). Idempotent; returns the number of widgets added."""
+    path = os.path.join(wdir, "hud-root.widget.json")
     if not os.path.exists(path):
         return 0
     w = json.load(open(path, encoding="utf-8"))
     items = w["items"]
-    if any(i["name"] == "chatHud" for i in items):
+    if any(i["name"] == "t2rChat" for i in items):
         return 0
     if main is None:
         main = json.load(open(os.path.join(wdir, "to1", "main-menu.widget.json"), encoding="utf-8"))
@@ -107,7 +113,7 @@ def add_chat_hud(wdir, main=None):
     b = Builder(t)
     b.items = []
     root = next(i for i in items if i["name"] == "root")
-    top = b.group("chatHud", root["guid"], b.tl(0, 0, 3840, 2160))["guid"]
+    top = b.group("t2rChat", root["guid"], b.tl(0, 0, 3840, 2160), depth=HUD_DEPTH)["guid"]
     g = b.group("chatBox", top, b.tl(HB_X, HB_Y, HB_W, HB_HINT_Y + 48), visible=0)["guid"]
     b.rect("chBg", g, b.tl(0, 0, HB_W, HB_H), nr.BLACK, 92)
     b.rect("chBgI", g, b.tl(0, HB_IDLE_Y, HB_W, HB_IDLE_H), nr.BLACK, 60, visible=0)

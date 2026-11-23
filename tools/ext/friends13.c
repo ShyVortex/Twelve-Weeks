@@ -1220,7 +1220,7 @@ static void fm_fill(void) {
         if (!M13.with[0] || idx >= M13.nth) { chtw_text(&g_fm_tw[2 + 2 * k], ""); chtw_text(&g_fm_tw[3 + 2 * k], ""); continue; }
         const fr_th_t *l = &M13.th[idx];
         char ag[32]; fm_age(l->age, ag, sizeof ag);
-        snprintf(b, sizeof b, "<font color=\"%s\">%s</font>   %s", l->me ? "#D9D86A" : "#B4B4B4", l->me ? FRT("YOU", "TY") : M13.wname, ag);
+        snprintf(b, sizeof b, "<font color=\"%s\">%s</font>   %s", ch_name_col(M13.wname, l->me, l->me ? "#D9D86A" : "#B4B4B4"), l->me ? FRT("YOU", "TY") : M13.wname, ag);      // (role colours, chat.c ch_name_col)
         chtw_text(&g_fm_tw[2 + 2 * k], b);
         char t[CH_BUF];
         int full = ch_clean(l->t, strlen(l->t), t, sizeof t, CH_MAXC);
