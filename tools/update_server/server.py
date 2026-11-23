@@ -176,7 +176,12 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
         def _base(self):
             if public_url:
                 return public_url.rstrip("/")
-            return "http://" + (self.headers.get("Host") or "localhost")
+            # Behind an HTTPS reverse proxy (443 -> file front -> here) the links must say https://, else a client that fetched the manifest
+            # over https is handed http://<host>/files/... (port 80 = a redirect only). Trusted only from a loopback peer.
+            proto = "http"
+            if self.client_address[0] in ("127.0.0.1", "::1") and (self.headers.get("X-Forwarded-Proto") or "").strip().lower() == "https":
+                proto = "https"
+            return proto + "://" + (self.headers.get("Host") or "localhost")
 
         def _route(self, head):
             u = urlparse(self.path)
