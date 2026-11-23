@@ -22,7 +22,8 @@
 //
 // Timing rules (numbers below, all frames at 60 Hz):
 //   - Buffered press: the last ATK / DODGE edge, kept MV3B_BUF_MAX frames (18 = 300 ms) and consumed on the first legal frame.
-//     Not-yet-legal presses are never dropped inside that window; a dodge press with no swing coming at us is dropped at once (dodge does nothing without a threat, and it must not pre-arm).
+// Not-yet-legal presses are never dropped inside that window; a dodge press with no swing coming at us is dropped at once (
+//     dodge does nothing without a threat, and it must not pre-arm).
 //   - Move windows follow mv3_moves.h: the contact frames are [hit0, hit1) (hit1 exclusive; hit1 <= hit0 = the single frame hit0); a move's
 //     state is over at cancel_f when 0 < cancel_f < dur_f (swings: chain1 / SP's whiff end, reactions: the control lock MHR_CUT_MS, dodges:
 //     SP leaves the clip, counters: the hand-off), else at dur_f - the rest of the clip is presentation only (the anim blends it out).
@@ -53,7 +54,8 @@
 #define MV3B_COUNTER_WIN 27        // frames after the DODGED frame that a counter press is accepted (450 ms), at least
 #define MV3B_CHAIN_EARLY 16        // frames before chain0 that a press already commits the next combo step (SP held presses up to 256 ms early)
 #define MV3B_DCANCEL     6         // swings: dodge-cancel this many frames after the contact window when the table has no dodge_cancel_f (100 ms)
-// SP soft lock (re/sp-melee-1027/report.md: swings started at 2.6-3.8 m closed to ~1.0 m by impact, turn-180 starts): players could not hit each other when facing different directions - the pick reaches 4 m all around, the windup turns fully and lunges to contact range
+// SP soft lock (re/sp-melee-1027/report.md: swings started at 2.6-3.8 m closed to ~1.0 m by impact, turn-180 starts):
+// - the pick reaches 4 m all around, the windup turns fully and lunges to contact range
 #define MV3B_LOCK_EXTRA  2400      // mm past the swing's reach that the soft lock still picks a target at swing start (4 m with fists)
 #define MV3B_LOCK_ARC    18000     // 1/100 deg half-angle of the soft lock pick: all around (front preferred, see mv3b_nearest's score)
 #define MV3B_TURN        1500      // 1/100 deg per frame max turn toward the target during windup (900 deg/s: a 180 in 12 frames)

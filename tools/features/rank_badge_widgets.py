@@ -142,7 +142,7 @@ def add_scoreboards(wdir):
 # on the in-match overhead tags). gui2 text has no outline colour, so each name gets RIM_N hidden clones in pink at
 # the 8 compass offsets * RIM_R, the same parent, depth just below the name. t2r-ext namerim.c fills / shows them for a role 4 row and keeps them on the name's
 # place and scale (sbteam.c moves and shrinks scoreboard names).
-RIM_ARGB = 0xFFFF3D8B
+RIM_ARGB = 0xFFFF537D                 # Discord Creator pink #ff537d (was #ff3d8b)
 RIM_R = 1.0                  # = namerim.c NRIM_R (2.0 was too thick; the ext re-places the rims with its own value)
 RIM_N = 8
 RIM_DX = (1, 0.7071, 0, -0.7071, -1, -0.7071, 0, 0.7071)

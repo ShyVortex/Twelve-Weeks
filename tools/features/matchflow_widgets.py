@@ -132,23 +132,44 @@ def _map_cell(b, parent, pre, x, y, w, ih, strip, name_pt, img, grid=0, visible=
     nr.bar(b, g, f"{pre}Vb", pad, w - pad, ih + (strip - 34 if not grid else strip - 24), h=6 if not grid else 5)
     gy = b.group(f"{pre}Yv", g, b.tl(16 if not grid else 10, 16 if not grid else 10, 300, 80), visible=0)["guid"]
     nr.chip(b, gy, f"{pre}Yv", 0, 0, "YOUR VOTE", pts=nr.pt(18) if not grid else nr.pt(13), style="acc")
+    # Part I maps (img "p1-..."): a small white PART I box top right of the art, like the OG badge on OG customize items (
+    # t2r-ext mfnr.c shows it and sizes the box to the text)
+    p1pts = nr.pt(18) if not grid else nr.pt(13)
+    p1w = nr.est("PART I", p1pts) * 1.06 + 32
+    edge = 16 if not grid else 10
+    gp = b.group(f"{pre}P1", g, b.tl(0, edge, w, 80), visible=0)["guid"]
+    nr.chip(b, gp, f"{pre}P1", w - edge - p1w, 0, "PART I", pts=p1pts, style="white")      # (mfnr.c right-aligns it at w - edge)
 
 
-def _roster(b, parent, pre, place, row_h=78, pt=36):
+def _roster(b, parent, pre, place, row_h=78, pt=36, map_w=440):
     """ROSTER rows <pre>0.. under `parent`; place(r) -> (x, y, width). The vote's roster ('ros', 2 x 4 rows) and the all-maps grid's copy ('gros').
-    Thin rule rows: a hairline under each, a team mark (TabB = our team: white bar, TabR = the enemy: grey bar), the rank badge, the name, the
-    check once the player has voted."""
+    Thin rule rows: a hairline under each, a team mark (TabB = our team: white bar, TabR = the enemy: grey bar), the rank badge, the name, and at
+ the row's end the check + the name of the map the player voted for (name at the start, check + map name at the end; the map name
+    is right aligned and t2r-ext mfnr_roster moves the check to just before its text = ck_x(); map_w = mfnr.c MFNR_RMAPW / MFNR_GRMAPW, the name
+    box = MFNR_RNAMEW / MFNR_GRNAMEW, the row width = MFNR_RROWW / MFNR_GRROWW)."""
+    ck_w, rk_x = 38, 34
     for r in range(ROSTER):
         x, y, w = place(r)
+        map_x = w - 16 - map_w
+        ck_x = map_x - 16 - ck_w
         g = b.group(f"{pre}{r}", parent, b.tl(x, y, w, row_h), visible=0)["guid"]
         b.rect(f"{pre}{r}Bar", g, b.tl(0, row_h - nr.HAIR, w, nr.HAIR), nr.WHITE, nr.HAIR_A)
         b.rect(f"{pre}{r}TabB", g, b.tl(0, 10, 6, row_h - 22), nr.WHITE, 255, visible=0)
         b.rect(f"{pre}{r}TabR", g, b.tl(0, 10, 6, row_h - 22), nr.GREY, 255, visible=0)
-        rbw.add_to_builder(b, g, f"{pre}{r}Rk", f"{pre}{r}Rn", 34, row_h / 2.0, 40, row_h)                       # the rank badge (rank_badge_widgets; t2r-ext mfnr_roster)
-        rs = rbw.reserved(40, row_h)
-        b.text(f"{pre}{r}Name", g, nr.lm(34 + rs, 0, w - 34 - rs - 90, row_h), "PLAYER", pt, nr.WHITE, tracking=2)
-        b.add("Polyline", f"{pre}{r}Ck", g, **b.tl(w - 64, row_h / 2.0 - 17, 38, 34), **b.col(nr.WHITE), closed=0, lineWidth=5.0,
+        b.add("Polyline", f"{pre}{r}Ck", g, **b.tl(ck_x, row_h / 2.0 - 17, ck_w, 34), **b.col(nr.WHITE), closed=0, lineWidth=5.0,
               pointsUv=[0.05, 0.55, 0.38, 0.95, 0.97, 0.05], visible=0, **{"color.a": 255})
+        rbw.add_to_builder(b, g, f"{pre}{r}Rk", f"{pre}{r}Rn", rk_x, row_h / 2.0, 40, row_h)                     # the rank badge (rank_badge_widgets; t2r-ext mfnr_roster)
+        rs = rbw.reserved(40, row_h)
+        b.text(f"{pre}{r}Name", g, nr.lm(rk_x + rs, 0, ck_x - 20 - rk_x - rs, row_h), "PLAYER", pt, nr.WHITE, tracking=2)
+        b.text(f"{pre}{r}Map", g, nr.lm(map_x, 0, map_w, row_h, right=1), "", nr.pt(20), nr.GREY, align=2, tracking=2)
+
+
+def ck_x(row_w, map_w, text):
+    """= t2r-ext mfnr_roster: the roster check's left edge, just before the right-aligned voted map name (nr_fit shrink, nr_tw width)."""
+    pts = nr.pt(20)
+    e = nr.est(text, pts)
+    s = max(0.6, map_w / e) if e > map_w else 1.0
+    return row_w - 16 - e * 1.06 * s - 16 - 38
 
 
 def build_page(main):
@@ -196,7 +217,7 @@ def build_page(main):
     _roster(b, rows, "ros", lambda r: (LX0 + (r // 4) * (RCOLW + 72), 1270 + (r % 4) * RROW, RCOLW))
     gg = b.group("voteGridRoster", grid, b.tl(0, 0, 3840, 2160))["guid"]
     nr.section(b, gg, "vtGp", RX0, RX1, GRY0 - 50, "PLAYERS", "0 | 8 VOTED", pts=nr.pt(24))
-    _roster(b, gg, "gros", lambda r: (RX0, GRY0 + r * RROW, RX1 - RX0))
+    _roster(b, gg, "gros", lambda r: (RX0, GRY0 + r * RROW, RX1 - RX0), map_w=250)
     # the clan block, right column: SURVIVORS n, three thin bars (healthy / hungry / sick as N | total), the supplies needed per day
     nr.section(b, v, "vtSv", RX0, RX1, VY, "SURVIVORS", "5", pts=nr.pt(24))
     for k, (key, label) in enumerate((("H", "HEALTHY"), ("U", "HUNGRY"), ("S", "SICK"))):
@@ -667,6 +688,7 @@ def _demo_vote(by, maps, votes, focus, mine, roster, me, secs, day, tot=15, pc=N
         by[f"{pre}Name"]["text"] = nm
         vis(f"{pre}Fo", on); vis(f"{pre}Shade", not on)
         vis(f"{pre}Yv", k == mine)
+        vis(f"{pre}P1", img.startswith("p1-") or "(Part I)" in nm)
         txt(f"{pre}Ct", f"{votes[k]} | {pc}" if votes[k] else f'<font color="#8C8C8C">0 | {pc}</font>')
         by[f"{pre}Ct"]["tint.start"] = by[f"{pre}Ct"]["tint.end"] = n.WHITE if votes[k] else n.GREY
         n.demo_bar(by, f"{pre}Vb", cells[3], cells[2] - cells[3], votes[k] / float(max(1, pc)))
@@ -674,11 +696,19 @@ def _demo_vote(by, maps, votes, focus, mine, roster, me, secs, day, tot=15, pc=N
         for r in range(ROSTER):
             vis(f"{pre}{r}", wrap and r < len(roster))
             if wrap and r < len(roster):
-                nm, voted, team = roster[r]
+                nm, voted, team = roster[r][:3]
+                opt = mine if r == me and mine >= 0 else roster[r][3] if len(roster[r]) > 3 else 0 if voted else -1    # the option voted for (mfnr_roster: po; our row = my vote)
+                voted = voted or (r == me and mine >= 0)
                 col = n.ACC if r == me else n.GREY if team == 2 else n.WHITE
                 by[f"{pre}{r}Name"]["tint.start"] = by[f"{pre}{r}Name"]["tint.end"] = col
                 txt(f"{pre}{r}Name", nm)
                 vis(f"{pre}{r}Ck", voted); vis(f"{pre}{r}TabB", team == 1); vis(f"{pre}{r}TabR", team == 2)
+                mtxt = maps[opt][0] if voted and 0 <= opt < len(maps) else ""
+                txt(f"{pre}{r}Map", mtxt)
+                if mtxt:
+                    by[f"{pre}{r}Ck"]["pivotAs.x"] = ck_x(RCOLW if pre == "ros" else RX1 - RX0, 440 if pre == "ros" else 250, mtxt)
+                vis(f"{pre}{r}Rk", 1); txt(f"{pre}{r}Rn", str((7 * r + 3) % 40 + 1)); vis(f"{pre}{r}Rn", 1)
+                by[f"{pre}{r}Map"]["tint.start"] = by[f"{pre}{r}Map"]["tint.end"] = n.ACC if r == me else n.GREY
     nv = sum(1 for r in roster if r[1])
     if grid:
         n.demo_section(by, "vtGp", RX0, RX1, "PLAYERS", f"{nv} | {pc} VOTED")
@@ -715,8 +745,8 @@ def demo(page, stage, maps=None, votes=None, focus=0, mine=-1, roster=None, boos
             vis(nm, stage <= 1)
     maps = maps or [("School", "school"), ("Gas Station", "gas-station"), ("Shipyard", "shipyard")]
     votes = votes or [2, 1, 0]
-    roster = roster or [("THEPIGGEHNINJA", 1, 1), ("cdr1988", 1, 1), ("KB-1993", 0, 1), ("southprak", 1, 1),
-                        ("Marlene", 0, 2), ("ash_fall", 1, 2), ("TOBIAS", 0, 2), ("v0id", 0, 2)]
+    roster = roster or [("THEPIGGEHNINJA", 1, 1, 0), ("cdr1988", 1, 1, 0), ("KB-1993", 0, 1), ("southprak", 1, 1, 1),
+                        ("Marlene", 0, 2), ("ash_fall", 1, 2, 2), ("TOBIAS", 0, 2), ("v0id", 0, 2)]
     t = secs
     if stage <= 1:
         if stage == 0:
@@ -786,7 +816,7 @@ def preview_vote(wdir, out_dir):
     bg = nr.preview_bg(os.path.join(out_dir, "_bg.png"))
     allmaps = [("School", "school"), ("Gas Station", "gas-station"), ("Shipyard", "shipyard"), ("Forest", "forest"), ("Capitol Hill Shops", "forest"),
                ("Convention Center", "school"), ("Bookstore (Part I)", "shipyard"), ("Supermarket", "gas-station"), ("Hospital", "forest"),
-               ("Train Station", "school"), ("Boardwalk", "shipyard"), ("Courtroom", "forest"), ("Overpass", "gas-station"), ("Plaza", "school")]
+               ("Train Station", "school"), ("Boardwalk", "shipyard"), ("Courtroom", "forest"), ("Overpass", "gas-station"), ("Plaza (Part I)", "school")]
     shots = (("vote-3maps", dict(stage=1, focus=1, votes=[2, 1, 0], me=1)),
              ("vote-voted", dict(stage=1, focus=0, mine=0, votes=[3, 1, 0], me=1, secs=7)),
              ("vote-grid", dict(stage=1, maps=allmaps, focus=4, mine=2, votes=[0, 1, 2, 0, 3, 0, 0, 0, 0, 1, 0, 0, 1, 0], me=3, secs=9)),

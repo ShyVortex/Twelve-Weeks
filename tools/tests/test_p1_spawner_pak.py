@@ -56,5 +56,26 @@ class Oracle(unittest.TestCase):
         self.assertEqual(sorted(map(key, mine)), sorted(map(key, ref)))
 
 
+KEEP = os.environ.get("T2R_P1_KEEP_DIR") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "keeptest")     # keep-in.pak = converted hun-checkpoint-bookstore-ingame.pak,
+KEEP_IN, KEEP_REF = os.path.join(KEEP, "keep-in.pak"), os.path.join(KEEP, "keep-ref.pak")    # keep-ref.pak = keep_spawners.ps1 output of it
+
+
+@unittest.skipUnless(os.path.isfile(KEEP_REF), "no keep_spawners.ps1 oracle")
+class KeepOracle(unittest.TestCase):
+    NAMES = ["rt-ortho-fake-son-Shape-1"]
+
+    @unittest.skipUnless(os.path.isfile(KEEP_IN), "no converted input pak")
+    def test_keep_byte_identical_to_keep_spawners_ps1(self):
+        self.assertTrue(P.keep(open(KEEP_IN, "rb").read(), self.NAMES) == open(KEEP_REF, "rb").read())
+
+    def test_keep_is_a_fixed_point(self):
+        ref = open(KEEP_REF, "rb").read()
+        self.assertTrue(P.keep(ref, self.NAMES) == ref)
+
+    def test_missing_name_refused(self):
+        with self.assertRaises(SystemExit):
+            P.keep(open(KEEP_REF, "rb").read(), self.NAMES + ["no-such-spawner"])
+
+
 if __name__ == "__main__":
     unittest.main()

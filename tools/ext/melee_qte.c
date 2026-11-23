@@ -1,6 +1,8 @@
-// melee_qte.c - the melee exchange as a two-sided, turn-based QTE (spec re/melee-qte-1027.md, "Implementation 10-27"; goals: a turn-based QTE for both sides where the loser is penalized by getting punched, dodging still available on a cooldown, a combo prompt that does something, melee cameras so sequences feel different from regular gunplay, and no punches that silently do not play).
-// Included after melee_seq.c in t2r-ext.c (drives g_mex / g_msq). Log prefix "mqte:". Opt-out for ALL of it: t2r-no-melee-qte.txt next to the exe (re-read every 2 s) = the earlier
-// behaviour (600 ms combo window, trade on a stray blow, engine camera, pace lock). Camera only off: t2r-no-mqte-cam.txt. Windows: t2r-mseq-tune.txt
+// melee_qte.c - the melee exchange as a two-sided, turn-based QTE
+// "the melee sequences
+// should also feel different from regular gunplay, we should use the melee cameras aswell"; "sometimes punches just dont play").
+// Included after melee_seq.c in t2r-ext.c (drives g_mex / g_msq). Log prefix "mqte:". Opt-out for ALL of it: t2r-no-melee-qte.txt next to the exe (re-read every 2 s) = the
+// afternoon behaviour (600 ms combo window, trade on a stray blow, engine camera, pace lock). Camera only off: t2r-no-mqte-cam.txt. Windows: t2r-mseq-tune.txt
 // "<fist hand-off ms> <weapon hand-off ms> <attacker window ms> <defender window ms>" (defaults ... 300 / 350; 100..1500).
 //
 // BEAT.  Every beat has an attacker (initiative) and a defender; both read the same shared clock H = the moment the beat OPENS (the end of the synced pair of the blow before, the end of

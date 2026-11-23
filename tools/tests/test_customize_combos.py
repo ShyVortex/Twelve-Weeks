@@ -52,6 +52,19 @@ for k in range(n_ent):
         names[cstr(f.q(lo + 8))] = lo
 twins = {n: [x for x, _ in meshes(lo)] for n, lo in names.items() if n.endswith("-t2r-arm")}
 print("records", len(names), "twins", len(twins))
+# (live 191: the WLF supersets grew to 315 / 281 parts with the per-hat hair; customize_compose.c refused every record over
+# CZ_SUP_MAX = 256 and every WLF body kept the pool look. cz_select itself has no cap, so the combos below all passed.)
+import re  # noqa: E402
+SUP_MAX = int(re.search(r"#define CZ_SUP_MAX (\d+)", open(W + "/tools/ext/customize_compose.c", encoding="utf-8").read()).group(1))
+PSUP_MAX = int(re.search(r"#define CZ_PSUP_MAX (\d+)", open(W + "/tools/ext/customize_compose.c", encoding="utf-8").read()).group(1))
+CAP_FAILS = []
+for n, lo in names.items():
+    if n.startswith("t2r-cz-"):
+        c = struct.unpack_from("<I", D, lo + 0xa8)[0]
+        pc = struct.unpack_from("<I", D, lo + 0xb8)[0] if f.q(lo + 0xb0) else 0
+        if c > SUP_MAX or pc > PSUP_MAX:
+            CAP_FAILS.append((n, c, pc))
+print("superset caps: CZ_SUP_MAX %d, CZ_PSUP_MAX %d, records over: %s" % (SUP_MAX, PSUP_MAX, CAP_FAILS or "none"))
 
 gcc = next(p for p in (os.path.join(b, "tools/win/ext/msys64/ucrt64/bin/gcc.exe") for b in (W, MAIN)) if os.path.exists(p))
 tmp = tempfile.mkdtemp(prefix="czcombo")
@@ -63,6 +76,8 @@ L.cz_select.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_vo
 T = CI.table()
 NW = len(CI.CATS) - 1          # the wearables (every category but SEX)
 FAILS = collections.Counter()
+if CAP_FAILS:
+    FAILS["superset over CZ_SUP_MAX / CZ_PSUP_MAX"] = len(CAP_FAILS)
 EXTRAS = collections.Counter()
 ex_seen = {}
 

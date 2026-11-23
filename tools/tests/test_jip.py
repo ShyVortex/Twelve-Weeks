@@ -308,7 +308,7 @@ mid, tms, st = party_join([T[5], T[6]], T[:5])
 check(len(st) == 2 and len(set(tms)) == 1, "party of 2 + 5-player match: same team (%s)" % tms)
 mid, tms, st = party_join([T[5], T[6]], T[:5], gone=(T[1], T[3]))      # 3 v 0 active: imbalance rule must not split the pair
 check(len(st) == 2 and len(set(tms)) == 1, "party of 2 + 3 v 0 match: same team (%s)" % tms)
-# R-NF9F: one member (T[2], slot 2 = team 0) left this very match earlier and comes back WITH a friend: the returning member's old slot
+#: one member (T[2], slot 2 = team 0) left this very match earlier and comes back WITH a friend: the returning member's old slot
 # must not split the pair (it used to go "back" to team 1 while the friend took team 0)
 mid_ = running(T[:5]); daemon.PARTIES.of.clear()
 MM.departed.setdefault(mid_, set()).add(T[2]); MM.departed_t[T[2]] = time.time() - 600

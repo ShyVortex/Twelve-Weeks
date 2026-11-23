@@ -162,7 +162,7 @@ static void stuntone_tick(void) {
     if (!g_stt.confirmed && now - g_stt.t0 > 700) { als_v2_fade(&g_stt.v, 150); xlog("stun: concussion tone faded - the burst did not stun us"); return; }
     if (match_substate() != 6) { als_v2_fade(&g_stt.v, 100); return; }
     // the stun ended early (downed / killed / shiv cut it): the bed does not ring on over the down
-    if (g_stt.confirmed && now - g_stt.t0 > 900 && !(g_stun_until && g_t60 < g_stun_until)) { als_v2_fade(&g_stt.v, 250); xlog("stun: concussion tone faded - the stun lock is over"); return; }
+    if (g_stt.confirmed && now - g_stt.t0 > 900 && !stun_fx_live()) { als_v2_fade(&g_stt.v, 250); xlog("stun: concussion tone faded - the stun (lock or Launcher stun fx) is over"); return; }
     if (!als_v2_live(&g_stt.v)) g_stt.v.a = g_stt.v.b = -1;
 }
 
@@ -198,7 +198,8 @@ static void xbhud_tick(void) {
     }
     was = on;
 }
-// ---- stun cough: TLOU2's own vox-eff-gen-cough-light speech takes (tools/rip_stun_cough.py -> stun_cough.pcm, 6 male
+// ---- stun cough
+// TLOU2's own vox-eff-gen-cough-light speech takes (tools/rip_stun_cough.py -> stun_cough.pcm, 6 male
 // + 6 female voices) through the PCM mixer instead of the engine's say (local only, quiet, first one late). The first cough the frame the stun starts,
 // then one every SC_EVERY_MS for the stun lock, by the body's gender, random without repeats:
 //  * a stunned enemy / teammate puppet: 3-D on its body, full within 12 m, silent past 50 m (louder than the world's own vox);

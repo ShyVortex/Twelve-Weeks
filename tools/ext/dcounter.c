@@ -60,8 +60,9 @@ static struct {
     int n_try, n_started, n_plain, n_refused, n_broken, n_escaped;
 } g_dcm;
 
-// The victim ("-hit") half starts at CONTACT, not with the attacker half: SP plays it as the synced hit of the attack (SP trace: abby-fist-dodge-back-attack--abby at F=29402, its -hit--abby half new at F=29430 = +0.47 s). Started together
-// (the two did not form a connected hit; dc-fist-back) the victim staggered 0.35 m
+// The victim ("-hit") half starts at CONTACT, not with the attacker half: SP plays it as the synced hit of the attack (trace re/sp-sandbox-runs/
+// -round2-abby-ellie.log: abby-fist-dodge-back-attack--abby at F=29402, its -hit--abby half new at F=29430 = +0.47 s). Started together
+// the victim staggered 0.35 m
 // away before the blow and the bodies were 2.0 m apart at the 0.33 s trail event (1.5 m at the closest). With the victim half 0.47 s late the
 // roots are 0.7-0.9 m apart from contact on (the same log, recomputed). Other rows: the trail event + the same 0.14 s.
 #define DC_CONTACT_LATE 0.14f

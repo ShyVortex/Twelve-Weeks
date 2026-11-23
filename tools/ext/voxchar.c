@@ -1,6 +1,7 @@
 // voxchar.c (included by t2r-ext.c after deathreact.c) - a player body whose head has no voice gets its faction's voice group.
 //
-// KELLIE voice (in A/B one side cannot hear the other, or itself). The 'vox req:' probe showed every KELLIE line refused with EXIT 6
+// KELLIE voice ("kellie is a new face,
+// so maybe she just doesnt have a voice assigned at all"). The 'vox req:' probe showed every KELLIE line refused with EXIT 6
 // invalid_character_id: her body's VoxController +0x660 (the character id) is 0, while a stock-face body holds fnv64 "scar-female-a".."-d".
 // Static decode (exe 1.6.10721):
 //   - 0x336b20 VoxController::SetCharacter(ctl, group key, flag): 0x33b070 picks one entry at random among the vox2.bin character
@@ -15,9 +16,32 @@
 // body = vdf_player(), a puppet = g_pa_chr[slot]) and calls the engine's own setter again with "any-<scar|militia>-<female|male>" of
 // that body's faction and sex. The lines still play through `say` (native, subtitled); only the missing character is filled in.
 // Controllers whose owner is not a player body (the CUSTOMIZE stage models) are dropped after 30 s.
+//
+// crash exe+336bbd (8 players, builds 195-198, re/reports-1122.md): `call [rax+0x178]` at the end of SetCharacter with the
+// controller's vtable 0 or garbage = vch_tick called the setter on a pending controller that the engine had freed. The freed block still
+// held +0x50/+0x58, and they resolved to a live process (a puppet re-instanced for a paired move / revive: KD85 crashed in the frame of
+// visdiag's "process re-instanced"). The setter also writes +0x7c0 / +0x65c / +0x660 / +0x70 before that call, so a freed block that
+// still had its old vtable was written to silently. Now an entry keeps the vtable it had in the hook (the object was live there) and
+// the first owner it resolved to; the setter is called only while both are unchanged and the vtable lies in the exe image.
 typedef uint64_t (*fn_vch_set)(void *, uint64_t, uint64_t);
 static fn_vch_set g_vch_tramp;
-static struct { void *ctl; uint64_t key, t; } g_vch_pend[16];
+static struct { void *ctl; uint64_t key, t; const void *vt; const uint8_t *own; } g_vch_pend[16];
+static uint32_t g_vch_drops;
+static int vch_vt_ok(const void *vt) {
+    static const uint8_t *lo, *hi;
+    if (!lo) {
+        const uint8_t *b = (const uint8_t *)GetModuleHandleW(NULL);
+        const IMAGE_NT_HEADERS *nt = (const IMAGE_NT_HEADERS *)(b + ((const IMAGE_DOS_HEADER *)b)->e_lfanew);
+        hi = b + nt->OptionalHeader.SizeOfImage; lo = b + 0x1000;
+    }
+    return (const uint8_t *)vt >= lo && (const uint8_t *)vt + 0x180 <= hi;
+}
+// the controller is still the object the hook saw: readable, same vtable as then, vtable in the exe image
+static int vch_alive(void *ctl, const void *vt) {
+    if (!ctl || IsBadReadPtr(ctl, 8) || IsBadReadPtr((char *)ctl + 0x660, 8)) return 0;
+    const void *now_vt = *(const void *const *)ctl;
+    return vt && now_vt == vt && vch_vt_ok(now_vt);
+}
 static volatile LONG g_vch_lock;
 static uint64_t vch_set_hook(void *ctl, uint64_t key, uint64_t flag) {
     uint64_t r = g_vch_tramp(ctl, key, flag);
@@ -28,7 +52,11 @@ static uint64_t vch_set_hook(void *ctl, uint64_t key, uint64_t flag) {
             if (g_vch_pend[i].ctl == ctl) { free_i = i; break; }
             if (!g_vch_pend[i].ctl && free_i < 0) free_i = i;
         }
-        if (free_i >= 0) { g_vch_pend[free_i].ctl = ctl; g_vch_pend[free_i].key = key; g_vch_pend[free_i].t = GetTickCount64(); }
+        if (free_i >= 0) {
+            const void *vt = *(const void *const *)ctl;
+            if (vch_vt_ok(vt)) { g_vch_pend[free_i].ctl = NULL; g_vch_pend[free_i].key = key; g_vch_pend[free_i].t = GetTickCount64(); g_vch_pend[free_i].vt = vt; g_vch_pend[free_i].own = NULL; MemoryBarrier(); g_vch_pend[free_i].ctl = ctl; }
+            else if (g_vch_pend[free_i].ctl == ctl) g_vch_pend[free_i].ctl = NULL;
+        }
         InterlockedExchange(&g_vch_lock, 0);
     }
     return r;
@@ -71,8 +99,14 @@ static void vch_tick(void) {
         void *ctl = g_vch_pend[i].ctl;
         if (!ctl) continue;
         int done = 0;
-        uint8_t *o = IsBadReadPtr((char *)ctl + 0x660, 8) ? NULL : vch_owner(ctl);
-        if (!o) done = now - g_vch_pend[i].t > 30000;
+        uint8_t *o = vch_alive(ctl, g_vch_pend[i].vt) ? vch_owner(ctl) : NULL;
+        if (o && !g_vch_pend[i].own) g_vch_pend[i].own = o;
+        if (!vch_alive(ctl, g_vch_pend[i].vt) || (o && o != g_vch_pend[i].own)) {
+            // freed / reused controller, or its handle now resolves to another process (re-instanced owner): never call the setter on it
+            done = 1;
+            if (g_vch_drops++ < 20) xlog("vox char: pending controller %p dropped (%s) - not set", ctl, !vch_alive(ctl, g_vch_pend[i].vt) ? "vtable changed: freed" : "owner changed: re-instanced");
+        }
+        else if (!o) done = now - g_vch_pend[i].t > 30000;
         else if (*(uint64_t *)((char *)ctl + 0x660)) done = 1;          // the engine set one meanwhile
         else {
             int fac = -1, fem = 0, slot = -1;

@@ -30,15 +30,38 @@
 //   packet or a late joiner converges to the right state within one period. enter / leave ms = where the bag swap
 //   happened in the owner's clip time (log / diagnosis; 0xffff = not seen yet).
 // Logs: "bp: ..." with real ms (QPC).
+//
+// STANCE
+// the receivers always played the STANDING set (stand^craft-intro / crouch-craft-idle / stand^craft-outro + their --backpack prop
+// clips) and the recorded prop root track was one track for every stance (a crouched owner's open overwrote the standing one). The game's own
+// data (dc1/anim-player/player-inventory2.bin + player-overlays.bin, sp-common anim-abby-player-backpack.pak, decoded) has one set per stance:
+//   stand  : stand^craft-intro (1567 ms) -> crouch-craft-idle (7400) -> stand^craft-outro (1800)
+//   crouch : crouch-craft-intro (1567)   -> crouch-craft-idle (7400) -> crouch-craft-outro (1600)   (the crouch overlay remaps the stand clips)
+//   prone  : prone-craft-intro (2500)    -> prone-craft-idle (10000) -> prone-craft-outro (2533)    (s_prone-inventory-* states)
+//   supine : supine-craft-intro (2100)   -> supine-craft-idle (10000) -> supine-craft-outro (2333)  (the supine overlay remaps the prone clips)
+// each with a "<clip>--backpack" prop clip. There is no moving set: the backpack roots the player (moving players stop, cover = crouch).
+// The owner now sends its stance (sampled while idle, latched at the open, followed while open), the puppet plays that stance's clips and
+// prop clips, and the recorded tracks are kept per stance (track index BPT_C(stance, clip); stand = the old indices 1..3, so old peers / files
+// keep working: old receivers drop track chunks of index > 3, old senders' messages read as stand).
+// MSG_BACKPACK gained one trailing byte [u8 stance] (BP_VER stays 1: an old receiver reads the first 12 bytes).
 
 #define MSG_BACKPACK 0x5B
 #define BP_VER 1
 #pragma pack(push, 1)
-typedef struct { uint8_t ver, phase, bagoff, seq; uint32_t el_ms; uint16_t enter_ms, leave_ms; } bp_msg_t;
+typedef struct { uint8_t ver, phase, bagoff, seq; uint32_t el_ms; uint16_t enter_ms, leave_ms; uint8_t stance; } bp_msg_t;
 #pragma pack(pop)
+#define BP_MSG_V1_LEN 12                    // the message before the stance byte
 
 enum { BPP_IDLE = 0, BPP_OPEN = 1, BPP_CLOSING = 2, BPP_ABORT = 3 };
 static const char *const BPP_NAME[4] = {"idle", "open", "closing", "abort"};
+enum { BPS_STAND = 0, BPS_CROUCH = 1, BPS_PRONE = 2, BPS_SUPINE = 3, BPS_N = 4 };
+static const char *const BPS_NAME[BPS_N] = {"stand", "crouch", "prone", "supine"};
+// lengths of the abby craft clips per stance (anim-abby-player-backpack.pak, 30 fps; the --backpack prop clips have the same frame counts)
+static const double BPS_INTRO_MS[BPS_N] = {1567.0, 1567.0, 2500.0, 2100.0};
+static const double BPS_LOOP_MS[BPS_N] = {7400.0, 7400.0, 10000.0, 10000.0};
+static const double BPS_OUTRO_MS[BPS_N] = {1800.0, 1600.0, 2533.0, 2333.0};
+#define BPT_NC (BPS_N * 3 + 1)              // track rows: 0 unused, BPT_C(stance, clip 1..3)
+#define BPT_C(st, clip) ((st) * 3 + (clip))
 
 // ---- own phase
 static struct {
@@ -48,7 +71,13 @@ static struct {
     double t_change;
     uint16_t enter_ms, leave_ms;
     uint32_t seen_enter, seen_leave;
-} g_bpo = {0, 0, 0, 0, 0, 0, 0xffff, 0xffff, 0, 0};
+    int stance;                     // BPS_*: latched at the open (the idle sample before it), followed while open (bp_own_stance_tick)
+    int st_idle;                    // last idle sample
+    int st_cand, st_cand_n;         // while open: a measured stance that differs from the latched one, and how many samples in a row
+    double st_next;                 // next stance sample (bp_ms)
+    int rec_stop;                   // the recorder is paused (a stance read off the latched one / a reopen mid-outro, see bpt_rec_abort)
+    double rec_loop_t0;             // > 0: the stance changed while open, the recorder writes the NEW stance's loop row, clock from this bp_ms()
+} g_bpo = {0, 0, 0, 0, 0, 0, 0xffff, 0xffff, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 static int bp_own_phase_now(void) { return g_bpo.phase; }
 
 static void bp_send(double now) {
@@ -58,12 +87,67 @@ static void bp_send(double now) {
     double el = now - g_bpo.t_phase;
     m.el_ms = el > 0 ? (uint32_t)el : 0;
     m.enter_ms = g_bpo.enter_ms; m.leave_ms = g_bpo.leave_ms;
+    m.stance = (uint8_t)(g_bpo.stance & 3);
     g_send_tramp(MSG_BACKPACK, (uint8_t *)&m, sizeof m, 0xff);
+}
+// our stance now (the natives the stance features use elsewhere): supine before prone (a supine body may answer prone? too)
+static int bp_own_stance_measure(int *raw) {
+    uint64_t n = 0, pr = dc_call(fnv64("player-is-prone?"), 0, &n), su = dc_call(fnv64("player-is-supine?"), 0, &n), cr = dc_call(fnv64("player-is-crouched?"), 0, &n);
+    int p = pr != ~0ULL && (pr & 0xff), u = su != ~0ULL && (su & 0xff), c = cr != ~0ULL && (cr & 0xff);
+    if (raw) *raw = p | (u << 1) | (c << 2);
+    return u ? BPS_SUPINE : p ? BPS_PRONE : c ? BPS_CROUCH : BPS_STAND;
+}
+// sampled every 100 ms while idle (the open latches the last idle sample: by the menu flag the engine may already be in its intro) and every
+// 250 ms while open. While open a different measured stance replaces the latched one after 2 samples in a row, except stand -> crouch: the
+// standing set's own loop IS crouch-craft-idle, so a crouch read there is the loop, not a stance change (the puppet's loop is the same clip).
+// Closing / abort: no change (the outro is the one of the stance the bag was opened / followed in).
+static void bpt_rec_abort(const char *why, double now);
+static void bp_own_stance_tick(double now) {
+    if (now < g_bpo.st_next) return;
+    int raw = 0, st = bp_own_stance_measure(&raw);
+    if (g_bpo.phase == BPP_IDLE) {
+        g_bpo.st_next = now + 100.0;
+        g_bpo.st_idle = st;
+        return;
+    }
+    g_bpo.st_next = now + (g_bpo.phase == BPP_CLOSING ? 100.0 : 250.0);
+    // A/B (stood up, then went prone, during own crouch / stand outros): the body left the clip of the latched stance, but the recorder kept
+    // writing that motion into the latched stance's track (crouch outro root rose 0.7 m) and the puppets replayed it (B's crouched bag floated over its head).
+    // Any read off the latched stance (but the standing loop's crouch read) pauses the recorder and drops the samples of the clip it was in. While OPEN the
+    // confirmed change below then switches the recorder to the new stance's loop row (the puppets switch to that loop at the same moment); while CLOSING the
+    // body is in a stance transition, not an outro, so nothing more is recorded for that close.
+    if (st != g_bpo.stance && !(g_bpo.stance == BPS_STAND && st == BPS_CROUCH) && !g_bpo.rec_stop) {
+        char w[96]; snprintf(w, sizeof w, "own stance read %s while %s (latched %s)", BPS_NAME[st], BPP_NAME[g_bpo.phase & 3], BPS_NAME[g_bpo.stance & 3]);
+        bpt_rec_abort(w, now);
+    }
+    {   static int last_raw = -1, nl;
+        if (raw != last_raw && nl < 200) { nl++; xlog("bp: own stance read %s (prone %d supine %d crouched %d) while %s %.0f ms in, latched %s", BPS_NAME[st], raw & 1, (raw >> 1) & 1, (raw >> 2) & 1,
+                                                    BPP_NAME[g_bpo.phase & 3], now - g_bpo.t_phase, BPS_NAME[g_bpo.stance & 3]); }
+        last_raw = raw; }
+    if (g_bpo.phase != BPP_OPEN || st == g_bpo.stance || (g_bpo.stance == BPS_STAND && st == BPS_CROUCH)) { g_bpo.st_cand_n = 0; return; }
+    if (st != g_bpo.st_cand) { g_bpo.st_cand = st; g_bpo.st_cand_n = 0; }
+    if (++g_bpo.st_cand_n < 2) return;
+    xlog("bp: own stance %s -> %s while open (%.0f ms in) - sent to the puppets now", BPS_NAME[g_bpo.stance & 3], BPS_NAME[st], now - g_bpo.t_phase);
+    g_bpo.stance = st; g_bpo.st_cand_n = 0;
+    g_bpo.rec_loop_t0 = now; g_bpo.rec_stop = 0;
+    xlog("bptrack: own recorder switches to the %s loop row (clock from now, as the puppets' loop switch)", BPS_NAME[st]);
+    bp_send(now);
+    g_bpo.t_change = now; g_bpo.copies = 2; g_bpo.next_send = now + 100.0;
 }
 static void bpt_open_done(void);
 static void bp_own_set(int phase, double now, const char *why) {
     if (phase == g_bpo.phase) return;
-    xlog("bp: own phase %s -> %s at t %.0f ms (%s)", BPP_NAME[g_bpo.phase & 3], BPP_NAME[phase & 3], now, why);
+    if (phase == BPP_OPEN) {
+        g_bpo.stance = g_bpo.st_idle; g_bpo.st_cand_n = 0; g_bpo.st_next = now + 250.0; g_bpo.rec_loop_t0 = 0;
+        g_bpo.rec_stop = g_bpo.phase == BPP_CLOSING;   // reopened mid-outro: the intro starts from the outro's pose, not the stance's start pose - not a track
+        if (g_bpo.rec_stop) xlog("bptrack: own reopen mid-outro - this open records no track samples");
+    }
+    if (phase == BPP_CLOSING && g_bpo.stance == BPS_STAND && bp_own_stance_measure(NULL) == BPS_CROUCH) {
+        // crouched while a standing open was open (not followed: the standing loop is the crouch idle): the engine plays the CROUCH outro now
+        xlog("bp: own stance stand -> crouch at the close (crouched during a standing open) - the crouch outro plays");
+        g_bpo.stance = BPS_CROUCH;
+    }
+    xlog("bp: own phase %s -> %s at t %.0f ms (%s), stance %s", BPP_NAME[g_bpo.phase & 3], BPP_NAME[phase & 3], now, why, BPS_NAME[g_bpo.stance & 3]);
     if (phase == BPP_IDLE && (g_bpo.phase == BPP_CLOSING || g_bpo.phase == BPP_ABORT)) bpt_open_done();
     g_bpo.phase = phase; g_bpo.t_phase = now; g_bpo.seq++;
     g_bpo.t_change = now; g_bpo.copies = 2;
@@ -96,8 +180,9 @@ static void bp_own_tick(double now) {
         else if (g_bpo.phase == BPP_ABORT && now - g_bpo.t_phase > 1000.0) bp_own_set(BPP_IDLE, now, "abort sent");
     } else if (menu && !menu_was) bp_own_set(BPP_OPEN, now, "menu opened = intro clip starts");
     else if (!menu && menu_was && g_bpo.phase == BPP_OPEN) bp_own_set(BPP_CLOSING, now, "menu closed = outro clip starts");
-    else if (g_bpo.phase == BPP_CLOSING && ((!g_bp_hid && now - g_bpo.t_phase > 1500.0) || now - g_bpo.t_phase > 4000.0))
-        bp_own_set(BPP_IDLE, now, "outro over");
+    else if (g_bpo.phase == BPP_CLOSING && ((!g_bp_hid && now - g_bpo.t_phase > (BPS_OUTRO_MS[g_bpo.stance & 3] > 1600.0 ? BPS_OUTRO_MS[g_bpo.stance & 3] - 100.0 : 1500.0))
+                                            || now - g_bpo.t_phase > 4000.0))
+        bp_own_set(BPP_IDLE, now, "outro over");      // (prone / supine outros are 2.3 - 2.5 s: the idle waited 1.5 s, the track recorder stopped mid-outro)
     else if (g_bpo.phase == BPP_ABORT && now - g_bpo.t_phase > 1000.0) bp_own_set(BPP_IDLE, now, "abort sent");
     menu_was = menu;
     { static int off_was;
@@ -106,6 +191,7 @@ static void bp_own_tick(double now) {
           bp_send(now);
           g_bpo.t_change = now; g_bpo.copies = 2; g_bpo.next_send = now + 100.0;
       } }
+    if (live && !gone) bp_own_stance_tick(now);
     bpt_own_sample(now);
     bpt_send_tick(now);
     if (now >= g_bpo.next_send) {        // change copies at +100 / +300 ms, then the period (500 ms active, 3 s idle)
@@ -117,6 +203,10 @@ static void bp_own_tick(double now) {
 }
 
 #include "bp_track.h"
+#ifndef BPTR_H_N   // a header from the old log tool (tools/bp_track_make.py) has no root rows
+static const struct { uint8_t c; uint16_t i; float v[7]; } BPTR_H[] = {{0, 0, {0, 0, 0, 0, 0, 0, 1}}};
+#define BPTR_H_N 0
+#endif
 // ---- puppets
 enum { BPC_NONE = 0, BPC_INTRO = 1, BPC_LOOP = 2, BPC_OUTRO = 3 };
 static const char *const BPC_NAME[4] = {"none", "intro", "loop", "outro"};
@@ -135,25 +225,31 @@ static const char *const BPC_NAME[4] = {"none", "intro", "loop", "outro"};
 //   - the owner streams its samples to every peer while it records (MSG_BACKPACK ver 0x54 chunks, one per 50 ms) and resends the whole track after each close
 //     (lost packets, late joiners); the receiver keeps it per slot = the bag on another player follows that player's own recorded body-relative path;
 //   - per clip the puppet latches its source at the clip start: the owner's track when complete, else our own, else the spinec follow (logged).
-static float g_bpt[4][BPT_N][3]; static uint8_t g_bpt_ok[4][BPT_N]; static int g_bpt_init, g_bpt_live;
-static float g_bptp[T2R_MAX_PEERS][4][BPT_N][3]; static uint8_t g_bptp_ok[T2R_MAX_PEERS][4][BPT_N];   // per owner slot, from its chunks
-static uint8_t g_bpt_dirty[4][BPT_N];      // own samples not yet sent
+static float g_bpt[BPT_NC][BPT_N][3]; static uint8_t g_bpt_ok[BPT_NC][BPT_N]; static int g_bpt_init, g_bpt_live;
+static float g_bptp[T2R_MAX_PEERS][BPT_NC][BPT_N][3]; static uint8_t g_bptp_ok[T2R_MAX_PEERS][BPT_NC][BPT_N];   // per owner slot, from its chunks
+static uint8_t g_bpt_dirty[BPT_NC][BPT_N];      // own samples not yet sent
 static int g_bpt_nrx[T2R_MAX_PEERS];
-static int g_bpt_open_n[4];                // own samples recorded in the current open, per clip
+static int g_bpt_open_n[BPT_NC];           // own samples recorded in the current open, per track row
 #define BPT_FILE "t2r-bp-track.bin"
-#define BPT_MAGIC 0x31545042u              // "BPT1"
+#define BPT_MAGIC 0x31545042u              // "BPT1" = rows 0..3 only (stand, before)
+#define BPT_MAGIC2 0x32545042u             // "BPT2" = BPT_NC rows (per stance)
 static void bptr_load(void);
 static void bpt_load_header(void) {
     if (g_bpt_init) return;
     g_bpt_init = 1;
-    for (int k = 0; k < BPT_H_N; k++) if (BPT_H[k].c >= 1 && BPT_H[k].c <= 3 && BPT_H[k].i < BPT_N) { memcpy(g_bpt[BPT_H[k].c][BPT_H[k].i], BPT_H[k].v, 12); g_bpt_ok[BPT_H[k].c][BPT_H[k].i] = 1; }
+    // bp_track.h = built-in tracks of every stance (tools/bp_track_from_bin.py, recorded A/B opens): a crouched / prone owner's bag is placed on the
+    // first open in that stance too, before any own open or owner stream of it exists (first crouch / prone open = spinec follow, bag off the hands)
+    for (int k = 0; k < BPT_H_N; k++) if (BPT_H[k].c >= 1 && BPT_H[k].c < BPT_NC && BPT_H[k].i < BPT_N) { memcpy(g_bpt[BPT_H[k].c][BPT_H[k].i], BPT_H[k].v, 12); g_bpt_ok[BPT_H[k].c][BPT_H[k].i] = 1; }
     int nf = 0;
     FILE *f = exe_side_open(BPT_FILE, "rb");
     if (f) {
         uint32_t mg = 0;
-        static float tb[4][BPT_N][3]; static uint8_t okb[4][BPT_N];
-        if (fread(&mg, 4, 1, f) == 1 && mg == BPT_MAGIC && fread(okb, sizeof okb, 1, f) == 1 && fread(tb, sizeof tb, 1, f) == 1)
-            for (int c = 1; c <= 3; c++) for (int i = 0; i < BPT_N; i++)
+        static float tb[BPT_NC][BPT_N][3]; static uint8_t okb[BPT_NC][BPT_N];
+        int rows = 0;
+        memset(okb, 0, sizeof okb);
+        if (fread(&mg, 4, 1, f) == 1) rows = mg == BPT_MAGIC2 ? BPT_NC : mg == BPT_MAGIC ? 4 : 0;
+        if (rows && fread(okb, (size_t)rows * BPT_N, 1, f) == 1 && fread(tb, (size_t)rows * BPT_N * 12, 1, f) == 1)
+            for (int c = 1; c < rows; c++) for (int i = 0; i < BPT_N; i++)
                 if (okb[c][i] && tb[c][i][0] == tb[c][i][0] && fabsf(tb[c][i][0]) < 3.0f && fabsf(tb[c][i][1]) < 3.0f && fabsf(tb[c][i][2]) < 3.0f) {
                     memcpy(g_bpt[c][i], tb[c][i], 12); g_bpt_ok[c][i] = 1; g_bpt_dirty[c][i] = 1; nf++; }
         fclose(f);
@@ -184,13 +280,13 @@ static int bpt_complete(const uint8_t *ok, int *n_out) {
 }
 static int bpt_get(int clip, double ms, float *out) {
     bpt_load_header();
-    if (clip < 1 || clip > 3) return 0;
+    if (clip < 1 || clip >= BPT_NC) return 0;
     return bpt_get_t((const float (*)[3])g_bpt[clip], g_bpt_ok[clip], ms, out);
 }
 static void bpt_save(void) {
     FILE *f = exe_side_open(BPT_FILE, "wb");
     if (!f) { xlog("bptrack: cannot write %s", BPT_FILE); return; }
-    uint32_t mg = BPT_MAGIC;
+    uint32_t mg = BPT_MAGIC2;
     fwrite(&mg, 4, 1, f); fwrite(g_bpt_ok, sizeof g_bpt_ok, 1, f); fwrite(g_bpt, sizeof g_bpt, 1, f);
     fclose(f);
 }
@@ -203,7 +299,7 @@ static void bpt_send_tick(double now) {
     static double next; static int alt;
     if (!g_send_tramp || now < next || match_substate() != 6) return;
     if ((alt++ & 1) && bptr_send_one()) { next = now + 50.0; return; }      // the root track (the one the puppets replay) and the spinec track take turns
-    for (int c = 1; c <= 3; c++) {
+    for (int c = 1; c < BPT_NC; c++) {
         int i0 = 0; while (i0 < BPT_N && !g_bpt_dirty[c][i0]) i0++;
         if (i0 >= BPT_N) continue;
         uint8_t b[6 + BPT_CHUNK * 7]; int n = 0;
@@ -223,7 +319,7 @@ static void bpt_send_tick(double now) {
     if (bptr_send_one()) next = now + 50.0;
 }
 static void bpt_net_recv(int s, const uint8_t *b, uint64_t len) {
-    if (len < 6 || b[1] < 1 || b[1] > 3) return;
+    if (len < 6 || b[1] < 1 || b[1] >= BPT_NC) return;
     int c = b[1], i0 = b[2] | (b[3] << 8), n = b[4];
     if (len < (uint64_t)(6 + n * 7) || i0 + n > BPT_N) return;
     for (int j = 0; j < n; j++) {
@@ -245,33 +341,39 @@ static void bpt_net_recv(int s, const uint8_t *b, uint64_t len) {
 // prop root to body locator * that, open loop, every frame at its own clip time (no feedback, no read-back) - the clip moves the bag the same way on both screens.
 // Wire: MSG_BACKPACK ver 0x55 chunks [u8 0x55][u8 clip][u16 idx][u8 n][u8 0] + n x {u8 has, i16 pos x y z mm, i16 quat x y z w * 32767}; t2r-bp-root.bin next to the exe.
 #define BPTR_FILE "t2r-bp-root.bin"
-#define BPTR_MAGIC 0x31525042u             // "BPR1"
+#define BPTR_MAGIC 0x31525042u             // "BPR1" = rows 0..3 only (stand, before)
+#define BPTR_MAGIC2 0x32525042u            // "BPR2" = BPT_NC rows (per stance)
 #define BPTR_VER 0x55
 #define BPTR_CHUNK 16
-static float g_bptr[4][BPT_N][7]; static uint8_t g_bptr_ok[4][BPT_N], g_bptr_dirty[4][BPT_N];
-static float g_bptrp[T2R_MAX_PEERS][4][BPT_N][7]; static uint8_t g_bptrp_ok[T2R_MAX_PEERS][4][BPT_N];
-static int g_bptr_open_n[4], g_bptr_nrx[T2R_MAX_PEERS], g_bptr_live;
+static float g_bptr[BPT_NC][BPT_N][7]; static uint8_t g_bptr_ok[BPT_NC][BPT_N], g_bptr_dirty[BPT_NC][BPT_N];
+static float g_bptrp[T2R_MAX_PEERS][BPT_NC][BPT_N][7]; static uint8_t g_bptrp_ok[T2R_MAX_PEERS][BPT_NC][BPT_N];
+static int g_bptr_open_n[BPT_NC], g_bptr_nrx[T2R_MAX_PEERS], g_bptr_live;
 static int bptr_valid(const float *v) {
     float n = v[3] * v[3] + v[4] * v[4] + v[5] * v[5] + v[6] * v[6];
     return __builtin_isfinite(v[0] + v[1] + v[2] + n) && fabsf(v[0]) < 3.0f && fabsf(v[1]) < 3.0f && fabsf(v[2]) < 3.0f && n > 0.8f && n < 1.2f;
 }
 static void bptr_load(void) {
-    int nf = 0;
+    int nf = 0, nh = 0;
+    for (int k = 0; k < BPTR_H_N; k++) if (BPTR_H[k].c >= 1 && BPTR_H[k].c < BPT_NC && BPTR_H[k].i < BPT_N && bptr_valid(BPTR_H[k].v)) {
+        memcpy(g_bptr[BPTR_H[k].c][BPTR_H[k].i], BPTR_H[k].v, 28); g_bptr_ok[BPTR_H[k].c][BPTR_H[k].i] = 1; nh++; }
     FILE *f = exe_side_open(BPTR_FILE, "rb");
     if (f) {
         uint32_t mg = 0;
-        static float tb[4][BPT_N][7]; static uint8_t okb[4][BPT_N];
-        if (fread(&mg, 4, 1, f) == 1 && mg == BPTR_MAGIC && fread(okb, sizeof okb, 1, f) == 1 && fread(tb, sizeof tb, 1, f) == 1)
-            for (int c = 1; c <= 3; c++) for (int i = 0; i < BPT_N; i++)
+        static float tb[BPT_NC][BPT_N][7]; static uint8_t okb[BPT_NC][BPT_N];
+        int rows = 0;
+        memset(okb, 0, sizeof okb);
+        if (fread(&mg, 4, 1, f) == 1) rows = mg == BPTR_MAGIC2 ? BPT_NC : mg == BPTR_MAGIC ? 4 : 0;
+        if (rows && fread(okb, (size_t)rows * BPT_N, 1, f) == 1 && fread(tb, (size_t)rows * BPT_N * 28, 1, f) == 1)
+            for (int c = 1; c < rows; c++) for (int i = 0; i < BPT_N; i++)
                 if (okb[c][i] && bptr_valid(tb[c][i])) { memcpy(g_bptr[c][i], tb[c][i], 28); g_bptr_ok[c][i] = 1; g_bptr_dirty[c][i] = 1; nf++; }
         fclose(f);
     }
-    xlog("bptrack: %d root samples from %s (own opens of earlier sessions, sent to the peers)", nf, BPTR_FILE);
+    xlog("bptrack: %d root samples from bp_track.h, %d from %s (own opens of earlier sessions, sent to the peers)", nh, nf, BPTR_FILE);
 }
 static void bptr_save(void) {
     FILE *f = exe_side_open(BPTR_FILE, "wb");
     if (!f) { xlog("bptrack: cannot write %s", BPTR_FILE); return; }
-    uint32_t mg = BPTR_MAGIC;
+    uint32_t mg = BPTR_MAGIC2;
     fwrite(&mg, 4, 1, f); fwrite(g_bptr_ok, sizeof g_bptr_ok, 1, f); fwrite(g_bptr, sizeof g_bptr, 1, f);
     fclose(f);
 }
@@ -317,7 +419,7 @@ static void bptr_own_sample(uint8_t *pr, const float *loc, int clip, int i) {
     static int nl; if (nl < 8 && (i % 10) == 0) { nl++; xlog("bptrack: own prop root clip %d idx %d rel pos %.3f %.3f %.3f quat %.3f %.3f %.3f %.3f", clip, i, v[0], v[1], v[2], v[3], v[4], v[5], v[6]); }
 }
 static int bptr_send_one(void) {
-    for (int c = 1; c <= 3; c++) {
+    for (int c = 1; c < BPT_NC; c++) {
         int i0 = 0; while (i0 < BPT_N && !g_bptr_dirty[c][i0]) i0++;
         if (i0 >= BPT_N) continue;
         uint8_t b[6 + BPTR_CHUNK * 15]; int n = 0;
@@ -339,7 +441,7 @@ static int bptr_send_one(void) {
     return 0;
 }
 static void bptr_net_recv(int s, const uint8_t *b, uint64_t len) {
-    if (len < 6 || b[1] < 1 || b[1] > 3) return;
+    if (len < 6 || b[1] < 1 || b[1] >= BPT_NC) return;
     int c = b[1], i0 = b[2] | (b[3] << 8), n = b[4];
     if (len < (uint64_t)(6 + n * 15) || i0 + n > BPT_N) return;
     for (int j = 0; j < n; j++) {
@@ -357,20 +459,20 @@ static void bptr_net_recv(int s, const uint8_t *b, uint64_t len) {
     }
 }
 static void bptr_open_done(void) {
-    int n[4] = {0};
-    for (int c = 1; c <= 3; c++) { bpt_complete(g_bptr_ok[c], &n[c]); for (int i = 0; i < BPT_N; i++) if (g_bptr_ok[c][i]) g_bptr_dirty[c][i] = 1; }
-    xlog("bptrack: own open root samples intro %d / loop %d / outro %d (root track now %d / %d / %d), saved to %s",
-         g_bptr_open_n[1], g_bptr_open_n[2], g_bptr_open_n[3], n[1], n[2], n[3], BPTR_FILE);
+    int n[BPT_NC] = {0}, b = BPT_C(g_bpo.stance & 3, 0);
+    for (int c = 1; c < BPT_NC; c++) { bpt_complete(g_bptr_ok[c], &n[c]); for (int i = 0; i < BPT_N; i++) if (g_bptr_ok[c][i]) g_bptr_dirty[c][i] = 1; }
+    xlog("bptrack: own %s open root samples intro %d / loop %d / outro %d (%s root track now %d / %d / %d), saved to %s", BPS_NAME[g_bpo.stance & 3],
+         g_bptr_open_n[b + 1], g_bptr_open_n[b + 2], g_bptr_open_n[b + 3], BPS_NAME[g_bpo.stance & 3], n[b + 1], n[b + 2], n[b + 3], BPTR_FILE);
     memset(g_bptr_open_n, 0, sizeof g_bptr_open_n);
     if (g_bptr_live) bptr_save();
 }
 // own close: log what this open recorded, save it, resend the whole track (lost chunks, late joiners)
 static void bpt_open_done(void) {
     bpt_load_header();
-    int n[4] = {0};
-    for (int c = 1; c <= 3; c++) { bpt_complete(g_bpt_ok[c], &n[c]); for (int i = 0; i < BPT_N; i++) if (g_bpt_ok[c][i]) g_bpt_dirty[c][i] = 1; }
-    xlog("bptrack: own open recorded intro %d / loop %d / outro %d samples (track now %d / %d / %d), saved to %s, resending to the peers",
-         g_bpt_open_n[1], g_bpt_open_n[2], g_bpt_open_n[3], n[1], n[2], n[3], BPT_FILE);
+    int n[BPT_NC] = {0}, b = BPT_C(g_bpo.stance & 3, 0);
+    for (int c = 1; c < BPT_NC; c++) { bpt_complete(g_bpt_ok[c], &n[c]); for (int i = 0; i < BPT_N; i++) if (g_bpt_ok[c][i]) g_bpt_dirty[c][i] = 1; }
+    xlog("bptrack: own %s open recorded intro %d / loop %d / outro %d samples (%s track now %d / %d / %d), saved to %s, resending to the peers", BPS_NAME[g_bpo.stance & 3],
+         g_bpt_open_n[b + 1], g_bpt_open_n[b + 2], g_bpt_open_n[b + 3], BPS_NAME[g_bpo.stance & 3], n[b + 1], n[b + 2], n[b + 3], BPT_FILE);
     memset(g_bpt_open_n, 0, sizeof g_bpt_open_n);
     if (g_bpt_live) bpt_save();
     bptr_open_done();
@@ -382,18 +484,42 @@ static int bpt_rec_on(void) {
     return v;
 }
 static int bpt_off(void) { static int v = -1; if (v < 0) { FILE *f = exe_side_open("t2r-no-bp-track.txt", "r"); v = f != NULL; if (f) fclose(f); } return v; }
+// the row this open is writing and its contents before this open's first sample in it: bpt_rec_abort puts them back
+static int g_bpt_snap_row = -1; static double g_bpt_snap_t;
+static float g_bpt_snap[BPT_N][3], g_bptr_snap[BPT_N][7]; static uint8_t g_bpt_snap_ok[BPT_N], g_bptr_snap_ok[BPT_N];
+static void bpt_snap_take(int row, double t_phase) {
+    if (row == g_bpt_snap_row && t_phase == g_bpt_snap_t) return;
+    g_bpt_snap_row = row; g_bpt_snap_t = t_phase;
+    memcpy(g_bpt_snap, g_bpt[row], sizeof g_bpt_snap); memcpy(g_bpt_snap_ok, g_bpt_ok[row], sizeof g_bpt_snap_ok);
+    memcpy(g_bptr_snap, g_bptr[row], sizeof g_bptr_snap); memcpy(g_bptr_snap_ok, g_bptr_ok[row], sizeof g_bptr_snap_ok);
+}
+static void bpt_rec_abort(const char *why, double now) {
+    if (g_bpo.rec_stop) return;
+    g_bpo.rec_stop = 1;
+    int row = g_bpt_snap_row, n = row >= 1 && row < BPT_NC ? g_bpt_open_n[row] : 0;
+    if (n > 0) {
+        memcpy(g_bpt[row], g_bpt_snap, sizeof g_bpt_snap); memcpy(g_bpt_ok[row], g_bpt_snap_ok, sizeof g_bpt_snap_ok);
+        memcpy(g_bptr[row], g_bptr_snap, sizeof g_bptr_snap); memcpy(g_bptr_ok[row], g_bptr_snap_ok, sizeof g_bptr_snap_ok);
+        for (int i = 0; i < BPT_N; i++) { g_bpt_dirty[row][i] = g_bpt_ok[row][i]; g_bptr_dirty[row][i] = g_bptr_ok[row][i]; }
+        g_bpt_open_n[row] = 0; g_bptr_open_n[row] = 0;
+    }
+    xlog("bptrack: own recording paused (%s, %s %.0f ms in): %d samples of track row %d dropped (the row is back to before this open)",
+         why, BPP_NAME[g_bpo.phase & 3], now - g_bpo.t_phase, n, row);
+}
 // our side: sample (called every frame from bp_own_tick)
 static void bpt_own_sample(double now) {
-    if ((g_bpo.phase != BPP_OPEN && g_bpo.phase != BPP_CLOSING) || !g_bp_hid || bpt_off()) return;
+    if ((g_bpo.phase != BPP_OPEN && g_bpo.phase != BPP_CLOSING) || !g_bp_hid || bpt_off() || g_bpo.rec_stop) return;
     bp_state_t bs = bp_state();
     if (!bs.ctrl || bs.vis != 1 || IsBadReadPtr(bs.ctrl + 0x198, 8)) return;
     uint8_t *hh = *(uint8_t **)(bs.ctrl + 0x198), *pr = (hh && !IsBadReadPtr(hh, 16)) ? *(uint8_t **)(hh + 8) : NULL;
     uint64_t ph = (pr && !IsBadReadPtr(pr, 0xd0)) ? *(uint64_t *)(pr + 0xc0) : 0;
     if (!ph) return;
-    double el = now - g_bpo.t_phase; int clip; double ms;
+    double el = now - g_bpo.t_phase; int clip; double ms; int st = g_bpo.stance & 3;
     if (g_bpo.phase == BPP_CLOSING) { clip = BPC_OUTRO; ms = el; }
-    else if (el < 1567.0) { clip = BPC_INTRO; ms = el; }
-    else { clip = BPC_LOOP; ms = fmod(el - 1567.0, 7400.0); }
+    else if (g_bpo.rec_loop_t0 > 0) { clip = BPC_LOOP; ms = fmod(now - g_bpo.rec_loop_t0, BPS_LOOP_MS[st]); }   // stance changed while open: the new stance's loop
+    else if (el < BPS_INTRO_MS[st]) { clip = BPC_INTRO; ms = el; }
+    else { clip = BPC_LOOP; ms = fmod(el - BPS_INTRO_MS[st], BPS_LOOP_MS[st]); }
+    clip = BPT_C(st, clip);                  // the stance's own track row (stand = the old rows 1..3)
     float lb[16]; const float *loc = player_locator(lb);
     float pj[3], pq[4];
     if (!loc || !xbx_loc(ph, "spinec", pj, pq)) return;
@@ -403,6 +529,7 @@ static void bpt_own_sample(double now) {
     if (fabsf(r[0]) > 3.0f || fabsf(r[1]) > 3.0f || fabsf(r[2]) > 3.0f) return;
     int i = (int)(ms / BPT_DT + 0.5); if (i < 0 || i >= BPT_N) return;
     bpt_load_header();
+    bpt_snap_take(clip, g_bpo.t_phase);
     memcpy(g_bpt[clip][i], r, 12); g_bpt_ok[clip][i] = 1; g_bpt_live++; g_bpt_dirty[clip][i] = 1; g_bpt_open_n[clip]++;
     bptr_own_sample(pr, loc, clip, i);
     if (bpt_rec_on()) xlog("bptrack: clip %d idx %d rel %.4f %.4f %.4f look %s", clip, i, r[0], r[1], r[2], look_name(bp_player_look(bp_me())));
@@ -410,17 +537,34 @@ static void bpt_own_sample(double now) {
 // the player's states (dc1/anim-player/player-inventory2.bin): inventory-intro = stand^craft-intro, inventory-loop =
 // crouch-craft-idle, inventory-outro = stand^craft-outro (character column; the prop column is backpack-*). The puppet
 // resolves the overlay name itself; first clip its anim tables know (get-animation-duration > 0) wins, logged.
-static const char *const BP_CLIPS[4][4] = {
-    {NULL},
-    {"abby-stand^craft-intro", "stand^craft-intro", "abby-lg-stand^craft-intro", "lg-stand^craft-intro"},
-    {"abby-crouch-craft-idle", "crouch-craft-idle", NULL, NULL},
-    {"abby-stand^craft-outro", "stand^craft-outro", "abby-lg-stand^craft-outro", "lg-stand^craft-outro"}};
+// one set per stance (the owner's stance from MSG_BACKPACK; see the head of this file). A stance whose intro the puppet's tables do not
+// know falls back to the standing set (logged once per slot and stance).
+static const char *const BP_CLIPS[BPS_N][4][4] = {
+    {{NULL},
+     {"abby-stand^craft-intro", "stand^craft-intro", "abby-lg-stand^craft-intro", "lg-stand^craft-intro"},
+     {"abby-crouch-craft-idle", "crouch-craft-idle", NULL, NULL},
+     {"abby-stand^craft-outro", "stand^craft-outro", "abby-lg-stand^craft-outro", "lg-stand^craft-outro"}},
+    {{NULL},
+     {"abby-crouch-craft-intro", "crouch-craft-intro", "abby-lg-crouch-craft-intro", "lg-crouch-craft-intro"},
+     {"abby-crouch-craft-idle", "crouch-craft-idle", NULL, NULL},
+     {"abby-crouch-craft-outro", "crouch-craft-outro", "abby-lg-crouch-craft-outro", "lg-crouch-craft-outro"}},
+    {{NULL},
+     {"abby-prone-craft-intro", "prone-craft-intro", NULL, NULL},
+     {"abby-prone-craft-idle", "prone-craft-idle", NULL, NULL},
+     {"abby-prone-craft-outro", "prone-craft-outro", NULL, NULL}},
+    {{NULL},
+     {"abby-supine-craft-intro", "supine-craft-intro", "abby-lg-supine-craft-intro", "lg-supine-craft-intro"},
+     {"abby-supine-craft-idle", "supine-craft-idle", NULL, NULL},
+     {"abby-supine-craft-outro", "supine-craft-outro", "abby-lg-supine-craft-outro", "lg-supine-craft-outro"}}};
 #define BPP_BLEND 0.25f
 static struct {
     int phase;                      // the owner's last phase
     uint8_t seq; double rx_ms;      // last message (bp_ms)
     double ct_rx;                   // the owner's clip time (ms in phase) at rx, latency-corrected
     int clip; double t0; float dur; // playing clip, its time 0 (bp_ms), length (s)
+    int stance;                     // the owner's stance (BPS_*, last message)
+    int cst;                        // the stance of the clip that plays (= stance, or BPS_STAND when the puppet has no clips of that stance)
+    uint64_t st_h; int8_t st_ok[BPS_N]; // per puppet body: that stance's intro is known (1) / not (0) / not probed (-1 after a body change)
     const char *name;
     uint64_t h;                     // puppet handle the clip runs on
     int warned_none;
@@ -592,16 +736,25 @@ static void bp_prop_on_body(uint64_t o, const float *loc8) {
 // (abby-stand^craft-intro--backpack, abby-crouch-craft-idle--backpack, abby-stand^craft-outro--backpack, ...), authored for the backpack-abby skeleton.
 // The first candidate the prop's get-animation-duration knows wins (logged once per slot and clip); none known = the first one is tried anyway.
 static const char *bp_prop_clip_name(int s, int clip, uint64_t prop) {
-    static char cache[T2R_MAX_PEERS][4][96]; static char cand[96];
+    static char cache[T2R_MAX_PEERS][BPS_N][4][96]; static char cand[96];
     clip &= 3;
     if (!clip) return NULL;
-    if (cache[s][clip][0]) return cache[s][clip];
+    int st = g_bpp[s].cst & 3;
+    if (cache[s][st][clip][0]) return cache[s][st][clip];
+    // the stance's own prop clip (anim-abby-player-backpack.pak: every stance clip has its "--backpack" twin), then the old standing names
+    static const char *const FS[BPS_N][4] = {
+        {NULL, "abby-stand^craft-intro--backpack", "abby-crouch-craft-idle--backpack", "abby-stand^craft-outro--backpack"},
+        {NULL, "abby-crouch-craft-intro--backpack", "abby-crouch-craft-idle--backpack", "abby-crouch-craft-outro--backpack"},
+        {NULL, "abby-prone-craft-intro--backpack", "abby-prone-craft-idle--backpack", "abby-prone-craft-outro--backpack"},
+        {NULL, "abby-supine-craft-intro--backpack", "abby-supine-craft-idle--backpack", "abby-supine-craft-outro--backpack"}};
     static const char *const FB[4][4] = {{NULL}, {"abby-stand^craft-intro--backpack", "abby-crouch-craft-intro--backpack", "backpack-intro", NULL},
         {"abby-crouch-craft-idle--backpack", "abby-crouch-craft-generic^idle--backpack", "backpack-loop", NULL}, {"abby-stand^craft-outro--backpack", "abby-crouch-craft-outro--backpack", "backpack-outro", NULL}};
-    const char *list[6]; int n = 0;
+    const char *list[8]; int n = 0;
     static char own[96];
-    if (clip == (g_bpp[s].clip & 3) && g_bpp[s].name && strlen(g_bpp[s].name) < 80) { snprintf(own, sizeof own, "%s--backpack", g_bpp[s].name); list[n++] = own; }
-    for (int i = 0; FB[clip][i]; i++) list[n++] = FB[clip][i];
+    // (the -lg- body clips have no --backpack twin: their prop clip is the plain stance one)
+    if (clip == (g_bpp[s].clip & 3) && g_bpp[s].name && strlen(g_bpp[s].name) < 80 && !strstr(g_bpp[s].name, "-lg-")) { snprintf(own, sizeof own, "%s--backpack", g_bpp[s].name); list[n++] = own; }
+    if (!n || strcmp(own, FS[st][clip])) list[n++] = FS[st][clip];
+    for (int i = 0; FB[clip][i]; i++) if (strcmp(FB[clip][i], FS[st][clip])) list[n++] = FB[clip][i];
     const char *pick = NULL;
     for (int i = 0; i < n; i++) {
         float L = anim_len(prop, list[i]);
@@ -610,8 +763,9 @@ static const char *bp_prop_clip_name(int s, int clip, uint64_t prop) {
     }
     if (!pick) { pick = list[0]; xlog("bp: slot %d no prop clip candidate has a duration - trying %s anyway", s, pick); }
     snprintf(cand, sizeof cand, "%s", pick);
-    strcpy(cache[s][clip], cand);
-    return cache[s][clip];
+    strcpy(cache[s][st][clip], cand);
+    xlog("bp: slot %d %s prop clip for the %s %s: %s", s, BPS_NAME[st], BPS_NAME[st], BPC_NAME[clip], cand);
+    return cache[s][st][clip];
 }
 // prop clip in step with the puppet's craft clip `clip` at phase ph
 static void bp_prop_clip(int s, int clip, float ph, float blend) {
@@ -731,19 +885,19 @@ static int bp_offfix_off(void) {
 static void bp_pup_open_offset(int s, uint64_t h, const float *loc, double now) {
     float c[16]; memcpy(c, loc, sizeof c);
     {   // root track (see bptr_*): prop root = body locator * owner's recorded root-relative locator at the puppet's own clip time, open loop
-        int cl = g_bpp[s].clip; double ems = now - g_bpp[s].t0;
-        if (cl == BPC_LOOP) ems = fmod(ems, 7400.0);
-        if (cl >= 1 && cl <= 3 && (g_bpp[s].rsrc_clip != cl || g_bpp[s].rsrc_t0 != g_bpp[s].t0)) {
+        int cl = g_bpp[s].clip ? BPT_C(g_bpp[s].cst & 3, g_bpp[s].clip & 3) : 0; double ems = now - g_bpp[s].t0;   // the track row of the stance that plays
+        if (g_bpp[s].clip == BPC_LOOP && g_bpp[s].dur > 0) ems = fmod(ems, g_bpp[s].dur * 1000.0);
+        if (cl >= 1 && cl < BPT_NC && (g_bpp[s].rsrc_clip != cl || g_bpp[s].rsrc_t0 != g_bpp[s].t0)) {
             bpt_load_header();
             int np = 0, nl = 0, pk = bpt_complete(g_bptrp_ok[s][cl], &np), lk = bpt_complete(g_bptr_ok[cl], &nl);
             g_bpp[s].rsrc = bpt_off() ? 0 : pk ? 1 : lk ? 2 : 0; g_bpp[s].rsrc_clip = cl; g_bpp[s].rsrc_t0 = g_bpp[s].t0;
             static int nlog;
-            if (nlog < 60) { nlog++; xlog("bptrack: slot %d clip %s root source %s (owner's root track %d samples, own %d)", s, BPC_NAME[cl & 3],
+            if (nlog < 60) { nlog++; xlog("bptrack: slot %d %s %s root source %s (owner's root track %d samples, own %d)", s, BPS_NAME[g_bpp[s].cst & 3], BPC_NAME[g_bpp[s].clip & 3],
                                           g_bpp[s].rsrc == 1 ? "OWNER ROOT" : g_bpp[s].rsrc == 2 ? "own root" : "none - spinec track / follow", np, nl); }
         }
         float r7[7]; int got = 0;
-        if (cl >= 1 && cl <= 3 && g_bpp[s].rsrc == 1) got = bptr_get_t((const float (*)[7])g_bptrp[s][cl], g_bptrp_ok[s][cl], ems, r7);
-        else if (cl >= 1 && cl <= 3 && g_bpp[s].rsrc == 2) got = bptr_get_t((const float (*)[7])g_bptr[cl], g_bptr_ok[cl], ems, r7);
+        if (cl >= 1 && cl < BPT_NC && g_bpp[s].rsrc == 1) got = bptr_get_t((const float (*)[7])g_bptrp[s][cl], g_bptrp_ok[s][cl], ems, r7);
+        else if (cl >= 1 && cl < BPT_NC && g_bpp[s].rsrc == 2) got = bptr_get_t((const float (*)[7])g_bptr[cl], g_bptr_ok[cl], ems, r7);
         if (got) {
             float pw[3], q[4];
             qrotv(loc + 4, r7, pw);
@@ -773,19 +927,19 @@ static void bp_pup_open_offset(int s, uint64_t h, const float *loc, double now) 
     }
     {   // replay of our own recorded open/close animation (bpt_*): prop spinec = body locator + R(yaw) * track(clip, clip time)
         float tr[3]; double ems = now - g_bpp[s].t0;
-        if (g_bpp[s].clip == BPC_LOOP) ems = fmod(ems, 7400.0);
-        int cl = g_bpp[s].clip;
-        if (cl >= 1 && cl <= 3 && (g_bpp[s].tsrc_clip != cl || g_bpp[s].tsrc_t0 != g_bpp[s].t0)) {
+        if (g_bpp[s].clip == BPC_LOOP && g_bpp[s].dur > 0) ems = fmod(ems, g_bpp[s].dur * 1000.0);
+        int cl = g_bpp[s].clip ? BPT_C(g_bpp[s].cst & 3, g_bpp[s].clip & 3) : 0;
+        if (cl >= 1 && cl < BPT_NC && (g_bpp[s].tsrc_clip != cl || g_bpp[s].tsrc_t0 != g_bpp[s].t0)) {
             bpt_load_header();
             int np = 0, nl = 0, pk = bpt_complete(g_bptp_ok[s][cl], &np), lk = bpt_complete(g_bpt_ok[cl], &nl);
             g_bpp[s].tsrc = bpt_off() ? 0 : pk ? 1 : lk ? 2 : 0; g_bpp[s].tsrc_clip = cl; g_bpp[s].tsrc_t0 = g_bpp[s].t0;
             static int nlog;
-            if (nlog < 60) { nlog++; xlog("bptrack: slot %d clip %s source %s (owner's track %d samples, own %d)", s, BPC_NAME[cl & 3],
+            if (nlog < 60) { nlog++; xlog("bptrack: slot %d %s %s source %s (owner's track %d samples, own %d)", s, BPS_NAME[g_bpp[s].cst & 3], BPC_NAME[g_bpp[s].clip & 3],
                                           g_bpp[s].tsrc == 1 ? "OWNER TRACK" : g_bpp[s].tsrc == 2 ? "own track" : "none - spinec follow", np, nl); }
         }
         int got = 0;
-        if (cl >= 1 && cl <= 3 && g_bpp[s].tsrc == 1) got = bpt_get_t((const float (*)[3])g_bptp[s][cl], g_bptp_ok[s][cl], ems, tr);
-        else if (cl >= 1 && cl <= 3 && g_bpp[s].tsrc == 2) got = bpt_get(cl, ems, tr);
+        if (cl >= 1 && cl < BPT_NC && g_bpp[s].tsrc == 1) got = bpt_get_t((const float (*)[3])g_bptp[s][cl], g_bptp_ok[s][cl], ems, tr);
+        else if (cl >= 1 && cl < BPT_NC && g_bpp[s].tsrc == 2) got = bpt_get(cl, ems, tr);
         if (got) {
             float yw = 2.0f * atan2f(loc[5], loc[7]), cs = cosf(yw), sn = sinf(yw), pj[3], pq[4];
             float w[3] = {loc[0] + tr[0] * cs + tr[2] * sn, loc[1] + tr[1], loc[2] - tr[0] * sn + tr[2] * cs};
@@ -884,17 +1038,39 @@ static void bp_pup_stop(int s, float blend, const char *why) {
     if (g_bpp[s].clip) xlog("bp: slot %d puppet %s stopped (%s), blend %.2f s at t %.0f ms", s, BPC_NAME[g_bpp[s].clip & 3], why, blend, bp_ms());
     g_bpp[s].clip = BPC_NONE; g_bpp[s].name = NULL;
 }
+// the first clip of stance st / clip the puppet's tables know (0 = none), its length in *dur
+static const char *bp_clip_find(uint64_t h, int st, int clip, float *dur) {
+    *dur = 0;
+    for (int i = 0; i < 4 && BP_CLIPS[st & 3][clip & 3][i]; i++) if ((*dur = anim_len(h, BP_CLIPS[st & 3][clip & 3][i])) > 0) return BP_CLIPS[st & 3][clip & 3][i];
+    *dur = 0;
+    return NULL;
+}
+// the stance the puppet plays for the owner's stance: that one when the puppet knows its intro (probed once per body), else standing
+static int bp_pup_stance(int s, uint64_t h) {
+    int st = g_bpp[s].stance & 3;
+    if (st == BPS_STAND) return st;
+    if (g_bpp[s].st_h != h) { g_bpp[s].st_h = h; memset(g_bpp[s].st_ok, -1, sizeof g_bpp[s].st_ok); }
+    if (g_bpp[s].st_ok[st] < 0) {
+        float d; const char *nm = bp_clip_find(h, st, BPC_INTRO, &d);
+        g_bpp[s].st_ok[st] = nm != NULL;
+        xlog("bp: slot %d puppet %llx %s craft set: %s", s, (unsigned long long)h, BPS_NAME[st], nm ? nm : "NOT KNOWN - the standing set plays");
+    }
+    return g_bpp[s].st_ok[st] ? st : BPS_STAND;
+}
 // start `clip` on the puppet at clip time ct (ms); 0 = nothing playable
 static int bp_pup_play(int s, uint64_t h, int clip, double ct, float blend, double now) {
     const char *nm = NULL; float dur = 0;
+    int st = bp_pup_stance(s, h);
     SUBT0(al);
-    for (int i = 0; i < 4 && BP_CLIPS[clip][i] && dur <= 0; i++) if ((dur = anim_len(h, BP_CLIPS[clip][i])) > 0) nm = BP_CLIPS[clip][i];
+    nm = bp_clip_find(h, st, clip, &dur);
+    if (!nm && st != BPS_STAND) { st = BPS_STAND; nm = bp_clip_find(h, st, clip, &dur); }
     SUBT1(al, "bp_net: puppet anim_len lookups");
     if (!nm) {
-        if (!g_bpp[s].warned_none++) xlog("bp: slot %d puppet %llx knows no %s craft clip (%s / %s) - no backpack anim on it", s,
-                                         (unsigned long long)h, BPC_NAME[clip], BP_CLIPS[clip][0], BP_CLIPS[clip][1]);
+        if (!g_bpp[s].warned_none++) xlog("bp: slot %d puppet %llx knows no %s %s craft clip (%s / %s) - no backpack anim on it", s,
+                                         (unsigned long long)h, BPS_NAME[st], BPC_NAME[clip], BP_CLIPS[st][clip][0], BP_CLIPS[st][clip][1]);
         return 0;
     }
+    g_bpp[s].cst = st;              // before bp_prop_clip: the prop clip name is the one of this stance
     if (ct < 0) ct = 0;
     float ph = (float)(ct / (dur * 1000.0));
     if (clip == BPC_LOOP) ph -= (float)(int)ph;
@@ -904,8 +1080,8 @@ static int bp_pup_play(int s, uint64_t h, int clip, double ct, float blend, doub
     g_bpp[s].clip = clip; g_bpp[s].name = nm; g_bpp[s].dur = dur; g_bpp[s].h = h;
     g_bpp[s].t0 = now - (double)ph * dur * 1000.0;
     if (r && r != ~0ULL) bp_prop_clip(s, clip, ph, blend);
-    xlog("bp: slot %d puppet %s %s (%.2f s) from %.0f ms (phase %.2f), blend %.2f, at t %.0f ms -> %llx; worn bag stays on the puppet",
-         s, BPC_NAME[clip], nm, dur, (double)ph * dur * 1000.0, ph, blend, now, (unsigned long long)r);
+    xlog("bp: slot %d puppet %s %s %s (%.2f s) from %.0f ms (phase %.2f), blend %.2f, at t %.0f ms -> %llx (owner stance %s)",
+         s, BPS_NAME[st], BPC_NAME[clip], nm, dur, (double)ph * dur * 1000.0, ph, blend, now, (unsigned long long)r, BPS_NAME[g_bpp[s].stance & 3]);
     return r && r != ~0ULL;
 }
 // bring the puppet to what the owner's phase / clip time says (late joiner, lost packets, phase change)
@@ -913,16 +1089,20 @@ static void bp_pup_sync(int s, uint64_t h, double now) {
     double ct = g_bpp[s].ct_rx + (now - g_bpp[s].rx_ms);
     int ph = g_bpp[s].phase;
     if (ph == BPP_OPEN) {
+        // the owner changed stance while open (e.g. crouch <-> prone): the loop of the new stance (an intro plays out; the loop after it takes the new stance)
+        if (g_bpp[s].clip == BPC_LOOP && g_bpp[s].cst != bp_pup_stance(s, h)) {
+            xlog("bp: slot %d owner stance %s while the %s loop plays - switching loops", s, BPS_NAME[g_bpp[s].stance & 3], BPS_NAME[g_bpp[s].cst & 3]);
+            bp_pup_play(s, h, BPC_LOOP, 0, BPP_BLEND, now);
+            return;
+        }
         if (g_bpp[s].clip == BPC_INTRO || g_bpp[s].clip == BPC_LOOP) return;
         if (g_bpp[s].clip == BPC_OUTRO) { bp_pup_play(s, h, BPC_INTRO, 0, BPP_BLEND, now); return; }   // reopened mid-outro
-        float di = anim_len(h, BP_CLIPS[BPC_INTRO][0]);
-        if (di <= 0) di = anim_len(h, BP_CLIPS[BPC_INTRO][1]);
-        if (di > 0 && ct >= di * 1000.0 - 150.0) bp_pup_play(s, h, BPC_LOOP, ct - di * 1000.0, BPP_BLEND, now);   // joined late: already crouched
+        float di; bp_clip_find(h, bp_pup_stance(s, h), BPC_INTRO, &di);
+        if (di > 0 && ct >= di * 1000.0 - 150.0) bp_pup_play(s, h, BPC_LOOP, ct - di * 1000.0, BPP_BLEND, now);   // joined late: already in the loop
         else bp_pup_play(s, h, BPC_INTRO, ct, BPP_BLEND, now);
     } else if (ph == BPP_CLOSING) {
         if (g_bpp[s].clip == BPC_OUTRO) return;
-        float d = anim_len(h, BP_CLIPS[BPC_OUTRO][0]);
-        if (d <= 0) d = anim_len(h, BP_CLIPS[BPC_OUTRO][1]);
+        float d; bp_clip_find(h, bp_pup_stance(s, h), BPC_OUTRO, &d);
         if (g_bpp[s].clip == BPC_NONE && (d <= 0 || ct >= d * 1000.0 - 250.0)) return;   // the outro is already over on the owner
         bp_pup_play(s, h, BPC_OUTRO, ct, 0.2f, now);
     } else if (ph == BPP_ABORT) {
@@ -935,8 +1115,8 @@ static void bp_net_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
     if (slot > T2R_MAX_PEERS - 1 || !buf) return;
     if (len >= 6 && buf[0] == BPT_VER) { if (slot != *(uint32_t *)VMA(0x180138090)) bpt_net_recv((int)slot, buf, len); return; }
     if (len >= 6 && buf[0] == BPTR_VER) { if (slot != *(uint32_t *)VMA(0x180138090)) bptr_net_recv((int)slot, buf, len); return; }
-    if (len < sizeof(bp_msg_t)) return;
-    bp_msg_t m; memcpy(&m, buf, sizeof m);
+    if (len < BP_MSG_V1_LEN) return;
+    bp_msg_t m; memset(&m, 0, sizeof m); memcpy(&m, buf, len < sizeof m ? (size_t)len : sizeof m);   // an old sender has no stance byte = stand
     if (m.ver != BP_VER || m.phase > BPP_ABORT) return;
     if (slot == *(uint32_t *)VMA(0x180138090)) return;
     double now = bp_ms();
@@ -944,6 +1124,10 @@ static void bp_net_recv(uint32_t slot, const uint8_t *buf, uint64_t len) {
     float ow = psync_oneway(s);
     g_bpp[s].rx_ms = now;
     g_bpp[s].ct_rx = (double)m.el_ms + ow;
+    if ((m.stance & 3) != g_bpp[s].stance) {
+        xlog("bp: slot %d rx owner stance %s -> %s (phase %s, %u ms in)", s, BPS_NAME[g_bpp[s].stance & 3], BPS_NAME[m.stance & 3], BPP_NAME[m.phase & 3], m.el_ms);
+        g_bpp[s].stance = m.stance & 3;
+    }
     if (changed)
         xlog("bp: slot %d rx phase %s (seq %u, %u ms into it, one-way ~%.0f ms, owner bag %s, swap at enter %d / leave %d ms) at t %.0f ms; puppet %s",
              s, BPP_NAME[m.phase & 3], m.seq, m.el_ms, ow, m.bagoff ? "off" : "on", m.enter_ms == 0xffff ? -1 : m.enter_ms,

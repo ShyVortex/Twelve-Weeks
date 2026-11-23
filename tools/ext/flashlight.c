@@ -1,4 +1,5 @@
-// Flashlight (the stock MP build has it switched off, and some maps are very dark). Included by t2r-ext.c after helpcall.c. Log prefix "flashlight:". Opt out: t2r-no-flashlight.txt next to the exe (no light, no sync).
+// Flashlight
+// . Included by t2r-ext.c after helpcall.c. Log prefix "flashlight:". Opt out: t2r-no-flashlight.txt next to the exe (no light, no sync).
 //
 // WHAT THE ENGINE DOES (static RE of tlou-ii.exe 1.6.10721 + winmm, notes in re/flashlight-1102.md):
 //   * The player's SP flashlight is a pooled Flashlight object (32 entries of 0xd0 bytes; kind 4/5 player, 2 npc, 3 buddy), driven by the player controller's event

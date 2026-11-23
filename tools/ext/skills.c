@@ -308,7 +308,7 @@ static void sk4_fit_budget(loadout_t *l, int idx) {
     }
     char b[64] = "";
     for (int i = 0; i < n && i < 6; i++) snprintf(b + strlen(b), sizeof b - strlen(b), " %s", what[i] < 0 ? "purchasable" : what[i] == 3 ? "4th-skill" : "skill");
-    xlog("loadout: custom %d was %d LP with the 3 LP bow (max 13): dropped%s -> %d LP", idx + 1, start, b, cost);
+    xlog("loadout: custom %d was %d LP with the 3 LP bow / machete (max 13): dropped%s -> %d LP", idx + 1, start, b, cost);
     sk4_save();
 }
 static void sk4_on_write(const void *lo) { g_sk4_cur = sk_norm(*sk4_slot(lo)); }

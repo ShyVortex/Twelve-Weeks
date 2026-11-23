@@ -38,7 +38,8 @@ LOGO_CX = {"W": 1320, "S": 2520}                  # the two tabs' centres (the c
 # INTRO_BEATS = ["Gather. Grow. Survive"].
 INTRO_BEATS = ["Gather.", "Grow.", "Survive"]
 INTRO_BEAT_MAX = 4                                  # beat text slots per line slot
-# The gaps between the sentences doubled (700 -> 1400 ms), the last word and the logo on one beat (INTRO_LOGO_BEAT_MS 0; that word takes the logo's fade)
+# "the timing inbetween the sentences showing needs to be longer, the actual reveal is fine. same for Gather and Grow and Survive TWELVE WEEKS ... Survive
+# TWELVE WEEKS should show together": the gaps doubled (700 -> 1400 ms), the last word and the logo on one beat (INTRO_LOGO_BEAT_MS 0; that word takes the logo's fade)
 INTRO_BEAT_GAP_MS, INTRO_LOGO_BEAT_MS, INTRO_BEAT_FADE_MS = 1400, 0, 600
 INTRO_LOGO_FADE_MS = 2000                           # the logo creeps in with the end tag's swell (full at ~its peak), much slower than the words
 INTRO_LINES = [

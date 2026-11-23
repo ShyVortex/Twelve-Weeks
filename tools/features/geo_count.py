@@ -167,28 +167,36 @@ def menu_levels():
 
 def worst(stage, maps=None):
     """the worst set of geometries resident at once: the MP level + the largest of
-       - a map's levels (a match),
+       - a map's levels + the largest menu scene (a match load: the menu world is still logged in while the map's levels log in;
+ Supermarket at 4506 map-only crashed at exe+29119f0 in ~1 of 10 loads, 4506 + its menu = 4720-4769, while the
+         largest map that never crashed sits at 4539 with the menu - the limit 4600 sits between them),
        - TWICE a menu scene (the menu world reloads when multiplayer is entered: the old scene is still logged in while the
          new one logs in - build #19 died there).
     -> dict(mp=, worst=, what=, sets={name: geometries added to the MP level})"""
     names = set(l[11:].strip() for l in _reg(stage) if l.startswith("level-name "))
     mp, _g = resident(stage, [MP_LEVEL])
     sets = {}
+    menus = {k: [x for x in lv if x in names] for k, lv in menu_levels().items()}
+    menus = {k: lv for k, lv in menus.items() if lv}
     ml = map_levels()
     for k in (maps if maps is not None else ml):
         lv = [x for x in ml.get(k, []) if x in names]
         if lv:
-            sets["map " + k] = resident(stage, [MP_LEVEL] + lv)[0] - mp
-    for k, lv in menu_levels().items():
-        lv = [x for x in lv if x in names]
-        if lv:
-            sets["menu " + k + " x2"] = 2 * (resident(stage, [MP_LEVEL] + lv)[0] - mp)
+            add, menu = max(((resident(stage, [MP_LEVEL] + lv + mlv)[0] - mp, mk) for mk, mlv in menus.items()), default=(resident(stage, [MP_LEVEL] + lv)[0] - mp, "-"))
+            sets["map " + k + " + menu " + menu] = add
+    for k, lv in menus.items():
+        sets["menu " + k + " x2"] = 2 * (resident(stage, [MP_LEVEL] + lv)[0] - mp)
     what = max(sets, key=sets.get) if sets else "-"
     return dict(mp=mp, worst=mp + (sets[what] if sets else 0), what=what, sets=sets)
 
 
 def gate(stage, maps=None):
-    """Stops the build when the worst resident set is over GEO_LIMIT; prints the counts (beside check_level_caps' lines)."""
+    """Stops the build when the worst resident set is over GEO_LIMIT; prints the counts (beside check_level_caps' lines).
+    T2R_GEO_OFFPOOL = map keys the server does not offer (left out of its T2R_MAP_POOL): built, but never loaded, so not gated."""
+    off = {k.strip() for k in os.environ.get("T2R_GEO_OFFPOOL", "").split(",") if k.strip()}
+    if off:
+        maps = [k for k in (maps if maps is not None else map_levels()) if k not in off]
+        print("level caps: geometries: not gated (out of the server's map pool): %s" % ", ".join(sorted(off)))
     w = worst(stage, maps)
     top = sorted(w["sets"].items(), key=lambda x: -x[1])[:4]
     print("level caps: geometries: %s %d; worst resident set %d of %d (%s; limit %d, %d free under the engine's table) - adds: %s" % (

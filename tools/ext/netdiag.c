@@ -40,7 +40,34 @@ static const char *ncc_ip(uint32_t ip, uint16_t port, char *b, size_t n) {
     if (!ip) snprintf(b, n, "none"); else snprintf(b, n, "%u.%u.%u.%u:%u", q[0], q[1], q[2], q[3], port);
     return b;
 }
+// (Jorgee,; likely too): winmm's first TWELVE WEEKS check is a TCP connect to 1.1.1.1:443 (Cloudflare; winmm source
+// net-connect.cpp CHK_INTERNET, 5 s timeout, then 3 s on the message). A network that blocks 1.1.1.1 fails it ("NO INTERNET CONNECTION": back to the
+// title after ~8 s, "connect check: FAILED - winmm sent nothing", one connect to 1.1.1.1:443) before winmm ever talks to our server. That check is
+// pointed at our own server instead (the address patched into winmm, as hm_server reads it): reaching it is what the check is there to prove.
+// t2r-no-inet-redirect.txt next to the exe = the stock 1.1.1.1 check.
+static int ncc_inet_redirect(const void *sa, int len, uint8_t out[16]) {
+    static int off = -1;
+    if (off < 0) { FILE *f = exe_side_open("t2r-no-inet-redirect.txt", "r"); off = f != NULL; if (f) fclose(f); }
+    const uint8_t *a = (const uint8_t *)sa;
+    if (off || !a || len < 16 || IsBadReadPtr(a, 16) || *(const uint16_t *)a != 2) return 0;
+    if (a[2] != 0x01 || a[3] != 0xBB || a[4] != 1 || a[5] != 1 || a[6] != 1 || a[7] != 1) return 0;     // 1.1.1.1:443 only
+    const uint8_t *ipp = (const uint8_t *)VMA(0x180059321), *pp = (const uint8_t *)VMA(0x180059340);
+    if (memcmp(ipp, "\xc7\x44\x24\x04", 4) || pp[0] != 0x66 || pp[1] != 0xb8) return 0;
+    uint32_t ip = *(const uint32_t *)(ipp + 4) ^ 0x5A3C9E17u;
+    uint16_t port = *(const uint16_t *)(pp + 2);
+    if (!ip || !port) return 0;
+    memcpy(out, a, 16);
+    memcpy(out + 4, &ip, 4);
+    out[2] = (uint8_t)(port >> 8); out[3] = (uint8_t)port;      // (network order)
+    return 1;
+}
 static int WINAPI ncc_connect_w(uintptr_t s, const void *sa, int len) {
+    uint8_t alt[16];
+    if (ncc_inet_redirect(sa, len, alt)) {
+        static int nl; char b[32];
+        if (nl++ < 10) xlog("netdiag: winmm's internet check (1.1.1.1:443) goes to our server %s instead", ncc_ip(*(const uint32_t *)(alt + 4), (uint16_t)(alt[2] << 8 | alt[3]), b, sizeof b));
+        sa = alt;
+    }
     int r = g_ncc_connect(s, sa, len);
     int e = r ? (g_ncc_wsaerr ? g_ncc_wsaerr() : -1) : 0;
     ncc_addr(sa, len, &g_ncc_conn_ip, &g_ncc_conn_port);

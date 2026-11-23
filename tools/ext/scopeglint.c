@@ -1,4 +1,5 @@
-// SCOPE GLINT: a less prominent version of the sniper glare of SP's Tommy sniper section, for anyone aiming through a scope. Included from t2r-ext.c (after flame2013.c). OFFLINE-WRITTEN: nothing here has run in the game; what is read from the
+// SCOPE GLINT
+// Included from t2r-ext.c (after flame2013.c). OFFLINE-WRITTEN: nothing here has run in the game; what is read from the
 // game's files is marked READ, everything else INFERRED. Every log line starts "glint: ".
 //
 // The SP effect (READ, dc1/ss-savelev/sle-tommy-sniper-script-funcs.bin + ss-sle-tommy-sniper-approach-tommy-controller.bin, disassembled

@@ -82,7 +82,8 @@ static void shivdrum_cut(int fade_ms, const char *why) {
     if (live) xlog("shiv music: drums faded %d ms (%s) %llu ms in", fade_ms, why, (unsigned long long)(GetTickCount64() - g_shd.t0));
     g_shd.a = g_shd.b = -1;
 }
-// xcam_start role 2 with a shiv move name (before shivsting_start): the combat music is cut at the move start (the game's own
+// xcam_start role 2 with a shiv move name
+// the combat music is cut at the move start (the game's own
 // rogue-player-death cut) and held cut through the death screen, and an SP struggle drum cue (tools/rip_shiv_drums.py) plays under the shock sting until the death
 // sting ducks it. The attacker is untouched. t2r-no-shiv-music.txt next to the exe: off (the old behaviour: combat music carries on to the death cut).
 static void shivdrum_start(const char *name) {

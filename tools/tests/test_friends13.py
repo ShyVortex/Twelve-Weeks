@@ -51,7 +51,7 @@ need = set()
 for lit in re.findall(r'"(anim-group\.[A-Za-z0-9_.]+)"', src):
     if lit.startswith(("anim-group.friendsBtn", "anim-group.frToast", "anim-group.lobbyPanel", "anim-group.menuList")):      # (the button / toast / the main menu's own widgets)
         continue
-    if lit in ("anim-group.frFo", "anim-group.lf.lSec", "anim-group.rt.rSec", "anim-group.rt.rSc"):             # bases of the nrui.c helpers: nr_frame_at / nr_section / nr_scroll_v
+    if lit in ("anim-group.frFo", "anim-group.lf.lSec", "anim-group.rt.rSec", "anim-group.rt.rSc", "anim-group.msg.msSec"):             # bases of the nrui.c helpers: nr_frame_at / nr_section / nr_scroll_v
         suf = {"anim-group.frFo": "TBLR", "anim-group.rt.rSc": "TH"}.get(lit)
         for sfx in ([c for c in suf] if suf else ["Tx", "Rt", "Rl"]):
             need.add(lit + sfx)
@@ -67,6 +67,16 @@ for col, g, ch, rows in (("lf", "lf", "l", fw.NL), ("rt", "rt", "r", fw.NR)):
         for k in ("Cg", "Ca", "Cw"):                  # the three chips (redesign): friends13.c fr_chip -> <base>Bg / <base>Tx
             need.add(f"{row}.{ch}{k}{i}Bg")
             need.add(f"{row}.{ch}{k}{i}Tx")
+# MESSAGES (chat): the tiles, thread lines and chips friends13.c fm_fill writes with formatted paths
+for i in range(fw.MS_NV):
+    need.add(f"anim-group.msg.mR{i}")
+    for leaf in ("Nm", "Lt", "Ub", "Ut", "Ed", "Fill"):
+        need.add(f"anim-group.msg.mR{i}.mR{leaf}{i}")
+for k in range(fw.MS_NTL):
+    need.add(f"anim-group.msg.mTh.mThN{k}"); need.add(f"anim-group.msg.mTh.mThT{k}")
+for k in range(len(fw.MS_QUICK)):
+    for sfx in ("Bg", "Tx", "FBg", "FTx"):
+        need.add(f"anim-group.msg.mQ{k}{sfx}")
 miss = sorted(p for p in need if p not in P)
 check(not miss, "every path the driver writes exists on the page (%d checked)%s" % (len(need), (": missing " + ", ".join(miss[:6])) if miss else ""))
 # geometry: rows inside the canvas, no overlap inside a column
@@ -114,5 +124,17 @@ check(B["anim-group.frToast"]["visible"] == 0, "the toast starts hidden")
 fld = P["anim-group.rt.inp"]
 fx, fy, fw_, fh = rect(fld)
 check((fx, fy, fw_, fh) == (fw.RX, fw.RY0, fw.RW, fw.RH), "the text field covers the first right row")
+# MESSAGES geometry: the driver's FM_* = the widget's MS_*, the block fits the left column and stays above the status line (y 1730) in both places
+for cn, pv in (("FM_X", fw.MS_X), ("FM_W", fw.MS_W), ("FM_Y_LOW", fw.MS_Y), ("FM_TY", fw.MS_TY), ("FM_TDY", fw.MS_TDY), ("FM_TW", fw.MS_TW), ("FM_TH", fw.MS_TH),
+               ("FM_PX", fw.MS_PX), ("FM_PW", fw.MS_PW), ("FM_PH", fw.MS_PH), ("FM_QY", fw.MS_QY), ("FM_QPT", fw.MS_QPT), ("FM_FY", fw.MS_FY), ("FM_FH", fw.MS_FH),
+               ("FM_NV", fw.MS_NV), ("FM_NTL", fw.MS_NTL), ("FM_LDY", fw.MS_LDY)):
+    m = re.search(r"#define %s ([0-9.]+)f?(?![0-9.])" % cn, src)
+    check(m is not None and float(m.group(1)) == float(pv), "driver %s = widget %s" % (cn, pv))
+mx, my, mw, mh = rect(P["anim-group.msg"])
+check(mx == fw.LX and mx + mw <= fw.LX + fw.LW, "MESSAGES block inside the left column")
+for top in (fw.MS_Y, fw.SEC_Y):
+    check(top + fw.MS_FY + fw.MS_FH < fw.MSG_Y, "MESSAGES block (section at y %d) ends above the status line (y %d)" % (top, fw.MSG_Y))
+check(fw.MS_TY + fw.MS_TDY * (fw.MS_NV - 1) + fw.MS_TH <= fw.MS_QLY - 20 or fw.MS_TW < fw.MS_PX, "tiles end left of the thread / chips")
+check(P["anim-group.msg"]["visible"] == 0, "MESSAGES starts hidden (fm_fill shows it)")
 print("FAILED: %d" % len(FAILS) if FAILS else "all ok")
 sys.exit(1 if FAILS else 0)

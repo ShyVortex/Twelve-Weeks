@@ -58,6 +58,7 @@ static inline uint32_t pt_limit(uint8_t type) {
         case 0x53: return 6;                                                                                                       // crafter gift box
         case 0x43: case 0x47: case 0x48: case 0x4C: case 0x4E: case 0x50: case 0x51: case 0x58: case 0x60: case 0x64: case 0x66: case 0x67:
         case 0x97: case 0x98: case 0x9C: case 0x68: case 0x6A: case 0x6B: case 0x6D: case 0x6E: case 0x6F: case 0x72: case 0x74: case 0x7C: case 0x93: case 0x95: return 40;
+        case 0xC7: return 20;    // chat lines (3 copies of each; chat.c)
         case 0xAF: return 30;    // shot lines (<= 15/s honest; MSG_SHOTRAY, immersion.c)
         case 0x62: return 80;                                                                                                      // mines (resync sends a burst)
         case 0x6C: return 400;                                                                                                     // reliable hit copies + acks

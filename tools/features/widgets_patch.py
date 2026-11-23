@@ -452,7 +452,7 @@ def patch_widgets(pak_path):
         import achieve_widgets
         print(f"gui2-widgets: in-game ACHIEVEMENTS page to1/clanach ({achieve_widgets.add_ach_page(tmp)})")
         import friends13_widgets
-        print(f"gui2-widgets: in-game FRIENDS page to1/friends13 ({friends13_widgets.add_friends13_page(tmp)}), FRIENDS button under the lobby box on {friends13_widgets.add_friends_button(tmp)} pages")
+        print(f"gui2-widgets: in-game FRIENDS page to1/friends13 ({friends13_widgets.add_friends13_page(tmp)}), FRIENDS strip above the lobby box on {friends13_widgets.add_friends_button(tmp)} pages")
         print(f"gui2-widgets: friend / party toast (frToast) on {friends13_widgets.add_friends_toast(tmp)} pages")
         print(f"gui2-widgets: achievement unlock card (the SP new-item-root card, achNt) on {achieve_widgets.add_ach_card(tmp)} pages, "
               f"+ in hud-root for the live unlocks ({achieve_widgets.add_ach_card_hud(tmp)} widgets)")
@@ -530,6 +530,10 @@ def patch_widgets(pak_path):
         if not (r2 and os.environ.get("T2R_PAUSE_RESTYLE", "1") == "1"):   # the in-match pages (Esc menu, scoreboard) in the No Return frame; the old R2 restyle (opt-in, off) replaces it
             import pause_restyle_widgets
             print(f"gui2-widgets: pause menu + scoreboard in the No Return frame (breadcrumb, US / THE ENEMY sections with totals, tile rows, YOU row, boxed prompts): {pause_restyle_widgets.add_pause_nr(tmp)} widgets added")
+        if os.environ.get("T2R_CHAT", "1") != "0":                      # the in-game chat (t2r-ext chat.c, re/chat-proposal-1123); after the pause frame (CLAN NEWS's place)
+            import chat_widgets
+            print(f"gui2-widgets: in-game chat: HUD box chatHud in currency-hud ({chat_widgets.add_chat_hud(tmp)} widgets), ESC menu CHAT block + P FRIENDS badge ({chat_widgets.add_pause_chat(tmp)} widgets)")
+            print(f"gui2-widgets: MP menu layout: CHAT panel mnChat under the lobby box + online counter up on main-menu / find-match-menu ({chat_widgets.add_menu_chat(tmp)} widgets)")
         import rank_badge_widgets
         print(f"gui2-widgets: rank badge (symbol + weeks) before the names: {rank_badge_widgets.add_lobby_rows(tmp)} lobby row widgets, {rank_badge_widgets.add_scoreboards(tmp)} scoreboard rows (pause menu + end page)")
         print(f"gui2-widgets: lead dev name rims (8 pink copies under each lobby / scoreboard name, t2r-ext namerim.c): {rank_badge_widgets.add_name_rims(tmp)} widgets")

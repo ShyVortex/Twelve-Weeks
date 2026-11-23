@@ -44,7 +44,7 @@ static void exmus_cut(int fade_ms) {
     }
     if (fade_ms <= 0) g_exmus.a = g_exmus.b = -1;
 }
-// Combat music under the execution (it must duck to ~10-15 % for the victim). TLOU2 has no music-only gain: the mixer
+// Combat music under the execution (it must duck to ~ % for the victim). TLOU2 has no music-only gain: the mixer
 // snapshots in the data are mix-rl-*-except-music (they duck everything BUT the music, the wrong way round), mix-bus-music is a bus
 // name with no override native, and session volume would duck our own PCM mixer too. So the combat music playlist is CUT (the
 // game's own rogue-player-death cut, the one the down stinger uses; skipped while that cut / a sting is still within its hold

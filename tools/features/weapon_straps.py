@@ -48,7 +48,7 @@ STRAP_SRC = {
 TWIN_SUFFIX = "-t2r-arm"          # = dc_data_patches.ARMOUR_LOOK_SUFFIX
 TWIN_PUSH = 0.015                 # m along the joint's +z: the Rattler plate carrier under the sling
 B_PUSH = 0.012                    # m along +z: slot two's sling on top of slot one's where they share the shoulder (inner joints)
-# per chain joint (= offset entry 0..14 = rifle_strap_straight_01..15): dx dy dz (m, joint frame), quat xyzw - python tools/models/backpack_slot2.py re/sp-sandbox-runs/2026-10-12-round2-abby-ellie.log (Vepr + DB at SP's places, section 4)
+# per chain joint (= offset entry 0..14 = rifle_strap_straight_01..15): dx dy dz (m, joint frame), quat xyzw - python tools/models/backpack_slot2.py re/sp-sandbox-runs/-round2-abby-ellie.log (Vepr + DB at SP's places, section 4)
 SLOT2_DELTA = [
     (+0.0254, +0.0327, +0.0357, +0.0322, +0.0414, +0.0380, +0.9979),   # 0  (on the gun: the barrel swivel)
     (+0.0226, +0.0280, +0.0326, +0.0270, +0.0370, +0.0349, +0.9983),

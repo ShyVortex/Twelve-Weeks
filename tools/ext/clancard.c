@@ -2,7 +2,7 @@
 // Included by t2r-ext.c before clanperk.c (one translation unit). Log prefix 'clancard:'. The pure core (status tail parse, moment gate, card text) is clancard.h, tested by
 // tests/clancard_test.c. Python side: tools/features/clancard_widgets.py (widgets), tools/clan_status.py (status wire tail 'sc=..').
 //
-// 1. PERK POP (clanperk.c cp_announce -> cc_show), look from the mockup clan-perk-pop-v5-zoom.png: NO circle / frame - the member's clan-journal portrait (own soft
+// 1. PERK POP (clanperk.c cp_announce -> cc_show), look from the mockup: NO circle / frame - the member's clan-journal portrait (own soft
 //    alpha edges) sits straight on a grainy smoky dark band (clan-pop-band.png), "<NAME> PROVIDED YOU WITH A <ITEM>!" (item word in the perk's colour) + the dim "ROLE - FROM YOUR
 //    CLAN" subline to its right and a faint grey item icon at the far end. Left side, mid-height (3840 x 2160 canvas, scales with the resolution). Slides in from the left, holds,
 //    fades. ONLY at a spawn (cc_allowed): any other moment is dropped silently. Several perks of one spawn show one after another. Never over the buy hint (g_buyhint_active /
@@ -13,13 +13,13 @@
 #include "clancard.h"
 #define CC_QN 4
 #define CC_POP_X 60.0f                   // resting x of the card (3840-unit canvas, 2400 wide)
-// The card used to sit over the 4v4 team icons. The HUD's left column (2160-unit canvas, ref shot p29g at 2560x1440): team icons + "20:20" end at y 0.473 (1022), the parts counter
+// the card sat over the 4v4 team icons. The HUD's left column (2160-unit canvas, ref shot p29g at 2560x1440): team icons + "20:20" end at y 0.473 (1022), the parts counter
 // starts at y 0.867 (1872); the card (520 x 0.55 = 286 tall) is centred in that gap: centre (1022 + 1872) / 2 = 1447, top 1447 - 143 = 1304 (0.604 .. 0.736 of the screen height).
 // It shares this lane with the buy hint (centre 1370, 170 tall): never at the same time (g_buyhint_active / g_cc_busy, the hint queues behind the card).
 #define CC_POP_Y 1304.0f                 // = clancard_widgets row y (resting y of the scaled row's top)
 #define CC_SLIDE_MS 550
 #define CC_FADE_IN_MS 250
-#define CC_HOLD_MS 3500                  // (was 5000 - it took up too much of the screen)
+#define CC_HOLD_MS 3500
 #define CC_SCALE 0.55f                   // the whole card scaled about its top-left (2400 x 520 -> 1320 x 286 canvas units); t2r-clan-card-scale.txt = own factor
 #define CC_FADE_OUT_MS 450
 static void cp_card_started(int perk, int female);           // clanperk.c: stinger + the member's voice line (when the card starts to slide)
@@ -145,7 +145,7 @@ static void cc_start(const cc_card_t *c, uint64_t now) {
     }
     feed_alpha(g_cc.w[PW_ROW], 0.0f); w_visible(g_cc.w[PW_ROW], 0);
     w_pivot(g_cc.w[PW_ROW], CC_POP_X - 240.0f, CC_POP_Y);
-    {   // the row, parent of every leaf, is scaled down
+    {   // ("clan gift" - "takes up way too much of the screen"): the row, parent of every leaf, is scaled down
         static float sc; static uint64_t sat; uint64_t n2 = GetTickCount64();
         if (!sc || n2 - sat > 2000) { sat = n2; sc = CC_SCALE; FILE *f = exe_side_open("t2r-clan-card-scale.txt", "r"); if (f) { float x = 0; if (fscanf(f, "%f", &x) == 1 && x >= 0.2f && x <= 1.5f) sc = x; fclose(f); } }
         w_scale(g_cc.w[PW_ROW], sc, sc);
@@ -171,24 +171,39 @@ static const char *cc_word(int kind, int female, int pl) {
 // scoreboard and the clock are sbteam.c's / pause_mission_tick's. A click on the BACK box closes the menu like Esc (cc_frame).
 #define CC_PAUSE_W 1060.0f                // PNR_MIS / PNR_NEWS width
 #define CC_PAUSE_SEC_Y 30.0f              // PNR_SECROW_Y
+static uint64_t g_cc_lay_g;             // the pause page the layout below was done for; 0 = laid out again on the next open
 static void cc_pause_layout(uint64_t g) {
-    static uint64_t lg; static unsigned lgen = ~0u; static int lpad = -1;
+    static unsigned lgen = ~0u; static int lpad = -1;
+    #define lg g_cc_lay_g
     if (g != lg || lgen != g_ui_gen) {
         lg = g; lgen = g_ui_gen; lpad = -1;
         nr_section("anim-group.pauseMission.pmSec", 0.0f, CC_PAUSE_W, CC_PAUSE_SEC_Y, "MISSION", "", 36.0f);
-        nr_section("anim-group.pauseStatus.psSec", 0.0f, CC_PAUSE_W, CC_PAUSE_SEC_Y, "CLAN NEWS", "", 36.0f);
+        if (!ch_pause_owns()) nr_section("anim-group.pauseStatus.psSec", 0.0f, CC_PAUSE_W, CC_PAUSE_SEC_Y, "CLAN NEWS", "", 36.0f);
     }
     if (lpad != g_pad_mode) {
         lpad = g_pad_mode;
-        nr_prompt_t it[2] = {{"menu:select", "menu:select", "SELECT", 1}, {"menu:back", "menu:back", "BACK", 1}};
-        nr_prompts(it, 2);
+        nr_prompt_t it[3];
+        // (the write cache is keyed by the widget handle = its path's hash, the same on every ESC open, so a reopen within
+        // 5 s skipped the texts / icons of the fresh page - boxes laid out, labels empty, BACK showing the template's SPACE icon. This runs only on the open and
+        // the two re-layouts after it, so the writes are forced: no per-frame write flicker.)
+        g_ui_text_raw = 1;
+        nr_prompts(it, ch_pause_prompts(it));       // chat.c: P FRIENDS (the in-game FRIENDS page over the match) / SELECT / BACK
+        g_ui_text_raw = 0;
     }
+    #undef lg
 }
 static int g_cc_pause_up; static void cc_pause_tick(void) {
     static uint64_t grp, at; static uint32_t lh;
     uint64_t g = ui_w("anim-group.pauseStatus"); g_cc_pause_up = g != 0;
-    if (!g) { grp = 0; return; }
+    // (a widget handle is its path's hash: the same on every open of the ESC menu, so "g changed" never fired on a reopen and the prompts stayed as the page's
+    // template - hidden - until a FRIENDS page round trip bumped g_ui_gen;)
+    if (!g) { grp = 0; g_cc_lay_g = 0; return; }
+    {   static uint64_t open_f;                // laid out again 12 and 40 frames after the open too (the page may still be building its widgets on the first frame)
+        if (!g_cc_lay_g) open_f = g_frame;
+        else if (g_frame - open_f == 12 || g_frame - open_f == 40) g_cc_lay_g = 0;
+    }
     cc_pause_layout(g);
+    if (ch_pause_owns()) { if (grp != g) { grp = g; w_visible(g, 0); xlog("clancard: pause menu - CLAN NEWS gives its place to the chat (chat.c)"); } return; }   // (chat: the CHAT block sits there)
     cc_status_t s;
     EnterCriticalSection(&g_clan_cs); s = g_cc_st; LeaveCriticalSection(&g_clan_cs);
     if (cc_status_off()) s.n = 0;
@@ -233,12 +248,14 @@ static void cc_animate(uint64_t now) {
 static void cc_frame(void) {                     // main tick (PF in the tick list), every frame
     uint64_t now = GetTickCount64();
     if (match_substate() != 6) { g_cc.st = 0; g_ccqn = 0; g_cc_busy = 0; g_cc.page = 0; return; }
-    // perf (cc_frame() 0.1-0.4 ms avg, spikes 4-7 ms on a Ryzen 5 2600): the pauseStatus lookup is an engine path walk that FAILS (the dearest kind) on every page that is not the ESC menu; it ran in every match every 20 frames. The group only exists on the pause page: no menu over the HUD and the group not up = no lookup.
+    // perf (perf30: cc_frame 0.1-0.4 ms avg, spikes 4-7 ms on a Ryzen 5 2600): the pauseStatus lookup is an engine path walk that FAILS (the dearest kind) on every page that is not the ESC menu; it ran in every match every 20 frames. The group only exists on the pause page: no menu over the HUD and the group not up = no lookup.
     if (!(g_frame % 20) && (g_cc_pause_up || hud_menu_up())) cc_pause_tick();
     {   // the boxed BACK prompt of the pause page: a click on it = back (like Esc)
         static uint64_t P_PAUSE;
         if (!P_PAUSE) P_PAUSE = page_id("pause-menu");
-        if (g_cc_pause_up && g_click_edge && top_page() == P_PAUSE && nr_prompt_hover() == 1) { ui_sfx("sfx-menu-back"); pop_page(); return; }
+        int ph = g_cc_pause_up && g_click_edge && top_page() == P_PAUSE ? nr_prompt_hover() : -1;
+        if (ph >= 0 && ph == g_nr_pb_n - 1) { ui_sfx("sfx-menu-back"); pop_page(); return; }
+        if (ph == 0 && g_nr_pb_n >= 3 && fr13_enabled()) { ui_sfx("sfx-select"); fr13_open_from_pause(); return; }     // the P FRIENDS box (chat.c ch_pause_prompts)
     }
     uint64_t page = *(uint64_t *)VMA(0x180189BA0);
     if (g_cc.st && page != g_cc.page) { g_cc.st = 0; }                              // a new match built a new page: the widgets are gone

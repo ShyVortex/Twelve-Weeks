@@ -153,6 +153,9 @@ static int gl_fallback(uint32_t blocked) {
     }
     return -1;
 }
+#define GL_SAY_HOLD_MS 20000u
+static struct { char m[160]; float secs; uint64_t until; } g_gl_say;      // a refusal said on the menu, waiting for the notice panel (gl_say)
+static int dn_page_ok(uint64_t tp);                                          // denynote.c
 static void gl_say(uint32_t blocked, int to) {
     char m[160], b[40];
     const char *nm = gl_name_of(blocked);
@@ -166,7 +169,28 @@ static void gl_say(uint32_t blocked, int to) {
                  mx == 1 ? "one" : "a few", t, mx == 1 ? "it" : "them", lo_name(to, b, sizeof b));
     }
     else snprintf(m, sizeof m, "Too many of %s on team.", nm ? nm : "?");
-    if (!dn_show(m, to >= 0 ? 6.0f : 4.0f)) msg_hook(m, to >= 0 ? 6.0f : 4.0f, 0, 0);
+    const float secs = to >= 0 ? 6.0f : 4.0f;
+    if (dn_show(m, secs)) return;
+    if (match_substate() == 6) { msg_hook(m, secs, 0, 0); return; }
+    // (+ Coco, same minute): the pre-match refusal comes while the FIND MATCH page is up - no notice widgets there, and the old
+    // fallback (msg_hook -> winmm's HUD message, one shared text id) drew the text table's "Placeholder text. " x100 over the whole menu and
+    // the CHOOSE LOADOUT page after it. On the menu the notice waits for a page with the notice panel (CHOOSE LOADOUT comes ~2 s later), gl_tick.
+    snprintf(g_gl_say.m, sizeof g_gl_say.m, "%s", m);
+    g_gl_say.secs = secs;
+    g_gl_say.until = GetTickCount64() + GL_SAY_HOLD_MS;
+    xlog("gunlimit: notice held for the loadout page (page 0x%llx has no notice panel, substate %d)", (unsigned long long)top_page(), (int)match_substate());
+}
+// gl_tick: a held menu notice shows once a page with the notice panel is up; dropped after GL_SAY_HOLD_MS or when the match HUD takes over
+static void gl_say_held_tick(uint64_t now) {
+    if (!g_gl_say.until) return;
+    if (now >= g_gl_say.until || match_substate() == 6) {
+        xlog("gunlimit: held notice dropped (%s) - \"%.100s\"", now >= g_gl_say.until ? "no notice panel came" : "the match started", g_gl_say.m);
+        g_gl_say.until = 0;
+        return;
+    }
+    uint64_t tp = top_page();
+    if (!tp || !dn_page_ok(tp)) return;
+    if (dn_show(g_gl_say.m, g_gl_say.secs)) { xlog("gunlimit: held notice shown on the loadout page"); g_gl_say.until = 0; }
 }
 // the server said no (or the cache says taken at the spawn): put the player on the fallback class. Before the first spawn the
 // lobby object is written now; once in the game the pick waits for the next life like any mid-match pick.
@@ -318,6 +342,7 @@ static void gl_apply_reply(void) {
 static void gl_tick(void) {
     if (gl_off()) return;
     uint64_t now = GetTickCount64();
+    gl_say_held_tick(now);
     if (InterlockedCompareExchange(&g_gl_have, 0, 0)) {
         LONG res = InterlockedExchange(&g_gl_have, 0);
         if (res == 1) gl_apply_reply();            // (a failed request: the cache just ages out, no restriction without the server)

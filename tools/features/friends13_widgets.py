@@ -43,7 +43,9 @@ MSG_Y, KEY_Y = 1730, 1830
 NAME_CY, ST_CY, CHIP_Y = 46, 100, 26               # row-local: name line, status / action line, chip top
 NAME_PT, SM_PT = nr.pt(26), nr.pt(16)               # 39 / 24 (the player stats rows: name pt(26), small caps pt(16))
 RK_PT, RK_H = 40, 68                                # rank badge metrics (= clan13x xpRk): reserved width 104
-BTN_X, BTN_Y, BTN_W, BTN_H = 2500, 1560, 1182, 120     # the button under the lobby box (lobby box 2500..3682 x 410..1530)
+# MP menu layout: the strip sits ABOVE the lobby box (24 apart); chat_widgets.add_menu_chat puts the
+# CHAT panel under the box and moves the online counter up to y 104. friends13.c fr_btn_hover mirrors BTN_Y.
+BTN_X, BTN_Y, BTN_W, BTN_H = 2500, 266, 1182, 120      # the strip above the lobby box (lobby box 2500..3682 x 410..1530)
 CHIPS = (("Cg", "grey"), ("Ca", "acc"), ("Cw", "white"))     # per row: grey (LEADER / NOT READY / IN YOUR PARTY), accent (READY), white (INVITE / REQUEST); friends13.c places them right to left
 
 
@@ -85,6 +87,73 @@ def input_field(b, parent):
     return g
 
 
+# MESSAGES (chat, "a P prompt button that opens up the friends UI from the menu and that should have a chat box in the left of the screen where the
+# empty space is where you can select latest chats"): group "msg" (hidden; friends13.c fm_fill shows it and moves it: section line at y 760 without a party,
+# at the PARTY section's 470 with one while MESSAGES is the picked list). Group-local coordinates (x 0 = the left margin 148), = friends13.c FM_*:
+#   msSec              section row MESSAGES ... FRIENDS ONLY
+#   mR0..4             conversation tiles (0, 54 + 146 i, 560 x 130): mRBg / mRFill (hover lift) / mREd (accent edge = the open chat) / mRNm name / mRLt last line /
+#                      mRUb + mRUt the unread badge
+#   mMore              "+ n MORE" under the tiles
+#   mTh                the thread panel (600, 54, 1076 x 646): mThBg, mThE (empty / loading line), mThN0..4 (who + when) / mThT0..4 (the text, two lines)
+#   mQL, mQ0..3(F)     QUICK REPLY label + four chips (dark; the "F" twin in white = focused / hovered), laid out by fm_fill (nrui.c nr_chip)
+#   mF                 the typing line (600, 826, 1076 x 96): mFBg, mFUl (accent underline while typing), mFTx, mFCnt (n / 200), mFKey (ENTER SENDS)
+MS_X, MS_Y, MS_W = 148, 760, 1676
+MS_TY, MS_TDY, MS_TW, MS_TH, MS_NV = 54, 146, 560, 130, 5
+MS_PX, MS_PW, MS_PH = 600, 1076, 646
+MS_NTL, MS_LDY = 5, 124
+MS_QLY, MS_QY, MS_QPT = 724, 752, 30
+MS_FY, MS_FH = 826, 96
+MS_BADGE = 0xFFFD6D51
+MS_QUICK = ("GG", "ONE MORE?", "INVITE ME", "REVIVE ME")      # = friends13.c fm_quick (REVIVE ME, was AFTER THIS MATCH)
+MS_QGAP = 16
+
+
+def messages(b, a):
+    g = b.group("msg", a, b.tl(MS_X, MS_Y, MS_W, MS_FY + MS_FH), visible=0)["guid"]
+    nr.section(b, g, "msSec", 0, MS_W, 0, "MESSAGES", "FRIENDS ONLY")
+    for i in range(MS_NV):
+        r = b.group(f"mR{i}", g, b.tl(0, MS_TY + MS_TDY * i, MS_TW, MS_TH), visible=0)["guid"]
+        b.rect(f"mRBg{i}", r, b.fill(), nr.TILE, nr.TILE_A)
+        b.rect(f"mRFill{i}", r, b.fill(), 0xFFFFFFFF, HILITE_A, visible=0)
+        b.rect(f"mREd{i}", r, b.tl(0, 0, 6, MS_TH), nr.ACC, 255, visible=0)
+        b.text(f"mRNm{i}", r, nr.lm(28, 40 - 28, MS_TW - 120, 56), "", 36, nr.WHITE, tracking=1)
+        b.text(f"mRLt{i}", r, nr.lm(28, 94 - 20, MS_TW - 56, 40), "", SM_PT, nr.GREY, tracking=1)
+        b.rect(f"mRUb{i}", r, b.tl(MS_TW - 64, 20, 44, 40), MS_BADGE, 255, visible=0)
+        b.text(f"mRUt{i}", r, b.tl(MS_TW - 64, 20, 44, 40), "", SM_PT, nr.INK, align=1, visible=0)
+    b.text("mMore", g, nr.lm(0, MS_TY + MS_TDY * MS_NV, MS_TW, 40, right=1), "", SM_PT, nr.GREY, align=2, tracking=3)
+    th = b.group("mTh", g, b.tl(MS_PX, MS_TY, MS_PW, MS_PH))["guid"]
+    b.rect("mThBg", th, b.fill(), nr.TILE, 150)
+    b.text("mThE", th, nr.lm(40, MS_PH / 2 - 30, MS_PW - 80, 60), "", nr.pt(22), nr.GREY, align=1, tracking=3)
+    for k in range(MS_NTL):
+        y = 24 + MS_LDY * k
+        for tw in ("", "B"):                                # "B" twins: friends13.c fm_tw (no blank frame when a message comes in or goes out)
+            hid = {"visible": 0} if tw else {}
+            b.text(f"mThN{k}{tw}", th, nr.lm(32, y, MS_PW - 64, 30), "", SM_PT, nr.GREY, tracking=2, **hid)
+            b.text(f"mThT{k}{tw}", th, b.tl(32, y + 30, MS_PW - 64, 84), "", nr.pt(19), nr.WHITE, multiline=1, valign=0, tracking=1, **hid)
+    b.text("mQL", g, nr.lm(MS_PX, MS_QLY - 20, MS_PW, 40), "", SM_PT, nr.GREY, tracking=3)
+    # the chips fill the panel's width, each text centred (= friends13.c fm_fill / fm_chip)
+    nat = [nr.est(q, MS_QPT) * 1.06 + 32 for q in MS_QUICK]
+    extra = (MS_PW - MS_QGAP * (len(MS_QUICK) - 1) - sum(nat)) / len(MS_QUICK)
+    x = MS_PX
+    for k, q in enumerate(MS_QUICK):
+        w = MS_PX + MS_PW - x if k == len(MS_QUICK) - 1 else nat[k] + extra
+        for tw, style in (("", "dark"), ("F", "white")):
+            nr.chip(b, g, f"mQ{k}{tw}", x, MS_QY, q, pts=MS_QPT, style=style, w=w)
+            bg, tx = b.items[-2:]
+            bg["visible"] = tx["visible"] = 0
+            tx.update({"alignH": 1, "pivotN.x": 0.5, "pivotAs.x": float(x + w / 2.0), "rectSizeDelta.width": float(w)})
+        x += w + MS_QGAP
+    f = b.group("mF", g, b.tl(MS_PX, MS_FY, MS_PW, MS_FH), visible=0)["guid"]
+    b.rect("mFBg", f, b.fill(), nr.BLACK, 120)
+    b.rect("mFUl", f, b.tl(0, MS_FH - 4, MS_PW, 4), nr.ACC, 255, visible=0)
+    # "<leaf>B": the twins friends13.c fm_tw writes (chat.c chtw: the new text shows while the old stays, no blank frame on a key -)
+    for tw in ("", "B"):
+        b.text("mFTx" + tw, f, nr.lm(28, 0, MS_PW - 340, MS_FH), "", nr.pt(26), nr.WHITE, tracking=1, **({"visible": 0} if tw else {}))
+        b.text("mFCnt" + tw, f, nr.lm(MS_PW - 320, 8, 296, 36, right=1), "", SM_PT, nr.GREY, align=2, tracking=2, **({"visible": 0} if tw else {}))
+    b.text("mFKey", f, nr.lm(MS_PW - 320, MS_FH - 46, 296, 36, right=1), "", SM_PT, nr.GREY, align=2, tracking=3)
+    return g
+
+
 def build_page(main):
     t, root0, anim0 = _templates(main)
     b = Builder(t)
@@ -112,6 +181,7 @@ def build_page(main):
     b.text("rMore", rg, nr.lm(RX, RY0 + RDY * NR + 24, RW, 40, right=1), "", SM_PT, nr.GREY, align=2, tracking=3)
     nr.scroll_v(b, rg, "rSc", SCX, RY0, RY0 + RDY * NR, 0.0, 1.0, visible=0)
     input_field(b, rg)
+    messages(b, a)                                                          # MESSAGES (chat), in the left column's empty space
     nr.focus_frame(b, a, "frFo")                                            # ONE focus outline for both lists (nrui.c nr_frame_at)
     # status + key hint lines (grey small caps above the prompts)
     b.text("msgTx", a, nr.lm(nr.L0, MSG_Y, nr.R1 - nr.L0, 60), "", nr.pt(22), nr.GREY, tracking=3)
@@ -164,13 +234,14 @@ def add_friends_button(wdir):
 # ---- the friend / party toast (notifications in the bottom right corner (lifted) for friend invites and party invites): ONE card on the MP menu and FIND MATCH,
 # bottom right, above the footer and below the FRIENDS strip, slid / faded in and out by friends13.c (w_pivot x + w_alpha), with a progress line and the key chips Y / N.
 TOAST_X, TOAST_Y, TOAST_W, TOAST_H = 2480, 1760, 1240, 180
+TOAST_HUD_Y = 1500        # the HUD copy (to1/currency-hud frHud > frToast): above the weapon ring (= friends13.c FT_HY)
 TOAST_TONES = (0xFF3FA9F5, 0xFFF0B429, 0xFF7CB494, 0xFFF2625A, 0xFFB4B4B4)     # friend request, party invite, done, refused, info
 CHIP_X, CHIP_Y0, CHIP_Y1, CHIP_W, CHIP_H = 868, 26, 98, 340, 62
 
 
-def add_toast(b, parent):
+def add_toast(b, parent, y=TOAST_Y):
     W, H = TOAST_W, TOAST_H
-    g = b.group("frToast", parent, b.tl(TOAST_X, TOAST_Y, W, H), visible=0, depth=4.6)["guid"]
+    g = b.group("frToast", parent, b.tl(TOAST_X, y, W, H), visible=0, depth=4.6)["guid"]
     b.image("tBlur", g, b.fill(), "general-textures/blur-background.png", 0xFFFFFFFF, 255)
     b.rect("tBg", g, b.fill(), 0xFF000000, 170)
     b.frame("tEdge", g, b.fill(), 0xFFFFFFFF, 50, 2.0)
@@ -212,6 +283,19 @@ def add_friends_toast(wdir):
         page["items"][at:at] = b.items
         json.dump(page, open(path, "w", encoding="utf-8"), indent=4)
         n += 1
+    # the same card in a match: the HUD page gets a copy,
+    # frHud (full page) > frToast, which friends13.c finds through hud_widget("frHud", "frToast", leaf) and drives like the menu one.
+    path = os.path.join(wdir, "to1", "currency-hud.widget.json")
+    if os.path.exists(path):
+        page = json.load(open(path, encoding="utf-8"))
+        if not any(i["name"] == "frHud" for i in page["items"]):
+            root = next(i for i in page["items"] if i["name"] == "root")
+            b = Builder(t)
+            top = b.group("frHud", root["guid"], b.tl(0, 0, 3840, 2160))["guid"]
+            add_toast(b, top, TOAST_HUD_Y)
+            page["items"].extend(b.items)
+            json.dump(page, open(path, "w", encoding="utf-8"), indent=4)
+            n += 1
     return n
 
 

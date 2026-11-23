@@ -40,7 +40,8 @@ sys.path.insert(0, os.path.join(ROOT, "tools"))
 import patch_winmm  # noqa: E402
 import t2rtmp  # noqa: E402  (T2R_TMP, named temp files, cleanup at exit: tools/t2rtmp.py)
 
-# What the host folder carries. The daemon imports these at start (a missing one = ImportError, the server does not start). tests/test_release_host.py imports the daemon from a folder holding exactly this list.
+# What the host folder carries. The daemon imports these at start (a missing one = ImportError, the server does not start; PT 75 review
+# gunlimit.py was missing). tests/test_release_host.py imports the daemon from a folder holding exactly this list.
 HOST_FILES = ("daemon.py", "clan_journal_entries.py", "gen_modes.py", "modeq.py", "rankbadge.py", "names.py", "clan.py", "hostmig.py", "hostcap.py", "map_packs.py", "interrogation.py", "interrogation_lockboxes.json", "gunlimit.py", "notices.py", "anticheat.py", "roles.py",
               "clan_story.py", "clan_story_data.py", "clan_story_lines_good.py", "clan_story_lines_dark.py",
               "clan_story_pl.py", "clan_story_pl_good.py", "clan_story_pl_dark.py", "clan_story_solo.py", "clan_story_good_rich.py",

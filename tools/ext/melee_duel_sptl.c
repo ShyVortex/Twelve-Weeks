@@ -1,5 +1,6 @@
 // melee_duel_sptl.c - DUEL SP TIMELINE (sptl): every half of a duel exchange plays at SP's time on BOTH screens, and every exchange is logged
-// against SP's measured timeline (re/melee-sp-timeline.md, from the SP sandbox recorder runs). Every half is played as clips, mocked up the way SP plays them and when; hits connect just like SP.
+// against SP's measured timeline (re/melee-sp-timeline.md, from the SP sandbox recorder runs of).
+// "hits need to connect just like SP".
 // Included after melee_duel_contact.c in t2r-ext.c. Log prefix "sptl:". Opt-OUT: t2r-duel-no-sptl.txt next to the exe (re-read every 2 s); it only acts
 // while the duel is on (t2r-melee-duel.txt). Duel rules / damage / dodge windows / verdicts / hand-off times are untouched: only WHEN a half or a cue shows.
 //

@@ -136,7 +136,7 @@ static int ih_ads(void) {
 // compensation ("same hook as the nametags" - but not the same draw path), 47812629 hid it with the engine's attachable trackers, 84cb2dcc went back to the widget = the lag again.
 // Now the point is projected for the camera of the frame the widget is DRAWN in, so on screen it sits where a nametag on that point would: the render camera (rcam, captured each
 // frame) is extrapolated one frame (position + lens axis), and the safe's point is moved by the rotation + translation from that predicted camera to the current one before the same
-// tag_project. Off when the frames are not consecutive, the camera cut / jumped (> 25 deg or > 2 m in a frame), or t2r-int-mk-no-lead.txt is next to the exe (A/B). Log: 'inthud: lead'.
+// tag_project. Off when the frames are not consecutive, the camera cut / jumped (> 25 deg or > 2 m in a frame), or t2r-int-mk-no-lead.txt is next to the exe. Log: 'inthud: lead'.
 static struct { uint64_t fr; int ok; float cp[3], cd[3], pp[3], pd[3]; } g_ihc;
 static int ih_lead_off(void) { static uint64_t at; static int off; return feel_flag("t2r-int-mk-no-lead.txt", &at, &off, 120); }
 static void ih_cam_frame(void) {
@@ -184,7 +184,7 @@ static void ih_lead_point(const float *p, float *q) {
 // places it in the frame it draws, as the buddy + and the mark triangle (which the nametags match), so it cannot trail the camera; off screen the engine pins it to the border
 // with the stock offscreen arrow (clampType default). The ring / distance / alpha go to the instance's children (gui2-build-widget-path on the instance, as world_prompt's
 // textAction). The w_pivot widget above stays the fallback (no lockbox object, an old pak without the files: the show answers 0) and t2r-int-mk-widget.txt next to the exe forces
-// it (A/B). Log: 'inthud: attachable'.
+// it. Log: 'inthud: attachable'.
 static const char *const IH_ATT_NAME[2] = {"hud-buddy-status/t2r-int-mk0", "hud-buddy-status/t2r-int-mk1"};
 static struct { uint64_t inst, rg[IH_RING], tr[6], dist, frame; signed char pv[IH_RING]; int trvis, lead, mdist, nnew, nfail, dimm; float leada, al; } g_iha[2];
 static int ih_att_off(void) { static uint64_t at; static int off; return feel_flag("t2r-int-mk-widget.txt", &at, &off, 120); }
@@ -331,8 +331,12 @@ static int feature_int_hud(void) {
             else if (*dp > tgt + rate * 0.6f) *dp = tgt + rate * 0.6f;      // (a report is 1/3 s old at most; never run far ahead of it)
         } else *dp += (tgt - *dp) * (dt * 8.0f > 1.0f ? 1.0f : dt * 8.0f);
         if (__builtin_fabsf(tgt - *dp) < 0.0015f && !act) *dp = tgt;
-        if (act) g_ih.ring_until[k] = tnow + 1.0f;                       // the ring shows while somebody unlocks, 1 s after the last (gaps between reports)
-        int ring_on = tnow < g_ih.ring_until[k];
+        if (act) g_ih.ring_until[k] = tnow + 1.0f;                       // (the old rule: the ring only while somebody unlocks, 1 s after the last report)
+        // the ring (grey track + the stages done +
+        // the stage in progress) is up whenever the marker is, on ATTACK and DEFEND alike - it hid between unlock attempts, so the stages already opened were
+        // invisible on the marker. t2r-int-ring-active-only.txt next to the exe = the old rule.
+        static uint64_t ring_at; static int ring_old;
+        int ring_on = feel_flag("t2r-int-ring-active-only.txt", &ring_at, &ring_old, 120) ? tnow < g_ih.ring_until[k] : 1;
         int dist_m = 0;
         { float cp[3], cd[3]; if (want && cam_pos_dir(cp, cd)) { float dx = p[0] - cp[0], dy = p[1] - cp[1], dz = p[2] - cp[2]; dist_m = (int)(__builtin_sqrtf(dx * dx + dy * dy + dz * dz) + 0.5f); } }
         float ftg = 1.0f;

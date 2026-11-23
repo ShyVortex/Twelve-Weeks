@@ -80,7 +80,8 @@ static void flame_npc_fire_hook(uint64_t *ret, int argc, uint64_t *argv, uint64_
             uint8_t *peer = ((fn_peer)t2r_peer)(sl);
             if (peer && peer[4] && *(uint64_t *)(peer + 0x60) == h) {
                 uint64_t held = 0; memcpy(&held, peer + 0x91, 8);
-                if (flame_is_gun(held)) {
+                // the Launcher (LAUNCHER_ID) is a flamethrower clone: same firearm class, same NPC fire path on a puppet - swallowed too
+                if (flame_is_gun(held) || (launcher_built() && held == fnv64(LAUNCHER_ID))) {
                     static int n;
                     if (g_fl_npc_fire_ok < 0) { FILE *f = exe_side_open("t2r-flame-npc-fire.txt", "r"); g_fl_npc_fire_ok = f != NULL; if (f) fclose(f); }
                     if (!g_fl_eng[sl] && n++ < 6)

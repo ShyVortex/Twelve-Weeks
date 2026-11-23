@@ -193,7 +193,13 @@ def _masks(sex, fac):
     # the story gas masks (varied gas masks: Dina, Ellie, Abby, Lev, Eugene's): mod-built parts (MOD_PARTS)
     for key, label in GASMASKS:
         gas.append(gm(label, gasmask_actor(key, sex), "story gas mask (tools/models/wlf_gasmasks.py)", 3))
-    half = [item(lb, [part], paks=[kit], tier=_tier([kit]), note="mod part (winter build)" + nt) for lb, part, kit, nt in HALF_MASKS[sex]]
+    if HALFMASK:            # one cloth per face (the FACE rows wear it, table() below): no parts of its own
+        hp = sorted({a for k, (a, _p) in HALFMASK["parts"].items() if a.startswith("scar-t2r-hf" + sex)})
+        it = item(HALFMASK_LABEL, [], paks=hp, tier=_tier(hp), note="mod part, one per face (halfmask_cloth.py)")
+        it["halfmask"] = 1
+        half = [it]
+    else:
+        half = [item(lb, [part], paks=[kit], tier=_tier([kit]), note="mod part (winter build)" + nt) for lb, part, kit, nt in HALF_MASKS[sex]]
     return [item("NONE", tier=1)] + (gas + half if fac == "wlf" else half + gas)
 
 
@@ -290,7 +296,8 @@ def gasmask_actor(key, sex):
     return "t2r-gm-%s-%s" % (sex, "bong-a" if key == "bong" else key)
 
 
-# UNDER A HAT (gas masks adapt, sticking-out straps hide): every gas mask has a second shape without the harness triangles a hat covers (tools/models/wlf_gasmasks.py
+# UNDER A HAT (relayed by the dev-model session: "actually gas masks should adapt, sticking out straps should hide and
+# thatll be enough"): every gas mask has a second shape without the harness triangles a hat covers (tools/models/wlf_gasmasks.py
 # "UNDER A HAT": a renamed copy of the mask's pak; which triangles: tools/models/mask_under.py -> data/mask_under.npz + .json).
 # MASK_UNDER = the shapes' class letters: ("u",) one shape under every crown-covering hat, ("b", "s") big hats (beanies, hood up) /
 # small hats (caps, brimmed hats); () = no data file: the full mask under every hat. A mask row wears the full part and the
@@ -326,6 +333,41 @@ for _s in SEXES:
 for _s in SEXES:
     for _lb, _part, _kit, _nt in HALF_MASKS[_s]:
         MOD_PARTS[_part] = (_kit, GASMASK_TEMPLATE[_s])
+# PER-FACE HALF MASK (on the winter build's kerchiefs: "bad fit on most faces", then the reference bandana: "should fit
+# like this" ... "Roll out"): one bandana per face, built on that face's own head (devmodel/face/hatfit/halfmask_cloth.py: the cloth
+# sheet over the nose, down the throat to a tip, round the neck to the knot), 5 faces a pak (copies of a mask kit, NEW actors
+# scar-t2r-hf<sex>-NN-kit). The list file + paks: T2R_CZ_HALFMASK_DIR/halfmask_faces.json = {"paks": {pak: [bytes, sha1]},
+# "parts": {face key: [pak, part]}, "rows": {"<fac>-<sex>": {FACE label: [pak, part]}}}. ON when the dir holds the json; else the
+# winter build's HALF MASK rows (HALF_MASKS) as before. With it: ONE row "HALF MASK" per list (the old I / II were one cloth on two
+# head shapes); each FACE row wears its own cloth part, the HALF MASK row hides none of them, every other mask row hides them all.
+HALFMASK_DIR = os.environ.get("T2R_CZ_HALFMASK_DIR", "")
+HALFMASK_LABEL = "HALF MASK"
+HALFMASK_CARD = {"m": "wm14", "f": "wf04"}       # the HALF MASK card: the cloth on this face (the WLF male default face; a plain female face)
+HALFMASK_SLOTS = {"torso": "kerchief", "torso-loarm-l": "loarm_l", "torso-loarm-r": "loarm_r", "head": "|head_grp|", "holster": "|holster_grp|"}
+
+
+def _halfmask():
+    f = os.path.join(HALFMASK_DIR, "halfmask_faces.json") if HALFMASK_DIR else ""
+    if not f or not os.path.exists(f):
+        return None
+    import json
+    j = json.load(open(f))
+    for a, (n, _sha) in j["paks"].items():
+        p = os.path.join(HALFMASK_DIR, a + ".pak")
+        assert os.path.exists(p) and os.path.getsize(p) == n, "halfmask_faces.json: %s missing or another size in %s" % (a, HALFMASK_DIR)
+    return j
+
+
+def halfmask_slot(key):
+    """the card-render filter (submesh name substring) of a face's cloth part: the kit geometry it was written on (json "geo")"""
+    return HALFMASK_SLOTS[HALFMASK["geo"][key]]
+
+
+HALFMASK = _halfmask()
+if HALFMASK:
+    for _k, (_a, _p) in HALFMASK["parts"].items():
+        MOD_PARTS[_p] = (_a, GASMASK_TEMPLATE["f" if _a.startswith("scar-t2r-hff") else "m"])
+        MP_PAKS_NOW.add(_a)
 if os.environ.get("T2R_MP_SNOW", "1") != "0":
     MP_PAKS_NOW |= {_kit for _s in SEXES for _lb, _part, _kit, _nt in HALF_MASKS[_s]}
 if os.environ.get("T2R_GASMASKS", "1") != "0":
@@ -570,6 +612,14 @@ def card_spec(cat, it):
     if cat == "sex" or not paks:
         return None
     if cat in ("hat", "mask"):
+        if it.get("halfmask"):          # the per-face cloth on its own head (the json's first face of that sex)
+            sx = "f" if paks[0].startswith("scar-t2r-hff") else "m"
+            key = HALFMASK_CARD[sx] if HALFMASK_CARD[sx] in HALFMASK["parts"] else next(k for k, (a, _p) in HALFMASK["parts"].items() if a.startswith("scar-t2r-hf" + sx))
+            a, prt = HALFMASK["parts"][key]
+            head = HALFMASK.get("heads", {}).get(key)
+            spec = ([(head, "head_grp" if head.endswith("-kit") else "", "")] if head else []) + [(a, halfmask_slot(key), "")]
+            slug = re.sub(r"[^a-z0-9]+", "-", "halfmask-" + a + "-" + key).strip("-")
+            return slug, spec
         mk = next((x for x in paks if x.startswith("scar-t2r-mask")), None)
         if mk:              # the half mask = the kerchief of the mod-built kit (winter build) on the pool head it was shrink-wrapped to
             return re.sub(r"[^a-z0-9]+", "-", MASK_HEAD[mk] + "--" + mk + "-only-kerchief").strip("-"), \
@@ -835,8 +885,9 @@ def table():
                     it = item(r["label"], r["parts"], r.get("props", ()), r["paks"], tier=_tier(r["paks"]), hide=r.get("hide", ()))
                     it["hid"] = 1 if r.get("hidden") else 0
                     T[r["cat"]].append(it)
-            # KELLIE's crown hair is parts of her FACE row ("headwear_hides", "hair_groups" below; other headwear can be picked without clipping, and putting on a gasmask must not hide
-            # the hair piece, it should react like Ellie's hair to a gas mask): A = the free crown, B = the crown as it lies under
+            # KELLIE's crown hair is parts of her FACE row ("headwear_hides", "hair_groups" below; "i want to be able to pick
+            # other headwear too ... i want the clipping to be fixed", then "putting on a gasmask hides the hair piece so it looks
+            # weird, it should be just like how ellies hair reacts to a gas mask"): A = the free crown, B = the crown as it lies under
             # a gas mask's straps. Exactly one of them is drawn, or none - as hide lists: headwear that covers the crown (caps, hats,
             # beanies, the raised hood) hides A and B; a gas mask (the bong too) hides A; every other MASK row (NONE, the half masks)
             # hides B; NONE / KELLIE EARS / the hood on the back hide nothing. On another face the hides do nothing (the parts are
@@ -900,6 +951,20 @@ def table():
                     own = per_hat.get(it["label"], []) if crown else []
                     hd += (bare if crown else hat) + [x for v in per_hat.values() for x in v if x not in own]
                 it["hide"] = list(it.get("hide", ())) + [x for x in hd if x not in it.get("hide", ())]
+            if HALFMASK and T.get("mask"):             # PER-FACE HALF MASK: each FACE row wears its own cloth (hidden unless HALF MASK is picked)
+                rows = HALFMASK["rows"].get("%s-%s" % (fac, sex), {})
+                hm = []
+                for it in T["face"]:
+                    assert it["label"] in rows, "halfmask_faces.json: no cloth for %s %s %s" % (fac, sex, it["label"])
+                    a, prt = rows[it["label"]]
+                    it["parts"].append(prt)
+                    if a not in it["paks"]:
+                        it["paks"].append(a)
+                    it["tier"] = _tier(it["paks"])
+                    hm.append(prt)
+                for it in T["mask"]:
+                    if not it.get("halfmask"):
+                        it["hide"] = list(it.get("hide", ())) + [x for x in hm if x not in it.get("hide", ())]
             if MASK_UNDER:                             # a gas mask and headwear: exactly one shape of the mask is drawn
                 gas = [it for it in T["mask"] if it.get("under")]
                 for it in T["hat"]:

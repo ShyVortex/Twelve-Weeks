@@ -1,5 +1,6 @@
-// melee_hitreact.c - TLOU2's own melee hit reactions for a landed blow (melee must feel impactful: a short hit reaction taken from the game, not a random head snap, with a good blend back into whatever the controller is trying to do;
-// while the victim's short impact reaction plays the attacker cannot swing again). Included after melee_pace.c in t2r-ext.c. Notes: re/melee-hitreact-1026.md. Log prefix "hitreact:". Opt-out: t2r-no-sp-hitreact.txt next to
+// melee_hitreact.c - TLOU2's own melee hit reactions for a landed blow
+// "while the victim's short impact reaction plays the
+// ATTACKER cannot swing again"). Included after melee_pace.c in t2r-ext.c. Notes: re/melee-hitreact-1026.md. Log prefix "hitreact:". Opt-out: t2r-no-sp-hitreact.txt next to
 // the exe (re-read every 3 s): the old behaviour (additive upper-body flinch of feel.c + the command lock of melee_stagger.c) is back.
 //
 // Before: a blow that hurt a standing player played only the ADDITIVE upper-body gesture of feel.c (gesture-ellie-idle-ub-hr-<zone>-add, no root motion) and melee_stagger.c took
@@ -82,7 +83,7 @@ static struct {
 // (cut_ms, unchanged: 360 / 440 / 520 ms) the controls are locked - mhr_running() is that part only, so the stagger lock, the holster hold and the pin veto last
 // exactly as long as before. After it the clip is NOT cut: it plays on from its own pose until the next blow replaces it, our own input (stick / swing / dodge / aim)
 // leaves it, or its exit at exit_ms; the body follows the clip's own root path (no cap), limited only by the wall / ground probes. t2r-hr-length-ps24.txt = the old cut.
-static struct { int full, ctl_back; uint64_t exit_ms; int turn, turn_f; float yaw_t, yaw_c, yaw_0; } g_mhx;   // turn (ps29): 1 = our body is turning to face the attacker, 2 = turned (yaw held to the exit point)
+static struct { int full, ctl_back; uint64_t exit_ms; int turn, turn_f; float yaw_t, yaw_c, yaw_0; } g_mhx;   // turn: 1 = our body is turning to face the attacker, 2 = turned (yaw held to the exit point)
 static int mhr_running(void) { return g_mhr.on && !g_mhx.ctl_back; }
 static uint64_t mhr_path_ms(void) { return g_mhx.full ? g_mhx.exit_ms : g_mhr.cut_ms; }
 // t2r-ext.c feature_downed (the 2013 fall pick): our momentum right now is a hit reaction's knock-back (the pin / push-back wrote it), not our own running
@@ -128,7 +129,7 @@ static const uint64_t MHR_WP_SIDS[3] = {0xfb872a70daf7adfeULL /* WeaponPartial *
 // weapon-partial / melee-partial / melee-hands above the base layer our reaction clip plays on. Those three are faded for the puppet's reaction. Which of them
 // carries the two-hand grip is not known - the log line prints each one's weight before the fade (-1 = not a state layer / absent).
 static const uint64_t MHR_WP_PUP_SIDS[3] = {0x076add18493720b5ULL /* weapon-partial */, 0x09da0551daebb873ULL /* melee-partial */, 0x27756a2441539c7cULL /* melee-hands */};
-typedef struct { uint8_t *ly[3]; float w[3]; int on; uint64_t until, ent; const uint64_t *sids; int scan; } mhr_wp_t;   // scan (ps30): 1 = layers by the table walk (any class), 0 = FindLayer (state layers)
+typedef struct { uint8_t *ly[3]; float w[3]; int on; uint64_t until, ent; const uint64_t *sids; int scan; } mhr_wp_t;   // scan: 1 = layers by the table walk (any class), 0 = FindLayer (state layers)
 static mhr_wp_t g_mhr_wp, g_mhr_wpp[T2R_MAX_PEERS];
 static uint64_t mdu_vic_melee(int s);                   // melee_duel.c: the melee item in a peer's hand, 0 = none
 static int mhr_wp_old(void) { static int off = -1; static uint64_t at; return feel_flag("t2r-hr-weapon-partial-ps24.txt", &at, &off, 180); }
@@ -160,7 +161,7 @@ static int mhr_wp_old(void) { static int off = -1; static uint64_t at; return fe
 //   t2r-ps30-own-arms-old.txt       our WeaponPartial / WeaponPartialAlt stay at full weight over the half
 //   t2r-ps30-pup-arms-old.txt       a puppet's weapon-partial / melee-partial stay at full weight over the half
 //   t2r-ps30-pup-scan-old.txt       the puppet's layers are looked up with FindLayer (state layers only, the ps29 way) instead of the layer table
-//   t2r-ps30-hr-hands-fade.txt      the generic reaction on a puppet fades melee-hands too (ps29)
+// t2r-ps30-hr-hands-fade.txt the generic reaction on a puppet fades melee-hands too
 // Log: "ps30 armed pair: ..." (START with the layers before, the layers 8 frames in, END with the item's state).
 #define P30_MAX_MS 4000                // a duel -hit pair hands off within 3.0 s (mdu_victim_begin refuses longer ones): the arm release never outlives this
 #define P30_GRACE_F 3                  // [TUNING ps30] frames without the pair before the arm hold fades back (the next blow's pair starts on the abort's frame)

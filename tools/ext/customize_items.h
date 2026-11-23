@@ -197,16 +197,16 @@ static const cz_item_t cz_l_wlf_m_backpack[] = {
     {"FIELD PACK", 1, cz_s48, NULL, NULL, 16, 0, 20, "czc-militia-male-backpack-08", 0},
     {"TACTICAL PACK", 1, cz_s49, NULL, NULL, 51, 0, 175, "czc-militia-male-backpack-05", 0},
     {"SCHOOL BAG", 1, cz_s50, NULL, NULL, 13, 0, 15, "czc-militia-male-backpack-13", 0}};
-static const char *const cz_s51[] = {"t2r-fh-m-h1e-head-02", "t2r-fh-m-h1e-02-hair-bare---a", "t2r-fh-m-h1e-02-hh-wlfcap---x", "t2r-fh-m-h1e-02-hh-patrol---x", "t2r-fh-m-h1e-02-hh-field----x", "t2r-fh-m-h1e-02-bahhx", "t2r-fh-m-x1e-02-hh-patch----x", "t2r-fh-m-x1e-02-hh-cowboy---x", "t2r-fh-m-x1e-02-hh-ranch----x", "t2r-fh-m-x1e-02-hh-beanie---x", "t2r-fh-m-x1e-02-fohhx", "t2r-fh-m-x1e-02-wohx", "t2r-fh-m-x2e-02-hh-slouch---x", NULL};
-static const char *const cz_s52[] = {"t2r-fh-m-h2e-head-03", "t2r-fh-m-h2e-03-hair-bare---a", "t2r-fh-m-h2e-03-hh-wlfcap---x", "t2r-fh-m-h2e-03-hh-patrol---x", "t2r-fh-m-h2e-03-hh-field----x", "t2r-fh-m-h2e-03-bahhx", "t2r-fh-m-x1e-03-hh-patch----x", "t2r-fh-m-x1e-03-hh-cowboy---x", "t2r-fh-m-x1e-03-hh-ranch----x", "t2r-fh-m-x1e-03-hh-beanie---x", "t2r-fh-m-x1e-03-fohhx", "t2r-fh-m-x1e-03-wohx", "t2r-fh-m-x2e-03-hh-slouch---x", NULL};
-static const char *const cz_s53[] = {"militia-male-head-04", "t2r-hh--male-head-04", NULL};
-static const char *const cz_s54[] = {"t2r-fh-m-h3e-head-05", "t2r-fh-m-h3e-05-hair-bare---a", "t2r-fh-m-h3e-05-hh-wlfcap---x", "t2r-fh-m-h3e-05-pahhx", "t2r-fh-m-h3e-05-hh-field----a", "t2r-fh-m-h3e-05-hh-field----b", "t2r-fh-m-x1e-05-hh-ball-----x", "t2r-fh-m-x1e-05-hh-patch----x", "t2r-fh-m-x1e-05-cwhhx", "t2r-fh-m-x1e-05-rahx", "t2r-fh-m-x1e-05-hh-beanie---a", "t2r-fh-m-x1e-05-hh-beanie---b", "t2r-fh-m-x2e-05-hh-folded---x", "t2r-fh-m-x2e-05-hh-wool-----x", "t2r-fh-m-x2e-05-slhhx", NULL};
-static const char *const cz_s55[] = {"militia-male-head-06", "t2r-hh--male-head-06", NULL};
-static const char *const cz_s56[] = {"militia-male-head-12", "t2r-hh--male-head-12", NULL};
-static const char *const cz_s57[] = {"t2r-fh-m-h4e-head-14", "t2r-fh-m-h4e-14-hair-bare---a", "t2r-fh-m-h4e-14-hh-wlfcap---x", "t2r-fh-m-h4e-14-hh-patrol---a", "t2r-fh-m-h4e-14-hh-patrol---b", "t2r-fh-m-x1e-14-hh-field----x", "t2r-fh-m-x1e-14-hh-ball-----x", "t2r-fh-m-x1e-14-pthx", "t2r-fh-m-x1e-14-hh-cowboy---a", "t2r-fh-m-x1e-14-hh-cowboy---b", "t2r-fh-m-x2e-14-hh-ranch----x", "t2r-fh-m-x2e-14-hh-beanie---x", "t2r-fh-m-x2e-14-hh-folded---a", "t2r-fh-m-x2e-14-wohx", "t2r-fh-m-x2e-14-hh-slouch---a", "t2r-fh-m-x2e-14-slhhb", NULL};
-static const char *const cz_s58[] = {"t2r-fh-m-h5e-head-15", NULL};
-static const char *const cz_s59[] = {"militia-male-head-16", "t2r-hh--male-head-16", NULL};
-static const char *const cz_s60[] = {"t2r-fh-m-h6e-head-17", "t2r-fh-m-h6e-17-hair-bare---a", "t2r-fh-m-h6e-17-hh-wlfcap---x", "t2r-fh-m-h6e-17-hh-patrol---x", "t2r-fh-m-h6e-17-hh-field----x", "t2r-fh-m-h6e-17-bahhx", "t2r-fh-m-x1e-17-hh-patch----x", "t2r-fh-m-x1e-17-hh-cowboy---x", "t2r-fh-m-x1e-17-hh-ranch----x", "t2r-fh-m-x1e-17-hh-beanie---x", "t2r-fh-m-x1e-17-fohhx", "t2r-fh-m-x1e-17-wohx", "t2r-fh-m-x2e-17-hh-slouch---x", NULL};
+static const char *const cz_s51[] = {"t2r-fh-m-h1e-head-02", "t2r-fh-m-h1e-02-hair-bare---a", "t2r-fh-m-h1e-02-hh-wlfcap---x", "t2r-fh-m-h1e-02-hh-patrol---x", "t2r-fh-m-h1e-02-hh-field----x", "t2r-fh-m-h1e-02-bahhx", "t2r-fh-m-x1e-02-hh-patch----x", "t2r-fh-m-x1e-02-hh-cowboy---x", "t2r-fh-m-x1e-02-hh-ranch----x", "t2r-fh-m-x1e-02-hh-beanie---x", "t2r-fh-m-x1e-02-fohhx", "t2r-fh-m-x1e-02-wohx", "t2r-fh-m-x2e-02-hh-slouch---x", "scar-t2r-hfm-01-wm02x", NULL};
+static const char *const cz_s52[] = {"t2r-fh-m-h2e-head-03", "t2r-fh-m-h2e-03-hair-bare---a", "t2r-fh-m-h2e-03-hh-wlfcap---x", "t2r-fh-m-h2e-03-hh-patrol---x", "t2r-fh-m-h2e-03-hh-field----x", "t2r-fh-m-h2e-03-bahhx", "t2r-fh-m-x1e-03-hh-patch----x", "t2r-fh-m-x1e-03-hh-cowboy---x", "t2r-fh-m-x1e-03-hh-ranch----x", "t2r-fh-m-x1e-03-hh-beanie---x", "t2r-fh-m-x1e-03-fohhx", "t2r-fh-m-x1e-03-wohx", "t2r-fh-m-x2e-03-hh-slouch---x", "scar-t2r-hfm-01-wm03xxxxxxxxx", NULL};
+static const char *const cz_s53[] = {"militia-male-head-04", "t2r-hh--male-head-04", "scar-t2r-hfm-01-wm04xxxxxxxxx", NULL};
+static const char *const cz_s54[] = {"t2r-fh-m-h3e-head-05", "t2r-fh-m-h3e-05-hair-bare---a", "t2r-fh-m-h3e-05-hh-wlfcap---x", "t2r-fh-m-h3e-05-pahhx", "t2r-fh-m-h3e-05-hh-field----a", "t2r-fh-m-h3e-05-hh-field----b", "t2r-fh-m-x1e-05-hh-ball-----x", "t2r-fh-m-x1e-05-hh-patch----x", "t2r-fh-m-x1e-05-cwhhx", "t2r-fh-m-x1e-05-rahx", "t2r-fh-m-x1e-05-hh-beanie---a", "t2r-fh-m-x1e-05-hh-beanie---b", "t2r-fh-m-x2e-05-hh-folded---x", "t2r-fh-m-x2e-05-hh-wool-----x", "t2r-fh-m-x2e-05-slhhx", "scar-t2r-hfm-01-wm05", NULL};
+static const char *const cz_s55[] = {"militia-male-head-06", "t2r-hh--male-head-06", "scar-t2r-hfm-01-wm06xxx", NULL};
+static const char *const cz_s56[] = {"militia-male-head-12", "t2r-hh--male-head-12", "scar-t2r-hfm-02-wm12x", NULL};
+static const char *const cz_s57[] = {"t2r-fh-m-h4e-head-14", "t2r-fh-m-h4e-14-hair-bare---a", "t2r-fh-m-h4e-14-hh-wlfcap---x", "t2r-fh-m-h4e-14-hh-patrol---a", "t2r-fh-m-h4e-14-hh-patrol---b", "t2r-fh-m-x1e-14-hh-field----x", "t2r-fh-m-x1e-14-hh-ball-----x", "t2r-fh-m-x1e-14-pthx", "t2r-fh-m-x1e-14-hh-cowboy---a", "t2r-fh-m-x1e-14-hh-cowboy---b", "t2r-fh-m-x2e-14-hh-ranch----x", "t2r-fh-m-x2e-14-hh-beanie---x", "t2r-fh-m-x2e-14-hh-folded---a", "t2r-fh-m-x2e-14-wohx", "t2r-fh-m-x2e-14-hh-slouch---a", "t2r-fh-m-x2e-14-slhhb", "scar-t2r-hfm-02-wm14xxxxxxxxx", NULL};
+static const char *const cz_s58[] = {"t2r-fh-m-h5e-head-15", "scar-t2r-hfm-02-wm15xxxxxxxxx", NULL};
+static const char *const cz_s59[] = {"militia-male-head-16", "t2r-hh--male-head-16", "scar-t2r-hfm-02-wm16", NULL};
+static const char *const cz_s60[] = {"t2r-fh-m-h6e-head-17", "t2r-fh-m-h6e-17-hair-bare---a", "t2r-fh-m-h6e-17-hh-wlfcap---x", "t2r-fh-m-h6e-17-hh-patrol---x", "t2r-fh-m-h6e-17-hh-field----x", "t2r-fh-m-h6e-17-bahhx", "t2r-fh-m-x1e-17-hh-patch----x", "t2r-fh-m-x1e-17-hh-cowboy---x", "t2r-fh-m-x1e-17-hh-ranch----x", "t2r-fh-m-x1e-17-hh-beanie---x", "t2r-fh-m-x1e-17-fohhx", "t2r-fh-m-x1e-17-wohx", "t2r-fh-m-x2e-17-hh-slouch---x", "scar-t2r-hfm-02-wm17xxx", NULL};
 static const cz_item_t cz_l_wlf_m_face[] = {
     {"FACE 02", 1, cz_s51, NULL, NULL, 12, 0, 20, "czc-militia-male-02-kit-only-head-grp", 0},
     {"FACE 03", 1, cz_s52, NULL, NULL, 4, 0, 20, "czc-militia-male-03-kit-only-head-grp", 0},
@@ -221,384 +221,390 @@ static const cz_item_t cz_l_wlf_m_face[] = {
 static const cz_item_t cz_l_wlf_m_melee[] = {
     {"FISTS", 1, NULL, NULL, NULL, 0, 0, 0, "czc-melee-fists", 0},
     {"KNIFE", 1, NULL, NULL, NULL, 21, 0, 25, "czc-melee-knife", 0}};
-static const char *const cz_s61[] = {"militia-male-mask-02", NULL};
-static const char *const cz_s62[] = {"t2r-gm-m-dina", NULL};
-static const char *const cz_s63[] = {"t2r-gm-m-ellie", NULL};
-static const char *const cz_s64[] = {"t2r-gm-m-abby", NULL};
-static const char *const cz_s65[] = {"t2r-gm-m-lev", NULL};
-static const char *const cz_s66[] = {"t2r-gm-m-bong-a", NULL};
-static const char *const cz_s67[] = {"scar-t2r-mask01-torso", NULL};
-static const char *const cz_s68[] = {"scar-t2r-mask02-torso", NULL};
+static const char *const cz_s61[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s62[] = {"militia-male-mask-02", NULL};
+static const char *const cz_s63[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s64[] = {"t2r-gm-m-dina", NULL};
+static const char *const cz_s65[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s66[] = {"t2r-gm-m-ellie", NULL};
+static const char *const cz_s67[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s68[] = {"t2r-gm-m-abby", NULL};
+static const char *const cz_s69[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s70[] = {"t2r-gm-m-lev", NULL};
+static const char *const cz_s71[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
+static const char *const cz_s72[] = {"t2r-gm-m-bong-a", NULL};
+static const char *const cz_s73[] = {"scar-t2r-hfm-01-wm02x", "scar-t2r-hfm-01-wm03xxxxxxxxx", "scar-t2r-hfm-01-wm04xxxxxxxxx", "scar-t2r-hfm-01-wm05", "scar-t2r-hfm-01-wm06xxx", "scar-t2r-hfm-02-wm12x", "scar-t2r-hfm-02-wm14xxxxxxxxx", "scar-t2r-hfm-02-wm15xxxxxxxxx", "scar-t2r-hfm-02-wm16", "scar-t2r-hfm-02-wm17xxx", NULL};
 static const cz_item_t cz_l_wlf_m_mask[] = {
-    {"NONE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
-    {"GAS MASK", 1, cz_s61, NULL, NULL, 57, 0, 3, "czc-militia-male-mask-02", 0},
-    {"DINA'S GAS MASK", 1, cz_s62, NULL, NULL, 13, 0, 25, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-dina", 0},
-    {"ELLIE'S GAS MASK", 1, cz_s63, NULL, NULL, 22, 0, 8, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-ellie", 0},
-    {"ABBY'S GAS MASK", 1, cz_s64, NULL, NULL, 60, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-abby", 0},
-    {"LEV'S GAS MASK", 1, cz_s65, NULL, NULL, 30, 0, 125, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-lev", 0},
-    {"BONG MASK", 1, cz_s66, NULL, NULL, 3, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-bong-a", 0},
-    {"HALF MASK I", 1, cz_s67, NULL, NULL, 32, 0, 15, "czc-scar-male-head-13-scar-t2r-mask01-kit-only-kerchief", 0},
-    {"HALF MASK II", 1, cz_s68, NULL, NULL, 53, 0, 20, "czc-scar-male-head-06-scar-t2r-mask02-kit-only-kerchief", 0}};
+    {"NONE", 1, NULL, NULL, cz_s61, 0, 0, 0, NULL, 0},
+    {"GAS MASK", 1, cz_s62, NULL, cz_s63, 57, 0, 3, "czc-militia-male-mask-02", 0},
+    {"DINA'S GAS MASK", 1, cz_s64, NULL, cz_s65, 13, 0, 25, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-dina", 0},
+    {"ELLIE'S GAS MASK", 1, cz_s66, NULL, cz_s67, 22, 0, 8, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-ellie", 0},
+    {"ABBY'S GAS MASK", 1, cz_s68, NULL, cz_s69, 60, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-abby", 0},
+    {"LEV'S GAS MASK", 1, cz_s70, NULL, cz_s71, 30, 0, 125, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-lev", 0},
+    {"BONG MASK", 1, cz_s72, NULL, cz_s73, 3, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-bong-a", 0},
+    {"HALF MASK", 1, NULL, NULL, NULL, 32, 0, 15, "czc-halfmask-scar-t2r-hfm-02-kit-wm14", 0}};
 static const cz_item_t cz_l_wlf_m_sex[] = {
     {"MALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
     {"FEMALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0}};
-static const char *const cz_s69[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "t2r-hh--female-head-01", "t2r-hh--female-head-02", "t2r-hh--female-head-03", "t2r-hh--female-head-04", "t2r-hh--female-head-05", "t2r-hh--female-head-06", "t2r-hh--female-head-07", "t2r-hh--female-head-09", "t2r-hh--female-head-14", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s70[] = {"militia-female-hat-10", NULL};
-static const char *const cz_s71[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s72[] = {"militia-female-hat-13", NULL};
-static const char *const cz_s73[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s74[] = {"militia-female-hat-15", NULL};
-static const char *const cz_s75[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s76[] = {"t2r-hw-f-c1e-head-01", NULL};
-static const char *const cz_s77[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s78[] = {"t2r-hw-f-c2e-head-07", NULL};
-static const char *const cz_s79[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s80[] = {"t2r-hw-f-b1e-head-07", NULL};
-static const char *const cz_s81[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s82[] = {"t2r-hw-f-b2e-head-hero-01", NULL};
-static const char *const cz_s83[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s84[] = {"t2r-hw-f-b3ale-head-01", NULL};
-static const char *const cz_s85[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s86[] = {"t2r-hw-f-b4ale-head-08", NULL};
-static const char *const cz_s87[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", NULL};
-static const char *const cz_s88[] = {"t2r-kl-f-ears-kellie-part-001", NULL};
-static const char *const cz_s89[] = {"t2r-kl-f-tail-cloth-kellie", NULL};
-static const char *const cz_s90[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "t2r-hh--female-head-01", "t2r-hh--female-head-02", "t2r-hh--female-head-03", "t2r-hh--female-head-04", "t2r-hh--female-head-05", "t2r-hh--female-head-06", "t2r-hh--female-head-07", "t2r-hh--female-head-09", "t2r-hh--female-head-14", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s74[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "t2r-hh--female-head-01", "t2r-hh--female-head-02", "t2r-hh--female-head-03", "t2r-hh--female-head-04", "t2r-hh--female-head-05", "t2r-hh--female-head-06", "t2r-hh--female-head-07", "t2r-hh--female-head-09", "t2r-hh--female-head-14", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s75[] = {"militia-female-hat-10", NULL};
+static const char *const cz_s76[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s77[] = {"militia-female-hat-13", NULL};
+static const char *const cz_s78[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s79[] = {"militia-female-hat-15", NULL};
+static const char *const cz_s80[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s81[] = {"t2r-hw-f-c1e-head-01", NULL};
+static const char *const cz_s82[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s83[] = {"t2r-hw-f-c2e-head-07", NULL};
+static const char *const cz_s84[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s85[] = {"t2r-hw-f-b1e-head-07", NULL};
+static const char *const cz_s86[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s87[] = {"t2r-hw-f-b2e-head-hero-01", NULL};
+static const char *const cz_s88[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s89[] = {"t2r-hw-f-b3ale-head-01", NULL};
+static const char *const cz_s90[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-slhhx", NULL};
+static const char *const cz_s91[] = {"t2r-hw-f-b4ale-head-08", NULL};
+static const char *const cz_s92[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "militia-female-head-01", "militia-female-head-02", "militia-female-head-03", "militia-female-head-04", "militia-female-head-05", "militia-female-head-06", "militia-female-head-07", "militia-female-head-09", "militia-female-head-14", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", NULL};
+static const char *const cz_s93[] = {"t2r-kl-f-ears-kellie-part-001", NULL};
+static const char *const cz_s94[] = {"t2r-kl-f-tail-cloth-kellie", NULL};
+static const char *const cz_s95[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "t2r-hh--female-head-01", "t2r-hh--female-head-02", "t2r-hh--female-head-03", "t2r-hh--female-head-04", "t2r-hh--female-head-05", "t2r-hh--female-head-06", "t2r-hh--female-head-07", "t2r-hh--female-head-09", "t2r-hh--female-head-14", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
 static const cz_item_t cz_l_wlf_f_hat[] = {
-    {"NONE", 1, NULL, NULL, cz_s69, 0, 0, 0, NULL, 0},
-    {"PATROL CAP", 1, cz_s70, NULL, cz_s71, 27, 0, 20, "czc-militia-female-hat-10", 0},
-    {"BALL CAP", 1, cz_s72, NULL, cz_s73, 0, 0, 0, "czc-militia-female-hat-13", 0},
-    {"FADED CAP", 1, cz_s74, NULL, cz_s75, 28, 0, 25, "czc-militia-female-hat-15", 0},
-    {"COWBOY HAT", 1, cz_s76, NULL, cz_s77, 37, 0, 25, "czc-t2r-hw-f-c1e-head-01", 0},
-    {"RANCHER HAT", 1, cz_s78, NULL, cz_s79, 25, 0, 75, "czc-t2r-hw-f-c2e-head-07", 0},
-    {"BEANIE", 1, cz_s80, NULL, cz_s81, 30, 0, 100, "czc-t2r-hw-f-b1e-07-kit", 0},
-    {"FOLDED BEANIE", 1, cz_s82, NULL, cz_s83, 14, 0, 25, "czc-t2r-hw-f-b2e-head-hero-01", 0},
-    {"WOOL BEANIE", 1, cz_s84, NULL, cz_s85, 15, 0, 125, "czc-t2r-hw-f-b3ale-head-01", 0},
-    {"SLOUCH BEANIE", 1, cz_s86, NULL, cz_s87, 23, 0, 15, "czc-t2r-hw-f-b4ale-08-kit", 0},
-    {"KELLIE EARS", 1, cz_s88, cz_s89, cz_s90, 59, 0, 1, "czc-t2r-kl-f-ears", 1}};
-static const char *const cz_s91[] = {"militia-female-01-torso", "militia-female-01-torso-loarm-l", "militia-female-01-torso-loarm-r", "militia-female-01-torso-uparm-l", "militia-female-01-torso-uparm-r", NULL};
-static const char *const cz_s92[] = {"militia-female-02-torso", "militia-female-02-torso-loarm-l", "militia-female-02-torso-loarm-r", "militia-female-02-torso-uparm-l", "militia-female-02-torso-uparm-r", NULL};
-static const char *const cz_s93[] = {"militia-female-03-torso", "militia-female-03-torso-loarm-l", "militia-female-03-torso-loarm-r", "militia-female-03-torso-uparm-l", "militia-female-03-torso-uparm-r", NULL};
-static const char *const cz_s94[] = {"militia-female-04-torso", "militia-female-04-torso-loarm-l", "militia-female-04-torso-loarm-r", "militia-female-04-torso-uparm-l", "militia-female-04-torso-uparm-r", NULL};
-static const char *const cz_s95[] = {"militia-female-05-torso", "militia-female-05-torso-loarm-l", "militia-female-05-torso-loarm-r", "militia-female-05-torso-uparm-l", "militia-female-05-torso-uparm-r", NULL};
-static const char *const cz_s96[] = {"militia-female-06-torso", "militia-female-06-torso-loarm-l", "militia-female-06-torso-loarm-r", "militia-female-06-torso-uparm-l", "militia-female-06-torso-uparm-r", NULL};
-static const char *const cz_s97[] = {"militia-female-07-torso", "militia-female-07-torso-loarm-l", "militia-female-07-torso-loarm-r", "militia-female-07-torso-uparm-l", "militia-female-07-torso-uparm-r", NULL};
-static const char *const cz_s98[] = {"militia-female-08-torso", "militia-female-08-torso-loarm-l", "militia-female-08-torso-loarm-r", "militia-female-08-torso-uparm-l", "militia-female-08-torso-uparm-r", NULL};
-static const char *const cz_s99[] = {"militia-female-09-torso", "militia-female-09-torso-loarm-l", "militia-female-09-torso-loarm-r", "militia-female-09-torso-uparm-l", "militia-female-09-torso-uparm-r", NULL};
-static const char *const cz_s100[] = {"militia-female-10-torso", "militia-female-10-torso-loarm-l", "militia-female-10-torso-loarm-r", "militia-female-10-torso-uparm-l", "militia-female-10-torso-uparm-r", NULL};
-static const char *const cz_s101[] = {"militia-female-11-torso", "militia-female-11-torso-loarm-l", "militia-female-11-torso-loarm-r", "militia-female-11-torso-uparm-l", "militia-female-11-torso-uparm-r", NULL};
-static const char *const cz_s102[] = {"militia-female-12-torso", "militia-female-12-torso-loarm-l", "militia-female-12-torso-loarm-r", "militia-female-12-torso-uparm-l", "militia-female-12-torso-uparm-r", NULL};
-static const char *const cz_s103[] = {"militia-female-13-torso", "militia-female-13-torso-loarm-l", "militia-female-13-torso-loarm-r", "militia-female-13-torso-uparm-l", "militia-female-13-torso-uparm-r", NULL};
-static const char *const cz_s104[] = {"militia-female-14-torso", "militia-female-14-torso-loarm-l", "militia-female-14-torso-loarm-r", "militia-female-14-torso-uparm-l", "militia-female-14-torso-uparm-r", NULL};
-static const char *const cz_s105[] = {"militia-female-15-torso", "militia-female-15-torso-loarm-l", "militia-female-15-torso-loarm-r", "militia-female-15-torso-uparm-l", "militia-female-15-torso-uparm-r", NULL};
-static const char *const cz_s106[] = {"t2r-kl-f-sweater-torso0", "t2r-kl-f-sweater-torso0-loarm-l", "t2r-kl-f-sweater-torso0-uparm-l", "t2r-kl-f-sweater-torso0-uparm-r", NULL};
+    {"NONE", 1, NULL, NULL, cz_s74, 0, 0, 0, NULL, 0},
+    {"PATROL CAP", 1, cz_s75, NULL, cz_s76, 27, 0, 20, "czc-militia-female-hat-10", 0},
+    {"BALL CAP", 1, cz_s77, NULL, cz_s78, 0, 0, 0, "czc-militia-female-hat-13", 0},
+    {"FADED CAP", 1, cz_s79, NULL, cz_s80, 28, 0, 25, "czc-militia-female-hat-15", 0},
+    {"COWBOY HAT", 1, cz_s81, NULL, cz_s82, 37, 0, 25, "czc-t2r-hw-f-c1e-head-01", 0},
+    {"RANCHER HAT", 1, cz_s83, NULL, cz_s84, 25, 0, 75, "czc-t2r-hw-f-c2e-head-07", 0},
+    {"BEANIE", 1, cz_s85, NULL, cz_s86, 30, 0, 100, "czc-t2r-hw-f-b1e-07-kit", 0},
+    {"FOLDED BEANIE", 1, cz_s87, NULL, cz_s88, 14, 0, 25, "czc-t2r-hw-f-b2e-head-hero-01", 0},
+    {"WOOL BEANIE", 1, cz_s89, NULL, cz_s90, 15, 0, 125, "czc-t2r-hw-f-b3ale-head-01", 0},
+    {"SLOUCH BEANIE", 1, cz_s91, NULL, cz_s92, 23, 0, 15, "czc-t2r-hw-f-b4ale-08-kit", 0},
+    {"KELLIE EARS", 1, cz_s93, cz_s94, cz_s95, 59, 0, 1, "czc-t2r-kl-f-ears", 1}};
+static const char *const cz_s96[] = {"militia-female-01-torso", "militia-female-01-torso-loarm-l", "militia-female-01-torso-loarm-r", "militia-female-01-torso-uparm-l", "militia-female-01-torso-uparm-r", NULL};
+static const char *const cz_s97[] = {"militia-female-02-torso", "militia-female-02-torso-loarm-l", "militia-female-02-torso-loarm-r", "militia-female-02-torso-uparm-l", "militia-female-02-torso-uparm-r", NULL};
+static const char *const cz_s98[] = {"militia-female-03-torso", "militia-female-03-torso-loarm-l", "militia-female-03-torso-loarm-r", "militia-female-03-torso-uparm-l", "militia-female-03-torso-uparm-r", NULL};
+static const char *const cz_s99[] = {"militia-female-04-torso", "militia-female-04-torso-loarm-l", "militia-female-04-torso-loarm-r", "militia-female-04-torso-uparm-l", "militia-female-04-torso-uparm-r", NULL};
+static const char *const cz_s100[] = {"militia-female-05-torso", "militia-female-05-torso-loarm-l", "militia-female-05-torso-loarm-r", "militia-female-05-torso-uparm-l", "militia-female-05-torso-uparm-r", NULL};
+static const char *const cz_s101[] = {"militia-female-06-torso", "militia-female-06-torso-loarm-l", "militia-female-06-torso-loarm-r", "militia-female-06-torso-uparm-l", "militia-female-06-torso-uparm-r", NULL};
+static const char *const cz_s102[] = {"militia-female-07-torso", "militia-female-07-torso-loarm-l", "militia-female-07-torso-loarm-r", "militia-female-07-torso-uparm-l", "militia-female-07-torso-uparm-r", NULL};
+static const char *const cz_s103[] = {"militia-female-08-torso", "militia-female-08-torso-loarm-l", "militia-female-08-torso-loarm-r", "militia-female-08-torso-uparm-l", "militia-female-08-torso-uparm-r", NULL};
+static const char *const cz_s104[] = {"militia-female-09-torso", "militia-female-09-torso-loarm-l", "militia-female-09-torso-loarm-r", "militia-female-09-torso-uparm-l", "militia-female-09-torso-uparm-r", NULL};
+static const char *const cz_s105[] = {"militia-female-10-torso", "militia-female-10-torso-loarm-l", "militia-female-10-torso-loarm-r", "militia-female-10-torso-uparm-l", "militia-female-10-torso-uparm-r", NULL};
+static const char *const cz_s106[] = {"militia-female-11-torso", "militia-female-11-torso-loarm-l", "militia-female-11-torso-loarm-r", "militia-female-11-torso-uparm-l", "militia-female-11-torso-uparm-r", NULL};
+static const char *const cz_s107[] = {"militia-female-12-torso", "militia-female-12-torso-loarm-l", "militia-female-12-torso-loarm-r", "militia-female-12-torso-uparm-l", "militia-female-12-torso-uparm-r", NULL};
+static const char *const cz_s108[] = {"militia-female-13-torso", "militia-female-13-torso-loarm-l", "militia-female-13-torso-loarm-r", "militia-female-13-torso-uparm-l", "militia-female-13-torso-uparm-r", NULL};
+static const char *const cz_s109[] = {"militia-female-14-torso", "militia-female-14-torso-loarm-l", "militia-female-14-torso-loarm-r", "militia-female-14-torso-uparm-l", "militia-female-14-torso-uparm-r", NULL};
+static const char *const cz_s110[] = {"militia-female-15-torso", "militia-female-15-torso-loarm-l", "militia-female-15-torso-loarm-r", "militia-female-15-torso-uparm-l", "militia-female-15-torso-uparm-r", NULL};
+static const char *const cz_s111[] = {"t2r-kl-f-sweater-torso0", "t2r-kl-f-sweater-torso0-loarm-l", "t2r-kl-f-sweater-torso0-uparm-l", "t2r-kl-f-sweater-torso0-uparm-r", NULL};
 static const cz_item_t cz_l_wlf_f_torso[] = {
-    {"FLEECE VEST", 1, cz_s91, NULL, NULL, 38, 0, 9, "czc-militia-female-01-kit-skip-head-grp", 0},
-    {"HALF-ZIP PULLOVER", 1, cz_s92, NULL, NULL, 41, 0, 25, "czc-militia-female-02-kit-skip-head-grp", 0},
-    {"FIELD JACKET", 1, cz_s93, NULL, NULL, 6, 0, 10, "czc-militia-female-03-kit-skip-head-grp", 0},
-    {"OPEN JACKET", 1, cz_s94, NULL, NULL, 42, 0, 15, "czc-militia-female-04-kit-skip-head-grp", 0},
-    {"QUILTED VEST, HARNESS", 1, cz_s95, NULL, NULL, 11, 0, 80, "czc-militia-female-05-kit-skip-head-grp", 0},
-    {"JACKET AND HOODIE", 1, cz_s96, NULL, NULL, 12, 0, 20, "czc-militia-female-06-kit-skip-head-grp", 0},
-    {"SHELL JACKET, HARNESS", 1, cz_s97, NULL, NULL, 10, 0, 8, "czc-militia-female-07-kit-skip-head-grp", 0},
-    {"PUFFER VEST", 1, cz_s98, NULL, NULL, 4, 0, 20, "czc-militia-female-08-kit-skip-head-grp", 0},
-    {"SOFTSHELL JACKET", 1, cz_s99, NULL, NULL, 17, 0, 25, "czc-militia-female-09-kit-skip-head-grp", 0},
-    {"CANVAS JACKET", 1, cz_s100, NULL, NULL, 29, 0, 175, "czc-militia-female-10-kit-skip-head-grp", 0},
-    {"UTILITY VEST", 1, cz_s101, NULL, NULL, 45, 0, 8, "czc-militia-female-11-kit-skip-head-grp", 0},
-    {"DARK JACKET, HARNESS", 1, cz_s102, NULL, NULL, 7, 0, 20, "czc-militia-female-12-kit-skip-head-grp", 0},
-    {"QUILTED VEST", 1, cz_s103, NULL, NULL, 0, 0, 0, "czc-militia-female-13-kit-skip-head-grp", 0},
-    {"ZIP JACKET, HARNESS", 1, cz_s104, NULL, NULL, 31, 0, 50, "czc-militia-female-14-kit-skip-head-grp", 0},
-    {"LIGHT JACKET", 1, cz_s105, NULL, NULL, 54, 0, 8, "czc-militia-female-15-kit-skip-head-grp", 0},
-    {"KELLIE SWEATER", 1, cz_s106, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-head-kit-skip-head-grp", 1}};
-static const char *const cz_s107[] = {"militia-female-a-legs", "militia-female-a-legs-loleg-l", "militia-female-a-legs-loleg-r", "militia-female-a-legs-upleg-l", "militia-female-a-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
-static const char *const cz_s108[] = {"militia-female-b-legs", "militia-female-b-legs-loleg-l", "militia-female-b-legs-loleg-r", "militia-female-b-legs-upleg-l", "militia-female-b-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
-static const char *const cz_s109[] = {"militia-female-c-legs", "militia-female-c-legs-loleg-l", "militia-female-c-legs-loleg-r", "militia-female-c-legs-upleg-l", "militia-female-c-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
-static const char *const cz_s110[] = {"militia-female-d-legs", "militia-female-d-legs-loleg-l", "militia-female-d-legs-loleg-r", "militia-female-d-legs-upleg-l", "militia-female-d-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
-static const char *const cz_s111[] = {"t2r-kl-f-legs-striped-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
-static const char *const cz_s112[] = {"t2r-kl-f-legs-black00-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
+    {"FLEECE VEST", 1, cz_s96, NULL, NULL, 38, 0, 9, "czc-militia-female-01-kit-skip-head-grp", 0},
+    {"HALF-ZIP PULLOVER", 1, cz_s97, NULL, NULL, 41, 0, 25, "czc-militia-female-02-kit-skip-head-grp", 0},
+    {"FIELD JACKET", 1, cz_s98, NULL, NULL, 6, 0, 10, "czc-militia-female-03-kit-skip-head-grp", 0},
+    {"OPEN JACKET", 1, cz_s99, NULL, NULL, 42, 0, 15, "czc-militia-female-04-kit-skip-head-grp", 0},
+    {"QUILTED VEST, HARNESS", 1, cz_s100, NULL, NULL, 11, 0, 80, "czc-militia-female-05-kit-skip-head-grp", 0},
+    {"JACKET AND HOODIE", 1, cz_s101, NULL, NULL, 12, 0, 20, "czc-militia-female-06-kit-skip-head-grp", 0},
+    {"SHELL JACKET, HARNESS", 1, cz_s102, NULL, NULL, 10, 0, 8, "czc-militia-female-07-kit-skip-head-grp", 0},
+    {"PUFFER VEST", 1, cz_s103, NULL, NULL, 4, 0, 20, "czc-militia-female-08-kit-skip-head-grp", 0},
+    {"SOFTSHELL JACKET", 1, cz_s104, NULL, NULL, 17, 0, 25, "czc-militia-female-09-kit-skip-head-grp", 0},
+    {"CANVAS JACKET", 1, cz_s105, NULL, NULL, 29, 0, 175, "czc-militia-female-10-kit-skip-head-grp", 0},
+    {"UTILITY VEST", 1, cz_s106, NULL, NULL, 45, 0, 8, "czc-militia-female-11-kit-skip-head-grp", 0},
+    {"DARK JACKET, HARNESS", 1, cz_s107, NULL, NULL, 7, 0, 20, "czc-militia-female-12-kit-skip-head-grp", 0},
+    {"QUILTED VEST", 1, cz_s108, NULL, NULL, 0, 0, 0, "czc-militia-female-13-kit-skip-head-grp", 0},
+    {"ZIP JACKET, HARNESS", 1, cz_s109, NULL, NULL, 31, 0, 50, "czc-militia-female-14-kit-skip-head-grp", 0},
+    {"LIGHT JACKET", 1, cz_s110, NULL, NULL, 54, 0, 8, "czc-militia-female-15-kit-skip-head-grp", 0},
+    {"KELLIE SWEATER", 1, cz_s111, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-head-kit-skip-head-grp", 1}};
+static const char *const cz_s112[] = {"militia-female-a-legs", "militia-female-a-legs-loleg-l", "militia-female-a-legs-loleg-r", "militia-female-a-legs-upleg-l", "militia-female-a-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
+static const char *const cz_s113[] = {"militia-female-b-legs", "militia-female-b-legs-loleg-l", "militia-female-b-legs-loleg-r", "militia-female-b-legs-upleg-l", "militia-female-b-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
+static const char *const cz_s114[] = {"militia-female-c-legs", "militia-female-c-legs-loleg-l", "militia-female-c-legs-loleg-r", "militia-female-c-legs-upleg-l", "militia-female-c-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
+static const char *const cz_s115[] = {"militia-female-d-legs", "militia-female-d-legs-loleg-l", "militia-female-d-legs-loleg-r", "militia-female-d-legs-upleg-l", "militia-female-d-legs-upleg-r", "militia-female-1hmelee-holster", "militia-female-d-holster", NULL};
+static const char *const cz_s116[] = {"t2r-kl-f-legs-striped-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
+static const char *const cz_s117[] = {"t2r-kl-f-legs-black00-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
 static const cz_item_t cz_l_wlf_f_lower[] = {
-    {"KHAKI CARGO PANTS", 1, cz_s107, NULL, NULL, 25, 0, 55, "czc-militia-female-a-legs-kit-skip-holster", 0},
-    {"BELTED CARGO PANTS", 1, cz_s108, NULL, NULL, 26, 0, 125, "czc-militia-female-b-legs-kit-skip-holster", 0},
-    {"FADED CARGO PANTS", 1, cz_s109, NULL, NULL, 43, 0, 9, "czc-militia-female-c-legs-kit-skip-holster", 0},
-    {"CARGO PANTS, DROP HOLSTER", 1, cz_s110, NULL, NULL, 0, 0, 0, "czc-militia-female-d-legs-kit", 0},
-    {"KELLIE STRIPED", 1, cz_s111, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-striped-skip-holster", 1},
-    {"KELLIE BLACK", 1, cz_s112, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-black-skip-holster", 1}};
-static const char *const cz_s113[] = {"militia-female-backpack-13", NULL};
-static const char *const cz_s114[] = {"militia-female-backpack-04", NULL};
-static const char *const cz_s115[] = {"militia-female-backpack-10", NULL};
+    {"KHAKI CARGO PANTS", 1, cz_s112, NULL, NULL, 25, 0, 55, "czc-militia-female-a-legs-kit-skip-holster", 0},
+    {"BELTED CARGO PANTS", 1, cz_s113, NULL, NULL, 26, 0, 125, "czc-militia-female-b-legs-kit-skip-holster", 0},
+    {"FADED CARGO PANTS", 1, cz_s114, NULL, NULL, 43, 0, 9, "czc-militia-female-c-legs-kit-skip-holster", 0},
+    {"CARGO PANTS, DROP HOLSTER", 1, cz_s115, NULL, NULL, 0, 0, 0, "czc-militia-female-d-legs-kit", 0},
+    {"KELLIE STRIPED", 1, cz_s116, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-striped-skip-holster", 1},
+    {"KELLIE BLACK", 1, cz_s117, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-black-skip-holster", 1}};
+static const char *const cz_s118[] = {"militia-female-backpack-13", NULL};
+static const char *const cz_s119[] = {"militia-female-backpack-04", NULL};
+static const char *const cz_s120[] = {"militia-female-backpack-10", NULL};
 static const cz_item_t cz_l_wlf_f_backpack[] = {
-    {"SCHOOL BAG", 1, cz_s113, NULL, NULL, 0, 0, 0, "czc-militia-female-backpack-13", 0},
-    {"PATCHED RUCKSACK", 1, cz_s114, NULL, NULL, 18, 0, 3, "czc-militia-female-backpack-04", 0},
-    {"TACTICAL PACK", 1, cz_s115, NULL, NULL, 20, 0, 45, "czc-militia-female-backpack-10", 0}};
-static const char *const cz_s116[] = {"militia-female-head-01", "t2r-hh--female-head-01", NULL};
-static const char *const cz_s117[] = {"militia-female-head-02", "t2r-hh--female-head-02", NULL};
-static const char *const cz_s118[] = {"militia-female-head-03", "t2r-hh--female-head-03", NULL};
-static const char *const cz_s119[] = {"militia-female-head-04", "t2r-hh--female-head-04", NULL};
-static const char *const cz_s120[] = {"militia-female-head-05", "t2r-hh--female-head-05", NULL};
-static const char *const cz_s121[] = {"militia-female-head-06", "t2r-hh--female-head-06", NULL};
-static const char *const cz_s122[] = {"militia-female-head-07", "t2r-hh--female-head-07", NULL};
-static const char *const cz_s123[] = {"militia-female-head-09", "t2r-hh--female-head-09", NULL};
-static const char *const cz_s124[] = {"t2r-fh-f-h1ale-head-10", "t2r-fh-f-h4ale-head-09", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", NULL};
-static const char *const cz_s125[] = {"t2r-fh-f-h2ale-head-13", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", NULL};
-static const char *const cz_s126[] = {"militia-female-head-14", "t2r-hh--female-head-14", NULL};
-static const char *const cz_s127[] = {"t2r-fh-f-h3ale-head-15", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", NULL};
-static const char *const cz_s128[] = {"t2r-kl-f-head-kellie01", "t2r-kl-f-acc-kellie-01", "t2r-kl-f-hands-shell-kellie-001", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+    {"SCHOOL BAG", 1, cz_s118, NULL, NULL, 0, 0, 0, "czc-militia-female-backpack-13", 0},
+    {"PATCHED RUCKSACK", 1, cz_s119, NULL, NULL, 18, 0, 3, "czc-militia-female-backpack-04", 0},
+    {"TACTICAL PACK", 1, cz_s120, NULL, NULL, 20, 0, 45, "czc-militia-female-backpack-10", 0}};
+static const char *const cz_s121[] = {"militia-female-head-01", "t2r-hh--female-head-01", "scar-t2r-hff-01-wf01x", NULL};
+static const char *const cz_s122[] = {"militia-female-head-02", "t2r-hh--female-head-02", "scar-t2r-hff-01-wf02xxxxxxxxx", NULL};
+static const char *const cz_s123[] = {"militia-female-head-03", "t2r-hh--female-head-03", "scar-t2r-hff-01-wf03xxxxxxxxx", NULL};
+static const char *const cz_s124[] = {"militia-female-head-04", "t2r-hh--female-head-04", "scar-t2r-hff-01-wf04", NULL};
+static const char *const cz_s125[] = {"militia-female-head-05", "t2r-hh--female-head-05", "scar-t2r-hff-01-wf05xxx", NULL};
+static const char *const cz_s126[] = {"militia-female-head-06", "t2r-hh--female-head-06", "scar-t2r-hff-02-wf06x", NULL};
+static const char *const cz_s127[] = {"militia-female-head-07", "t2r-hh--female-head-07", "scar-t2r-hff-02-wf07xxxxxxxxx", NULL};
+static const char *const cz_s128[] = {"militia-female-head-09", "t2r-hh--female-head-09", "scar-t2r-hff-02-wf09xxxxxxxxx", NULL};
+static const char *const cz_s129[] = {"t2r-fh-f-h1ale-head-10", "t2r-fh-f-h4ale-head-09", "t2r-fh-f-h4ale-09-hair-bare---a", "t2r-fh-f-h4ale-09-hh-patrol---x", "t2r-fh-f-h4ale-09-hh-ball-----x", "t2r-fh-f-h4ale-09-hh-faded----x", "t2r-fh-f-h4ale-09-cwhhx", "t2r-fh-f-x1ale-09-hh-ranch----x", "t2r-fh-f-x1ale-09-hh-beanie---x", "t2r-fh-f-x1ale-09-hh-folded---x", "t2r-fh-f-x1ale-09-hh-wool-----x", "t2r-fh-f-x1ale-09-slhhx", "scar-t2r-hff-02-wf10", NULL};
+static const char *const cz_s130[] = {"t2r-fh-f-h2ale-head-13", "t2r-fh-f-h2ale-13-hairb", "t2r-fh-f-h2ale-13-hh-patrol---a", "t2r-fh-f-h2ale-13-hh-patrol---b", "t2r-fh-f-x1ale-13-bahhx", "t2r-fh-f-x1ale-13-fahx", "t2r-fh-f-x1ale-13-hh-cowboy---a", "t2r-fh-f-x1ale-13-hh-cowboy---b", "t2r-fh-f-x2ale-13-rahhx", "t2r-fh-f-x2ale-13-behx", "t2r-fh-f-x2ale-13-hh-folded---a", "t2r-fh-f-x2ale-13-hh-folded---b", "t2r-fh-f-x3ale-13-wohhx", "t2r-fh-f-x3ale-13-slhx", "scar-t2r-hff-02-wf13xxx", NULL};
+static const char *const cz_s131[] = {"militia-female-head-14", "t2r-hh--female-head-14", "scar-t2r-hff-03-wf14x", NULL};
+static const char *const cz_s132[] = {"t2r-fh-f-h3ale-head-15", "t2r-fh-f-h3ale-15-hair-bare---a", "t2r-fh-f-h3ale-15-hh-patrol---x", "t2r-fh-f-h3ale-15-hh-ball-----x", "t2r-fh-f-h3ale-15-hh-faded----x", "t2r-fh-f-h3ale-15-cwhhx", "t2r-fh-f-x1ale-15-hh-ranch----x", "t2r-fh-f-x1ale-15-hh-beanie---x", "t2r-fh-f-x1ale-15-hh-folded---x", "t2r-fh-f-x1ale-15-hh-wool-----x", "t2r-fh-f-x1ale-15-slhhx", "scar-t2r-hff-03-wf15xxxxxxxxx", NULL};
+static const char *const cz_s133[] = {"t2r-kl-f-head-kellie01", "t2r-kl-f-acc-kellie-01", "t2r-kl-f-hands-shell-kellie-001", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-hood-gasmask-0001", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
 static const cz_item_t cz_l_wlf_f_face[] = {
-    {"FACE 01", 1, cz_s116, NULL, NULL, 22, 0, 3, "czc-militia-female-01-kit-only-head-grp", 0},
-    {"FACE 02", 1, cz_s117, NULL, NULL, 46, 0, 3, "czc-militia-female-02-kit-only-head-grp", 0},
-    {"FACE 03", 1, cz_s118, NULL, NULL, 19, 0, 4, "czc-militia-female-03-kit-only-head-grp", 0},
-    {"FACE 04", 1, cz_s119, NULL, NULL, 5, 0, 4, "czc-militia-female-04-kit-only-head-grp", 0},
-    {"FACE 05", 1, cz_s120, NULL, NULL, 56, 0, 4, "czc-militia-female-05-kit-only-head-grp", 0},
-    {"FACE 06", 1, cz_s121, NULL, NULL, 8, 0, 20, "czc-militia-female-06-kit-only-head-grp", 0},
-    {"FACE 07", 1, cz_s122, NULL, NULL, 39, 0, 40, "czc-militia-female-07-kit-only-head-grp", 0},
-    {"FACE 09", 1, cz_s123, NULL, NULL, 58, 0, 7, "czc-militia-female-09-kit-only-head-grp", 0},
-    {"FACE 10", 1, cz_s124, NULL, NULL, 40, 0, 50, "czc-militia-female-10-kit-only-head-grp", 0},
-    {"FACE 13", 1, cz_s125, NULL, NULL, 0, 0, 0, "czc-militia-female-13-kit-only-head-grp", 0},
-    {"FACE 14", 1, cz_s126, NULL, NULL, 12, 0, 100, "czc-militia-female-14-kit-only-head-grp", 0},
-    {"FACE 15", 1, cz_s127, NULL, NULL, 4, 0, 60, "czc-militia-female-15-kit-only-head-grp", 0},
-    {"KELLIE", 1, cz_s128, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-head-kit-only-head-grp", 0}};
+    {"FACE 01", 1, cz_s121, NULL, NULL, 22, 0, 3, "czc-militia-female-01-kit-only-head-grp", 0},
+    {"FACE 02", 1, cz_s122, NULL, NULL, 46, 0, 3, "czc-militia-female-02-kit-only-head-grp", 0},
+    {"FACE 03", 1, cz_s123, NULL, NULL, 19, 0, 4, "czc-militia-female-03-kit-only-head-grp", 0},
+    {"FACE 04", 1, cz_s124, NULL, NULL, 5, 0, 4, "czc-militia-female-04-kit-only-head-grp", 0},
+    {"FACE 05", 1, cz_s125, NULL, NULL, 56, 0, 4, "czc-militia-female-05-kit-only-head-grp", 0},
+    {"FACE 06", 1, cz_s126, NULL, NULL, 8, 0, 20, "czc-militia-female-06-kit-only-head-grp", 0},
+    {"FACE 07", 1, cz_s127, NULL, NULL, 39, 0, 40, "czc-militia-female-07-kit-only-head-grp", 0},
+    {"FACE 09", 1, cz_s128, NULL, NULL, 58, 0, 7, "czc-militia-female-09-kit-only-head-grp", 0},
+    {"FACE 10", 1, cz_s129, NULL, NULL, 40, 0, 50, "czc-militia-female-10-kit-only-head-grp", 0},
+    {"FACE 13", 1, cz_s130, NULL, NULL, 0, 0, 0, "czc-militia-female-13-kit-only-head-grp", 0},
+    {"FACE 14", 1, cz_s131, NULL, NULL, 12, 0, 100, "czc-militia-female-14-kit-only-head-grp", 0},
+    {"FACE 15", 1, cz_s132, NULL, NULL, 4, 0, 60, "czc-militia-female-15-kit-only-head-grp", 0},
+    {"KELLIE", 1, cz_s133, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-head-kit-only-head-grp", 0}};
 static const cz_item_t cz_l_wlf_f_melee[] = {
     {"FISTS", 1, NULL, NULL, NULL, 0, 0, 0, "czc-melee-fists", 0},
     {"KNIFE", 1, NULL, NULL, NULL, 21, 0, 25, "czc-melee-knife", 0}};
-static const char *const cz_s129[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
-static const char *const cz_s130[] = {"militia-female-mask-03", NULL};
-static const char *const cz_s131[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s132[] = {"t2r-gm-f-dina", NULL};
-static const char *const cz_s133[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s134[] = {"t2r-gm-f-ellie", NULL};
-static const char *const cz_s135[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s136[] = {"t2r-gm-f-abby", NULL};
-static const char *const cz_s137[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s138[] = {"t2r-gm-f-lev", NULL};
-static const char *const cz_s139[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s140[] = {"t2r-gm-f-bong-a", NULL};
-static const char *const cz_s141[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s142[] = {"scar-t2r-mask03-torso", NULL};
-static const char *const cz_s143[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+static const char *const cz_s134[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s135[] = {"militia-female-mask-03", NULL};
+static const char *const cz_s136[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s137[] = {"t2r-gm-f-dina", NULL};
+static const char *const cz_s138[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s139[] = {"t2r-gm-f-ellie", NULL};
+static const char *const cz_s140[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s141[] = {"t2r-gm-f-abby", NULL};
+static const char *const cz_s142[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s143[] = {"t2r-gm-f-lev", NULL};
+static const char *const cz_s144[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s145[] = {"t2r-gm-f-bong-a", NULL};
+static const char *const cz_s146[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-01-wf01x", "scar-t2r-hff-01-wf02xxxxxxxxx", "scar-t2r-hff-01-wf03xxxxxxxxx", "scar-t2r-hff-01-wf04", "scar-t2r-hff-01-wf05xxx", "scar-t2r-hff-02-wf06x", "scar-t2r-hff-02-wf07xxxxxxxxx", "scar-t2r-hff-02-wf09xxxxxxxxx", "scar-t2r-hff-02-wf10", "scar-t2r-hff-02-wf13xxx", "scar-t2r-hff-03-wf14x", "scar-t2r-hff-03-wf15xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s147[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
 static const cz_item_t cz_l_wlf_f_mask[] = {
-    {"NONE", 1, NULL, NULL, cz_s129, 0, 0, 0, NULL, 0},
-    {"GAS MASK", 1, cz_s130, NULL, cz_s131, 33, 0, 9, "czc-militia-female-mask-03", 0},
-    {"DINA'S GAS MASK", 1, cz_s132, NULL, cz_s133, 13, 0, 25, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-dina", 0},
-    {"ELLIE'S GAS MASK", 1, cz_s134, NULL, cz_s135, 22, 0, 8, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-ellie", 0},
-    {"ABBY'S GAS MASK", 1, cz_s136, NULL, cz_s137, 60, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-abby", 0},
-    {"LEV'S GAS MASK", 1, cz_s138, NULL, cz_s139, 30, 0, 125, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-lev", 0},
-    {"BONG MASK", 1, cz_s140, NULL, cz_s141, 3, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-bong-a", 0},
-    {"HALF MASK", 1, cz_s142, NULL, cz_s143, 23, 0, 9, "czc-scar-female-head-11-scar-t2r-mask03-kit-only-kerchief", 0}};
+    {"NONE", 1, NULL, NULL, cz_s134, 0, 0, 0, NULL, 0},
+    {"GAS MASK", 1, cz_s135, NULL, cz_s136, 53, 0, 9, "czc-militia-female-mask-03", 0},
+    {"DINA'S GAS MASK", 1, cz_s137, NULL, cz_s138, 13, 0, 25, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-dina", 0},
+    {"ELLIE'S GAS MASK", 1, cz_s139, NULL, cz_s140, 22, 0, 8, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-ellie", 0},
+    {"ABBY'S GAS MASK", 1, cz_s141, NULL, cz_s142, 60, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-abby", 0},
+    {"LEV'S GAS MASK", 1, cz_s143, NULL, cz_s144, 30, 0, 125, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-lev", 0},
+    {"BONG MASK", 1, cz_s145, NULL, cz_s146, 3, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-bong-a", 0},
+    {"HALF MASK", 1, NULL, NULL, cz_s147, 33, 0, 15, "czc-halfmask-scar-t2r-hff-01-kit-wf04", 0}};
 static const cz_item_t cz_l_wlf_f_sex[] = {
     {"MALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
     {"FEMALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0}};
-static const char *const cz_s144[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s145[] = {"scar-male-hoodup", NULL};
-static const char *const cz_s146[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s147[] = {"scar-male-hooddown", NULL};
+static const char *const cz_s148[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s149[] = {"scar-male-hoodup", NULL};
+static const char *const cz_s150[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s151[] = {"scar-male-hooddown", NULL};
 static const cz_item_t cz_l_scar_m_hat[] = {
-    {"HOOD DOWN", 1, cz_s144, NULL, cz_s145, 0, 0, 0, "czc-scar-male-hooddown", 0},
-    {"HOOD UP", 1, cz_s146, NULL, cz_s147, 30, 0, 20, "czc-scar-male-hoodup", 0}};
-static const char *const cz_s148[] = {"scar-male-b-jacket-torso", "scar-male-b-jacket-torso-loarm-l", "scar-male-b-jacket-torso-loarm-r", "scar-male-b-jacket-torso-uparm-l", "scar-male-b-jacket-torso-uparm-r", NULL};
-static const char *const cz_s149[] = {"scar-male-b-jacket-cloth", NULL};
-static const char *const cz_s150[] = {"scar-t2r-shirt1m-civilian-torso02", "scar-t2r-skn-shr1m-torso", "scar-t2r-skn-shr1m-torso-loarm-l", "scar-t2r-skn-shr1m-torso-loarm-r", "scar-t2r-skn-shr1m-torso-uparm-l", "scar-t2r-skn-shr1m-torso-uparm-r", NULL};
-static const char *const cz_s151[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s152[] = {"scar-t2r-shirt2m-civilian-torso01", "scar-t2r-skn-shr2m-torso", "scar-t2r-skn-shr2m-torso-loarm-l", "scar-t2r-skn-shr2m-torso-loarm-r", "scar-t2r-skn-shr2m-torso-uparm-l", "scar-t2r-skn-shr2m-torso-uparm-r", NULL};
-static const char *const cz_s153[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s154[] = {"scar-t2r-shirt1m-prisoner-torso01", "scar-t2r-skn-pri1m-torso", "scar-t2r-skn-pri1m-torso-loarm-l", "scar-t2r-skn-pri1m-torso-loarm-r", "scar-t2r-skn-pri1m-torso-uparm-l", "scar-t2r-skn-pri1m-torso-uparm-r", NULL};
+    {"HOOD DOWN", 1, cz_s148, NULL, cz_s149, 0, 0, 0, "czc-scar-male-hooddown", 0},
+    {"HOOD UP", 1, cz_s150, NULL, cz_s151, 30, 0, 20, "czc-scar-male-hoodup", 0}};
+static const char *const cz_s152[] = {"scar-male-b-jacket-torso", "scar-male-b-jacket-torso-loarm-l", "scar-male-b-jacket-torso-loarm-r", "scar-male-b-jacket-torso-uparm-l", "scar-male-b-jacket-torso-uparm-r", NULL};
+static const char *const cz_s153[] = {"scar-male-b-jacket-cloth", NULL};
+static const char *const cz_s154[] = {"scar-t2r-shirt1m-civilian-torso02", "scar-t2r-skn-shr1m-torso", "scar-t2r-skn-shr1m-torso-loarm-l", "scar-t2r-skn-shr1m-torso-loarm-r", "scar-t2r-skn-shr1m-torso-uparm-l", "scar-t2r-skn-shr1m-torso-uparm-r", NULL};
 static const char *const cz_s155[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s156[] = {"scar-t2r-shirt2m-prisoner-torso02", "scar-t2r-skn-pri2m-torso", "scar-t2r-skn-pri2m-torso-loarm-l", "scar-t2r-skn-pri2m-torso-loarm-r", "scar-t2r-skn-pri2m-torso-uparm-l", "scar-t2r-skn-pri2m-torso-uparm-r", NULL};
+static const char *const cz_s156[] = {"scar-t2r-shirt2m-civilian-torso01", "scar-t2r-skn-shr2m-torso", "scar-t2r-skn-shr2m-torso-loarm-l", "scar-t2r-skn-shr2m-torso-loarm-r", "scar-t2r-skn-shr2m-torso-uparm-l", "scar-t2r-skn-shr2m-torso-uparm-r", NULL};
 static const char *const cz_s157[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s158[] = {"scar-t2r-brutem-shirt-civ01-crowd", "scar-t2r-brutem-01-torso", "scar-t2r-skn-brutm-torso", "scar-t2r-skn-brutm-torso-loarm-l", "scar-t2r-skn-brutm-torso-loarm-r", "scar-t2r-skn-brutm-torso-uparm-l", "scar-t2r-skn-brutm-torso-uparm-r", NULL};
+static const char *const cz_s158[] = {"scar-t2r-shirt1m-prisoner-torso01", "scar-t2r-skn-pri1m-torso", "scar-t2r-skn-pri1m-torso-loarm-l", "scar-t2r-skn-pri1m-torso-loarm-r", "scar-t2r-skn-pri1m-torso-uparm-l", "scar-t2r-skn-pri1m-torso-uparm-r", NULL};
 static const char *const cz_s159[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s160[] = {"scar-t2r-skn-tortm-torso", "scar-t2r-skn-tortm-torso-loarm-l", "scar-t2r-skn-tortm-torso-loarm-r", "scar-t2r-skn-tortm-torso-uparm-l", "scar-t2r-skn-tortm-torso-uparm-r", NULL};
+static const char *const cz_s160[] = {"scar-t2r-shirt2m-prisoner-torso02", "scar-t2r-skn-pri2m-torso", "scar-t2r-skn-pri2m-torso-loarm-l", "scar-t2r-skn-pri2m-torso-loarm-r", "scar-t2r-skn-pri2m-torso-uparm-l", "scar-t2r-skn-pri2m-torso-uparm-r", NULL};
 static const char *const cz_s161[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s162[] = {"scar-t2r-elder1", "scar-t2r-handm-kit-torso", "scar-t2r-handm-kit-torso-loarm-l", "scar-t2r-handm-kit-torso-loarm-r", "scar-t2r-handm-kit-torso-uparm-l", "scar-t2r-handm-kit-torso-uparm-r", NULL};
+static const char *const cz_s162[] = {"scar-t2r-brutem-shirt-civ01-crowd", "scar-t2r-brutem-01-torso", "scar-t2r-skn-brutm-torso", "scar-t2r-skn-brutm-torso-loarm-l", "scar-t2r-skn-brutm-torso-loarm-r", "scar-t2r-skn-brutm-torso-uparm-l", "scar-t2r-skn-brutm-torso-uparm-r", NULL};
 static const char *const cz_s163[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s164[] = {"scar-t2r-elder2m", "scar-t2r-skn-reubm-torso", "scar-t2r-skn-reubm-torso-loarm-l", "scar-t2r-skn-reubm-torso-loarm-r", "scar-t2r-skn-reubm-torso-uparm-l", "scar-t2r-skn-reubm-torso-uparm-r", NULL};
-static const char *const cz_s165[] = {"scar-t2r-elder2m-jkcloth", NULL};
-static const char *const cz_s166[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
-static const char *const cz_s167[] = {"scar-t2r-isle1m", "scar-t2r-handm-kit-torso", "scar-t2r-handm-kit-torso-loarm-l", "scar-t2r-handm-kit-torso-loarm-r", "scar-t2r-handm-kit-torso-uparm-l", "scar-t2r-handm-kit-torso-uparm-r", NULL};
-static const char *const cz_s168[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s164[] = {"scar-t2r-skn-tortm-torso", "scar-t2r-skn-tortm-torso-loarm-l", "scar-t2r-skn-tortm-torso-loarm-r", "scar-t2r-skn-tortm-torso-uparm-l", "scar-t2r-skn-tortm-torso-uparm-r", NULL};
+static const char *const cz_s165[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s166[] = {"scar-t2r-elder1", "scar-t2r-handm-kit-torso", "scar-t2r-handm-kit-torso-loarm-l", "scar-t2r-handm-kit-torso-loarm-r", "scar-t2r-handm-kit-torso-uparm-l", "scar-t2r-handm-kit-torso-uparm-r", NULL};
+static const char *const cz_s167[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s168[] = {"scar-t2r-elder2m", "scar-t2r-skn-reubm-torso", "scar-t2r-skn-reubm-torso-loarm-l", "scar-t2r-skn-reubm-torso-loarm-r", "scar-t2r-skn-reubm-torso-uparm-l", "scar-t2r-skn-reubm-torso-uparm-r", NULL};
+static const char *const cz_s169[] = {"scar-t2r-elder2m-jkcloth", NULL};
+static const char *const cz_s170[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
+static const char *const cz_s171[] = {"scar-t2r-isle1m", "scar-t2r-handm-kit-torso", "scar-t2r-handm-kit-torso-loarm-l", "scar-t2r-handm-kit-torso-loarm-r", "scar-t2r-handm-kit-torso-uparm-l", "scar-t2r-handm-kit-torso-uparm-r", NULL};
+static const char *const cz_s172[] = {"scar-male-hooddown", "scar-male-hoodup", NULL};
 static const cz_item_t cz_l_scar_m_torso[] = {
-    {"WEATHERED RAINCOAT", 1, cz_s148, cz_s149, NULL, 0, 0, 0, "czc-scar-male-b-jacket-kit-skip-head-grp-scar-male-b-jacket-cloth", 0},
-    {"LINEN SHIRT", 1, cz_s150, NULL, cz_s151, 30, 0, 25, "czc-scar-t2r-shirt1m-civilian-torso02", 0},
-    {"ROLLED-SLEEVE SHIRT", 1, cz_s152, NULL, cz_s153, 23, 0, 15, "czc-scar-t2r-shirt2m-civilian-torso01", 0},
-    {"RAGGED SHIRT", 1, cz_s154, NULL, cz_s155, 17, 0, 6, "czc-scar-t2r-shirt1m-prisoner-torso01", 0},
-    {"OPEN RAGGED SHIRT", 1, cz_s156, NULL, cz_s157, 33, 0, 25, "czc-scar-t2r-shirt2m-prisoner-torso02-scar-t2r-skn-pri2m-kit-skip-head-grp", 0},
-    {"SHIRT, KNIFE HARNESS", 1, cz_s158, NULL, cz_s159, 4, 0, 60, "czc-scar-t2r-brutem-shirt-civ01-crowd-scar-t2r-brutem-01-torso", 0},
-    {"TORTURED", 1, cz_s160, NULL, cz_s161, 64, 0, 1, "czc-scar-t2r-skn-tortm-kit-skip-head-grp", 0},
-    {"ELDER'S TUNIC", 1, cz_s162, NULL, cz_s163, 27, 0, 175, "czc-scar-t2r-elder1", 0},
-    {"ELDER'S HOODED COAT", 1, cz_s164, cz_s165, cz_s166, 61, 0, 1, "czc-scar-t2r-elder2m-scar-t2r-elder2m-jkcloth", 0},
-    {"ISLANDER SHIRT", 1, cz_s167, NULL, cz_s168, 33, 0, 70, "czc-scar-t2r-isle1m", 0}};
-static const char *const cz_s169[] = {"scar-male-a-legs", "scar-male-a-legs-loleg-l", "scar-male-a-legs-loleg-r", "scar-male-a-legs-upleg-l", "scar-male-a-legs-upleg-r", NULL};
-static const char *const cz_s170[] = {"scar-male-b-legs", "scar-male-b-legs-loleg-l", "scar-male-b-legs-loleg-r", "scar-male-b-legs-upleg-l", "scar-male-b-legs-upleg-r", NULL};
-static const char *const cz_s171[] = {"scar-male-c-legs", "scar-male-c-legs-loleg-l", "scar-male-c-legs-loleg-r", "scar-male-c-legs-upleg-l", "scar-male-c-legs-upleg-r", NULL};
-static const char *const cz_s172[] = {"scar-prisoner-male-legs-01", NULL};
+    {"WEATHERED RAINCOAT", 1, cz_s152, cz_s153, NULL, 0, 0, 0, "czc-scar-male-b-jacket-kit-skip-head-grp-scar-male-b-jacket-cloth", 0},
+    {"LINEN SHIRT", 1, cz_s154, NULL, cz_s155, 30, 0, 25, "czc-scar-t2r-shirt1m-civilian-torso02", 0},
+    {"ROLLED-SLEEVE SHIRT", 1, cz_s156, NULL, cz_s157, 23, 0, 15, "czc-scar-t2r-shirt2m-civilian-torso01", 0},
+    {"RAGGED SHIRT", 1, cz_s158, NULL, cz_s159, 17, 0, 6, "czc-scar-t2r-shirt1m-prisoner-torso01", 0},
+    {"OPEN RAGGED SHIRT", 1, cz_s160, NULL, cz_s161, 33, 0, 25, "czc-scar-t2r-shirt2m-prisoner-torso02-scar-t2r-skn-pri2m-kit-skip-head-grp", 0},
+    {"SHIRT, KNIFE HARNESS", 1, cz_s162, NULL, cz_s163, 4, 0, 60, "czc-scar-t2r-brutem-shirt-civ01-crowd-scar-t2r-brutem-01-torso", 0},
+    {"TORTURED", 1, cz_s164, NULL, cz_s165, 64, 0, 1, "czc-scar-t2r-skn-tortm-kit-skip-head-grp", 0},
+    {"ELDER'S TUNIC", 1, cz_s166, NULL, cz_s167, 27, 0, 175, "czc-scar-t2r-elder1", 0},
+    {"ELDER'S HOODED COAT", 1, cz_s168, cz_s169, cz_s170, 61, 0, 1, "czc-scar-t2r-elder2m-scar-t2r-elder2m-jkcloth", 0},
+    {"ISLANDER SHIRT", 1, cz_s171, NULL, cz_s172, 33, 0, 70, "czc-scar-t2r-isle1m", 0}};
+static const char *const cz_s173[] = {"scar-male-a-legs", "scar-male-a-legs-loleg-l", "scar-male-a-legs-loleg-r", "scar-male-a-legs-upleg-l", "scar-male-a-legs-upleg-r", NULL};
+static const char *const cz_s174[] = {"scar-male-b-legs", "scar-male-b-legs-loleg-l", "scar-male-b-legs-loleg-r", "scar-male-b-legs-upleg-l", "scar-male-b-legs-upleg-r", NULL};
+static const char *const cz_s175[] = {"scar-male-c-legs", "scar-male-c-legs-loleg-l", "scar-male-c-legs-loleg-r", "scar-male-c-legs-upleg-l", "scar-male-c-legs-upleg-r", NULL};
+static const char *const cz_s176[] = {"scar-prisoner-male-legs-01", NULL};
 static const cz_item_t cz_l_scar_m_lower[] = {
-    {"LINEN TROUSERS", 1, cz_s169, NULL, NULL, 0, 0, 0, "czc-scar-male-a-legs-kit-skip-holster", 0},
-    {"FIELD TROUSERS", 1, cz_s170, NULL, NULL, 22, 0, 3, "czc-scar-male-b-legs-kit-skip-holster", 0},
-    {"WORK TROUSERS", 1, cz_s171, NULL, NULL, 33, 0, 15, "czc-scar-male-c-legs-kit-skip-holster", 0},
-    {"RAGGED TROUSERS", 3, cz_s172, NULL, NULL, 47, 0, 10, "czc-scar-prisoner-male-legs-01-crowd-skip-holster", 0}};
-static const char *const cz_s173[] = {"scar-t2r-bp-rigged", NULL};
+    {"LINEN TROUSERS", 1, cz_s173, NULL, NULL, 0, 0, 0, "czc-scar-male-a-legs-kit-skip-holster", 0},
+    {"FIELD TROUSERS", 1, cz_s174, NULL, NULL, 22, 0, 3, "czc-scar-male-b-legs-kit-skip-holster", 0},
+    {"WORK TROUSERS", 1, cz_s175, NULL, NULL, 33, 0, 15, "czc-scar-male-c-legs-kit-skip-holster", 0},
+    {"RAGGED TROUSERS", 3, cz_s176, NULL, NULL, 47, 0, 10, "czc-scar-prisoner-male-legs-01-crowd-skip-holster", 0}};
+static const char *const cz_s177[] = {"scar-t2r-bp-rigged", NULL};
 static const cz_item_t cz_l_scar_m_backpack[] = {
-    {"LEATHER RUCKSACK", 1, cz_s173, NULL, NULL, 0, 0, 0, "czc-scar-male-backpack", 0}};
-static const char *const cz_s174[] = {"scar-male-head-01", NULL};
-static const char *const cz_s175[] = {"scar-male-head-02", NULL};
-static const char *const cz_s176[] = {"scar-male-head-03", NULL};
-static const char *const cz_s177[] = {"scar-male-head-04", NULL};
-static const char *const cz_s178[] = {"scar-male-head-05", NULL};
-static const char *const cz_s179[] = {"scar-male-head-06", NULL};
-static const char *const cz_s180[] = {"scar-male-head-07", NULL};
-static const char *const cz_s181[] = {"scar-male-head-08", NULL};
-static const char *const cz_s182[] = {"scar-male-head-09", NULL};
-static const char *const cz_s183[] = {"scar-male-head-10", NULL};
-static const char *const cz_s184[] = {"scar-male-head-11", NULL};
-static const char *const cz_s185[] = {"scar-male-head-12", NULL};
-static const char *const cz_s186[] = {"scar-male-head-13", NULL};
+    {"LEATHER RUCKSACK", 1, cz_s177, NULL, NULL, 0, 0, 0, "czc-scar-male-backpack", 0}};
+static const char *const cz_s178[] = {"scar-male-head-01", "scar-t2r-hfm-03-sm01x", NULL};
+static const char *const cz_s179[] = {"scar-male-head-02", "scar-t2r-hfm-03-sm02xxxxxxxxx", NULL};
+static const char *const cz_s180[] = {"scar-male-head-03", "scar-t2r-hfm-03-sm03xxxxxxxxx", NULL};
+static const char *const cz_s181[] = {"scar-male-head-04", "scar-t2r-hfm-03-sm04", NULL};
+static const char *const cz_s182[] = {"scar-male-head-05", "scar-t2r-hfm-03-sm05xxx", NULL};
+static const char *const cz_s183[] = {"scar-male-head-06", "scar-t2r-hfm-04-sm06x", NULL};
+static const char *const cz_s184[] = {"scar-male-head-07", "scar-t2r-hfm-04-sm07xxxxxxxxx", NULL};
+static const char *const cz_s185[] = {"scar-male-head-08", "scar-t2r-hfm-04-sm08xxxxxxxxx", NULL};
+static const char *const cz_s186[] = {"scar-male-head-09", "scar-t2r-hfm-04-sm09", NULL};
+static const char *const cz_s187[] = {"scar-male-head-10", "scar-t2r-hfm-04-sm10xxx", NULL};
+static const char *const cz_s188[] = {"scar-male-head-11", "scar-t2r-hfm-05-sm11x", NULL};
+static const char *const cz_s189[] = {"scar-male-head-12", "scar-t2r-hfm-05-sm12xxxxxxxxx", NULL};
+static const char *const cz_s190[] = {"scar-male-head-13", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
 static const cz_item_t cz_l_scar_m_face[] = {
-    {"FACE 01", 1, cz_s174, NULL, NULL, 50, 0, 3, "czc-scar-male-head-01", 0},
-    {"FACE 02", 2, cz_s175, NULL, NULL, 5, 0, 15, "czc-scar-male-head-02", 0},
-    {"FACE 03", 1, cz_s176, NULL, NULL, 35, 0, 15, "czc-scar-male-head-03", 0},
-    {"FACE 04", 1, cz_s177, NULL, NULL, 52, 0, 3, "czc-scar-male-head-04", 0},
-    {"FACE 05", 1, cz_s178, NULL, NULL, 36, 0, 20, "czc-scar-male-head-05", 0},
-    {"FACE 06", 1, cz_s179, NULL, NULL, 37, 0, 20, "czc-scar-male-head-06", 0},
-    {"FACE 07", 1, cz_s180, NULL, NULL, 55, 0, 5, "czc-scar-male-head-07", 0},
-    {"FACE 08", 1, cz_s181, NULL, NULL, 22, 0, 5, "czc-scar-male-head-08", 0},
-    {"FACE 09", 1, cz_s182, NULL, NULL, 46, 0, 6, "czc-scar-male-head-09", 0},
-    {"FACE 10", 1, cz_s183, NULL, NULL, 9, 0, 1, "czc-scar-male-head-10", 0},
-    {"FACE 11", 1, cz_s184, NULL, NULL, 2, 0, 2, "czc-scar-male-head-11", 0},
-    {"FACE 12", 1, cz_s185, NULL, NULL, 19, 0, 15, "czc-scar-male-head-12", 0},
-    {"FACE 13", 1, cz_s186, NULL, NULL, 0, 0, 0, "czc-scar-male-head-13", 0}};
+    {"FACE 01", 1, cz_s178, NULL, NULL, 50, 0, 3, "czc-scar-male-head-01", 0},
+    {"FACE 02", 2, cz_s179, NULL, NULL, 5, 0, 15, "czc-scar-male-head-02", 0},
+    {"FACE 03", 1, cz_s180, NULL, NULL, 35, 0, 15, "czc-scar-male-head-03", 0},
+    {"FACE 04", 1, cz_s181, NULL, NULL, 52, 0, 3, "czc-scar-male-head-04", 0},
+    {"FACE 05", 1, cz_s182, NULL, NULL, 36, 0, 20, "czc-scar-male-head-05", 0},
+    {"FACE 06", 1, cz_s183, NULL, NULL, 37, 0, 20, "czc-scar-male-head-06", 0},
+    {"FACE 07", 1, cz_s184, NULL, NULL, 55, 0, 5, "czc-scar-male-head-07", 0},
+    {"FACE 08", 1, cz_s185, NULL, NULL, 22, 0, 5, "czc-scar-male-head-08", 0},
+    {"FACE 09", 1, cz_s186, NULL, NULL, 46, 0, 6, "czc-scar-male-head-09", 0},
+    {"FACE 10", 1, cz_s187, NULL, NULL, 9, 0, 1, "czc-scar-male-head-10", 0},
+    {"FACE 11", 1, cz_s188, NULL, NULL, 2, 0, 2, "czc-scar-male-head-11", 0},
+    {"FACE 12", 1, cz_s189, NULL, NULL, 19, 0, 15, "czc-scar-male-head-12", 0},
+    {"FACE 13", 1, cz_s190, NULL, NULL, 0, 0, 0, "czc-scar-male-head-13", 0}};
 static const cz_item_t cz_l_scar_m_melee[] = {
     {"FISTS", 1, NULL, NULL, NULL, 0, 0, 0, "czc-melee-fists", 0},
     {"KNIFE", 1, NULL, NULL, NULL, 21, 0, 25, "czc-melee-knife", 0}};
-static const char *const cz_s187[] = {"scar-t2r-mask01-torso", NULL};
-static const char *const cz_s188[] = {"scar-t2r-mask02-torso", NULL};
-static const char *const cz_s189[] = {"militia-male-mask-02", NULL};
-static const char *const cz_s190[] = {"t2r-gm-m-dina", NULL};
-static const char *const cz_s191[] = {"t2r-gm-m-ellie", NULL};
-static const char *const cz_s192[] = {"t2r-gm-m-abby", NULL};
-static const char *const cz_s193[] = {"t2r-gm-m-lev", NULL};
-static const char *const cz_s194[] = {"t2r-gm-m-bong-a", NULL};
+static const char *const cz_s191[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s192[] = {"militia-male-mask-02", NULL};
+static const char *const cz_s193[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s194[] = {"t2r-gm-m-dina", NULL};
+static const char *const cz_s195[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s196[] = {"t2r-gm-m-ellie", NULL};
+static const char *const cz_s197[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s198[] = {"t2r-gm-m-abby", NULL};
+static const char *const cz_s199[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s200[] = {"t2r-gm-m-lev", NULL};
+static const char *const cz_s201[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
+static const char *const cz_s202[] = {"t2r-gm-m-bong-a", NULL};
+static const char *const cz_s203[] = {"scar-t2r-hfm-03-sm01x", "scar-t2r-hfm-03-sm02xxxxxxxxx", "scar-t2r-hfm-03-sm03xxxxxxxxx", "scar-t2r-hfm-03-sm04", "scar-t2r-hfm-03-sm05xxx", "scar-t2r-hfm-04-sm06x", "scar-t2r-hfm-04-sm07xxxxxxxxx", "scar-t2r-hfm-04-sm08xxxxxxxxx", "scar-t2r-hfm-04-sm09", "scar-t2r-hfm-04-sm10xxx", "scar-t2r-hfm-05-sm11x", "scar-t2r-hfm-05-sm12xxxxxxxxx", "scar-t2r-hfm-05-sm13xxxxxxxxx", NULL};
 static const cz_item_t cz_l_scar_m_mask[] = {
-    {"NONE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
-    {"HALF MASK I", 1, cz_s187, NULL, NULL, 14, 0, 9, "czc-scar-male-head-13-scar-t2r-mask01-kit-only-kerchief", 0},
-    {"HALF MASK II", 1, cz_s188, NULL, NULL, 27, 0, 25, "czc-scar-male-head-06-scar-t2r-mask02-kit-only-kerchief", 0},
-    {"GAS MASK", 1, cz_s189, NULL, NULL, 57, 0, 4, "czc-militia-male-mask-02", 0},
-    {"DINA'S GAS MASK", 1, cz_s190, NULL, NULL, 13, 0, 25, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-dina", 0},
-    {"ELLIE'S GAS MASK", 1, cz_s191, NULL, NULL, 22, 0, 8, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-ellie", 0},
-    {"ABBY'S GAS MASK", 1, cz_s192, NULL, NULL, 60, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-abby", 0},
-    {"LEV'S GAS MASK", 1, cz_s193, NULL, NULL, 30, 0, 125, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-lev", 0},
-    {"BONG MASK", 1, cz_s194, NULL, NULL, 3, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-bong-a", 0}};
+    {"NONE", 1, NULL, NULL, cz_s191, 0, 0, 0, NULL, 0},
+    {"HALF MASK", 1, NULL, NULL, NULL, 23, 0, 6, "czc-halfmask-scar-t2r-hfm-02-kit-wm14", 0},
+    {"GAS MASK", 1, cz_s192, NULL, cz_s193, 14, 0, 15, "czc-militia-male-mask-02", 0},
+    {"DINA'S GAS MASK", 1, cz_s194, NULL, cz_s195, 13, 0, 25, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-dina", 0},
+    {"ELLIE'S GAS MASK", 1, cz_s196, NULL, cz_s197, 22, 0, 8, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-ellie", 0},
+    {"ABBY'S GAS MASK", 1, cz_s198, NULL, cz_s199, 60, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-abby", 0},
+    {"LEV'S GAS MASK", 1, cz_s200, NULL, cz_s201, 30, 0, 125, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-lev", 0},
+    {"BONG MASK", 1, cz_s202, NULL, cz_s203, 3, 0, 1, "czc-militia-male-04-kit-only-head-grp-t2r-gm-m-bong-a", 0}};
 static const cz_item_t cz_l_scar_m_sex[] = {
     {"MALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
     {"FEMALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0}};
-static const char *const cz_s195[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s196[] = {"scar-female-hoodup", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
-static const char *const cz_s197[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s198[] = {"scar-female-hooddown", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", NULL};
-static const char *const cz_s199[] = {"t2r-kl-f-ears-kellie-part-001", NULL};
-static const char *const cz_s200[] = {"t2r-kl-f-tail-cloth-kellie", NULL};
-static const char *const cz_s201[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+static const char *const cz_s204[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s205[] = {"scar-female-hoodup", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+static const char *const cz_s206[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s207[] = {"scar-female-hooddown", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", NULL};
+static const char *const cz_s208[] = {"t2r-kl-f-ears-kellie-part-001", NULL};
+static const char *const cz_s209[] = {"t2r-kl-f-tail-cloth-kellie", NULL};
+static const char *const cz_s210[] = {"t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
 static const cz_item_t cz_l_scar_f_hat[] = {
-    {"HOOD DOWN", 1, cz_s195, NULL, cz_s196, 0, 0, 0, "czc-scar-female-hooddown", 0},
-    {"HOOD UP", 1, cz_s197, NULL, cz_s198, 22, 0, 3, "czc-scar-female-hoodup", 0},
-    {"KELLIE EARS", 1, cz_s199, cz_s200, cz_s201, 59, 0, 1, "czc-t2r-kl-f-ears", 1}};
-static const char *const cz_s202[] = {"scar-female-b-jacket-torso", "scar-female-b-jacket-torso-loarm-l", "scar-female-b-jacket-torso-loarm-r", "scar-female-b-jacket-torso-uparm-l", "scar-female-b-jacket-torso-uparm-r", NULL};
-static const char *const cz_s203[] = {"scar-female-b-jacket-cloth", NULL};
-static const char *const cz_s204[] = {"scar-t2r-shirt1f-civilianf-torso-02", "scar-t2r-handf-kit01-torso", "scar-t2r-handf-kit01-torso-loarm-l", "scar-t2r-handf-kit01-torso-loarm-r", "scar-t2r-handf-kit01-torso-uparm-l", "scar-t2r-handf-kit01-torso-uparm-r", NULL};
-static const char *const cz_s205[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s206[] = {"scar-t2r-shirt2f-civilian-torso01", "scar-t2r-handf-kit01-torso", "scar-t2r-handf-kit01-torso-loarm-l", "scar-t2r-handf-kit01-torso-loarm-r", "scar-t2r-handf-kit01-torso-uparm-l", "scar-t2r-handf-kit01-torso-uparm-r", NULL};
-static const char *const cz_s207[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s208[] = {"scar-t2r-shirt1f-prisonerf-torso-01", "scar-t2r-skn-pris1fx-torso", "scar-t2r-skn-pris1fx-torso-loarm-l", "scar-t2r-skn-pris1fx-torso-loarm-r", "scar-t2r-skn-pris1fx-torso-uparm-l", "scar-t2r-skn-pris1fx-torso-uparm-r", NULL};
-static const char *const cz_s209[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s210[] = {"scar-t2r-shirt2f-prisonerf-torso-02", "scar-t2r-skn-pris2fx-torso", "scar-t2r-skn-pris2fx-torso-loarm-l", "scar-t2r-skn-pris2fx-torso-loarm-r", "scar-t2r-skn-pris2fx-torso-uparm-l", "scar-t2r-skn-pris2fx-torso-uparm-r", NULL};
-static const char *const cz_s211[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s212[] = {"scar-t2r-brutefem-01-torso", "scar-t2r-brutefem-01-torso-uparm-l", "scar-t2r-brutefem-01-torso-uparm-r", "scar-t2r-brutefem-01-torso-loarm-l", "scar-t2r-brutefem-01-torso-loarm-r", "scar-t2r-brutefem-01-jacket-nocloth", NULL};
-static const char *const cz_s213[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s214[] = {"scar-t2r-isle1f", "scar-t2r-skn-emilyfx-torso", "scar-t2r-skn-emilyfx-torso-loarm-l", "scar-t2r-skn-emilyfx-torso-loarm-r", "scar-t2r-skn-emilyfx-torso-uparm-l", "scar-t2r-skn-emilyfx-torso-uparm-r", NULL};
-static const char *const cz_s215[] = {"scar-t2r-isle1f-jkcloth", NULL};
+    {"HOOD DOWN", 1, cz_s204, NULL, cz_s205, 0, 0, 0, "czc-scar-female-hooddown", 0},
+    {"HOOD UP", 1, cz_s206, NULL, cz_s207, 22, 0, 3, "czc-scar-female-hoodup", 0},
+    {"KELLIE EARS", 1, cz_s208, cz_s209, cz_s210, 59, 0, 1, "czc-t2r-kl-f-ears", 1}};
+static const char *const cz_s211[] = {"scar-female-b-jacket-torso", "scar-female-b-jacket-torso-loarm-l", "scar-female-b-jacket-torso-loarm-r", "scar-female-b-jacket-torso-uparm-l", "scar-female-b-jacket-torso-uparm-r", NULL};
+static const char *const cz_s212[] = {"scar-female-b-jacket-cloth", NULL};
+static const char *const cz_s213[] = {"scar-t2r-shirt1f-civilianf-torso-02", "scar-t2r-handf-kit01-torso", "scar-t2r-handf-kit01-torso-loarm-l", "scar-t2r-handf-kit01-torso-loarm-r", "scar-t2r-handf-kit01-torso-uparm-l", "scar-t2r-handf-kit01-torso-uparm-r", NULL};
+static const char *const cz_s214[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s215[] = {"scar-t2r-shirt2f-civilian-torso01", "scar-t2r-handf-kit01-torso", "scar-t2r-handf-kit01-torso-loarm-l", "scar-t2r-handf-kit01-torso-loarm-r", "scar-t2r-handf-kit01-torso-uparm-l", "scar-t2r-handf-kit01-torso-uparm-r", NULL};
 static const char *const cz_s216[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
-static const char *const cz_s217[] = {"t2r-kl-f-sweater-torso0", "t2r-kl-f-sweater-torso0-loarm-l", "t2r-kl-f-sweater-torso0-uparm-l", "t2r-kl-f-sweater-torso0-uparm-r", NULL};
+static const char *const cz_s217[] = {"scar-t2r-shirt1f-prisonerf-torso-01", "scar-t2r-skn-pris1fx-torso", "scar-t2r-skn-pris1fx-torso-loarm-l", "scar-t2r-skn-pris1fx-torso-loarm-r", "scar-t2r-skn-pris1fx-torso-uparm-l", "scar-t2r-skn-pris1fx-torso-uparm-r", NULL};
 static const char *const cz_s218[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s219[] = {"scar-t2r-shirt2f-prisonerf-torso-02", "scar-t2r-skn-pris2fx-torso", "scar-t2r-skn-pris2fx-torso-loarm-l", "scar-t2r-skn-pris2fx-torso-loarm-r", "scar-t2r-skn-pris2fx-torso-uparm-l", "scar-t2r-skn-pris2fx-torso-uparm-r", NULL};
+static const char *const cz_s220[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s221[] = {"scar-t2r-brutefem-01-torso", "scar-t2r-brutefem-01-torso-uparm-l", "scar-t2r-brutefem-01-torso-uparm-r", "scar-t2r-brutefem-01-torso-loarm-l", "scar-t2r-brutefem-01-torso-loarm-r", "scar-t2r-brutefem-01-jacket-nocloth", NULL};
+static const char *const cz_s222[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s223[] = {"scar-t2r-isle1f", "scar-t2r-skn-emilyfx-torso", "scar-t2r-skn-emilyfx-torso-loarm-l", "scar-t2r-skn-emilyfx-torso-loarm-r", "scar-t2r-skn-emilyfx-torso-uparm-l", "scar-t2r-skn-emilyfx-torso-uparm-r", NULL};
+static const char *const cz_s224[] = {"scar-t2r-isle1f-jkcloth", NULL};
+static const char *const cz_s225[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
+static const char *const cz_s226[] = {"t2r-kl-f-sweater-torso0", "t2r-kl-f-sweater-torso0-loarm-l", "t2r-kl-f-sweater-torso0-uparm-l", "t2r-kl-f-sweater-torso0-uparm-r", NULL};
+static const char *const cz_s227[] = {"scar-female-hooddown", "scar-female-hoodup", NULL};
 static const cz_item_t cz_l_scar_f_torso[] = {
-    {"WORN LEATHER RAINCOAT", 1, cz_s202, cz_s203, NULL, 0, 0, 0, "czc-scar-female-b-jacket-kit-skip-head-grp-scar-female-b-jacket-cloth", 0},
-    {"STAINED SHIRT", 1, cz_s204, NULL, cz_s205, 10, 0, 4, "czc-scar-t2r-shirt1f-civilianf-torso-02", 0},
-    {"LINEN SHIRT", 1, cz_s206, NULL, cz_s207, 27, 0, 25, "czc-scar-t2r-shirt2f-civilian-torso01", 0},
-    {"OPEN RAGGED SHIRT", 1, cz_s208, NULL, cz_s209, 50, 0, 4, "czc-scar-t2r-shirt1f-prisonerf-torso-01", 0},
-    {"TORN SLEEVELESS TOP", 1, cz_s210, NULL, cz_s211, 49, 0, 45, "czc-scar-t2r-shirt2f-prisonerf-torso-02-scar-t2r-skn-pris2fx-kit-skip-head-grp", 0},
-    {"HOODED RAINCOAT", 1, cz_s212, NULL, cz_s213, 32, 0, 70, "czc-scar-t2r-brutefem-01-torso-scar-t2r-brutefem-01-torso-uparm-l-scar-t2r--2ab9ac0f", 0},
-    {"ISLANDER LONG COAT", 1, cz_s214, cz_s215, cz_s216, 62, 0, 1, "czc-scar-t2r-isle1f-scar-t2r-isle1f-jkcloth", 0},
-    {"KELLIE SWEATER", 1, cz_s217, NULL, cz_s218, 59, 0, 1, "czc-t2r-kl-f-head-kit-skip-head-grp", 1}};
-static const char *const cz_s219[] = {"scar-female-a-legs", "scar-female-a-legs-loleg-l", "scar-female-a-legs-loleg-r", "scar-female-a-legs-upleg-l", "scar-female-a-legs-upleg-r", NULL};
-static const char *const cz_s220[] = {"scar-female-b-legs", "scar-female-b-legs-loleg-l", "scar-female-b-legs-loleg-r", "scar-female-b-legs-upleg-l", "scar-female-b-legs-upleg-r", NULL};
-static const char *const cz_s221[] = {"scar-prisoner-female-legs-01", NULL};
-static const char *const cz_s222[] = {"t2r-kl-f-legs-striped-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
-static const char *const cz_s223[] = {"t2r-kl-f-legs-black00-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
+    {"WORN LEATHER RAINCOAT", 1, cz_s211, cz_s212, NULL, 0, 0, 0, "czc-scar-female-b-jacket-kit-skip-head-grp-scar-female-b-jacket-cloth", 0},
+    {"STAINED SHIRT", 1, cz_s213, NULL, cz_s214, 10, 0, 4, "czc-scar-t2r-shirt1f-civilianf-torso-02", 0},
+    {"LINEN SHIRT", 1, cz_s215, NULL, cz_s216, 27, 0, 25, "czc-scar-t2r-shirt2f-civilian-torso01", 0},
+    {"OPEN RAGGED SHIRT", 1, cz_s217, NULL, cz_s218, 50, 0, 4, "czc-scar-t2r-shirt1f-prisonerf-torso-01", 0},
+    {"TORN SLEEVELESS TOP", 1, cz_s219, NULL, cz_s220, 49, 0, 45, "czc-scar-t2r-shirt2f-prisonerf-torso-02-scar-t2r-skn-pris2fx-kit-skip-head-grp", 0},
+    {"HOODED RAINCOAT", 1, cz_s221, NULL, cz_s222, 32, 0, 70, "czc-scar-t2r-brutefem-01-torso-scar-t2r-brutefem-01-torso-uparm-l-scar-t2r--2ab9ac0f", 0},
+    {"ISLANDER LONG COAT", 1, cz_s223, cz_s224, cz_s225, 62, 0, 1, "czc-scar-t2r-isle1f-scar-t2r-isle1f-jkcloth", 0},
+    {"KELLIE SWEATER", 1, cz_s226, NULL, cz_s227, 59, 0, 1, "czc-t2r-kl-f-head-kit-skip-head-grp", 1}};
+static const char *const cz_s228[] = {"scar-female-a-legs", "scar-female-a-legs-loleg-l", "scar-female-a-legs-loleg-r", "scar-female-a-legs-upleg-l", "scar-female-a-legs-upleg-r", NULL};
+static const char *const cz_s229[] = {"scar-female-b-legs", "scar-female-b-legs-loleg-l", "scar-female-b-legs-loleg-r", "scar-female-b-legs-upleg-l", "scar-female-b-legs-upleg-r", NULL};
+static const char *const cz_s230[] = {"scar-prisoner-female-legs-01", NULL};
+static const char *const cz_s231[] = {"t2r-kl-f-legs-striped-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
+static const char *const cz_s232[] = {"t2r-kl-f-legs-black00-part-01", "t2r-kl-f-legs-shared0", "t2r-kl-f-thighs-skin-part-00001", "t2r-kl-f-holster-kellie0", NULL};
 static const cz_item_t cz_l_scar_f_lower[] = {
-    {"WOOL TROUSERS", 1, cz_s219, NULL, NULL, 0, 0, 0, "czc-scar-female-a-legs-kit-skip-holster", 0},
-    {"FIELD TROUSERS", 1, cz_s220, NULL, NULL, 27, 0, 20, "czc-scar-female-b-legs-kit-skip-holster", 0},
-    {"RAGGED TROUSERS", 3, cz_s221, NULL, NULL, 44, 0, 55, "czc-scar-prisoner-female-legs-01-crowd-skip-holster", 0},
-    {"KELLIE STRIPED", 1, cz_s222, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-striped-skip-holster", 1},
-    {"KELLIE BLACK", 1, cz_s223, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-black-skip-holster", 1}};
-static const char *const cz_s224[] = {"scar-female-backpack", NULL};
+    {"WOOL TROUSERS", 1, cz_s228, NULL, NULL, 0, 0, 0, "czc-scar-female-a-legs-kit-skip-holster", 0},
+    {"FIELD TROUSERS", 1, cz_s229, NULL, NULL, 27, 0, 20, "czc-scar-female-b-legs-kit-skip-holster", 0},
+    {"RAGGED TROUSERS", 3, cz_s230, NULL, NULL, 44, 0, 55, "czc-scar-prisoner-female-legs-01-crowd-skip-holster", 0},
+    {"KELLIE STRIPED", 1, cz_s231, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-striped-skip-holster", 1},
+    {"KELLIE BLACK", 1, cz_s232, NULL, NULL, 59, 0, 1, "czc-t2r-kl-f-legs-black-skip-holster", 1}};
+static const char *const cz_s233[] = {"scar-female-backpack", NULL};
 static const cz_item_t cz_l_scar_f_backpack[] = {
-    {"LEATHER RUCKSACK", 1, cz_s224, NULL, NULL, 0, 0, 0, "czc-scar-female-backpack", 0}};
-static const char *const cz_s225[] = {"scar-female-head-02", NULL};
-static const char *const cz_s226[] = {"scar-female-head-03", NULL};
-static const char *const cz_s227[] = {"scar-female-head-04", NULL};
-static const char *const cz_s228[] = {"scar-female-head-05", NULL};
-static const char *const cz_s229[] = {"scar-female-head-06", NULL};
-static const char *const cz_s230[] = {"scar-female-head-07", NULL};
-static const char *const cz_s231[] = {"scar-female-head-08", NULL};
-static const char *const cz_s232[] = {"scar-female-head-09", NULL};
-static const char *const cz_s233[] = {"scar-female-head-10", NULL};
-static const char *const cz_s234[] = {"scar-female-head-11", NULL};
-static const char *const cz_s235[] = {"t2r-kl-s-head-kellie01", "t2r-kl-f-acc-kellie-01", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+    {"LEATHER RUCKSACK", 1, cz_s233, NULL, NULL, 0, 0, 0, "czc-scar-female-backpack", 0}};
+static const char *const cz_s234[] = {"scar-female-head-02", "scar-t2r-hff-03-sf02", NULL};
+static const char *const cz_s235[] = {"scar-female-head-03", "scar-t2r-hff-03-sf03xxx", NULL};
+static const char *const cz_s236[] = {"scar-female-head-04", "scar-t2r-hff-04-sf04x", NULL};
+static const char *const cz_s237[] = {"scar-female-head-05", "scar-t2r-hff-04-sf05xxxxxxxxx", NULL};
+static const char *const cz_s238[] = {"scar-female-head-06", "scar-t2r-hff-04-sf06xxxxxxxxx", NULL};
+static const char *const cz_s239[] = {"scar-female-head-07", "scar-t2r-hff-04-sf07", NULL};
+static const char *const cz_s240[] = {"scar-female-head-08", "scar-t2r-hff-04-sf08xxx", NULL};
+static const char *const cz_s241[] = {"scar-female-head-09", "scar-t2r-hff-05-sf09x", NULL};
+static const char *const cz_s242[] = {"scar-female-head-10", "scar-t2r-hff-05-sf10xxxxxxxxx", NULL};
+static const char *const cz_s243[] = {"scar-female-head-11", "scar-t2r-hff-05-sf11xxxxxxxxx", NULL};
+static const char *const cz_s244[] = {"t2r-kl-s-head-kellie01", "t2r-kl-f-acc-kellie-01", "t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-top-m-01", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-hair-hood-0001", "t2r-kl-f-hair-hood-gasmask-0001", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
 static const cz_item_t cz_l_scar_f_face[] = {
-    {"FACE 02", 1, cz_s225, NULL, NULL, 56, 0, 3, "czc-scar-female-head-02", 0},
-    {"FACE 03", 1, cz_s226, NULL, NULL, 8, 0, 9, "czc-scar-female-head-03", 0},
-    {"FACE 04", 1, cz_s227, NULL, NULL, 39, 0, 20, "czc-scar-female-head-04", 0},
-    {"FACE 05", 1, cz_s228, NULL, NULL, 58, 0, 6, "czc-scar-female-head-05", 0},
-    {"FACE 06", 1, cz_s229, NULL, NULL, 40, 0, 25, "czc-scar-female-head-06", 0},
-    {"FACE 07", 1, cz_s230, NULL, NULL, 12, 0, 75, "czc-scar-female-head-07", 0},
-    {"FACE 08", 1, cz_s231, NULL, NULL, 4, 0, 40, "czc-scar-female-head-08", 0},
-    {"FACE 09", 1, cz_s232, NULL, NULL, 50, 0, 7, "czc-scar-female-head-09", 0},
-    {"FACE 10", 1, cz_s233, NULL, NULL, 35, 0, 70, "czc-scar-female-head-10", 0},
-    {"FACE 11", 1, cz_s234, NULL, NULL, 0, 0, 0, "czc-scar-female-head-11", 0},
-    {"KELLIE", 1, cz_s235, NULL, NULL, 59, 0, 1, "czc-t2r-kl-s-head-kit-only-head-grp", 0}};
+    {"FACE 02", 1, cz_s234, NULL, NULL, 56, 0, 3, "czc-scar-female-head-02", 0},
+    {"FACE 03", 1, cz_s235, NULL, NULL, 8, 0, 9, "czc-scar-female-head-03", 0},
+    {"FACE 04", 1, cz_s236, NULL, NULL, 39, 0, 20, "czc-scar-female-head-04", 0},
+    {"FACE 05", 1, cz_s237, NULL, NULL, 58, 0, 6, "czc-scar-female-head-05", 0},
+    {"FACE 06", 1, cz_s238, NULL, NULL, 40, 0, 25, "czc-scar-female-head-06", 0},
+    {"FACE 07", 1, cz_s239, NULL, NULL, 12, 0, 75, "czc-scar-female-head-07", 0},
+    {"FACE 08", 1, cz_s240, NULL, NULL, 4, 0, 40, "czc-scar-female-head-08", 0},
+    {"FACE 09", 1, cz_s241, NULL, NULL, 50, 0, 7, "czc-scar-female-head-09", 0},
+    {"FACE 10", 1, cz_s242, NULL, NULL, 35, 0, 70, "czc-scar-female-head-10", 0},
+    {"FACE 11", 1, cz_s243, NULL, NULL, 0, 0, 0, "czc-scar-female-head-11", 0},
+    {"KELLIE", 1, cz_s244, NULL, NULL, 59, 0, 1, "czc-t2r-kl-s-head-kit-only-head-grp", 0}};
 static const cz_item_t cz_l_scar_f_melee[] = {
     {"FISTS", 1, NULL, NULL, NULL, 0, 0, 0, "czc-melee-fists", 0},
     {"KNIFE", 1, NULL, NULL, NULL, 21, 0, 25, "czc-melee-knife", 0}};
-static const char *const cz_s236[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
-static const char *const cz_s237[] = {"scar-t2r-mask03-torso", NULL};
-static const char *const cz_s238[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
-static const char *const cz_s239[] = {"militia-female-mask-03", NULL};
-static const char *const cz_s240[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s241[] = {"t2r-gm-f-dina", NULL};
-static const char *const cz_s242[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s243[] = {"t2r-gm-f-ellie", NULL};
-static const char *const cz_s244[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s245[] = {"t2r-gm-f-abby", NULL};
-static const char *const cz_s246[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s247[] = {"t2r-gm-f-lev", NULL};
-static const char *const cz_s248[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
-static const char *const cz_s249[] = {"t2r-gm-f-bong-a", NULL};
-static const char *const cz_s250[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", NULL};
+static const char *const cz_s245[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s246[] = {"t2r-kl-f-hair-top-m-01", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-caps-gasmask-0001", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-cowboy-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-beanie-gasmask-01", "t2r-kl-f-hair-hood-gasmask-0001", NULL};
+static const char *const cz_s247[] = {"militia-female-mask-03", NULL};
+static const char *const cz_s248[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s249[] = {"t2r-gm-f-dina", NULL};
+static const char *const cz_s250[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s251[] = {"t2r-gm-f-ellie", NULL};
+static const char *const cz_s252[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s253[] = {"t2r-gm-f-abby", NULL};
+static const char *const cz_s254[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s255[] = {"t2r-gm-f-lev", NULL};
+static const char *const cz_s256[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
+static const char *const cz_s257[] = {"t2r-gm-f-bong-a", NULL};
+static const char *const cz_s258[] = {"t2r-kl-f-hair-bare-001", "t2r-kl-f-hair-caps-0001", "t2r-kl-f-h-ball-cap-00", "t2r-kl-f-h-faded-cap-00", "t2r-kl-f-hair-cowboy-hat-000001", "t2r-kl-f-h-rancher-hat-00000000", "t2r-kl-f-hair-beanie-hat-000001", "t2r-kl-f-h-folded-beanie-000000", "t2r-kl-f-h-wool-beanie-00000000", "t2r-kl-f-h-slouch-beanie-000000", "t2r-kl-f-hair-hood-0001", "scar-t2r-hff-03-sf02", "scar-t2r-hff-03-sf03xxx", "scar-t2r-hff-04-sf04x", "scar-t2r-hff-04-sf05xxxxxxxxx", "scar-t2r-hff-04-sf06xxxxxxxxx", "scar-t2r-hff-04-sf07", "scar-t2r-hff-04-sf08xxx", "scar-t2r-hff-05-sf09x", "scar-t2r-hff-05-sf10xxxxxxxxx", "scar-t2r-hff-05-sf11xxxxxxxxx", "scar-t2r-hff-03-kl01xxxxxxxxx", NULL};
 static const cz_item_t cz_l_scar_f_mask[] = {
-    {"NONE", 1, NULL, NULL, cz_s236, 0, 0, 0, NULL, 0},
-    {"HALF MASK", 1, cz_s237, NULL, cz_s238, 32, 0, 9, "czc-scar-female-head-11-scar-t2r-mask03-kit-only-kerchief", 0},
-    {"GAS MASK", 1, cz_s239, NULL, cz_s240, 53, 0, 15, "czc-militia-female-mask-03", 0},
-    {"DINA'S GAS MASK", 1, cz_s241, NULL, cz_s242, 13, 0, 25, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-dina", 0},
-    {"ELLIE'S GAS MASK", 1, cz_s243, NULL, cz_s244, 22, 0, 8, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-ellie", 0},
-    {"ABBY'S GAS MASK", 1, cz_s245, NULL, cz_s246, 60, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-abby", 0},
-    {"LEV'S GAS MASK", 1, cz_s247, NULL, cz_s248, 30, 0, 125, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-lev", 0},
-    {"BONG MASK", 1, cz_s249, NULL, cz_s250, 3, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-bong-a", 0}};
+    {"NONE", 1, NULL, NULL, cz_s245, 0, 0, 0, NULL, 0},
+    {"HALF MASK", 1, NULL, NULL, cz_s246, 27, 0, 20, "czc-halfmask-scar-t2r-hff-01-kit-wf04", 0},
+    {"GAS MASK", 1, cz_s247, NULL, cz_s248, 57, 0, 4, "czc-militia-female-mask-03", 0},
+    {"DINA'S GAS MASK", 1, cz_s249, NULL, cz_s250, 13, 0, 25, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-dina", 0},
+    {"ELLIE'S GAS MASK", 1, cz_s251, NULL, cz_s252, 22, 0, 8, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-ellie", 0},
+    {"ABBY'S GAS MASK", 1, cz_s253, NULL, cz_s254, 60, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-abby", 0},
+    {"LEV'S GAS MASK", 1, cz_s255, NULL, cz_s256, 30, 0, 125, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-lev", 0},
+    {"BONG MASK", 1, cz_s257, NULL, cz_s258, 3, 0, 1, "czc-militia-female-02-kit-only-head-grp-t2r-gm-f-bong-a", 0}};
 static const cz_item_t cz_l_scar_f_sex[] = {
     {"MALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0},
     {"FEMALE", 1, NULL, NULL, NULL, 0, 0, 0, NULL, 0}};
 static const cz_list_t CZ_LISTS[CZ_NFAC][CZ_NSEX][CZ_NCAT] = {
   {
-    {{12, cz_l_wlf_m_hat}, {17, cz_l_wlf_m_torso}, {4, cz_l_wlf_m_lower}, {5, cz_l_wlf_m_backpack}, {10, cz_l_wlf_m_face}, {2, cz_l_wlf_m_melee}, {9, cz_l_wlf_m_mask}, {2, cz_l_wlf_m_sex}},
+    {{12, cz_l_wlf_m_hat}, {17, cz_l_wlf_m_torso}, {4, cz_l_wlf_m_lower}, {5, cz_l_wlf_m_backpack}, {10, cz_l_wlf_m_face}, {2, cz_l_wlf_m_melee}, {8, cz_l_wlf_m_mask}, {2, cz_l_wlf_m_sex}},
     {{11, cz_l_wlf_f_hat}, {16, cz_l_wlf_f_torso}, {6, cz_l_wlf_f_lower}, {3, cz_l_wlf_f_backpack}, {13, cz_l_wlf_f_face}, {2, cz_l_wlf_f_melee}, {8, cz_l_wlf_f_mask}, {2, cz_l_wlf_f_sex}},
   },
   {
-    {{2, cz_l_scar_m_hat}, {10, cz_l_scar_m_torso}, {4, cz_l_scar_m_lower}, {1, cz_l_scar_m_backpack}, {13, cz_l_scar_m_face}, {2, cz_l_scar_m_melee}, {9, cz_l_scar_m_mask}, {2, cz_l_scar_m_sex}},
+    {{2, cz_l_scar_m_hat}, {10, cz_l_scar_m_torso}, {4, cz_l_scar_m_lower}, {1, cz_l_scar_m_backpack}, {13, cz_l_scar_m_face}, {2, cz_l_scar_m_melee}, {8, cz_l_scar_m_mask}, {2, cz_l_scar_m_sex}},
     {{3, cz_l_scar_f_hat}, {8, cz_l_scar_f_torso}, {5, cz_l_scar_f_lower}, {1, cz_l_scar_f_backpack}, {11, cz_l_scar_f_face}, {2, cz_l_scar_f_melee}, {8, cz_l_scar_f_mask}, {2, cz_l_scar_f_sex}},
   },
 };

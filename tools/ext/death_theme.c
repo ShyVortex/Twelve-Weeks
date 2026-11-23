@@ -1,4 +1,5 @@
-// Death screen drone (the death theme is cut because it does not have enough time to play; a subtle background drone fits better than slow music). A pool of TLOU2 SP tonal beds (tools/rip_death_drone.py build 1 2 3 4 5 6 7 -> death_drone.pcm; bed 8 is excluded),
+// Death screen drone
+// . A pool of TLOU2 SP tonal beds,
 // one picked at random per death (never the same twice in a row), plays 2D through the PCM mixer at the options menu's MUSIC volume (exmus_user_volume),
 // stereo as two hard-panned voices. Each wave is 16 s with a 1 s equal-power fade-in and fade-out baked in.
 //   start : death_ui.c arms it with the death sting (dth_arm) and it starts RIGHT THEN (an execution victim: under the victim cue, no wait).

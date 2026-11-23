@@ -14,6 +14,11 @@
 typedef struct { char id[40], name[36], status[12]; int party; } fr_f_t;
 typedef struct { char id[40], name[36]; } fr_r_t;
 typedef struct { char id[40], name[36], status[12]; int leader, ready, me; } fr_m_t;
+// private messages (social.py "recent" + "chat", chat): the newest conversations and the open one
+#define FR_NRC 10
+#define FR_NTH 12
+typedef struct { char id[40], name[36], t[132]; int me, age, unread; } fr_rc_t;
+typedef struct { char t[420]; int me, age; } fr_th_t;
 typedef struct {
     int ok; char err[16];
     char me_id[40], me_name[36];
@@ -21,6 +26,10 @@ typedef struct {
     fr_f_t f[FR_NF];
     fr_r_t in[FR_NR], out[FR_NR], pinv[FR_NPI];
     fr_m_t m[FR_NM];
+    int nrc, unread_total, has_chat, nth;
+    fr_rc_t rc[FR_NRC];
+    char chat_with[40];
+    fr_th_t th[FR_NTH];                                       // the newest FR_NTH lines of the open conversation, oldest first
 } fr13_t;
 
 typedef struct { const char *p, *e; int bad; } fj_t;
@@ -144,6 +153,47 @@ static void fr_rd_m(fj_t *j, fr_m_t *m) {
         else fj_skip(j);
     }
 }
+static void fr_rd_rc(fj_t *j, fr_rc_t *r) {
+    char k[16];
+    memset(r, 0, sizeof *r);
+    if (!fj_eat(j, '{')) { j->bad = 1; return; }
+    while (fj_key(j, k, sizeof k)) {
+        if (!strcmp(k, "id")) fj_str(j, r->id, sizeof r->id);
+        else if (!strcmp(k, "name")) fj_str(j, r->name, sizeof r->name);
+        else if (!strcmp(k, "t")) fj_str(j, r->t, sizeof r->t);
+        else if (!strcmp(k, "me")) r->me = fj_int(j);
+        else if (!strcmp(k, "age")) r->age = fj_int(j);
+        else if (!strcmp(k, "unread")) r->unread = fj_int(j);
+        else fj_skip(j);
+        if (j->bad) return;
+    }
+}
+static void fr_rd_chat(fj_t *j, fr13_t *d) {                 // {"with":..,"msgs":[{"id","me","t","age"}..]} - oldest first; the newest FR_NTH are kept
+    char k[16];
+    if (!fj_eat(j, '{')) { j->bad = 1; return; }
+    d->has_chat = 1;
+    while (fj_key(j, k, sizeof k)) {
+        if (!strcmp(k, "with")) fj_str(j, d->chat_with, sizeof d->chat_with);
+        else if (!strcmp(k, "msgs")) {
+            if (!fj_eat(j, '[')) { j->bad = 1; return; }
+            while (fj_more(j)) {
+                fr_th_t t; char k2[16];
+                memset(&t, 0, sizeof t);
+                if (!fj_eat(j, '{')) { j->bad = 1; return; }
+                while (fj_key(j, k2, sizeof k2)) {
+                    if (!strcmp(k2, "t")) fj_str(j, t.t, sizeof t.t);
+                    else if (!strcmp(k2, "me")) t.me = fj_int(j);
+                    else if (!strcmp(k2, "age")) t.age = fj_int(j);
+                    else fj_skip(j);
+                    if (j->bad) return;
+                }
+                if (d->nth == FR_NTH) { memmove(&d->th[0], &d->th[1], sizeof d->th[0] * (FR_NTH - 1)); d->nth--; }
+                d->th[d->nth++] = t;
+            }
+        } else fj_skip(j);
+        if (j->bad) return;
+    }
+}
 // the whole reply (text of len bytes, not necessarily NUL ended) -> d; returns 1 on success. d->ok = the reply's "ok" (a refused write still carries the fresh state)
 static int fr13_parse(fr13_t *d, const char *text, size_t len) {
     fj_t j = {text, text + len, 0};
@@ -188,7 +238,15 @@ static int fr13_parse(fr13_t *d, const char *text, size_t len) {
                 if (j.bad) break;
             }
             if (d->nm == 0) d->has_party = 0;
-        } else fj_skip(&j);
+        } else if (!strcmp(k, "recent")) {
+            if (!fj_eat(&j, '[')) { j.bad = 1; break; }
+            while (fj_more(&j)) { fr_rc_t t; fr_rd_rc(&j, &t); if (d->nrc < FR_NRC && t.id[0]) d->rc[d->nrc++] = t; if (j.bad) break; }
+        } else if (!strcmp(k, "unread")) {                    // {"<account>": n, ...}
+            char k2[48];
+            if (!fj_eat(&j, '{')) { j.bad = 1; break; }
+            while (fj_key(&j, k2, sizeof k2)) { int n = fj_int(&j); if (n > 0) d->unread_total += n; if (j.bad) break; }
+        } else if (!strcmp(k, "chat")) fr_rd_chat(&j, d);
+        else fj_skip(&j);
         if (j.bad) return 0;
     }
     return !j.bad && d->me_id[0] != 0;
@@ -207,7 +265,7 @@ static int fr13_rows(const fr13_t *d, fr_row_t *out, int cap) {
     return n;
 }
 // the red badge on the button: friend requests + party invites waiting for the player
-static int fr13_badge(const fr13_t *d) { return d->ni + d->npi; }
+static int fr13_badge(const fr13_t *d) { return d->ni + d->npi + d->unread_total; }      // requests + party invites + unread messages (chat)
 // the presence of a friend as the panel words it: 0 offline, 1 launcher, 2 menu, 3 searching, 4 in a match
 static int fr13_presence(const char *st) { return !strcmp(st, "match") ? 4 : !strcmp(st, "search") ? 3 : !strcmp(st, "menu") ? 2 : !strcmp(st, "launcher") ? 1 : 0; }
 // a friend can be invited when it is online (any presence but offline), is not in my party already, and I am the leader or have no party

@@ -79,7 +79,7 @@ static int dr_off(void) {
         FILE *f = exe_side_open("t2r-death-react.txt", "r");
         int off = f == NULL;
         if (f) fclose(f);
-        if (off != g_dr_off) xlog("deathreact: %s", off ? "OFF (default since 10-15; t2r-death-react.txt = on) - every death plays as before" : "ON (t2r-death-react.txt)");
+        if (off != g_dr_off) xlog("deathreact: %s", off ? "OFF (default since; t2r-death-react.txt = on) - every death plays as before" : "ON (t2r-death-react.txt)");
         g_dr_off = off; g_dr_off_ms = now;
     }
     return g_dr_off;
@@ -531,7 +531,7 @@ static int bd_off(void) {
         FILE *f = exe_side_open("t2r-burn-death.txt", "r");      // SP death animations cut - opt-IN (t2r-burn-death.txt)
         int off = f == NULL;
         if (f) fclose(f);
-        if (off != g_bd_off) xlog("burndeath: %s", off ? "OFF (default since 10-15; t2r-burn-death.txt = on) - flamethrower kills die with no burning clip / fx / scream" : "ON (t2r-burn-death.txt)");
+        if (off != g_bd_off) xlog("burndeath: %s", off ? "OFF (default since; t2r-burn-death.txt = on) - flamethrower kills die with no burning clip / fx / scream" : "ON (t2r-burn-death.txt)");
         g_bd_off = off; g_bd_off_ms = now;
     }
     return g_bd_off;
@@ -599,7 +599,7 @@ static void bd_tick(void) {
             uint64_t p1 = g_bd[i].ent, on = dc_call(fnv64("npc-is-on-fire?"), 1, &p1);
             int fire = on != ~0ULL && (on & 0xff);
             xlog("burndeath: slot %d puppet %llx +0.3 s: npc-is-on-fire? %d", i, (unsigned long long)g_bd[i].ent, fire);
-            bd_manual(i, fire ? "the engine burn state is on - the hand groups ride with it (the A/B 10-20 video showed them, the engine groups unproven in MP)" : "the engine did not light the puppet");
+            bd_manual(i, fire ? "the engine burn state is on - the hand groups ride with it (the  video showed them, the engine groups unproven in MP)" : "the engine did not light the puppet");
         }
         if (g_t60 >= g_bd[i].until) {
             for (int k = 0; k < g_bd[i].nh; k++) { uint64_t a[2] = {g_bd[i].h[k], 0}; dc_call(fnv64("kill-particles"), 2, a); }

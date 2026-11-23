@@ -1,4 +1,5 @@
-// gearup13.c - the 2013-layout GEAR UP page, built the same way and in the style of the map vote and loading screen pages (a real in-game UI, not a fake one).
+// gearup13.c - the 2013-layout GEAR UP page
+// .
 // Included after skills.c / gunlimit.c (it uses their loadout helpers). The widgets are tools/features/gearup13_widgets.py (page to1/gearup13, built
 // from the same Builder as to1/matchflow); like the match flow pages this one is driven ENTIRELY from the tick - no winmm page handler runs for it -
 // and every text / icon / visibility goes through the dedup writers (ui_text, ui_image, ui_visible, w_alpha: no per-frame rewrites, no flicker).
@@ -50,6 +51,7 @@ static struct { int ok, view, col, slot, opt, off; } g_gu_keep;    // the edit v
 // dflt: the text is still the prefilled default (saved as "" = the default label, so it follows the language)
 static struct { int on, mode, sel, dflt, n, cur, pad, slot, h_u, h_d, h_l, h_r, h_sel, h_act, h_back, h_nx; uint32_t cp[LO_NM_MAX]; uint64_t t_u, t_d, t0, f0, click_f; } GN;
 static volatile LONG g_kt_on;               // 1 = a name is typed: the keyboard hook eats the keys (kt_ll_proc)
+static volatile LONG g_kt_enter;            // 1 = only Enter is eaten (chat.c: the in-game chat can open; Enter reaches kt_next, never the game or the menu)
 
 static uint64_t gu13_page_id(void) { static uint64_t id; if (!id) id = page_id("gearup13"); return id; }
 static int gu_npos(void) { return g_lo_n + 1 + N_CLASSES; }
@@ -1177,7 +1179,7 @@ static LRESULT CALLBACK kt_ll_proc(int code, WPARAM wp, LPARAM lp) {
                   vk == VK_LMENU || vk == VK_RMENU || vk == VK_LWIN || vk == VK_RWIN || vk == VK_CAPITAL || vk == VK_NUMLOCK;
         int ctl = (GetAsyncKeyState(VK_CONTROL) & 0x8000) != 0, alt = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
         int win = ((GetAsyncKeyState(VK_LWIN) | GetAsyncKeyState(VK_RWIN)) & 0x8000) != 0;
-        if (down && !mod && g_kt_on && GetTickCount64() - g_kt_seen < 500 && !(alt && !ctl) && !win && kt_fg()) {
+        if (down && !mod && (g_kt_on || (g_kt_enter && vk == VK_RETURN)) && GetTickCount64() - g_kt_seen < 500 && !(alt && !ctl) && !win && kt_fg()) {
             BYTE ks[256];
             memset(ks, 0, sizeof ks);
             if (GetAsyncKeyState(VK_SHIFT) & 0x8000) ks[VK_SHIFT] = ks[VK_LSHIFT] = 0x80;
@@ -1221,7 +1223,7 @@ static int kt_raw_eat(RAWKEYBOARD *kb) {
     int vk = kb->VKey & 0xFF, up = (kb->Flags & RI_KEY_BREAK) != 0;
     if (!vk || vk == 0xFF) return 0;
     if (up) { if (g_kt_rdown[vk]) { g_kt_rdown[vk] = 0; return 1; } return 0; }
-    if (!g_kt_on || GetTickCount64() - g_kt_seen >= 500) return 0;
+    if (!(g_kt_on || (g_kt_enter && vk == VK_RETURN)) || GetTickCount64() - g_kt_seen >= 500) return 0;
     int mod = vk == VK_SHIFT || vk == VK_LSHIFT || vk == VK_RSHIFT || vk == VK_CONTROL || vk == VK_LCONTROL || vk == VK_RCONTROL || vk == VK_MENU ||
               vk == VK_LMENU || vk == VK_RMENU || vk == VK_LWIN || vk == VK_RWIN || vk == VK_CAPITAL || vk == VK_NUMLOCK;
     if (mod) return 0;
@@ -1357,7 +1359,8 @@ static void gn_start(int mode, int slot, const char *init, const char *how) {
     if (mode == 1) xlog("gearup13: CREATE LOADOUT name box (custom %d, %s)", g_lo_n + 1, how);
     else xlog("gearup13: rename custom %d started (%s)", GN.slot + 1, how);
 }
-// RENAME (naming loadouts 1-6 and CREATE LOADOUT must work the same way): RENAME used to type into the page title in place (an unnamed loadout started EMPTY, a named one appended at its end), while CREATE LOADOUT
+// RENAME
+// RENAME used to type into the page title in place (an unnamed loadout started EMPTY, a named one appended at its end), while CREATE LOADOUT
 // (loadouts 7-12) opens the NAME YOUR LOADOUT box with the name selected. RENAME now opens the same box: prefilled with the loadout's name (an unnamed
 // one: its default label CUSTOM LOADOUT n, in the player's language), all selected - typing replaces it, Backspace empties it, the arrows keep it.
 // The default label kept untouched saves as the default (an empty name), as in CREATE LOADOUT.
@@ -1428,8 +1431,8 @@ static int gn_tick(int click) {
     // the pad (the keyboard's menu actions never reach the engine while the hook eats them)
     int up = gu_rep(&GN.h_u, &GN.t_u, fnv64("menu-up")), dn = gu_rep(&GN.h_d, &GN.t_d, fnv64("menu-down"));
     int lf = menu_edge(fnv64("menu-left"), &GN.h_l), rt = menu_edge(fnv64("menu-right"), &GN.h_r);
-    int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &GN.h_sel), act = menu_edge(fnv64("menu-action"), &GN.h_act);
-    int back = menu_edge(fnv64("menu-back"), &GN.h_back), nx = menu_edge(fnv64("menu-next"), &GN.h_nx);
+    int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &GN.h_sel), act = menu_edge_pad("menu-action", &GN.h_act);
+    int back = menu_edge(fnv64("menu-back"), &GN.h_back), nx = MENU_NEXT_TAB(&GN.h_nx);
     if (click) GN.click_f = g_frame;
     if (sel && g_frame - GN.click_f <= 8) sel = 0;           // (a left click also sends menu-select, sometimes a frame late: the click alone decides)
     if (!g_pad_mode) up = dn = lf = rt = act = back = nx = sel = 0;   // (the keyboard only types; letters by up / down are the pad's)
@@ -1586,7 +1589,7 @@ static void feature_gearup13(void) {
     int up = gu_rep(&G.h_u, &G.t_u, fnv64("menu-up")), down = gu_rep(&G.h_d, &G.t_d, fnv64("menu-down"));
     int left = menu_edge(fnv64("menu-left"), &G.h_l), right = menu_edge(fnv64("menu-right"), &G.h_r);
     int back = menu_edge(fnv64("menu-back"), &G.h_back);
-    int rst_a = menu_edge(fnv64("menu-action"), &G.h_act);
+    int rst_a = menu_edge_pad("menu-action", &G.h_act);
     int r_now = game_focused() && (GetAsyncKeyState('R') & 0x8000) != 0, rst_k = r_now && !G.h_r_key;
     G.h_r_key = r_now;
     int esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0, esc = esc_now && !G.h_esc;
@@ -1595,7 +1598,7 @@ static void feature_gearup13(void) {
     { static int lpd = -1; if (lpd != g_pad_mode) { lpd = g_pad_mode; G.dirty = 1; } }       // the hint line follows the device in use
     int click = g_click_edge, lbtn_back = click && g_gu_hov_back;
     int mouse = g_mouse_mode;
-    int ren_nx = menu_edge(fnv64("menu-next"), &G.h_nx);
+    int ren_nx = MENU_NEXT_TAB(&G.h_nx);
     int e_now = game_focused() && (GetAsyncKeyState('E') & 0x8000) != 0, ren_k = e_now && !G.h_e;
     G.h_e = e_now;
     const int typing = gn_tick(click);              // RENAME owns the input while a name is typed

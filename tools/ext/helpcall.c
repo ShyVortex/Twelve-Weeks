@@ -1,4 +1,5 @@
-// Calling a downed teammate for a revive: a standing player marks a downed teammate to remind closer bystanders to revive them (with a fitting voice line), and a downed player has a button (with a prompt) that shouts for help. Included by t2r-ext.c after downed_vox.c.
+// Calling a downed teammate for a revive
+// . Included by t2r-ext.c after downed_vox.c.
 // MSG_HELPCALL 0x9D, one message, two kinds:
 //   HC_PING [kind 1][u8 downed slot]: a standing player pressed the MARK button (the one that marks enemies: winmm's latch 0x18013A7D0) with the reticle on
 //       a downed TEAMMATE (and no enemy under it). It says a "Man down!" line (VX_ALLYDOWN, the generic pool only) and tells the other standing teammates.

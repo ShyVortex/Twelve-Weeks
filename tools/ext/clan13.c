@@ -719,7 +719,7 @@ static void cl13_ms_rows(void) {
     if (n != C13.ms_n) { C13.ms_n = n; if (C13.fr[T_MS] >= n) C13.fr[T_MS] = n ? n - 1 : 0; xlog("clan13: missions: %d rows (weapon-execution offers %d / %d / %d)", n, m.p[0], m.p[1], m.p[2]); }
 }
 static void cl13_ms_upper(char *d, size_t n, const char *src) { size_t i = 0; for (; src[i] && i + 1 < n; i++) d[i] = src[i] >= 'a' && src[i] <= 'z' ? (char)(src[i] - 32) : src[i]; d[i] = 0; cl13_case_pl(d, 1); }
-// The MISSIONS tab shows the current mission status instead of MISSION PICKED (no need to back out and read the small clan UI at the bottom left). With a mission running the tab is its status page: the three tiers as the rows (goal,
+// . With a mission running the tab is its status page: the three tiers as the rows (goal,
 // DONE / how many to go), the detail pane with the live count (the server's + this match's own g_mis_cnt, like the HUD widget), the day of three,
 // what the tiers pay the running event and how many times it was done before.
 static int cl13_ms_running(void) { meta_t m = meta_get(); return m.ok && MIS_VALID(m.mi) && !C13.ms_n; }
@@ -1018,6 +1018,10 @@ static int cl13_pick_due(void) {                                     // a missio
     clan_t c = clan_get(); meta_t m = meta_get();
     return c.ok && c.st == 1 && c.fac && m.ok && !m.mi && ev_win_start(c.day) >= 0;
 }
+// (a clan wiped on an attack it never trained for: CHOOSE MISSION was closed with Esc, FIND MATCH still worked, no mission = tier 0 = the
+// whole clan lost): while a pick is due the page cannot be left - BACK / Esc / the pad's B refuse with a notice and the MISSIONS tab comes back. Only with
+// rows to pick from and no choice in flight (no rows = nothing to choose: the page closes as before; a choice waiting for the server's reply = the old rules).
+static int cl13_pick_locked(void) { return cl13_pick_due() && C13.ms_n > 0 && !C13.ms_chosen; }
 static const char *cl13_msg(const cl13_t *V) {
     if (C13.tab == T_MS) {
         static char b[120];
@@ -1306,7 +1310,7 @@ static void cl13_prompts(const cl13_t *V, int show) {
     if (show && t == T_JR) { C13P("A / D", "LEFT / RIGHT", "DAY", V->nd > 1, C13A_DAY); C13P("W / S", "UP / DOWN", "WEEK", V->jtop > 1, C13A_WEEK); }
     if (show && t == T_MS && !cl13_ms_running()) C13P("menu:select", NULL, C13.ms_chosen ? "MISSION STARTED" : "SELECT", C13.ms_n > 0 && !C13.ms_chosen, C13A_PICK);
     C13P("menu:prev+menu:next", NULL, "TABS", 1, C13A_TABS);
-    C13P("menu:back", NULL, "BACK", 1, C13A_BACK);
+    C13P("menu:back", NULL, "BACK", !cl13_pick_locked(), C13A_BACK);
     #undef C13P
     g_c13_npa = n;
     nr_prompts(it, n);
@@ -1549,7 +1553,7 @@ static void cl13x_tick(void) {
         nr_prompts(it, 1);
     } else if (V && cl13_xp_busy()) cl13_fill_xp(V, 1);                   // the entrance / the counts run every frame
     int f_now = game_focused() && (GetAsyncKeyState('F') & 0x8000) != 0, esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
-    int act = menu_edge(fnv64("menu-action"), &g_c13x.h_act) | (f_now && !g_c13x.h_f), esc = esc_now && !g_c13x.h_esc;
+    int act = menu_edge_pad("menu-action", &g_c13x.h_act) | (f_now && !g_c13x.h_f), esc = esc_now && !g_c13x.h_esc;
     int sel = post ? menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &g_c13x.h_sel) : 0;
     g_c13x.h_f = f_now; g_c13x.h_esc = esc_now;
     int clk = g_click_edge && nr_prompt_hover() == 0;
@@ -1636,7 +1640,7 @@ static void feature_clan13(void) {
     int back = menu_edge(fnv64("menu-back"), &C13.h_back);
     int f_now = game_focused() && (GetAsyncKeyState('F') & 0x8000) != 0, act_k = f_now && !C13.h_f;
     C13.h_f = f_now;
-    int act = menu_edge(fnv64("menu-action"), &C13.h_act) || act_k;                 // F / the pad's menu-action (Triangle / Y): the match stats of the focused raid
+    int act = menu_edge_pad("menu-action", &C13.h_act) || act_k;                 // F / the pad's menu-action (Triangle / Y): the match stats of the focused raid
     int esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0, esc = esc_now && !C13.h_esc;
     C13.h_esc = esc_now;
     int wn = wheel_notches();
@@ -1656,6 +1660,16 @@ static void feature_clan13(void) {
         }
         act = 0; up = down = left = right = 0; sel = 0; click = 0; wn = 0; pa = 0;
     } else if ((act || pa == C13A_STATS) && C13.tab == T_RD && C13.V && C13.V->nm > 0 && now - C13.enter_ms >= 500 && !C13.out_t0) { cl13_xs_open(pa ? "PLAYER STATS clicked" : act_k ? "F" : "menu-action"); act = 0; pa = 0; }
+    if ((back || esc || pa == C13A_BACK) && cl13_pick_locked()) {
+        if (back) {                                                     // (the engine pops the page on menu-back by itself: pushed again at once, on MISSIONS)
+            g_c13_resume.until = g_frame + 10; g_c13_resume.tab = T_MS;
+            memcpy(g_c13_resume.fr, C13.fr, sizeof C13.fr); memcpy(g_c13_resume.fc, C13.fc, sizeof C13.fc); memcpy(g_c13_resume.roff, C13.roff, sizeof C13.roff);
+        }
+        if (C13.tab != T_MS) cl13_set_tab(T_MS, "mission pick due");
+        ui_deny("Choose a mission first. The event's three matches count for your clan only with a mission running.");
+        xlog("clan13: %s refused - a mission is to be chosen", esc ? "Esc" : pa ? "BACK click" : "menu-back");
+        back = esc = 0; sel = 0; click = 0; pa = 0;
+    }
     if (back || esc || pa == C13A_BACK) { cl13_close(esc ? "Esc" : pa ? "BACK clicked" : "menu-back"); back = esc = 0; sel = 0; click = 0; pa = 0; }
     if (C13.back_f && !C13.out_t0 && g_frame >= C13.back_f + 6) {
         C13.back_f = 0;
@@ -1675,7 +1689,7 @@ static void feature_clan13(void) {
     int kq = game_focused() && (GetAsyncKeyState('Q') & 0x8000) != 0, ke = game_focused() && (GetAsyncKeyState('E') & 0x8000) != 0;
     int tab_l = kq && !C13.h_ka, tab_r = ke && !C13.h_kd;
     C13.h_ka = kq; C13.h_kd = ke;
-    int bp = menu_edge(fnv64("menu-prev"), &C13.h_pv), bn = menu_edge(fnv64("menu-next"), &C13.h_nx);
+    int bp = MENU_PREV_TAB(&C13.h_pv), bn = MENU_NEXT_TAB(&C13.h_nx);
     if (C13.xs_open) tab_l = tab_r = bp = bn = 0;
     if (tab_l || bp) cl13_tab_step(-1, bp ? "left bumper" : "Q");
     else if (tab_r || bn) cl13_tab_step(1, bn ? "right bumper" : "E");

@@ -316,8 +316,10 @@ def make_bullet_overlay(game_bin, overlay_dc1):
         struct.pack_into("<f", f.data, o + 0xcc, STUN_DAMPING)   # pipe 0.2: rolled far
         f.data[o + 0x178:o + 0x180] = f.data[pipe + 0x178:pipe + 0x180]
         done.append(name)
-    if EXPBOW_ON:
+    if EXPBOW_ON or LAUNCHER_ON:          # the explosive arrow's flight + the observers' burst carrier: the Explosive Bow's and the Launcher's
         print("bullet-settings: " + patch_expbow_bullets(f))
+    if LAUNCHER_ON:                       # (after the Explosive Bow's speed / gravity: it reads the scaled full-draw speed)
+        print("bullet-settings: " + patch_launcher_bullets(f))
     print("bullet-settings: " + patch_arrows_never_break(f))
     print("bullet-settings: " + patch_crossbow_flight(f))
     print("bullet-settings: " + patch_bow_speed(f))
@@ -418,7 +420,7 @@ def patch_satchel_item_name(path):
 
 def patch_text_ciphers(path, add=(("TO1_BOW_ARC", "BOW AIM ARC"), ("TO1_CHANGE_NAME", "CHANGE NAME"), ("T2R_SATCHEL_NAME", "Supply Satchel"), ("TO1_MP_UI_OFF", "DISABLE MP UI"),
                                      ("TO1_MP_RADAR_OFF", "DISABLE RADAR"), ("TO1_MP_LIVES_OFF", "DISABLE LIVES COUNTER"),
-                                     ("TO1_MP_SUPPLIES_OFF", "DISABLE SUPPLIES / PARTS"),
+                                     ("TO1_MP_SUPPLIES_OFF", "DISABLE SUPPLIES / PARTS"), ("TO1_MP_CHAT_OFF", "DISABLE CHAT"),
                                      # mockup rows (greyed out until dedicated servers): labels + their values (t2r-ext bds_item_sid)
                                      ("TO1_REGION_PREF", "REGION PREFERENCE"), ("TO1_INPUT_PREF", "INPUT PREFERENCE"), ("TO1_PREF_ANY", "ANY"),
                                      ("TO1_REGION_NA", "NORTH AMERICA"), ("TO1_REGION_EU", "EUROPE"), ("TO1_INPUT_PAD", "CONTROLLER"),
@@ -828,7 +830,7 @@ def _curve_at(pts, x):
 AIM_2013_ON = os.environ.get("T2R_NO_AIM_2013") != "1"
 
 # ---- PACE_2013 (Factions felt a lot SLOWER in everything: movement, animations, even recoil anims had
-# longer returns). T2R_PACE_2013=0 turns all of it off (A/B); measurements + sources: re/pace-2013.md.
+# longer returns). T2R_PACE_2013=0 turns all of it off; measurements + sources: re/pace-2013.md.
 PACE_2013_ON = os.environ.get("T2R_PACE_2013", "1") != "0"
 # 1. Recoil return. The kickback spring (firearm def +0xf0 -> kickback +8 -> spring) has its stiffness at +0x2c
 #    (TLOU2: pistols 120, Vepr 80, bolt 50, pump 25; 2013 net10 +0x10c spring column: 9mm 200, revolver 150, burst 100,
@@ -2058,6 +2060,12 @@ for _r in _czi.HAIRPARTS:
     for _e in _r.get("extra_paks", ()):
         if "actor " + _e["pak"] not in _l:
             _l.append("actor " + _e["pak"])
+# CUSTOMIZE: the per-face half masks (customize_items.HALFMASK, 5 face cloths a pak; staged by build_dll.stage_halfmask)
+if _czi.HALFMASK:
+    for _a in _czi.HALFMASK["paks"]:
+        _l = FEMALE_LEVEL_ADDS if _a.startswith("scar-t2r-hff") else MP_LEVEL_ADDS
+        if "actor " + _a not in _l:
+            _l.append("actor " + _a)
 # CUSTOMIZE: the WLF tops' hand-tint copies (customize_items.HANDTINT, staged by build_dll.stage_handtint)
 for _t in (_czi.HANDTINT["tops"] if _czi.HANDTINT else ()):
     _l = FEMALE_LEVEL_ADDS if _t["sex"] == "f" else MP_LEVEL_ADDS
@@ -3042,6 +3050,42 @@ def patch_pak68(path, level="starlight-mp-test", adds=MP_LEVEL_ADDS):
     print(f"pak68.txt: {level} + {len(new)} entries ({', '.join(new)})")
 
 
+# Single-player character kits in the stock "const" levels that SP-section maps load. A PvP match never spawns these characters
+# (no SP NPCs on the maps), but every kit pak listed by a resident level takes its geometry slots in the engine's 5000-slot table
+# (ResourceTable::LoginGeometry). Supermarket (jackson-market) crashed at exe+29119f0 in about 1 of 10 match loads; pat-const
+# alone added 261 geometries over the MP level, 258 of them Ellie / Dina / horse kits + gore-finisher-ellie (geo_count.py).
+# level -> actor name prefixes dropped from that level's block in pak68.txt (only `actor` lines; packages, vox and scripts stay).
+SP_CONST_KIT_DROPS = {
+    "pat-const": ("ellie-", "dina-", "horse-", "gore-finisher-ellie"),
+}
+
+
+def drop_level_actors(path, drops=SP_CONST_KIT_DROPS, keep_level="starlight-mp-test"):
+    """Removes `actor <name>` lines whose name starts with one of the prefixes from each named level's block in pak68.txt.
+    An actor the MP level lists itself is kept (it is resident anyway). Returns {level: [dropped names]}."""
+    lines = open(path, encoding="utf-8").read().split("\n")
+
+    def block(level):
+        i = lines.index(f"level-name {level}")
+        j = i + 1
+        while j < len(lines) and not lines[j].startswith("level-name "):
+            j += 1
+        return i, j
+    ki, kj = block(keep_level)
+    keep = set(lines[ki:kj])
+    out = {}
+    for level, prefixes in drops.items():
+        if f"level-name {level}" not in lines:
+            continue
+        i, j = block(level)
+        gone = [l for l in lines[i:j] if l.startswith("actor ") and l[6:].startswith(prefixes) and l not in keep]
+        lines[i:j] = [l for l in lines[i:j] if l not in gone]
+        out[level] = [l[6:] for l in gone]
+        print(f"pak68.txt: {level} - {len(gone)} single-player kit actors dropped ({', '.join(sorted(set(p for p in prefixes if any(g.startswith(p) for g in out[level]))))})")
+    open(path, "w", encoding="utf-8", newline="\n").write("\n".join(lines))
+    return out
+
+
 # THE ENGINE'S CAPS PER LEVEL (LevelDef::ReadTxtFile, exe+1ff2030 in 1.6.0: one counter per group of keywords, an assert + int3 at
 # boot when a level passes it - build #18: "Too many modules in level starlight-mp-test [Max 512]" with 560 `symbol` lines,
 # the game ended before the ext was loaded). group -> (keywords counted together, the engine's cap, the build's limit).
@@ -3506,7 +3550,7 @@ def make_tac_sfx_overlay(gamebin_dc1, overlay_dc1):
 # distance scale of the category. In MP every NPC character is a player, so mix-default's NPC rows get listen-mode-like values
 # (+8 dB and 2.25x range for steps, +4 dB / 1.6x for gear): running enemies carry ~3-4x as far, the engine keeps its own per-surface,
 # per-gait events (sprint / run / walk / stealth-crouch waves), occlusion and timing. T2R_NPC_FOLEY_MIX="a,b,c[;a,b,c]" overrides
-# (steps; gear), T2R_NPC_FOLEY_MIX=0 ships the base mix (A/B).
+# (steps; gear), T2R_NPC_FOLEY_MIX=0 ships the base mix.
 # (earlier A/B of (-8, -9, 1.75) / (-12, -14, 1.4) worked but needed more range -> one step further; both dB
 # values and the factor move together, so the per-gait events keep their own level differences (walk / stealth crouch quieter)
 NPC_FOLEY_MIX = {"foley-npc": ((-14.0, -14.0, 1.0), (-6.0, -7.0, 2.25)),
@@ -4047,7 +4091,10 @@ VINTAGE_SFX = {"sfx-rifle-remington-bolt-player": "sfx-rifle-vintage-shot", "sfx
 # hunting rifle clips). The Military Sniper's bank edit (MILSNIPER_WAVES) only touches the shot blooms / distant layer, not the foley.
 VINTAGE_AUDIO = "=rifle-bolt-scar"
 VINTAGE_MUZZLE_DZ = -0.10           # rifle-bolt-scar barrel ends ~0.10 m behind the hunting rifle's muzzle point (model research)
-AIM_2013[VINTAGE] = None            # the hunting rifle's own aim (no reticle-bloom-def)
+# (option A, "close-mid range"; "A should be less accurate"): the 2013 rifle-short row itself, the one the Frontier is a tightened copy
+# of: standing 0.20 (the Frontier 0.12), moving 0.40 / 0.45, turning 0.30 / 0.40 = about 1.7x the Frontier's spread; opens while moving and after
+# each shot. Was None = dead accurate at any range, like a scoped rifle.
+AIM_2013[VINTAGE] = AIM_2013["rifle-short"]
 if VINTAGE_ON:
     ART_ICONS[VINTAGE] = ICON_DIR + "vintage-rifle.png"
 if FRONTIER_ON:
@@ -4094,6 +4141,39 @@ if SNUBBY_ON:
     MP_LEVEL_ADDS += ["actor " + SNUBBY_ACTOR, "actor pistol-revolver-scar", "symbol pistol-revolver-scar", "sound-bank " + SNUBBY_BANK,
                       "actor anim-ellie-player-balance", "actor anim-abby-workbench-velazquez"]   # (p1_wire.SNUBBY_PAKS)
     ART_ICONS[SNUBBY] = ICON_DIR + "snubby.png"
+# 2013 Launcher: the model only so far. Actor t2r-launcher = TLOU2's own flamethrower.pak (its material, collision,
+# flm-thrw clips, sound bank table) with the body replaced by a kitbash of the Part I flamethrower (tools/part1/p1_guns.LAUNCHER,
+# launcher_recipe.py; re/part1/launcher-kitbash.md).  LAUNCHER is the weapon id agreed with the weapon side: the weapon itself (a flamethrower
+# clone on this actor with the Launcher's projectile and blast ring, its t2r-ext row behind T2R_LAUNCHER_BUILT, the purchasable row,
+# the icon) is the LAUNCHER block after verify_flame (launcher-weapon-1117).  T2R_LAUNCHER=1 stages the pak and lists the actor in the MP level; default OFF.
+LAUNCHER = "t2r-launcher"                           # weapon id = the actor name (as flamethrower / flamethrower)
+LAUNCHER_ACTOR = "t2r-launcher"                     # same length as flamethrower (rename_pak)
+LAUNCHER_ON = FACTION_GUNS and P1_GUNS and os.environ.get("T2R_LAUNCHER", "0") == "1"
+if LAUNCHER_ON:
+    MP_LEVEL_ADDS.append("actor " + LAUNCHER_ACTOR)
+# The Launcher's own reload (tools/part1/launcher_reload.py: the PS4 2013 reload = a muzzle load with a pumped side lever).
+# Gun layer: one rifle-base clip (joint lever) in a free rifle-base slot of LAUNCHER_GUN_PAK.  That pak is the Frontier's first
+# carrier pak: with the Frontier on the job rides stage_frontier's own build of it, after the Frontier's jobs (p1_carrier fills
+# slots in job order, so no Frontier / Vintage carrier moves); with the Frontier off stage_launcher_reload builds the pak itself.
+# Player layers (tools/part1/launcher_arms.py, baked clips in tools/features/data/launcher): per stance a -part clip (arms; prone also the
+# legs) with the reload's anim events and an -add clip (spine), Abby rig, in carriers of LAUNCHER_BODY_PAK = Abby's rope clips: 88 Abby-rig
+# clips, no build step uses the pak, nobody climbs a rope in MP (p1_carrier pools every Abby-rig clip of the pak: its rope clips are gone).
+# The smaller free Abby paks do not have the room (doors-extra: largest free run 34800 bytes, a part clip is 38 KB).
+# Player overlay: the game's leftover module gren-launcher (in modules.bin, used by no weapon) gets the flamethrower's set with the
+# <stance>-reload-gun / -part / -add entries of the seven stances pointed at those clips; the art def's +0x180 / +0x188 key becomes
+# LAUNCHER_OVERLAY_KEY.  T2R_LAUNCHER_RELOAD=0 keeps the flamethrower's reload (lever shut, the round never shown).
+LAUNCHER_RELOAD = LAUNCHER_ON and os.environ.get("T2R_LAUNCHER_RELOAD", "1") != "0"
+LAUNCHER_GUN_PAK = "anim-ellie-workbench-rembrandt-bolt"
+LAUNCHER_BODY_PAK = "anim-abby-player-rope"
+LAUNCHER_OVERLAY_KEY = "gren-launcher"
+LAUNCHER_OVERLAY_HOST = ("abby-guns/flamethrower", 0xe421f5450bc50ac8)      # module, sid of its anim-overlay-set
+LAUNCHER_RELOAD_STANCES = ("stand-aim-reload", "stand-reload", "stand-reload-relaxed", "crouch-aim-reload", "crouch-reload", "prone-reload",
+                           "supine-reload")                                  # flamethrower-<this>-{gun,part,add,basepose}
+if LAUNCHER_RELOAD and "actor " + LAUNCHER_GUN_PAK not in MP_LEVEL_ADDS:
+    MP_LEVEL_ADDS.append("actor " + LAUNCHER_GUN_PAK)                        # (the Frontier lists it when it is on)
+if LAUNCHER_RELOAD:
+    assert "actor " + LAUNCHER_BODY_PAK not in MP_LEVEL_ADDS, LAUNCHER_BODY_PAK + " is another step's carrier pak"
+    MP_LEVEL_ADDS.append("actor " + LAUNCHER_BODY_PAK)
 FACTION_GUNS_HEADER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "ext", "faction_guns_built.h")
 
 
@@ -4112,7 +4192,8 @@ def write_faction_guns_header():
             f"#define T2R_DRAGON_BUILT {int(DRAGON_ON)}\n"
             f"#define T2R_VINTAGE_BUILT {int(VINTAGE_ON)}\n"
             f"#define T2R_COLT_BUILT {int(P1_COLT)}\n"
-            f"#define T2R_SNUBBY_BUILT {int(SNUBBY_ON)}\n")
+            f"#define T2R_SNUBBY_BUILT {int(SNUBBY_ON)}\n"
+            f"#define T2R_LAUNCHER_BUILT {int(LAUNCHER_ON)}\n")
     old = open(FACTION_GUNS_HEADER, encoding="utf-8").read() if os.path.exists(FACTION_GUNS_HEADER) else None
     if old != text:
         open(FACTION_GUNS_HEADER, "w", encoding="utf-8", newline="\n").write(text)
@@ -4647,7 +4728,8 @@ def verify_expbow(dc1, bullets=None):
     if bullets:
         b = DcFile(open(bullets, "rb").read())
         a0 = find_symbol(b, EXPBOW_AMMO)
-        assert abs(struct.unpack_from("<f", b.data, a0 + 0x94)[0] - 10.0 * EXPBOW_SPEED) < 1e-3
+        # (with the Launcher built its launch speed +0x94 = the full-draw speed: patch_launcher_bullets)
+        assert abs(struct.unpack_from("<f", b.data, a0 + 0x94)[0] - (80.0 if LAUNCHER_ON else 10.0) * EXPBOW_SPEED) < 1e-3
         assert abs(struct.unpack_from("<f", b.data, a0 + 0x160)[0] - 80.0 * EXPBOW_SPEED) < 1e-3
         cv = b.q(a0 + 0x98)
         assert abs(struct.unpack_from("<f", b.data, cv + 0x44 + 16)[0] - 9.8 * EXPBOW_GRAVITY) < 1e-3
@@ -4718,6 +4800,231 @@ def verify_flame(dc1):
     assert b"audio-sfx/weapons/aud-sfx-wpn-flamethrower" in mods, "modules.bin: no aud-sfx-wpn-flamethrower"
     print(f"flame: the game's own {FLAME} (actor {FLAME_ACTOR}, overlay abby-guns/flamethrower, audio set flamethrower -> bank {FLAME_BANK}, ammo-flamethrower): "
           f"{interval} s, magazine {mag}, engine damage per target kind {dmg} (flame2013.c zeroes them; 2013 = 75 per tick)")
+
+
+# 2013 Launcher (branch launcher-weapon-1117; model: launcher-model-1117 = the Part I flamethrower kitbash, actor t2r-launcher, staged by its
+# build_dll step behind the same switch). Weapon id LAUNCHER (`t2r-launcher` = the actor name, agreed with launcher-model) = a CLONE of TLOU2's flamethrower (its hold, Abby overlay set abby-guns/flamethrower,
+# reload / idle clips, audio set) drawn with the t2r-launcher actor, with its OWN firearm def that fires the game's explosive arrow (ammo-arrow-explosive:
+# the projectile, its trail and the SP script ss-explosive-arrow that detonates it = the Explosive Bow's route, re/factions2013/new-guns-1014.md) instead
+# of fuel, and the flamethrower's flame effects removed from its firearm-art def. The blast, its rings and the sharing are the ext's (expbow2013.c,
+# ex13 EX13_LAUNCH); the arrow's flight (speed x EXPBOW_SPEED, gravity x EXPBOW_GRAVITY) is make_bullet_overlay's, shared with the Explosive Bow.
+# Every number and its source (2013 = net10.bin from the PS3 Factions files, the PS4 Remastered wiki rows in re/factions2013/Factions_MP.wiki):
+#   shot interval 0.3 s     net10 `grenade-launcher` 5f11144c firearm def +0x0 = 0.3 (net10.bin 0x53b74 record; same field the Explosive Bow uses)
+#   magazine 1              net10 grenade-launcher firearm def +0x70 = 1; wiki "magazine 1"
+#   reserve cap 11          net10.bin 0xc9bc ammo record `ammo-grenade-launcher` {type 4, cap 11} (the ext's reserve_cap_of; the inventory cap + 1 loaded)
+#   3 LP, 375 parts         wiki `*[[Launcher]] - Area of effect weapon that downs an enemy in 2 shots (3 LP) [375] {DLC}` (ext purchasable row)
+#   start 3, 3 for 450      wiki "Starting Ammunition: 3", "Ammo - 3 [450]" (ext row + SPAWN_AMMO 1 loaded + 2)
+#   blast rings             explosions.bin `*gren-launcher-explosion-factions*` @0x1120, player slot +0x40: R0 0 / R1 3.25 m x0.55 / R2 5.0 m x0.30
+# (explosives2013.c EX13_RING_LAUNCHER,; the Explosive Bow has the ring EX13_RING[EX13_LAUNCH])
+#   reload                  NOT in the 2013 data (net10 has no launcher reload field we could identify): the flamethrower's own reload clip plays
+# projectile speed/drop NOT in the 2013 data (the grenade bullet is not in the PS3 files we have): the Explosive Bow's design value
+# T2R_LAUNCHER=1 builds it (default 0 until the model and this are tested together); T2R_LAUNCHER_BUILT in faction_guns_built.h gates the ext.
+# (LAUNCHER, LAUNCHER_ACTOR, LAUNCHER_ON: defined with the model stage above - T2R_LAUNCHER=1 needs T2R_FACTION_GUNS=1 + T2R_P1_GUNS=1)
+LAUNCHER_SRC = FLAME
+LAUNCHER_INTERVAL = 0.3                              # net10 grenade-launcher firearm def +0x0
+LAUNCHER_MAG = 1                                     # net10 grenade-launcher firearm def +0x70
+LAUNCHER_CAP = 11                                    # net10 ammo record ammo-grenade-launcher {type 4, cap 11}
+# Reload playback rate = firearm def +0x2c (exe 0x1411863e0, see RELOAD_2013 in t2r-ext.c). The clone copies the MP flamethrower's 0.8. With the
+# Launcher's own reload (LAUNCHER_RELOAD, launcher-model: the PS4 2013 reload clips at their own speed, 84 frames = 2.8 s, round in at 2.1 s)
+# the def plays them at x1.0; at 0.8 they would take 3.5 s. Without its own reload the flamethrower's clip keeps the flamethrower's 0.8.
+LAUNCHER_RELOAD_RATE = 1.0
+# the flamethrower's flame effects in its firearm-art def (art +0x128): fire shell (+0xc0, +0xc8), initial liquid (+0xd8 -> [0]), drip flames (+0xe8),
+# ignition fire (+0xf8) - checked against the names below before they are cleared on the clone (the flamethrower keeps its own)
+LAUNCHER_NO_FX = {0xc0: "flamethrower-fire-shell", 0xc8: "flamethrower-fire-shell", 0xe8: "flamethrower-drip-flames", 0xf8: "flamethrower-ignition-fire"}
+LAUNCHER_NO_FX_ARR = (0xd8, "flamethrower-initial-liquid")
+# the shot ("it shoots a physical projectile thats essentially a stun bomb that does damage ... it should leave a trail and have no model for the
+# projectile itself, the trail should indicate it"; "a modified stun bomb throw ... with different throw strength and range"). The flight stays the
+# explosive arrow's (tracked, detonated and shared by expbow2013.c: one burst point for every screen; a thrown stun bomb copy rolls off on the
+# other screens), the burst is the stun bomb's (t2r-ext launcher_cloud / stun_launcher_judge). bullet-settings ammo-arrow-explosive (shared with the
+# Explosive Bow, which is not sold: no t2r-expbow.txt) when the Launcher is built:
+#   +0xf0  model actor     arrow-explosive -> the actor every ProjectileBullet uses (ammo-rifle +0xf0, loaded in every MP level): no arrow in flight
+#   +0x110 tracer struct   own copy {+0 tracer, +0x28 flight loop sfx}: the flight loop = the MP stun bomb's own (smoke-bomb-bullet's), the tracer =
+#          the arrow's tracer-arrow-single-player (loaded in MP: the bow) by default. T2R_LAUNCHER_TRAIL=stun = SP stun-bomb-bullet's tracer instead
+#          (a trail of its own, in particle-hcm-white-list next to the stun-bomb actor; MP never throws stun-bomb, so it may not be loaded - try on A/B)
+#   +0x94  launch speed    = +0x160 (the full-draw speed, the Explosive Bow's design 30 m/s): the bow lerps the two by its draw; a firearm has no
+#          draw, so both fields say the same speed (an undrawn 3.75 m/s shot would land at the shooter's feet, never armed at 3 m)
+LAUNCHER_TRAIL = os.environ.get("T2R_LAUNCHER_TRAIL", "arrow")
+LAUNCHER_NO_MODEL_FROM = "ammo-rifle"                 # its +0xf0 = the bullet actor
+LAUNCHER_LOOP_FROM = "smoke-bomb-bullet"              # MP's stun bomb (the smoke-bomb item): its flight loop sound
+LAUNCHER_STUN_TRAIL_FROM = "stun-bomb-bullet"
+LAUNCHER_RETICLE_FROM = "bow-ellie"                   #
+
+
+def patch_launcher_bullets(f):
+    """bullet-settings.bin (a DcFile, make_bullet_overlay): the Launcher's shot - no arrow model, a trail, the stun bomb's flight sound, one launch speed"""
+    from dcfile import fnv
+    from weapon_clone import find_symbol, copy_obj
+    a = find_symbol(f, EXPBOW_AMMO)
+    assert f.q(a) == fnv("ProjectileArrow") and f.q(a + 0xf0) == fnv("arrow-explosive"), f"{EXPBOW_AMMO}: class / actor (+0xf0) layout changed"
+    blt = f.q(find_symbol(f, LAUNCHER_NO_MODEL_FROM) + 0xf0)
+    assert blt and f.q(find_symbol(f, LAUNCHER_NO_MODEL_FROM)) == fnv("ProjectileBullet"), "ammo-rifle: not a ProjectileBullet with an actor"
+    f.set_q(a + 0xf0, blt)
+    tr = f.q(a + 0x110)
+    assert f.q(tr) == fnv("tracer-arrow-single-player") and f.q(tr + 0x28) == fnv("sfx-bow-explo-arrow-projectile-lp"), f"{EXPBOW_AMMO}: tracer struct layout changed"
+    sm = f.q(find_symbol(f, LAUNCHER_LOOP_FROM) + 0x110)
+    loop = f.q(sm + 0x28)
+    assert f.q(find_symbol(f, LAUNCHER_LOOP_FROM) + 0xf0) == fnv("smoke-bomb") and loop, f"{LAUNCHER_LOOP_FROM}: no flight loop at tracer +0x28"
+    nt = copy_obj(f, tr, min_size=0x60)
+    f.set_q(nt + 0x28, loop)
+    trail = "tracer-arrow-single-player"
+    if LAUNCHER_TRAIL == "stun":
+        st = f.q(find_symbol(f, LAUNCHER_STUN_TRAIL_FROM) + 0x110)
+        assert f.q(st), f"{LAUNCHER_STUN_TRAIL_FROM}: no tracer"
+        f.set_q(nt, f.q(st)); trail = f"{LAUNCHER_STUN_TRAIL_FROM}'s tracer {f.q(st):#x}"
+    else:
+        assert LAUNCHER_TRAIL == "arrow", f"T2R_LAUNCHER_TRAIL={LAUNCHER_TRAIL}: arrow or stun"
+    f.set_ptr(a + 0x110, nt)
+    sp, fd = struct.unpack_from("<f", f.data, a + 0x94)[0], struct.unpack_from("<f", f.data, a + 0x160)[0]
+    assert abs(fd - 80.0 * EXPBOW_SPEED) < 1e-3, f"{EXPBOW_AMMO} +0x160 = {fd}: patch_expbow_bullets must run first"
+    struct.pack_into("<f", f.data, a + 0x94, fd)
+    return (f"{EXPBOW_AMMO} (Launcher): model actor {blt:#x} (the bullet's, = none), trail {trail}, flight loop {loop:#x} ({LAUNCHER_LOOP_FROM}), "
+            f"launch speed {sp:g} -> {fd:g} m/s (= full draw)")
+
+
+def patch_launcher_reticle(path):
+    """weapon-gameplay.bin: the Launcher's reticle = the bow's (bow-ellie +0x58 hud2-reticle-def: bow-reticle / -large / -simple, scoped scope-reticle),
+    shared read-only like the other clones' defs; the flamethrower keeps its own"""
+    from dcfile import DcFile, fnv
+    from weapon_clone import find_symbol, map_get
+    f = DcFile(open(path, "rb").read())
+    mo = find_symbol(f, "*weapon-gameplay-defs*")
+    wg, bow = map_get(f, mo, fnv(LAUNCHER)), map_get(f, mo, fnv(LAUNCHER_RETICLE_FROM))
+    assert wg and bow
+    r = f.q(bow + 0x58)
+    img = bytes(f.data[f.q(r):f.q(r) + 64]).split(b"\0")[0]
+    assert img == b"weapon-reticles/bow-reticle", img
+    f.set_ptr(wg + 0x58, r)
+    open(path, "wb").write(f.save())
+    print(f"launcher: {LAUNCHER} reticle = {LAUNCHER_RETICLE_FROM}'s ({img.decode()})")
+
+
+def patch_launcher_art_reticle(path):
+    """weapon-art.bin: the reticle style id (art +0x120 -> +0x80, see patch_tac_art_reticle) = the bow's on an own copy of the Launcher's struct;
+    the reticle type (+0x1c0) is 0 on both"""
+    from dcfile import DcFile, fnv
+    from weapon_clone import find_symbol, hash_get, copy_obj
+    d = DcFile(open(path, "rb").read())
+    mo = find_symbol(d, "*weapon-art-defs-hash*")
+    v, bow = hash_get(d, mo, fnv(LAUNCHER)), hash_get(d, mo, fnv(LAUNCHER_RETICLE_FROM))
+    assert v and bow and d.q(v + 0x120) and d.q(bow + 0x120)
+    assert struct.unpack_from("<I", d.data, v + 0x1c0)[0] == struct.unpack_from("<I", d.data, bow + 0x1c0)[0] == 0, "reticle type (+0x1c0) changed"
+    want = d.q(d.q(bow + 0x120) + 0x80)
+    if d.q(d.q(v + 0x120) + 0x80) != want:
+        c = copy_obj(d, d.q(v + 0x120))
+        d.set_ptr(v + 0x120, c)
+        d.set_q(c + 0x80, want)
+    open(path, "wb").write(d.save())
+    print(f"launcher: {LAUNCHER} reticle style = {LAUNCHER_RETICLE_FROM}'s ({want:#x})")
+if LAUNCHER_ON:
+    for _a in ["sound-bank " + FLAME_BANK,                                              # the flamethrower's audio set (the clone keeps it; the actor line is the model stage's)
+               "actor arrow-explosive", "actor arrow-bundle", "sound-bank wpn-bow-arrow",  # the explosive arrow, its pickup look, its flight / blast sounds
+               "symbol ss-explosive-arrow"]:                                               # the SP script that detonates it (the Explosive Bow's lesson)
+        if _a not in MP_LEVEL_ADDS:
+            MP_LEVEL_ADDS.append(_a)
+    AMMO_CAPS[EXPBOW_AMMO] = LAUNCHER_CAP + 1           # (same value the Explosive Bow sets: one 2013 weapon, one pool)
+    ART_ICONS[LAUNCHER] = ICON_DIR + "launcher.png"
+
+
+def patch_launcher_gameplay(path):
+    """weapon-gameplay.bin (staged, after weapon_clone.clone_weapon made LAUNCHER from the flamethrower): the clone gets its own firearm def - default
+    ammo [ammo-arrow-explosive], shot interval 0.3 s, magazine 1 (net10 grenade-launcher) - and *ammo-to-weapon-array* feeds it the explosive arrow
+    instead of fuel. Runs after patch_expbow_gameplay (which drops every non-Explosive-Bow bow user of the explosive arrow; this pair is added after)."""
+    from dcfile import DcFile, fnv
+    from weapon_clone import find_symbol, map_get, copy_obj
+    f = DcFile(open(path, "rb").read())
+    mo = find_symbol(f, "*weapon-gameplay-defs*")
+    wg, src = map_get(f, mo, fnv(LAUNCHER)), map_get(f, mo, fnv(LAUNCHER_SRC))
+    assert wg and src and f.q(wg + 0x10) == f.q(src + 0x10), "launcher: clone missing or already has its own firearm def"
+    src_fa = f.q(src + 0x10)
+    assert f.q(src_fa - 8) == fnv("firearm-gameplay-def")
+    sa = f.q(src_fa)
+    assert [f.q(f.q(sa + 8) + 8 * i) for i in range(f.q(sa) & 0xffffffff)] == [fnv("ammo-flamethrower")], "flamethrower ammo list changed"
+    assert struct.unpack_from("<i", f.data, src_fa + 0x98)[0] == 100, "flamethrower magazine moved (+0x98)"
+    fa = copy_obj(f, src_fa, min_size=0x200)
+    f.set_ptr(wg + 0x10, fa)
+    struct.pack_into("<f", f.data, fa + 0x14, LAUNCHER_INTERVAL)
+    struct.pack_into("<i", f.data, fa + 0x98, LAUNCHER_MAG)
+    if globals().get("LAUNCHER_RELOAD"):                # (defined by the model stage when the Launcher has its own reload)
+        struct.pack_into("<f", f.data, fa + 0x2c, LAUNCHER_RELOAD_RATE)
+    f.set_ptr(fa, _symbol_array(f, [EXPBOW_AMMO]))
+    ao = find_symbol(f, "*ammo-to-weapon-array*")
+    cnt, aarr = f.q(ao) & 0xffffffff, f.q(ao + 8)
+    pairs = [(f.q(aarr + 16 * i), f.q(aarr + 16 * i + 8)) for i in range(cnt)]
+    keep = [(a, w) for a, w in pairs if w != fnv(LAUNCHER)] + [(fnv(EXPBOW_AMMO), fnv(LAUNCHER))]
+    na = f.append(b"".join(struct.pack("<QQ", a, w) for a, w in keep), tag="array")
+    f.set_q(ao, (f.q(ao) & ~0xffffffff) | len(keep))
+    f.set_ptr(ao + 8, na)
+    open(path, "wb").write(f.save())
+    print(f"launcher: {LAUNCHER} own firearm def (ammo [{EXPBOW_AMMO}], {LAUNCHER_INTERVAL} s, magazine {LAUNCHER_MAG}), ammo users {len(pairs)} -> {len(keep)}")
+
+
+def patch_launcher_art(path):
+    """weapon-art.bin: the Launcher's own firearm-art def (art +0x128) without the flamethrower's flame effects (no fire shell / pilot light / drips on the
+    launcher); the flamethrower keeps its def. Each cleared field is checked to hold the expected effect first."""
+    from dcfile import DcFile, fnv
+    from weapon_clone import find_symbol, hash_get, copy_obj
+    d = DcFile(open(path, "rb").read())
+    mo = find_symbol(d, "*weapon-art-defs-hash*")
+    v, src = hash_get(d, mo, fnv(LAUNCHER)), hash_get(d, mo, fnv(LAUNCHER_SRC))
+    assert v and src, "launcher: no weapon-art def"
+    fa = d.q(v + 0x128)
+    if fa == d.q(src + 0x128):
+        fa = copy_obj(d, fa)
+        d.set_ptr(v + 0x128, fa)
+    for off, name in LAUNCHER_NO_FX.items():
+        # 0 = already cleared on the flamethrower itself (the weapons stage has no drip flames at +0xe8)
+        assert d.q(fa + off) in (0, fnv(name)), f"launcher art +0x128+{off:#x}: {d.q(fa + off):#x} is not {name}"
+        d.set_q(fa + off, 0)
+    off, name = LAUNCHER_NO_FX_ARR
+    arr = copy_obj(d, d.q(fa + off))
+    assert d.q(arr) == fnv(name), f"launcher art +0x128+{off:#x}[0] is not {name}"
+    d.set_q(arr, 0)
+    d.set_ptr(fa + off, arr)
+    open(path, "wb").write(d.save())
+    print(f"launcher: {LAUNCHER} firearm-art def without the flame effects ({', '.join(sorted(set(LAUNCHER_NO_FX.values())))}, {name})")
+
+
+def verify_launcher(dc1):
+    """build check (staged dc1): the Launcher's gameplay / art / damages defs are its own and say what the ext and the model expect"""
+    from dcfile import DcFile, fnv
+    from weapon_clone import find_symbol, map_get, hash_get
+    g = DcFile(open(os.path.join(dc1, "weapon-gameplay.bin"), "rb").read())
+    mo = find_symbol(g, "*weapon-gameplay-defs*")
+    wg, src = map_get(g, mo, fnv(LAUNCHER)), map_get(g, mo, fnv(LAUNCHER_SRC))
+    assert wg and g.q(wg + 0x10) != g.q(src + 0x10), "launcher: no own firearm def"
+    fa = g.q(wg + 0x10)
+    sa = g.q(fa)
+    assert [g.q(g.q(sa + 8) + 8 * i) for i in range(g.q(sa) & 0xffffffff)] == [fnv(EXPBOW_AMMO)]
+    assert abs(struct.unpack_from("<f", g.data, fa + 0x14)[0] - LAUNCHER_INTERVAL) < 1e-6 and struct.unpack_from("<i", g.data, fa + 0x98)[0] == LAUNCHER_MAG
+    assert struct.unpack_from("<i", g.data, g.q(src + 0x10) + 0x98)[0] == 100, "the flamethrower's own def changed"
+    want_rate = LAUNCHER_RELOAD_RATE if globals().get("LAUNCHER_RELOAD") else struct.unpack_from("<f", g.data, g.q(src + 0x10) + 0x2c)[0]
+    assert abs(struct.unpack_from("<f", g.data, fa + 0x2c)[0] - want_rate) < 1e-6, "launcher: reload rate (+0x2c)"
+    ao = find_symbol(g, "*ammo-to-weapon-array*")
+    n, arr = g.q(ao) & 0xffffffff, g.q(ao + 8)
+    users = sorted(g.q(arr + 16 * i) for i in range(n) if g.q(arr + 16 * i + 8) == fnv(LAUNCHER))
+    assert users == [fnv(EXPBOW_AMMO)], users
+    a = DcFile(open(os.path.join(dc1, "weapon-art.bin"), "rb").read())
+    v = hash_get(a, find_symbol(a, "*weapon-art-defs-hash*"), fnv(LAUNCHER))
+    assert v, f"{LAUNCHER}: no weapon-art def"
+    cs = lambda p: bytes(a.data[p:p + 80]).split(b"\0")[0].decode()
+    assert cs(a.q(v + 0x38)) == LAUNCHER_ACTOR and cs(a.q(v + 0x0)) == LAUNCHER_ACTOR, (cs(a.q(v)), cs(a.q(v + 0x38)))
+    assert cs(a.q(v + 0x180)) == FLAME, cs(a.q(v + 0x180))                # the flamethrower's player overlay key (abby-guns/flamethrower)
+    assert all(a.q(a.q(v + 0x128) + o) == 0 for o in LAUNCHER_NO_FX), "launcher: flame effects still in its firearm-art def"
+    d = DcFile(open(os.path.join(dc1, "weapon-damages.bin"), "rb").read())
+    assert map_get(d, find_symbol(d, "*weapon-damage-settings*"), fnv(LAUNCHER)), f"{LAUNCHER}: no weapon-damages entry"
+    bow = map_get(g, mo, fnv(LAUNCHER_RETICLE_FROM))
+    assert g.q(wg + 0x58) == g.q(bow + 0x58), "launcher: reticle is not the bow's"
+    bowa = hash_get(a, find_symbol(a, "*weapon-art-defs-hash*"), fnv(LAUNCHER_RETICLE_FROM))
+    assert a.q(a.q(v + 0x120) + 0x80) == a.q(a.q(bowa + 0x120) + 0x80), "launcher: reticle style is not the bow's"
+    bp = os.path.join(dc1, "bullet-settings.bin")
+    if os.path.exists(bp):              # (the overlay copy, when the caller staged it)
+        b = DcFile(open(bp, "rb").read())
+        ba = find_symbol(b, EXPBOW_AMMO)
+        assert b.q(ba + 0xf0) == b.q(find_symbol(b, LAUNCHER_NO_MODEL_FROM) + 0xf0), "launcher: the shot still has the arrow model"
+        assert b.q(b.q(ba + 0x110) + 0x28) == b.q(b.q(find_symbol(b, LAUNCHER_LOOP_FROM) + 0x110) + 0x28), "launcher: flight loop"
+        assert abs(struct.unpack_from("<f", b.data, ba + 0x94)[0] - struct.unpack_from("<f", b.data, ba + 0x160)[0]) < 1e-6, "launcher: launch speed"
+    print(f"launcher: {LAUNCHER} verified (actor {LAUNCHER_ACTOR}, ammo [{EXPBOW_AMMO}], {LAUNCHER_INTERVAL} s, magazine {LAUNCHER_MAG}, no flame fx, "
+          f"bow reticle)")
 
 
 def far_mpxs_sid_places(dc1, weapon, names, depth=4):

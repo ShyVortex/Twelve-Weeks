@@ -1,4 +1,5 @@
-// slowdown.h - slows things down: a lot of systems played animations too fast / moved characters too fast, so movement speed is 10% lower. One global flag: t2r-no-slowdown.txt next to the exe reverts everything below
+// slowdown.h -
+// . One global flag: t2r-no-slowdown.txt next to the exe reverts everything below
 // (re-read every 2 s; the movement multipliers follow within 30 frames, the blend / rate constants on their next use).
 //   SD_MOVE  = the factor on player locomotion (the game's motion-match speed multipliers, skills.c sk_movement; the downed crawl curves)
 //   sd_f(calm, orig) = a calmer constant (softer blend, lower forced rate) or the original with the opt-out

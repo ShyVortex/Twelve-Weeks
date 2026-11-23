@@ -28,7 +28,7 @@ static const char *psync_ab_name(unsigned r) {   // names in every ABORT log lin
 #define PS_PING_MS 2000.0
 #define PS_DEFAULT_ONEWAY 60.0f    // ms, until a PONG measured the peer
 #define PS_BLEND 0.3f              // minimum blend-in of every half (same on every client); g_ps_blend grows with the start distance
-// TLOU2 SP's own pull onto a paired move (SP sandbox, re/contextual-downs.md "SP sandbox 10-12"): the attacker's align reaches the move's
+// TLOU2 SP's own pull onto a paired move (SP sandbox, re/contextual-downs.md "SP sandbox "): the attacker's align reaches the move's
 // apReference path in 0.20 s whatever the offset (Abby wall takedown: 0.83 m / 42 deg in 0.20 s; Ellie disarm kill: 0.19 m in ~0.2 s), the
 // remaining offset falling as (1 - x)^2 (quadratic ease-out); the victim is put onto the authored relation to the attacker within 1-3 frames
 // (yaw 173 -> 180 in 0.05 s) while its body pose blends. ctxdown's takedowns start with it; t2r-cd-old-blend.txt = the distance-based blend.
@@ -344,8 +344,8 @@ static uint64_t g_pul_rise_until; static uint32_t g_pul_rise_uid;   // melee_pul
 static int g_ps_pul_vdrv;                  // our live victim body was placed by psync in a pull-out (melee_pullout.c hands it to the engine at the end)    // ctxdown.c: a wall pin / wall takedown pair (its ap is the wall surface, the victim stands in front of it)
 static int cd_mf_intro_move(uint64_t move); // ctxdown.c: a duel finisher (mf- row) whose segment 0 is SP's attacker-only intro (the windup)
 static float cd_seg0_ms(uint64_t move);    // ctxdown.c: real ms of a chain's first segment
-static float cd_stature_dy(int k, double now);   // ctxdown.c (ps46): metres added to a PUPPET half's placement y (the MP body's stature vs the clip's skeleton)
-static void cd_stature_apply(int k, double now, float *t);   // ctxdown.c (ps46): the above for CD_STATURE rows + the kind 0 finishers (dy and the along-the-line dz)
+static float cd_stature_dy(int k, double now);   // ctxdown.c: metres added to a PUPPET half's placement y (the MP body's stature vs the clip's skeleton)
+static void cd_stature_apply(int k, double now, float *t);   // ctxdown.c: the above for CD_STATURE rows + the kind 0 finishers (dy and the along-the-line dz)
 static int psync_expected(uint64_t ent, uint64_t sid, const psync_bf *bf, float phase, float *out) {
     typedef const float *(*fn_loc)(void *, float *);
     uint64_t a[6] = {ent, sid, (uint64_t)bf, 0, 0x509903bb65ac341eULL /* align */, 0x05fed8d7a1d8cf89ULL /* apReference */};
@@ -400,7 +400,7 @@ static float g_ps_take_bl40;             // set by ps_take_other40: the entry bl
 // abby-fist-hwall-enter-npc-close-hit--npc-f. A half that starts on its first frame (skip <= 50 ms) on a body whose drawn hips or shoulders stand more than
 // PS_POSE_FAR_DEG off that frame starts over PS_TAKE_SWING_BL - whatever the reason. t2r-pair-pose-blend-off.txt = off (the measurement line stays).
 #include "melee_pose0.h"
-#define PS_POSE_FAR_DEG 60.0f   // tuning value (ps42)
+#define PS_POSE_FAR_DEG 60.0f   // tuning value
 static int ps_pose42_off(void) { static int v = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (v < 0 || n - at > 2000) { at = n; v = GetFileAttributesA("t2r-pair-pose-blend-off.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
 static int ps_pose0(uint64_t sid, float *hip, float *sh) {
     int lo = 0, hi = (int)MEL_POSE0_N - 1;
@@ -435,7 +435,7 @@ static float ps_take_blend40(int k, int own, float bl) {
                                                          g_ps.uid, (double)d42, (double)mh42, (double)th42, (double)ms42, (double)ts42, (double)(cur > oth ? cur : oth));
         } else if (k == 0 && !own && g_ps.role == 3 && mpn_byst_pair(g_ps.move) && cur < PS_PIN_BYST_BLEND && oth < PS_PIN_BYST_BLEND) {
             // (frames 165410-165830: 'attacker half on the puppet starts over 0.20 s, not 0.180 s - the drawn body stands 87 deg off' on every pin blow a
-            // bystander watched): the pin pair's attacker half on a puppet we only watch crossfades over the pin swing replica's 0.30 s (ps45) from a pose > 60 deg off.
+            // bystander watched): the pin pair's attacker half on a puppet we only watch crossfades over the pin swing replica's 0.30 s from a pose > 60 deg off.
             // t2r-no-pin-byst-windup.txt = the 0.20 s.
             static int nlp; if (LOGCAP(nlp, 200)) xlog("psync: u%08x pin attacker half on the puppet we watch (role 3) starts over %.2f s, not %.3f s - the drawn body stands %.0f deg off the half's first frame (hips %+.0f vs %+.0f, shoulders %+.0f vs %+.0f deg from the root) (t2r-no-pin-byst-windup.txt = %.2f s)",
                                                        g_ps.uid, (double)PS_PIN_BYST_BLEND, (double)(cur > oth ? cur : oth), (double)d42, (double)mh42, (double)th42, (double)ms42, (double)ts42, (double)PS_TAKE_SWING_BL);
@@ -500,7 +500,7 @@ static float psync_dur(uint64_t ent, uint64_t sid) {
 // (n 0, fade 0) in a collapsed one. This logs the used layers of a puppet the same frame, before and right after animate_, so a
 // collapsed start shows whether the instance was never made or was made and dropped later in the frame.
 static void psync_layer_snap(const char *tag, uint64_t ent);
-static void p30_start(void);        // melee_hitreact.c (ps30): an armed victim's duel -hit half - proof log of its layers + the arm hold's release, before the half's animate_
+static void p30_start(void);        // melee_hitreact.c: an armed victim's duel -hit half - proof log of its layers + the arm hold's release, before the half's animate_
 static uint64_t psync_animate(uint64_t ent, uint64_t sid, const psync_bf *bf, float phase, float blend) {
     int n = phase > 0.0005f ? 3 : 2;
     uint64_t aa[4] = {fnv64("single-frame"), 16, (uint64_t)n, 1};
@@ -1287,7 +1287,7 @@ static void psync_drive(int k, double now) {
         if (dt > 0.1f) dt = 0.1f;
         // ps39 B8 (rec38a B [14521], clash pair u001a5451: 'drive slot 0 attacker half - placement jumped 1.16 m / 0 deg in one frame (t=1016) - absorbed, decays over
         // ~0.42 s' on the first frame of our blend-out drive; frames B 72.10-72.17: the clinch snaps to the shoved-apart pose): our own body is driven for the
-        // pair's blend-in (ps24), then placed by the engine, then driven again at the blend-out - the 'previous target' was still the one from the blend-in, a second
+        // pair's blend-in, then placed by the engine, then driven again at the blend-out - the 'previous target' was still the one from the blend-in, a second
         // ago, so the whole travel of the move since then read as a one-frame jump and was put back on the body as an offset (it stepped back to where the move
         // began and slid in again). A target older than one frame is no previous target. t2r-drive-stale-prev-ps38.txt = old.
         static uint64_t drv_f39[2]; static uint32_t drv_uid39;
@@ -1432,7 +1432,7 @@ static void psync_drive(int k, double now) {
     // frame (... psync role 2, victim half) - writers: psync u0104dc37 kind 6 t=115 ms own drive 1', then -12 / -13 deg a frame for 8 frames; B [19387] / [19388] -73 /
     // -78 deg at t=16 / 32 ms of an attacker half, [11392] / [11393] -55 / +62): the drive's turn limit is a time for the whole glide, not a step - one frame of this
     // drive turned our own root 55-78 deg (no 'placement jumped' line: the raw target did not step, the written yaw did - the cause inside the drive is NOT found;
-    // this line is the measurement). The rule (ps43): our own root never turns more than PS_OWN_YAW_STEP in one frame under a duel pair's drive; the rest
+    // this line is the measurement). The rule: our own root never turns more than PS_OWN_YAW_STEP in one frame under a duel pair's drive; the rest
     // comes on the following frames (the target is still ahead, the step repeats). t2r-own-drive-yaw-step-old.txt = no limit (the line stays).
 #define PS_OWN_YAW_STEP 15.0f   // [TUNING ps43] deg a frame
     if (own && ((g_ps.kind == PS_CTXDOWN && mdu_move(g_ps.move)) || (k == 1 && g_ps_t744))) {   // (ps44 T7: every victim-half start glide on our body)
@@ -1464,7 +1464,7 @@ static void psync_drive(int k, double now) {
     // itself moved 0.01-0.04 m a frame and this drive's step guard below (0.08 m of the TARGET) never fired: the body left our writes, the writes did not step. No
     // other ext writer is named on those frames, so the mover is the engine (its own state under the fading / gone layer; a bot melee press was dropped by the duel
     // 9 frames before - an engine lunge is the suspect, NOT proven). The same shape, one frame, 4 frames after 'kick fix: clip ended' on three more clash pairs
-    // ([14854] 0.27 m, [15476] 0.24 m, [15615] 0.21 m). The rule (lead): while the attacker half blends OUT the drive follows the clip only -
+    // ([14854] 0.27 m, [15476] 0.24 m, [15615] 0.21 m). The rule: while the attacker half blends OUT the drive follows the clip only -
     //  1 the body reads PS_OUT_RUN_M further off our last write than the frame before: the engine is moving it -> the drive stops, NOTHING is written or teleported
     //    (the body stays with the engine);
     //  2 the half's layer is gone (phase reads 0: kick fix / lost layer) -> the drive stops as the step guard below does (held on the last placed spot, handed over);
@@ -1542,7 +1542,8 @@ static void psync_drive(int k, double now) {
     if (k == 1) { memcpy(g_ps.last_put, t, 12); g_ps.last_put_ok = 1; }
 }
 
-// ---- travel clamp (v5-fb2: getting punched could travel a player into collision in the animation, so a check keeps them on the edge of the collision; and an out-of-bounds report: dlog3 116318-116672 / 90013-90205, Hospital ~255 13.7 -98: a duel
+// ---- travel clamp
+// and the OOB report: Hospital ~255 13.7 -98: a duel
 // finisher carried the victim into a wall and the attacker toward a 1 m drop, the attacker fell out of the map after the hand-off). Every paired half
 // (duel hit pairs, pins, escapes, finishers, takedowns, executions, revives - attacker AND victim, our own body AND the puppets on our screen) moves on
 // its clip's root motion with no character collision. Each frame, before the step is shown, the step is clipped against the collision edges found so
@@ -2977,7 +2978,7 @@ static int psync_recv(uint32_t from, const uint8_t *buf, uint64_t len) {
         int exec = g_ps.kind == PS_GUN_EXEC || g_ps.kind == PS_MELEE_EXEC, role = g_ps.role;
         int ctx_kind = g_ps.kind == PS_CTXDOWN, rv_kind = g_ps.kind == PS_REVIVE;
         char why[64]; snprintf(why, sizeof why, "slot %u aborted it (reason %s %u)", from, psync_ab_name(w.resend), w.resend);
-        // ps47 (clip 18-59-03: the animation got stuck before the finisher; A [13327]-[13376]): the attacker's finisher windup cuts the running -hit pair
+        // ps47 (clip: the animation got stuck before the finisher; A [13327]-[13376]): the attacker's finisher windup cuts the running -hit pair
         // (SENDER-CUT) and nothing played on our victim body for 816 ms. The cut -hit victim half on our own body is noted here (clip + phase) so the windup's
         // arrival (melee_duel.c mdu_fw_vic_hold) can keep it playing on our body until the finisher START. Only a SENDER-CUT of a ctxdown pair on our own body.
         if (role == 2 && ctx_kind && w.resend == 0 && g_ps.vic == (int)psync_self() && g_ps.vic_sid) {
@@ -3771,7 +3772,8 @@ static void vdf_noanim_tick(void) {        // the no-death-anim mode ends once w
 // a puppet - stop-animating(PS_OUT) on its half AND its net channels back (replay with a reset interpolation under the fading clip,
 // pose writer, net locator through the hand-back). Its collider stays off / collision ignored until the move ends (the victim half
 // still plays next to it).
-// A new swing of our own while psync still places our released ATTACKER body on the old clip (its blend-out drive, psync_drive): a pin's blow 5 pressed 2 frames after blow 4's attacker release - the drive's set-object-locator every frame fought the new swing and the
+// A new swing of our own while psync still places our released ATTACKER body on the old clip (its blend-out drive, psync_drive):,
+// a pin's blow 5 pressed 2 frames after blow 4's attacker release - the drive's set-object-locator every frame fought the new swing and the
 // body slid to the world origin (313 -> 194 -> 0 in ~10 frames, 'pelvis -13 m', the hand-off left us out of the map). The drive ends here,
 // before the swing starts: the engine gets the body at the drive's last placed spot (teleport-player, same as the drive's own end).
 static void psync_own_att_free(const char *why) {
@@ -4128,7 +4130,8 @@ static void psync_att_pose_log(double t, float ph) {
     if (collapsed && ncol++ < 6) psync_pup_probe_of("collapsed attacker", h, g_ps.att, g_ps.att_sid, "attacker");
 }
 // The victim half of a lethal move never runs off its end: 100 ms before it the layer is frozen (playback rate 0) on the final pose,
-// so the dead body never falls back to its base (standing) pose before the ragdoll / death pose takes it (hunting rifle case: the body stood up for ~0.2 s at the end, then dropped). Every body that plays it (ours, a puppet, third party).
+// so the dead body never falls back to its base (standing) pose before the ragdoll / death pose takes it (hunting rifle
+// clip: the body stood up for ~0.2 s at the end, then dropped). Every body that plays it (ours, a puppet, third party).
 static void psync_vic_end_hold(double t) {
     static uint32_t done_uid;
     // (puppets only: our own body goes limp at the clip end through the death controller's ragdoll, vdf_limp, and a frozen layer on the
@@ -4380,7 +4383,7 @@ static void psync_bs_chain(double now) {
     if (g_ps.cur_seg == 0) { g_bs_hold_swap = 0; psync_rv_switch(1, g_ps.t0 + len, 0.30f, "bodyshield enter over", 1.0f); }
     else psync_rv_switch(1, g_ps.t0 + len, 0.15f, "bodyshield hold restart", 1.0f);
 }
-// Special executions always show the guns they use, to avoid anims where the executioner seems to hold nothing. Every frame of a gun / armed-melee execution the executioner's weapon (our body: the item controller's held weapon; a
+// . Every frame of a gun / armed-melee execution the executioner's weapon (our body: the item controller's held weapon; a
 // puppet on the victim's / a bystander's screen: the NPC's current weapon) gets its draw-control visibility byte (+0x1b0 -> +0x48, the byte the
 // spawn fix found: 0x00 = the process is attached but not drawn) forced to 0xff. The holster gates (hfix, t2r-ext.c) keep our own body's
 // gun in the hand; a puppet's carrier clip is an NPC clip whose holster actions the gates do not cover (hfix_mine = the local player's), so the

@@ -323,7 +323,7 @@ static void achui_tick(void) {
     int esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0, esc = esc_now && !AUI.h_esc; AUI.h_esc = esc_now;
     int kq = game_focused() && (GetAsyncKeyState('Q') & 0x8000) != 0, ke = game_focused() && (GetAsyncKeyState('E') & 0x8000) != 0;
     int tab_l = kq && !AUI.h_ka, tab_r = ke && !AUI.h_kd; AUI.h_ka = kq; AUI.h_kd = ke;
-    int bp = menu_edge(fnv64("menu-prev"), &AUI.h_pv), bn = menu_edge(fnv64("menu-next"), &AUI.h_nx);
+    int bp = MENU_PREV_TAB(&AUI.h_pv), bn = MENU_NEXT_TAB(&AUI.h_nx);
     int wn = wheel_notches();
     int ohv = AUI.hv_r * 4096 + AUI.hv_c * 64 + (AUI.hv_tb + 4) * 8 + AUI.hv_pb + 1;
     achui_scan();

@@ -73,7 +73,7 @@ static void gift_count_sync(void) {
 }
 // ---- crafting side (skills.c sk_crafter_gift): returns 0 when a gift is already carried (the count waits)
 static int gift_grant(int lv) {
-    if (gift_have()) {      // 2013: every 3rd / 2nd craft gives a giftbox - the count does not stall while one is carried (R-QS5X "getting items for Crafter 3 is inconsistent")
+    if (gift_have()) {      // 2013: every 3rd / 2nd craft gives a giftbox - the count does not stall while one is carried
         if (g_gift_qn >= GIFT_QMAX) return 0;
         g_gift_q[g_gift_qn++] = (uint8_t)(t2r_rand() % GIFT_NK);
         xlog("gift: Crafter %d: another gift crafted (%s) - %d waiting behind the carried one", lv, GIFT_K[g_gift_q[g_gift_qn - 1]].name, g_gift_qn);

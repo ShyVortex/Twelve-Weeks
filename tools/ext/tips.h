@@ -1,4 +1,5 @@
-// tools/ext/tips.h - the ONE tip list (the death screen and loading screen tips merged into one list). 29 tips from the old 16 loading tips (MF_TIPS) + 33 death tips (DU_TIPS, 40 different lines). The loading screen shows "CAT:" + the
+// tools/ext/tips.h - the ONE tip list
+// . 29 tips from the old 16 loading tips (MF_TIPS) + 33 death tips (DU_TIPS, 40 different lines). The loading screen shows "CAT:" + the
 // text and steps to the next tip every 7 s; the death screen shows the text on its SP illustration (streaming/large/death-tips/<img>.png, the pictures
 // the old death list used; suppressor / mark / listen / headshot had none and take the closest unused one). Polish: tools/loc/pl/04-matchflow.txt.
 // Keep tools/features/matchflow_widgets.py TIPS in step (its first tip is the loading widget's placeholder).

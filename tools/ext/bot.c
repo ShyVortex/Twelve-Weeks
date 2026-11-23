@@ -771,6 +771,32 @@ static int bot_step(char *cmd, const char *args, char *why, size_t wn) {
         bot_set_pose(l, l[0] + dx * k, l[2] + dz * k, __builtin_atan2f(dx, dz));
         return 0;
     }
+    if (!strcmp(cmd, "crouch")) {   // backpack stance test: "crouch" = player-force-crouch until player-is-crouched? answers yes (2 s timeout = FAIL)
+        if (!bot_ready()) return el > 15000 ? (snprintf(why, wn, "not in a live match"), -1) : 0;
+        uint64_t none = 0, cr = dc_call(fnv64("player-is-crouched?"), 0, &none);
+        if (cr != ~0ULL && (cr & 0xff)) { snprintf(why, wn, "crouched"); return 1; }
+        dc_call(fnv64("player-force-crouch"), 0, &none);
+        return el > 2000 ? (snprintf(why, wn, "player-is-crouched? still no"), -1) : 0;
+    }
+    if (!strcmp(cmd, "bpmenu")) {   // backpack stance test: "bpmenu open|close" = an engine-level pad press of "inventory-open" (the backpack button, toggles), no key input.
+                                    // (A page push (open_buy_menu) shows the page but never makes menu2-player-menu-active? 1 = no craft clip; .) OK once the flag follows (3 s timeout = FAIL)
+        if (!bot_ready()) return el > 15000 ? (snprintf(why, wn, "not in a live match"), -1) : 0;
+        int want = !strcmp(args, "open");
+        if (g_bot.ph == 0) {
+            if ((player_menu_active() == 1) == want) { snprintf(why, wn, "backpack menu already %s", want ? "open" : "closed"); return 1; }
+            padinj_install(); padinj_nofocus(1);
+            g_padinj_bot_press = 1; padinj_press("inventory-open", 160); g_padinj_bot_press = 0;
+            g_bot.ph = 1;
+            xlog("bot: bpmenu %s requested (menu active before %d) tms %llu", want ? "open" : "close", player_menu_active(), PT_MS);
+        }
+        int act = player_menu_active() == 1;
+        if (act == want) { snprintf(why, wn, "backpack menu %s", want ? "open" : "closed"); return 1; }
+        return el > 3000 ? (snprintf(why, wn, "menu2-player-menu-active? still %d", act), -1) : 0;
+    }
+    if (!strcmp(cmd, "bpstance")) { // log our stance natives (prone? supine? crouched?) once
+        uint64_t none = 0, pr = dc_call(fnv64("player-is-prone?"), 0, &none), su = dc_call(fnv64("player-is-supine?"), 0, &none), cr = dc_call(fnv64("player-is-crouched?"), 0, &none);
+        snprintf(why, wn, "prone %d supine %d crouched %d", pr != ~0ULL && (pr & 0xff), su != ~0ULL && (su & 0xff), cr != ~0ULL && (cr & 0xff)); return 1;
+    }
     if (!strcmp(cmd, "stand")) { uint64_t none = 0; dc_call(fnv64("player-force-stand"), 0, &none); snprintf(why, wn, "player-force-stand"); return 1; }
     if (!strcmp(cmd, "towall")) {   // "towall [gap_m]": put us with our back to the nearest flat wall (16 directions x 3 heights up to 1.8 m + knee rays 0.35 m to the sides: ctxdown's wall test (a plane above chest height), 25 m), gap_m off it (default 0.45), facing away - a pin / wall takedown spot
         static uint64_t j[16][5]; static float org[3];

@@ -36,7 +36,7 @@ typedef struct {
     int qte_zone_ms;     // pressable length of the escape prompt (Iron Grip I: x1.5)
     int kb_ms;           // kill block: no choke / stab before this (from the grab START) = QTE close + grace + net margin
     int hold_max_ms;     // a grab that is neither aimed nor finished ends here: the victim breaks out
-    int mash_fast_ms;    // aim shield: free after this long when F is mashed at the cap (user: 2.5 s, longer per level)
+    int mash_fast_ms;    // aim shield: free after this long when F is mashed at the cap (2.5 s, longer per level)
     int mash_idle_ms;    // aim shield: free after this long with no press at all (the automatic wiggle; SP: an NPC hostage breaks out 9.25 s after the grab)
 } bs_tier_t;
 
@@ -149,7 +149,7 @@ static int bs_att_step(bs_att_t *a, int rel, int aiming, int kill, int hurt) {
         if (kill && bs_att_can_kill(a, rel)) { a->st = BS_ST_KILL; return BS_A_KILL; }
         if (rel >= a->t.hold_max_ms) { a->st = BS_ST_END; a->end = BS_END_TIMEOUT; return BS_A_RELEASE; }
         return BS_A_NONE;
-    case BS_ST_SHIELD:                   // user: once aiming, keep aiming - no stop, no choke, no stab
+    case BS_ST_SHIELD:                   // once aiming, keep aiming - no stop, no choke, no stab
         if (hurt) { a->st = BS_ST_END; a->end = BS_END_DAMAGE; return BS_A_RELEASE; }
         if (!aiming) { a->st = BS_ST_END; a->end = BS_END_STOPAIM; return BS_A_RELEASE; }
         if (rel - a->shield_ms >= bs_att_shield_cap_ms(a)) { a->st = BS_ST_END; a->end = BS_END_TIMEOUT; return BS_A_RELEASE; }   // (the victim's MASH END was lost)

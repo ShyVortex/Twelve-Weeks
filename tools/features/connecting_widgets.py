@@ -16,7 +16,7 @@ connectingText (loc_static_labels, page "connecting"). Only layout / colours / e
 3840 x 2160, y down.
 
 Variant "L" (default since re/loading-1105/README.md): the TWELVE WEEKS entry sequence. Pure black, the title big and centred in the
-user's "The Last Of Us Rough.ttf" rendered to a texture (loading_art.py; the game's font system cannot load a new TTF from our tooling), a 28 px
+ rendered to a texture (loading_art.py; the game's font system cannot load a new TTF from our tooling), a 28 px
 white bar with a torn right edge along the bottom edge (winmm keeps driving anim-group.progress). Nothing is visible in the JSON: t2r-ext ld_tick (tools/ext/loadseq.c) fades bg to black, holds, fades
 the title (group t2rLoad) in slowly, fades the bar in and fades everything out; the stinger plays with the title fade.   python connecting_widgets.py <extracted widget dir> <out png>   renders the layout (preview)."""
 import copy

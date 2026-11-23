@@ -20,8 +20,8 @@
 //   mapwin <map key> <n>     matches won on that map (CZ_UMAP_KEY)
 //   count <label key> <n>    career total of one per-match counter (CZ_LBL_KEY: downs, assists, downs-bow, exec-revolver, ...)
 //   best <label key> <n>     the best one match of that counter
-//   grant <item label>       that item (every list's row of that label) counts as unlocked whatever its challenge says (granted
-// by label because the challenges move when the lists change, a label does not). Not for the OG / owner rows.
+//   grant <item label>       that item (every list's row of that label) counts as unlocked whatever its challenge says
+//                            the challenges move when the lists change, a label does not). Not for the OG / owner rows.
 // Unknown lines are skipped; an index out of range falls back to the default, so a file from another build never breaks the page.
 //
 // Wire (MSG_CUSTOM_LOOK, CZ_MSG_LEN bytes, not sent yet - see the doc's net section):
@@ -37,11 +37,13 @@
 #define CZ_VER 2                        // (2: + the MASK category, one more index per faction)
 #define CZ_NWEAR 7                      // hat torso lower backpack face melee mask (the categories before CZ_SEX)
 #define CZ_MSG_LEN (4 + 2 * (1 + CZ_NWEAR))
+#define CZ_HIDE_MAX 256                 // cz_select: hide-list entries of one outfit, all categories together
 #ifndef CZ_API
 #define CZ_API static
 #endif
 
-// unlock progress, kept PER FACTION (accessories of the other faction are not unlocked by playing the opposite): what is done while playing as WLF counts for the WLF items only, and the same for the Seraphites
+// unlock progress, kept PER FACTION
+// what is done while playing as WLF counts for the WLF items only, and the same for the Seraphites
 typedef struct {
     uint32_t st[CZK_N];                         // the one-number kinds (cz_scalar; the other slots unused)
     uint32_t mw[CZ_NUMAP];                      // matches won per map
@@ -396,7 +398,8 @@ static int cz_take(const cz_part_t *sup, uint8_t *keep, int n, const char *name,
 // pool looks carry beside their clothes: second-sidearm holsters, chest rigs, the back holster) come from the pool looks whose clothes the
 // outfit matches: tx = the parts of the look with the chosen torso (its chest rig), lx = the look with the chosen lower (belt holsters).
 // Returns the number kept; -1 = an item part the superset lacks (old data: the caller keeps the pool look).
-// THE OUTFIT AS IT IS DRAWN (the hood option is only previewable / selectable on clothing that supports it: the islander long coat has no hood, but previewing the hood flattened the hair): a worn row that conflicts (cz_conflict_cat: another worn item hides every part of it - HOOD UP kept from an earlier
+// THE OUTFIT AS IT IS DRAWN
+// a worn row that conflicts (cz_conflict_cat: another worn item hides every part of it - HOOD UP kept from an earlier
 // outfit under a top without a hood) draws nothing, but its hide list still acted: the raised hood's list flattened KELLIE's hair
 // and put the gas mask into its under-hat shape. Such a row counts as the category's default row: every select works on this copy.
 CZ_API void cz_effective(int fac, int sex, const uint8_t *it, uint8_t *out) {
@@ -408,11 +411,13 @@ CZ_API int cz_select(int fac, int sex, const uint8_t *it0, const cz_part_t *sup,
     uint8_t it[CZ_NCAT];
     cz_effective(fac, sex, it0, it);
     memset(keep, 0, (size_t)n);
-    // (64: a crown-covering hat hides the full shape of every gas mask + the other class's under-hat shapes + KELLIE's crown parts)
-    const char *hide[64]; int nh = 0;
+    // (a crown-covering hat hides the full shape of every gas mask + the other class's under-hat shapes + KELLIE's crown parts + every
+    // per-hat hair part but its own. 64 until: the WLF female hat + mask lists reach 70 and the mask's hides were cut off;
+    // test_customize_core checks the worst case against CZ_HIDE_MAX)
+    const char *hide[CZ_HIDE_MAX]; int nh = 0;
     for (int c = 0; c < CZ_NWEAR; c++) {
         const cz_item_t *x = cz_item(fac, sex, c, it[c]);
-        for (const char *const *h = x ? x->hide : NULL; h && *h && nh < 64; h++) hide[nh++] = *h;
+        for (const char *const *h = x ? x->hide : NULL; h && *h && nh < CZ_HIDE_MAX; h++) hide[nh++] = *h;
     }
     for (int c = 0; c < CZ_NWEAR; c++) {
         const cz_item_t *x = cz_item(fac, sex, c, it[c]);
@@ -467,6 +472,13 @@ CZ_API int cz_armour_pairs(const cz_part_t *sup, const uint8_t *keep, int n, con
         char q[0x40];
         if (!keep[i] || cz_is_pushed(sup[i].name) || !cz_pushed_name(sup[i].name, q, sizeof q) || !cz_kept(sup, keep, n, q)) continue;
         if (strstr(sup[i].name, "-uparm-") || strstr(sup[i].name, "-loarm-")) continue;
+        // A part the outfit keeps as its record HIDDEN at spawn (another worn row's hide list) gets no pair: the rig shows a pair's
+        // original whenever the piece over it is off, so the hidden part came back in the match. Live 191 (player report,
+        // log: "scar-female-hooddown hidden -> shown, asked by armour rig"): every Seraphite top without a hood hides both
+        // hood meshes and the CUSTOMIZE stage drew the shirt alone, but in the match the hood-down collar sat on the shirt (HOOD UP:
+        // the hood-down collar under the raised hood). A stock head hidden by a hat keeps its pair (the rule in
+        // customize_compose.c: its pushed copy goes under the helmet).
+        if (sup[i].hidden && !strstr(sup[i].name, "-head-")) continue;
         int j = 0;
         while (j < n && !(keep[j] && !strcmp(sup[j].name, q))) j++;
         orig[k] = sup[i].name; copy[k] = sup[j].name;

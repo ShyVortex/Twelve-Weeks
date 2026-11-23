@@ -17,7 +17,9 @@
 
 #define MSG_CUSTOM_LOOK 0x59      // peer msg (ours): customize_core.h cz_msg (CZ_MSG_LEN bytes) - the sender's outfit per faction
 #define CZB_N (T2R_MAX_PEERS + 1)
-#define CZ_SUP_MAX 256             // (the WLF male superset is 171 parts; the gas masks' under-hat shapes add 18 per class)
+#define CZ_SUP_MAX 512             // (192 until: the WLF male superset is 171 parts; the gas masks' under-hat shapes add 18 per class.
+                                  // 256 until: build #28 (191) put the hair under every crown hat in as its own part - WLF male 315,
+                                  // WLF female 281 parts: every WLF outfit failed here and the body kept the pool look. test_customize_combos checks it.)
 #define CZ_PSUP_MAX 16
 #define CZ_LOG(...) do { static int nl_; if (nl_ < 600) { nl_++; xlog(__VA_ARGS__); } } while (0)     // (80 ran out in one CUSTOMIZE visit: the outfit of a crash frame was not in the log)
 

@@ -1,5 +1,5 @@
 // namerim.c - the lead dev's hot pink name outline on the MENU name widgets (only rank badges changed colour, not name tags).
-// The roles work (tools/roles.py role 4 = lead dev, a pinkish outline, #ff3d8b, the name keeps its own colour) drew the
+// The roles work (tools/roles.py role 4 =, #ff537d since (Discord Creator pink), the name keeps its own colour) drew the
 // rim only on the in-match overhead tags (t2r-ext.c feature_nametags_draw: 8 offset glyph copies). The lead dev never sees their own overhead tag, and the menu
 // name texts (MP menu LOBBY rows, the ESC scoreboard, the end-of-match scoreboard) had no rim at all, so on their own screen only the rank badge changed colour.
 // gui2 text widgets have no outline colour of their own, so the rim is 8 hidden pink text widgets per name (tools/features/rank_badge_widgets.add_name_rims: clones

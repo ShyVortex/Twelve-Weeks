@@ -138,16 +138,8 @@ static void nt_apply(const char *rep) {
         if (k == 'p' && msg_is_kick(m) && g_kick_ms && GetTickCount64() - g_kick_ms < 120000ULL) { xlog("notice: kick line already shown through the session note - skipped"); continue; }   // admin kick: the 0x11 toast came first
         if (k == 'p') {
             fr13_note_seen(m);
-            if (match_substate() == 6) {                   // a running match: kept until it is over (nt_tick), not lost
-                int dup = 0;
-                for (int q = 0; q < g_nt_pqn; q++) if (!strcmp(g_nt_pq[q], m)) dup = 1;
-                if (!dup) {
-                    if (g_nt_pqn >= 6) { memmove(g_nt_pq[0], g_nt_pq[1], sizeof g_nt_pq[0] * 5); memmove(&g_nt_pqs[0], &g_nt_pqs[1], sizeof g_nt_pqs[0] * 5); g_nt_pqn = 5; }
-                    snprintf(g_nt_pq[g_nt_pqn], sizeof g_nt_pq[0], "%s", m); g_nt_pqs[g_nt_pqn] = param >= 2 ? (float)(param > 600 ? 600 : param) : 8.0f; g_nt_pqn++;
-                    xlog("notice: friends line held until the match is over (%d waiting): \"%s\"", g_nt_pqn, m);
-                }
-                continue;
-            }
+            // (no longer held until the match is over. In a match the friends card shows on the HUD, above the weapon ring - friends13.c
+            // ft_tick HUD mode;)
         }
         xlog("notice: kind %c id %d param %d -> \"%s\"", k, id, param, m);
         float nsecs = (k == 't' || k == 'p') && param >= 2 ? (float)(param > 600 ? 600 : param) : 8.0f;   // free text: the admin's seconds on screen (param)
@@ -157,6 +149,8 @@ static void nt_apply(const char *rep) {
     }
 }
 
+// friends13.c: the friends state poll saw a new private message - ask for the notice line (its MESSAGE FROM toast) now, not at the next 6 s poll
+static volatile int g_nt_ask_now;
 static void nt_tick(void) {
     static uint64_t next_ask;
     static char tok[65];
@@ -181,8 +175,11 @@ static void nt_tick(void) {
         streak++;
         // 'older server' = reachable, never answers 0xBA. A dead tunnel / restarting daemon looks the same on one socket (connect ok, no reply),
         // so it only counts while the daemon has answered something else lately (outage.h srv_alive_within) - an outage no longer ends notices for the session.
-        if (have == 2 && srv_alive_within(60000) && ++g_nt_fail >= 3 && !g_nt_ok_once) { g_nt_off = 1; xlog("notice: the server does not answer 0xBA (older server) - not asking again"); return; }
+        // (no 'not asking again' latch any more - it also fired on a game started during a daemon restart and ended notices for the session.
+        //  Every live server answers 0xBA; the streak backoff below spreads the polls to 30 s.)
+        if (have == 2 && ++g_nt_fail == 3) xlog("notice: the server did not answer 0xBA 3 times - polls spread out to 30 s");
     }
+    if (g_nt_ask_now) { g_nt_ask_now = 0; next_ask = 0; }
     if (now < next_ask || g_nt_busy) return;
     if (!tok[0] && !clan_token(tok)) { tok[0] = 0; return; }
     static uint8_t req[67];

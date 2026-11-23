@@ -509,6 +509,15 @@ static int pl_gate_page(uint64_t top) {
     if (!ids[0]) for (int i = 0; i < 6; i++) ids[i] = page_id(names[i]);
     int n = g_no_matchflow ? 6 : 2;
     for (int i = 0; i < n; i++) if (top && top == ids[i]) return 1;
+    // The stock OPTIONS stack (options-menu-ingame and the sub-pages above it, e.g. the controls page) opened over FIND MATCH while
+    // searching: no other code closes it, so the match flow / CHOOSE LOADOUT pushed over it and the map load ran with it on the stack.
+    // A client crashed on the CHOOSE LOADOUT push with OPTIONS > controls > a sub-page stacked ("We have more than 10000 Processes!",
+    // exe+144afc0 in ProcessMgr::OnProcessSpawned under Process::SpawnProcess). Its pages close one per top like the mod pages; never
+    // the search page itself (pl_match_found needs it on the stack, and it is never the top here).
+    {   static uint64_t P_OI, P_OM, P_FM2;
+        if (!P_OI) { P_OI = page_id("options-menu-ingame"); P_OM = page_id("options-menu-multiplayer"); P_FM2 = page_id("find-match-menu"); }
+        if (top && top != P_FM2 && (top == P_OI || top == P_OM || page_on_stack(P_OI) || page_on_stack(P_OM))) return 1;
+    }
     return 0;
 }
 static int pl_match_found(void) {
@@ -537,7 +546,7 @@ static void pl_load_gate(uint64_t top) {
     if (top == popped_top && g_ui_gen == req_gen) xlog("private: the pop of %s never ran (menu queue) - popped again", page_name(top));
     popped_top = top; req_gen = g_ui_gen;
     pop_page();
-    xlog("private: match found - closed the menu page %s before the map load (process budget)", page_name(top));
+    xlog("private: match found - closed the menu page %s before the map load (process budget, %d processes before the pop)", page_name(top), mf_procs());
 }
 static int pl_gate_holds(uint64_t top) { return pl_gate_page(top) && pl_match_found(); }   // lo_choose: wait, a page is still to close
 static void pl_launch_search(const char *why) {
@@ -838,8 +847,8 @@ static void ps_tick(uint64_t now) {
     int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &PS.h_sel);
     int up = gu_rep(&PS.h_u, &PS.t_u, fnv64("menu-up")), down = gu_rep(&PS.h_d, &PS.t_d, fnv64("menu-down"));
     int left = gu_rep(&PS.h_lr, &PS.t_l, fnv64("menu-left")), right = gu_rep(&PS.h_rr, &PS.t_r, fnv64("menu-right"));
-    int pv = menu_edge(fnv64("menu-prev"), &PS.h_pv), nx = menu_edge(fnv64("menu-next"), &PS.h_nx);
-    int act = menu_edge(fnv64("menu-action"), &PS.h_act);
+    int pv = MENU_PREV_TAB(&PS.h_pv), nx = MENU_NEXT_TAB(&PS.h_nx);
+    int act = menu_edge_pad("menu-action", &PS.h_act);
     if (game_focused()) act |= ne_key_edge('X', &PS.hk_x);
     int click = g_click_edge;
     if (sel && ui_select_is_mouse()) sel = 0;          // (a click acts through the hit tests at its press)

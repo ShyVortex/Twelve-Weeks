@@ -371,7 +371,7 @@ static void czc_tick(void) {
     int esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0, esc = esc_now && !CZC.h_esc;
     CZC.h_esc = esc_now;
     int kq = game_focused() && (GetAsyncKeyState('Q') & 0x8000) != 0, ke = game_focused() && (GetAsyncKeyState('E') & 0x8000) != 0;
-    int tab_l = (kq && !CZC.h_q) || menu_edge(fnv64("menu-prev"), &CZC.h_pv), tab_r = (ke && !CZC.h_e) || menu_edge(fnv64("menu-next"), &CZC.h_nx);
+    int tab_l = (kq && !CZC.h_q) || MENU_PREV_TAB(&CZC.h_pv), tab_r = (ke && !CZC.h_e) || MENU_NEXT_TAB(&CZC.h_nx);
     CZC.h_q = kq; CZC.h_e = ke;
     int wn = wheel_notches();
     czc_scan();

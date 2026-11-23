@@ -87,7 +87,8 @@ NAME_ROW = "buttonChangeName"
 # DISABLE MP UI in the stock OPTIONS > HUD / SUBTITLES design: the parent row stays a selector-default, its child rows are
 # menu/components/selector-dependent.widget (the indented row page-options-subtitles uses under SUBTITLES) - t2r-ext mpui_sync / mpui_child_tick
 UI_SUBROWS = (("selectorMpRadarOff", "TO1_MP_RADAR_OFF", "to1-mp-radar-off"), ("selectorMpLivesOff", "TO1_MP_LIVES_OFF", "to1-mp-lives-off"),
-              ("selectorMpSuppliesOff", "TO1_MP_SUPPLIES_OFF", "to1-mp-supplies-off"))
+              ("selectorMpSuppliesOff", "TO1_MP_SUPPLIES_OFF", "to1-mp-supplies-off"),
+              ("selectorMpChatOff", "TO1_MP_CHAT_OFF", "to1-mp-chat-off"))     # chat: DISABLE CHAT (t2r-ext g_mp_hide[3]; the parent row does not set it)
 UI_SUBNAMES = tuple(r[0] for r in UI_SUBROWS)
 # two MOCKUP rows for the dedicated-server matchmaking, shown greyed out and locked at ANY (t2r-ext bds_state_hook answers
 # state 2 = disabled for their data sources). menu/components/selector-default-show-disabled.widget = the stock row of Permadeath /

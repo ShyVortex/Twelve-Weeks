@@ -1,6 +1,7 @@
-// melee_duel_tl.c - the DUEL TIMELINE: one presentation arbiter for both duel bodies (from ~160 ms RTT live clips: puppet
-// snaps of 0.5-1 m in one frame, clips cut into each other, both fighters reacting at once, duel camera whips, swings whiffing from 1.5-3 m; the fix is a confirmation system that
-// plays and queues animations instead of cutting them into each other, with prediction + smoothing so they play fully and not late).
+// melee_duel_tl.c - the DUEL TIMELINE: one presentation arbiter for both duel bodies (after ~160 ms RTT live clips: puppet
+// snaps of 0.5-1 m in one frame, clips cut into each other, both fighters reacting at once, duel camera whips, swings whiffing from 1.5-3 m;
+// "a confirmation system that instead of jittering the fuck out of animations it plays them and queues them instead of cutting them into each other",
+// "animations feel like they dont play fully ... almost late ... we need to add some sort of predictions + smoothing").
 // Design + every rerouted call site: re/melee-duel-timeline.md. Included after melee_duel_pin.c (before melee_duel_parry.c). Log prefix "dtl:". Opt-OUT: t2r-duel-no-timeline.txt
 // next to the exe (re-read every 2 s); it only ever acts while the duel itself is on (t2r-melee-duel.txt).
 //
@@ -763,7 +764,7 @@ static void dtl_tick(void) {
                  "avg start lateness %.0f ms over %u remote clips, trades won %u / lost %u, reach saves %u, dodge windows shortened %u, camera target jumps absorbed %ld",
                  g_dtl.snaps[0] + g_dtl.snaps[1], g_dtl.snaps[0], g_dtl.snaps[1], g_dtl.cuts, g_dtl.trims, g_dtl.queued, g_dtl.dropped, g_dtl.xfades, g_dtl.catchups,
                  g_dtl.predicted, g_dtl.conf_same, g_dtl.corrected, g_dtl.late_n ? g_dtl.late_sum / g_dtl.late_n : 0.0, g_dtl.late_n, g_dtl.trades_won, g_dtl.trades_lost, g_dtl.reach_saves, g_dtl.win_trims, (long)InterlockedExchange(&g_dtl_cam_jumps, 0));
-        { long sc = InterlockedExchange(&g_spm_collapse, 0); if (sc) xlog("spmelee cam: the engine lens collapsed within 0.3 m of us on %ld render frame(s) in 30 s - the framing kept its last direction (v5-cam4)", sc); } { long sf = InterlockedExchange(&g_spm_sgn_flips, 0); if (sf) xlog("spmelee cam: the view looked away from us on %ld test(s) in 30 s - the forward sign is a constant now (11-02), the look-at gated itself out", sf); }
+        { long sc = InterlockedExchange(&g_spm_collapse, 0); if (sc) xlog("spmelee cam: the engine lens collapsed within 0.3 m of us on %ld render frame(s) in 30 s - the framing kept its last direction (v5-cam4)", sc); } { long sf = InterlockedExchange(&g_spm_sgn_flips, 0); if (sf) xlog("spmelee cam: the view looked away from us on %ld test(s) in 30 s - the forward sign is a constant now, the look-at gated itself out", sf); }
         if (g_dtl.had_duel || g_dtb.step_max[0] > DTL_SNAP_M || g_dtb.step_max[1] > DTL_SNAP_M || g_dtb.yaw_snaps[0] || g_dtb.yaw_snaps[1]) dtl_body_summary(1);
         else dtl_body_summary(0);
         g_dtl.snaps[0] = g_dtl.snaps[1] = 0; g_dtl.cuts = g_dtl.trims = g_dtl.queued = g_dtl.dropped = g_dtl.xfades = g_dtl.catchups = g_dtl.predicted = g_dtl.conf_same = g_dtl.corrected = 0;

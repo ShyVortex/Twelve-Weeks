@@ -133,7 +133,7 @@ static void perf_report_tick(void) {
         if (g_perf_ms[i] > worst) worst = g_perf_ms[i];
     }
     uint64_t avg10 = g_perf_frames ? g_perf_sum_ms * 10 / g_perf_frames : 0;
-    uint8_t b[24];
+    uint8_t b[24 + 3 + 9 * T2R_MAX_PEERS];
     b[0] = 1; b[1] = c250 > 255 ? 255 : (uint8_t)c250; b[2] = c1000 > 255 ? 255 : (uint8_t)c1000;
     if (worst > 65535) worst = 65535;
     if (avg10 > 65535) avg10 = 65535;
@@ -151,7 +151,27 @@ static void perf_report_tick(void) {
         b[15] = 1; b[16] = (uint8_t)(g_ow_streak_s > 255 ? 255 : g_ow_streak_s); b[17] = (uint8_t)rp; b[18] = (uint8_t)(rp >> 8);
         b[19] = (uint8_t)tk; b[20] = (uint8_t)(tk >> 8); b[21] = (uint8_t)(g_ow_in_s > 255 ? 255 : g_ow_in_s); blen = 22;
     }
+    // trailer 3 (flags bit2; old servers ignore it): [u8 1][u8 flags: bit0 our msg 7 sends to far peers are paced (t2r-m7-lod.txt), bit1 our host
+    // upload budget is on (t2r-host-bw.txt) - both make seq gaps that are not loss][u8 n] n x ([u8 slot][u32 FNV-1a of the roster name, up to 24 B][u16 msg 7 received][u16 lost])
+    // = what we received from each other player since the last report. The daemon removes a player whose median loss over 2+ observers stays high.
+    if (match_substate() != 6) { memset(g_lr_rx, 0, sizeof g_lr_rx); memset(g_lr_lost, 0, sizeof g_lr_lost); }
+    else {
+        int at = blen, n = 0;
+        b[at] = 1; b[at + 1] = (uint8_t)((g_ns_m7_lod_off ? 0 : 1) | (g_hbw.on ? 2 : 0));
+        for (uint32_t sl = 0; sl < T2R_MAX_PEERS; sl++) {
+            uint32_t rx = g_lr_rx[sl], lo = g_lr_lost[sl];
+            if (!rx && !lo) continue;
+            if (rx > 65535 || lo > 65535) { double k = 65535.0 / (rx > lo ? rx : lo); rx = (uint32_t)(rx * k); lo = (uint32_t)(lo * k); }
+            uint8_t *e = b + at + 3 + n * 9; uint32_t h = 2166136261u;
+            for (int i = 0; i < 24 && g_lr_nm[sl][i]; i++) h = (h ^ (uint8_t)g_lr_nm[sl][i]) * 16777619u;
+            e[0] = (uint8_t)sl; e[1] = (uint8_t)h; e[2] = (uint8_t)(h >> 8); e[3] = (uint8_t)(h >> 16); e[4] = (uint8_t)(h >> 24);
+            e[5] = (uint8_t)rx; e[6] = (uint8_t)(rx >> 8); e[7] = (uint8_t)lo; e[8] = (uint8_t)(lo >> 8);
+            n++;
+        }
+        if (n) { b[at + 2] = (uint8_t)n; blen = at + 3 + n * 9; b[7] |= 4; }
+    }
     if (clan_send(0xCA, b, blen)) {
+        if (b[7] & 4) { memset(g_lr_rx, 0, sizeof g_lr_rx); memset(g_lr_lost, 0, sizeof g_lr_lost); }
         if (early) { g_ow_alarm = 0; if (!next_at) next_at = now + 20000; return; }   // the stats windows keep running for the regular report
         g_cap_tx_sum_kb = g_cap_tx_peak_kb = g_cap_n = g_cap_loss10 = 0;
         next_at = now + 30000;

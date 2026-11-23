@@ -2,7 +2,9 @@
 // Human melee behaviour measured from real MP logs. Each HF_* table = quantile points p0 p5 p10 p25 p50 p75 p90 p95 p100 of the pooled sample; the bot draws u in [0,1)
 // and interpolates linearly (hf_draw). Reaction / gap values already contain the real network delay of those matches (logged on the receiving client).
 // A table with n < 12 is marked TUNING: no measurement behind it.
-// Sources: 3 local match logs (10.9 melee min) and 24 live match logs (87.6 melee min).
+// Sources:
+//   m1108  3 logs, 10.9 melee min
+//   live   24 logs, 87.6 melee min
 typedef struct { const char *name; int n; float q[9]; } hf_dist;
 #define HF_MIN_N 12
 // after_hit_dist_change_m: pair distance 1.5-4.5 s after a hit taken minus the distance before it (+ = retreat), 2 s sampling [m1108 n=27, live n=249]

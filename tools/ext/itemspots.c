@@ -533,6 +533,16 @@ static void sd_originate(uint32_t victim, const float *pos) {
     // executioner's own, like the box satchel: only on our screen, never sent, the pickup pays us directly. t2r-shared-satchel.txt = the old shared one.
     if (i >= 0 && GetFileAttributesA("t2r-shared-satchel.txt") == INVALID_FILE_ATTRIBUTES) g_sd[i].local = 1;
     else { uint8_t m[15] = {5, id}; memcpy(m + 2, pos, 12); m[14] = (uint8_t)victim; sd_queue(m, 15); }
+    // (Scavenger III: the ammo went straight into the pack, the satchel lay at
+    // the body until walked to and taken with the interact button, several never taken). 2013 Scavenger II / III: "automatically pick up ammo and supplies
+    // from kills" - the satchel is booked at once, like the ammo (sk_scav_pay): nothing spawns, so there is no pickup left to book it a second time.
+    // Only our own (local) satchel; the shared dev variant keeps its claim. t2r-scav-satchel-old.txt = the satchel spawns as before.
+    if (g_sd[i].local && skl(SK_SCAV) >= 2 && GetFileAttributesA("t2r-scav-satchel-old.txt") == INVALID_FILE_ATTRIBUTES) {
+        xlog("supply drop: execution of slot %u -> satchel %02x picked up at once (Scavenger %d)", victim, id, skl(SK_SCAV));
+        sd_grant_us(i);
+        sd_finish(i);
+        return;
+    }
     xlog("supply drop: execution of slot %u -> satchel %02x at %.1f %.1f %.1f (spawns on every screen after the body's first weapon sweep)", victim, id, pos[0], pos[1], pos[2]);
 }
 // Interrogation, lockbox phase: a player killed (downed + finished, or killed outright) drops 2 supply bottles at the body, anyone can take them. The VICTIM's client
@@ -591,7 +601,7 @@ static void sd_resync(uint32_t to) {   // host: the live satchels to a newcomer
 static void sd_recv(uint32_t slot, const uint8_t *b, uint64_t len) {
     if (sdrop_off()) return;
     if (b[0] == 5 && len >= 14 && GetFileAttributesA("t2r-shared-satchel.txt") == INVALID_FILE_ATTRIBUTES) {
-        xlog("supply drop: satchel %02x from slot %u ignored (11-06: execution satchels are the executioner's own)", b[1], slot);
+        xlog("supply drop: satchel %02x from slot %u ignored ( execution satchels are the executioner's own)", b[1], slot);
     } else if (b[0] == 5 && len >= 14) {
         float p[3]; memcpy(p, b + 2, 12);
         if ((uint32_t)(b[1] >> 5) != slot && !pt_host_slot_ok(slot) && pt_deny(PTK_wire, slot)) return;       // only the executioner's own id (or the host's resync)

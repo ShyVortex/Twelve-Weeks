@@ -1,5 +1,7 @@
 """Execution gun recoil: six gesture defs of gestures/ellie-gestures.bin re-pointed at TLOU2's OWN per-gun fire recoil clips.
 
+.
+
 The engine's aim recoil is a pair of clips per gun in the player gun paks (actor97/anim-player-gun-shared.pak, anim-player-gun-ellie.pak):
   <gun>-fire-start  flag 2 (ADDITIVE, header u16 @0x20), 5-12 frames @ 30, frame 0 = identity, peaks 28-37 deg on one arm joint, decays
   <gun>-fire-sub    flag 0, 1 frame, the same joint set (the gesture's "part" clip = the joint mask)

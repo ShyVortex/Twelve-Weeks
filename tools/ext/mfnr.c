@@ -21,6 +21,14 @@
 #define MFNR_GW 440.0f                       // grid cell width
 #define MFNR_GIH 247.0f
 #define MFNR_GSTRIP 84.0f
+#define MFNR_RMAPW 440.0f                    // roster row: the voted map's name box at the right end (matchflow_widgets.py _roster map_w), 2 x 4 roster
+#define MFNR_GRMAPW 250.0f                   //   ... the grid mode's one-column roster
+#define MFNR_RMAPPT 30.0f
+#define MFNR_RNAMEW 581.0f                   // roster row: the name's box (matchflow_widgets.py _roster: check x - 20 - rank x - badge), 2 x 4 roster
+#define MFNR_GRNAMEW 271.0f                  //   ... grid mode (long names shrink instead of running into the map name)
+#define MFNR_RNAMEPT 36.0f
+#define MFNR_RROWW 1260.0f                   // roster row width (matchflow_widgets.py RCOLW), 2 x 4 roster
+#define MFNR_GRROWW 760.0f                   //   ... grid mode (RX1 - RX0)
 
 static int g_mfnr_tot;                       // the longest countdown seen this vote (the bar's full length)
 static int g_mfnr_can;                       // the VOTE prompt is live (a vote is open)
@@ -75,6 +83,11 @@ static void mfnr_cell(const char *base, const char *pre, int k, int mi, int vote
     snprintf(p, sizeof p, "%s.%s%d.%s%dShade", base, pre, k, pre, k); ui_visible(p, !on);
     snprintf(p, sizeof p, "%s.%s%d.%s%dYv", base, pre, k, pre, k); ui_visible(p, mine);
     if (mine) { size_t n = strlen(p); snprintf(p + n, sizeof p - n, ".%s%dYv", pre, k); nr_chip(p, loc_tr("YOUR VOTE"), 0.0f, 0.0f, grid ? 19.5f : 27.0f); }      // (the chip box is built at its template width: sized to the text here)
+    {   // Part I map (img "p1-..."): the white PART I box top right of the art (like the OG badge on OG customize items)
+        int p1 = strncmp(mf_map_img(mi), "p1-", 3) == 0;
+        snprintf(p, sizeof p, "%s.%s%d.%s%dP1", base, pre, k, pre, k); ui_visible(p, p1);
+        if (p1) { size_t n = strlen(p); snprintf(p + n, sizeof p - n, ".%s%dP1", pre, k); nr_chip(p, "PART I", 0.0f, w - (grid ? 10.0f : 16.0f), grid ? 19.5f : 27.0f); }      // right-aligned at the art's edge
+    }
     if (pc < votes) pc = votes;
     if (pc < 1) pc = 1;
     snprintf(b, sizeof b, votes ? "%d | %d" : "<font color=\"#8C8C8C\">%d | %d</font>", votes, pc);
@@ -112,10 +125,26 @@ static void mfnr_roster(const mf_t *m, int have, int grid) {
         if (mfnr_is_me(m->p[s])) snprintf(b, sizeof b, "<font color=\"#D9D86A\">%s</font>", m->p[s]);
         else if (tts[s] == 2) snprintf(b, sizeof b, "<font color=\"#8C8C8C\">%s</font>", m->p[s]);
         else snprintf(b, sizeof b, "%s", m->p[s]);
-        ui_text(p, b);
+        nr_fit(p, b, grid ? MFNR_GRNAMEW : MFNR_RNAMEW, MFNR_RNAMEPT);
         { char ri[112], rn[112]; snprintf(ri, sizeof ri, "%s.%s%d.%s%dRk", RG, RP, r, RP, r); snprintf(rn, sizeof rn, "%s.%s%d.%s%dRn", RG, RP, r, RP, r); rank_ui(ri, rn, m->pk[s], m->pw[s]); }      // rank badge (rank13.h; the vote state carries it)
         snprintf(p, sizeof p, "%s.%s%d.%s%dCk", RG, RP, r, RP, r);
         ui_visible(p, m->pv[s]);
+        {   // the player name at the start, the check + the name of the map this player voted for at the row's end
+            int me = mfnr_is_me(m->p[s]), o = me && m->my >= 0 ? m->my : m->po[s];      // (our own row: the vote we just sent counts at once)
+            const char *mn = o >= 0 && o < m->n && (m->pv[s] || me) ? mf_map_name(m->m[o]) : "";
+            snprintf(p, sizeof p, "%s.%s%d.%s%dMap", RG, RP, r, RP, r);
+            if (me && mn[0]) snprintf(b, sizeof b, "<font color=\"#D9D86A\">%s</font>", mn);
+            else snprintf(b, sizeof b, "%s", mn);
+            float box = grid ? MFNR_GRMAPW : MFNR_RMAPW;
+            nr_fit(p, b, box, MFNR_RMAPPT);
+            snprintf(p, sizeof p, "%s.%s%d.%s%dCk", RG, RP, r, RP, r);
+            if (me && m->my >= 0) ui_visible(p, 1);
+            if (mn[0]) {                                  // the map name is right aligned at the row's end: the check goes just before its text
+                float e = nr_est(b, MFNR_RMAPPT), sc = e > box && e > 0.0f ? box / e : 1.0f;
+                if (sc < 0.6f) sc = 0.6f;
+                w_pivot(ui_w(p), (grid ? MFNR_GRROWW : MFNR_RROWW) - 16.0f - nr_tw(b, MFNR_RMAPPT) * sc - 16.0f - 38.0f, 22.0f);   // (matchflow_widgets.ck_x; y = row 78 / 2 - 17)
+            }
+        }
         snprintf(p, sizeof p, "%s.%s%d.%s%dTabB", RG, RP, r, RP, r); ui_visible(p, tts[s] == 1);
         snprintf(p, sizeof p, "%s.%s%d.%s%dTabR", RG, RP, r, RP, r); ui_visible(p, tts[s] == 2);
     }

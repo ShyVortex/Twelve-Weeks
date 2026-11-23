@@ -744,7 +744,8 @@ static void pb_resync(uint32_t to) {
     }
     if (n || nm) xlog("pbomb: resync to slot %u - %d own bomb(s), %d marked", to, n, nm);
 }
-/// ---- the plant: TLOU2's trap-mine SETTING animation on the planter's body (the trap mine's own SETTING animation is used for the plant)
+/// ---- the plant: TLOU2's trap-mine SETTING animation on the planter's body
+// "the plant looks exactly as before ... I told you to use the trap mine's SETTING anims")
 // Why the gesture route never showed: SP plants with a GESTURE (ellie-plant-trap-mine-gesture -> the stance's -part clip on the gesture layer
 // s_gesture-1 + its -add over the crouch idle; the hand is put on the floor by PlayerPlantMineController's hand IK from use-hand-ik on).
 // Decoded offline (re/uc4ps4 ClipDecoder + t2_strip FK, abby-/ellie-skel): abby-/ellie-crouch-plant-trap-mine-part animate the ARMS only
@@ -1336,7 +1337,7 @@ static void pb_tick(void) {
         }
         if (!p && now - g_pb[i].respawn_ms > 1000) {                         // the engine freed the visual (lifetime?): put a new one there
             g_pb[i].respawn_ms = now;
-            if (!g_pb[i].pipe && g_pb[i].nresp >= 1 && !g_pb_sp_bad) { g_pb_pipe_once = 1; xlog("pbomb: bomb %u: SP's trap mine was freed again after a re-spawn - pipe bomb look for THIS bomb only (was: the rest of the session, R-PNZS)", g_pb[i].id); }
+            if (!g_pb[i].pipe && g_pb[i].nresp >= 1 && !g_pb_sp_bad) { g_pb_pipe_once = 1; xlog("pbomb: bomb %u: SP's trap mine was freed again after a re-spawn - pipe bomb look for THIS bomb only (was: the rest of the session,)", g_pb[i].id); }
             g_pb[i].nresp++;
             g_pb[i].h = pb_spawn(g_pb[i].pos); g_pb[i].pipe = g_pb_spawn_pipe; g_pb[i].held = 0; g_pb[i].still_n = 0; g_pb[i].contact_ms = 0; g_pb[i].spawn_ms = now; g_pb[i].hl = 0;
             memcpy(g_pb[i].last, g_pb[i].pos, 12); g_pb[i].last[1] += PB_REST_H;
@@ -1480,7 +1481,7 @@ static void pb_tick(void) {
                         float sk = el > 0.9f ? 0.3f / el : 0.0f;
                         o[0] = a0[0] + ex * sk; o[1] = a0[1] + ey * sk; o[2] = a0[2] + ez * sk;
                     }
-                    g_pb[i].pj[0] = pb_ray_g(a1, up, g_pb[i].h); g_pb[i].pj[1] = pb_ray_g(a2, bd, g_pb[i].h);   // grass no longer blocks (pb_ray_g) g_pb[i].pj_frame = g_frame;
+                    g_pb[i].pj[0] = pb_ray_g(a1, up, g_pb[i].h); g_pb[i].pj[1] = pb_ray_g(a2, bd, g_pb[i].h); g_pb[i].pj_frame = g_frame;   // grass no longer blocks (pb_ray_g). (the frame assignment had slipped into this comment - the read-next-frame gate was dead)
                 }
             } else g_pb[i].pj[0] = g_pb[i].pj[1] = 0;
         }
@@ -1510,7 +1511,7 @@ static void pb_tick(void) {
                     float a0[3] = {g_pb[i].pos[0], g_pb[i].pos[1] + 0.4f, g_pb[i].pos[2]}, e[3] = {q[0], q[1] + 1.2f, q[2]};
                     float ex = e[0] - a0[0], ey = e[1] - a0[1], ez = e[2] - a0[2], el = __builtin_sqrtf(ex * ex + ey * ey + ez * ez);
                     float sk = el > 0.9f ? 0.3f / el : 0.0f, a1[3] = {a0[0] + ex * sk, a0[1] + ey * sk, a0[2] + ez * sk};
-                    g_pb[i].oj = pb_ray_g(a1, e, g_pb[i].h);   // grass no longer blocks (pb_ray_g) g_pb[i].oj_slot = (int)s; g_pb[i].oj_frame = g_frame;
+                    g_pb[i].oj = pb_ray_g(a1, e, g_pb[i].h); g_pb[i].oj_slot = (int)s; g_pb[i].oj_frame = g_frame;   // grass no longer blocks (pb_ray_g). (slot + frame had slipped into this comment - owner-side triggers named slot 0)
                     break;
                 }
             }

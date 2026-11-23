@@ -34,7 +34,7 @@ def rof_bar(t):   # the documented formula (comment above GUN_STATS)
     return max(1, min(10, int(math.floor(10 - 2.5 * math.log2(t / 0.1) + 0.5))))
 
 
-IDS = {"ASSAULT_ID": "rifle-assault-firefly-ellie-player", "EXPBOW_ID": "bow-explosive", "FLAME_ID": "flamethrower"}
+IDS = {"ASSAULT_ID": "rifle-assault-firefly-ellie-player", "EXPBOW_ID": "bow-explosive", "FLAME_ID": "flamethrower", "LAUNCHER_ID": "t2r-launcher"}
 
 
 def wid(tok):
@@ -79,7 +79,7 @@ for m in re.finditer(r'^\s*"([a-z0-9-]+)":\s*\("[^"]+",\s*([0-9.]+),', DEFTAB, r
     g, t = m.group(1), float(m.group(2))
     if g in iv and (g not in ws or not ws[g][1]):
         check(abs(iv[g] - t) < 0.002, "%s: ROF_IV %.4f == dc_data_patches interval %.2f" % (g, iv[g], t))
-for name, g in (("GALIL_INTERVAL", "rifle-galil"), ("EXPBOW_INTERVAL", "bow-explosive")):
+for name, g in (("GALIL_INTERVAL", "rifle-galil"), ("EXPBOW_INTERVAL", "bow-explosive"), ("LAUNCHER_INTERVAL", "t2r-launcher")):
     m = re.search(r"^%s = ([0-9.]+)" % name, dc, re.M)
     check(bool(m) and abs(iv[g] - float(m.group(1))) < 0.002, "%s: ROF_IV == %s" % (g, name))
 for name, g in (("DIABLO_STATS", "pistol-el-diablo"), ("ASSAULT_STATS", "rifle-assault-firefly-ellie-player")):
@@ -109,7 +109,7 @@ for g, mg in real_mag.items():
     check(mags.get(g) == mg, "%s: SPAWN_MAG %s == the def's magazine %d" % (g, mags.get(g), mg))
 check("spawn_start_rounds(*(const char **)(row + 0x10), start)" in ext, "purchasable picker prints spawn_start_rounds(), not the raw row field")
 # what the spawn grants (loaded mag + SPAWN_AMMO reserve): AR 20 loaded no reserve, Mil. Sniper 5, DB 2+2, Explosive Bow 1+2, Flamethrower 30
-exp = {"rifle-assault-firefly-ellie-player": 20, "rifle-milsniper": 5, "shotgun-baserri-over-under": 4, "bow-explosive": 3, "flamethrower": 30}
+exp = {"rifle-assault-firefly-ellie-player": 20, "rifle-milsniper": 5, "shotgun-baserri-over-under": 4, "bow-explosive": 3, "flamethrower": 30, "t2r-launcher": 3}
 for g, n in exp.items():
     check(g in mags and g in spawn and mags[g] + spawn[g] == n, "%s: shown start = mag %s + reserve %s = %d" % (g, mags.get(g), spawn.get(g), n))
 

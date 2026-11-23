@@ -284,15 +284,18 @@ static void imm_screen_tick(int live) {
 // and background blur 7 win over the punch's 1.8 m; the punch brings f/11 + 38 mm + foreground blur + the SP daze: the mortal-state alone has no
 // f-number / focal length, so its blur depends on the camera defaults). Punch strength 0.6 x the envelope (saturation 0.19, grain 0.83, fisheye show
 // even where the DoF does not). With Settings > Graphics > Depth of Field OFF (PCGraphicsSettings_DepthOfField) only those daze keys can show.
-// Per-frame call, none outside the stun = hard clear on any exit (down, death, match end). t2r-no-stun-blur.txt: off. UNTESTED in game: the log shows what the engine answered.
+// Per-frame call, none outside the stun = hard clear on any exit (down, death, match end). t2r-no-stun-blur.txt: off. UNTESTED in game (no GPU runs
+// by the agent): the log shows what the engine answered.
 static void imm_stun_blur_tick(int stunned) {
     static int nl, on_prev; static uint64_t sid_dof, sid_punch; static int off = -1; static uint64_t off_at;
-    if (!stunned || feel_flag("t2r-no-stun-blur.txt", &off_at, &off, 180) || !g_stun_total) {
+    if (!stunned || feel_flag("t2r-no-stun-blur.txt", &off_at, &off, 180)) {
         if (on_prev) { on_prev = 0; xlog("immersion: stun blur off"); }
         return;
     }
     if (!sid_dof) { sid_dof = fnv64("*zgame-player-approach-mortal-state*"); sid_punch = fnv64("*zgame-player-damage-punch*"); }
-    float total = (float)g_stun_total / 60.0f, left = (float)(g_stun_until - g_t60) / 60.0f, el = total - left;
+    uint64_t tt = 0, tu = 0; stun_fx_clock(&tt, &tu);             // (the lock's clock, or the Launcher burst's stun fx: stun_fx_local)
+    if (!tt || tu <= g_t60) { if (on_prev) { on_prev = 0; xlog("immersion: stun blur off"); } return; }
+    float total = (float)tt / 60.0f, left = (float)(tu - g_t60) / 60.0f, el = total - left;
     float end = total - 0.1f, env;
     if (el >= end) env = 0.0f;
     else if (el < 0.2f) env = el / 0.2f;
@@ -906,7 +909,7 @@ static const char *const IMM_RS_LEVELS[] = {P1M_LEVEL_ITEMS SPL_LEVEL_ITEMS};   
 // method unset and the engine default is 0 = manual EV 0 (exe+13f92fa), i.e. black and deaf to force-exposure-value; this layer fixes that without a reconvert.
 static const char *const IMM_RS_DEF[][3] = {P1M_DEF_ROWS {0, 0, 0}};      // one row per Part I map, same index as IMM_RS_LEVELS
 static int g_imm_rs_level = -1;     // index into IMM_RS_LEVELS of the loaded pack level (-1 none), set by imm_p1_bookstore_tick
-// Winter Supermarket (A/B): SP lights the store interior with Ellie's flashlight; in MP it is near black under auto exposure, and
+// Winter Supermarket: SP lights the store interior with Ellie's flashlight; in MP it is near black under auto exposure, and
 // override-render-settings symbols of the pat set do not move the tonemap range. force-exposure-value (absolute EV, latched by the engine
 // until released, see imm_exposure_release) does: 0.0 looks like auto exposure in the snow lot, 4.0 makes the store and the post office readable. So while the level is up we force
 // it every frame, blended over ~0.8 s (eye adaptation) by whether the camera is inside the store block. Tuning: t2r-winter-exposure.txt =
@@ -1204,7 +1207,7 @@ static void imm_p1_selftest(void) {
     static const uint64_t SID[4] = {0x7f841655d2b206a8ULL, 0x403a3259d39c40faULL, 0x3616fb1faa20b723ULL, 0x1123f1700c784e2ULL};
     static const char *const NM[4] = {"base-2", "t1-const-base", "stock-t1x0", "stock-sea0"};
     if (done) return;
-    // (clip 00-42-34: flat light, then a white fog burst ~20 s into every Bookstore match): this self-test forced four lighting sets
+    // (clip: flat light, then a white fog burst ~20 s into every Bookstore match): this self-test forced four lighting sets
     // on screen for 2 s each in every match. Dev only now: t2r-p1-selftest.txt next to the exe.
     // The four sets on screen are what brings the Part I sun in (all 1234 logged render values are identical
     // before and after, so it is engine state the full-symbol overrides kick, not a value). So the sequence runs at once when the level is loaded, 150 ms
@@ -1589,8 +1592,9 @@ static void immersion_tick(void) {
     imm_p1_bookstore_tick(in_match);                                // every frame: the override-render-settings call is per frame (and its absence = cleared)
     imm_p1_fire_tick(in_match);                                     // every frame: the fire-barrel light flicker
     int stun_on = in_match && g_stun_until && g_t60 < g_stun_until && !g_downed && !g_down_dying && !g_uc4_dying_until && !psync_active();
-    imm_muffle_tick(live, stun_on);
-    imm_stun_blur_tick(stun_on);
+    int stunfx_on = in_match && stun_fx_live() && !g_downed && !g_down_dying && !g_uc4_dying_until && !psync_active();   // + a Launcher burst (no lock)
+    imm_muffle_tick(live, stunfx_on);
+    imm_stun_blur_tick(stunfx_on);
     mhfx_tick(live || (in_match && g_mhfx_dc_until && now < g_mhfx_dc_until && !g_down_dying), stun_on);   // (a counter's concussion plays through the pair)
     imm_nm_tick(live, now);
     imm_sray_send_tick(live, now);

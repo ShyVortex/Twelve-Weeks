@@ -217,8 +217,8 @@ static float pul_ps_xfade(uint64_t move) {
 // (`ours` stayed true until pul_dend), so it started at the old moment. Now, at drag_end (PUL_LEAD_MS before the pair end) the attacker ends its OWN drag
 // copy locally (psync_abort, no ABORT sent - the victim's drag half plays on) and starts the grapple in the same frame; the victim's (and a bystander's)
 // psync_begin_remote lets the same pair's pull-out grapple / kill START replace the running drag copy (paired.c "pull-out chain") instead of refusing it
-// as BUSY. Proof lines "ps46b lead". A one-way above PUL_LEAD_MS = the START lands after the victim's hand-off as before (no worse).
-static uint64_t g_pul_lead_on;     // the lead the running drag was started with (ms), 0 = none
+// as BUSY. Proof lines "ps46b
+static uint64_t g_pul_lead_on;
 #define PUL_LEAD_MS 150      /* [TUNING ps46] ms: > one-way (14 ms LAN, 60 ms typical online) + one frame */
 static uint64_t pul_lead_ms(void) {
     static int v = -1; static uint64_t at;
@@ -232,25 +232,19 @@ static float pul_dend(int row) {
     if (row == g_pul.row[0]) {
         if (g_pul.var == PULV_B) return PUL_B_DRAG_S;
         if (g_pul.shortd) return PUL_SHORT_DRAG_S;
-        if (g_pul.grap && !pul_spx_off()) {      // SP: the drag runs to its last frame, the struggle crossfades in on top of it
+        if (g_pul.grap && !pul_spx_off()) {
             float L = anim_len(SID_PLAYER, CD_VIC0(row)), La = anim_len(SID_PLAYER, CD_ATT0(row));
             if (La > 0.2f && La < L) L = La;
             if (L > CD_PAIRS[row].end_s && L < 10.0f) return L - PUL_DRAG_TAIL_S;
         }
     }
-    if (row == g_pul.row[2] && g_pul.grap && !pul_failhold_off()) {      // the fail pair keeps the victim half past the death punch
+    if (row == g_pul.row[2] && g_pul.grap && !pul_failhold_off()) {
         float want = CD_PAIRS[row].dmax + PUL_KILL_AFTER_MS / 1000.0f + PUL_FAILHOLD_PAD_S;
         if (want > CD_PAIRS[row].end_s && want < 5.5f) return want;
     }
     return CD_PAIRS[row].end_s;
 }
-// ps46 item 3 (ps45a A [8872] 'FAIL blow ... the death punch's lethal follow-up in 1.3 s', [8951] 'DEATH PUNCH: lethal 250 (downed 0)'; B [10777] 'pair hit down ...
-// 1 hp, the pair plays on, down ... at its hand-off', [10856] 'finisher guard: hit 250 during the finisher dropped', [10867] 'downed: down 1 ... bleed-out 15.0 s',
-// [11766] 'bleed-out kill' = clip 22.53 s; the same on all 3 pulls): the victim goes down at the fail pair's HAND-OFF, not at the blow, and t2r-ext.c recv-hit drops
-// every hit in the first 1000 ms of a down (g_down_ms). PUL_KILL_AFTER_MS (1.3 s after the 1.0 s blow = 2.3 s) fell inside the 2.55 s hold (ps45: dropped by the
-// finisher guard) and, with the 1.75 s table hand-off (ps46 default), 0.55 s into the down protection (dropped again) - the victim only bled out. The death punch now
-// goes out PUL_DOWNPROT_MS + PUL_KILL_NET_PAD_MS after the fail pair's hand-off (never sooner than PUL_KILL_AFTER_MS after the blow).
-// t2r-pullout-killtime-ps46-old.txt = the 1.3 s after the blow. Proof line "ps46 kill time".
+// ps46 kill time".
 #define PUL_DOWNPROT_MS 1000       // t2r-ext.c recv-hit: the down protection (read from the code, not tuned)
 #define PUL_KILL_NET_PAD_MS 250    /* [TUNING ps46] one-way (14 ms LAN, ~60 ms online) + jitter + the victim's END -> down frames */
 static uint64_t pul_kill_after_ms(void) {
@@ -555,7 +549,7 @@ static int pul_vcam_nomirror(void) { static int v = -1; static uint64_t at; retu
 // a pounce (the grapple pair first) and ps45 variant a (the prone-kill first, no SP recording) ran the fitted shot through the grapple and the outcome, although
 // pu-grap plays the recorded clip (ellie-pullout-struggle--ellie = SP's PSC_STRUGGLE5 / 8). Now: a pu-grap row maps to SP's ep 5 struggle track, and a fitted
 // victim shot that reaches the grapple / outcome pair joins SP's replay with a PSC_BLEND_IN_S (SP: 1.24 s) smoothstep from the shown camera.
-// t2r-prone-cam-sp-old.txt = the old behaviour (fitted shot to the end). Proof line "pullout cam: SP 10-31 prone".
+// t2r-prone-cam-sp-old.txt = the old behaviour (fitted shot to the end). Proof line "pullout cam: SP prone".
 static int pul_prone_cam_sp_old(void) { static int v = -1; static uint64_t at; return pul_flag("t2r-prone-cam-sp-old.txt", &v, &at); }
 static struct {
     int on, trk, mir, nlog, xf_on, have, ph;          // trk = the PSC_TRACKS entry playing, mir = mirrored (r), have = out_* valid
@@ -1021,12 +1015,12 @@ static void pul_rep_join(int row) {
     int mir = 0; float ts = 1.0f, P0[3], L0[3];
     int tk = psc_pick(row, &mir, &ts);
     for (int i = 0; i < 3; i++) { P0[i] = g_xcam_pos[i]; L0[i] = g_xcam_look[i]; }
-    if (tk < 0 || !g_xcam_valid || !xv_fin3(P0) || !xv_fin3(L0)) { PULLOG("pullout cam: SP 10-31 prone - no join for %s (%s)", CD_PAIRS[row].name, tk < 0 ? "no SP recording" : "no shown camera"); return; }
+    if (tk < 0 || !g_xcam_valid || !xv_fin3(P0) || !xv_fin3(L0)) { PULLOG("pullout cam: SP  prone - no join for %s (%s)", CD_PAIRS[row].name, tk < 0 ? "no SP recording" : "no shown camera"); return; }
     memset(&g_psc, 0, sizeof g_psc);
     g_psc.on = 1; g_psc.trk = tk; g_psc.mir = mir; g_psc.ts = ts; g_psc.ph = -1;
     memcpy(g_psc.xf_p, P0, 12); memcpy(g_psc.xf_l, L0, 12); g_psc.xf_r = g_xcam_roll; g_psc.xf_f = g_xcam_fov_t;
     g_psc.xf_on = 1; g_psc.xf_t0 = psync_ms(); g_psc.xf_s = PSC_BLEND_IN_S;
-    PULLOG("pullout cam: SP 10-31 prone - the fitted victim shot joins SP's replay at %s: %s (SP ep %d, %d frames), %.2f s smoothstep from the shown camera (t2r-prone-cam-sp-old.txt = the fitted shot to the end)",
+    PULLOG("pullout cam: SP  prone - the fitted victim shot joins SP's replay at %s: %s (SP ep %d, %d frames), %.2f s smoothstep from the shown camera (t2r-prone-cam-sp-old.txt = the fitted shot to the end)",
            CD_PAIRS[row].name, PSC_TRACKS[tk].name, PSC_TRACKS[tk].ep, PSC_TRACKS[tk].n, (double)PSC_BLEND_IN_S);
 }
 static void pul_cam_start(int role, int slot, int row) {      // the drag pair just started on us: role 1 attacker / 2 victim, slot = the other player

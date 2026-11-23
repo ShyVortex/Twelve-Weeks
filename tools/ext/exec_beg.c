@@ -227,7 +227,8 @@ static void eb_begin(int pair, float skip_ms) {
          n > 1 ? "bullet-hit grunts after the others" : "no grunts (one shot)", g_eb.shot[n - 1], skip_ms > 0 ? " (late start)" : "");
     if (g_eb.limb >= 0) xlog("dismember scream: %s - shot %d of %d (%d ms) blows the limb off: %s screams in a chain of takes from there until the death shot (%d ms)", GUNEXEC_PAIRS[pair].name, g_eb.limb + 1, n, g_eb.shot[g_eb.limb], desc, g_eb.shot[n - 1]);
 }
-// The dismemberment scream chain (TLOU2 NPCs scream in long continuous / rapid screams when their limbs are blown off): takes of the victim's own voice, started back to back by their voiced length (VXG_DUR, 0.93 of it, so a take's tail rings into the next and
+// The dismemberment scream chain
+// takes of the victim's own voice, started back to back by their voiced length (VXG_DUR, 0.93 of it, so a take's tail rings into the next and
 // there is no gap), the intensity falling off as SP's NPC does: the long agony scream (hit-by-explsn, 2-2.6 s) and the rapid short screams
 // (fight-take-hvy) first, then the crying (death-whine-lrg) with injured panting (brth-fight-injrd) between.
 // SP clip of a shotgun leg dismember: ~0.5-2 s after the hit four short pained cries, from ~2.7 s one long sustained wail. The leg shot of a gun execution
@@ -332,7 +333,8 @@ static void eb_tick(void) {
     }
     if (g_eb.scr_on && ems >= g_eb.scr_next && ems < (double)g_eb.shot[g_eb.nshot - 1]) eb_scream_step(ems);
 }
-// ---- melee pleas (begs, excluding those that sound like they are about to get shot: more like Wait wai- ... Ugh, Argh, Bleeeh (on the finishing punch)). The victim of an unarmed execution begs through the same engine path as the gun pleas (the victim's own NPC voice set, `say` of the
+// ---- melee pleas
+// . The victim of an unarmed execution begs through the same engine path as the gun pleas (the victim's own NPC voice set, `say` of the
 // plea record: 3D, lip-synced), but ONLY from short pleas (WLF "Wait, wait--!" / "No, please--!" ..., Seraphite "Don't!" / "No!" / "No, no!"; the long "No!!" shouts are
 // never in the pool) and each one is cut by the next blow (stop-vox), so it ends as "Wait, wai-" + the blow's take-face "Ugh". The state is g_eb with nshot = 0: eb_tick then
 // only runs the is-speaking? check, the 8 s cover and the match-state cut. t2r-no-exec-beg.txt (shared with the gun pleas) = off for both, t2r-no-melee-beg.txt = only these.

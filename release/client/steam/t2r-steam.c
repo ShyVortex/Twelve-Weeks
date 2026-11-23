@@ -125,6 +125,49 @@ static int game_alive(const char *exe) {
     return g_game_seen && GetTickCount() - g_game_seen < GAME_GONE_MS;
 }
 
+// (the helper log ended after its first line, the menu said SERVER UNAVAILABLE, nobody could tell why): on a failed start
+// write what the player's PC shows - the DLL load error, whether Steam runs, its logged-in user and whether Steam or we run as admin
+// (SteamAPI_Init fails across an elevation mismatch; this SDK has no init error text).
+static int proc_elevated(HANDLE h) {        // 1 elevated, 0 not, -1 unknown
+    HANDLE tok; TOKEN_ELEVATION e; DWORD n = 0; int r = -1;
+    if (OpenProcessToken(h, TOKEN_QUERY, &tok)) {
+        if (GetTokenInformation(tok, TokenElevation, &e, sizeof e, &n)) r = e.TokenIsElevated ? 1 : 0;
+        CloseHandle(tok);
+    }
+    return r;
+}
+static void steam_diag(const char *why, DWORD err) {
+    xlog("STEAM START FAILED: %s", why);
+    if (err) xlog("  error %lu%s", (unsigned long)err, err == 126 ? " (module not found: steam_api64.dll missing or blocked by antivirus)" :
+                                                   err == 5 ? " (access denied: antivirus or folder permissions)" :
+                                                   err == 193 ? " (bad image: steam_api64.dll damaged)" : "");
+    DWORD pid = 0; int steam_up = 0;
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (snap != INVALID_HANDLE_VALUE) {
+        PROCESSENTRY32 pe = { .dwSize = sizeof pe };
+        for (BOOL ok = Process32First(snap, &pe); ok; ok = Process32Next(snap, &pe))
+            if (_stricmp(pe.szExeFile, "steam.exe") == 0) { steam_up = 1; pid = pe.th32ProcessID; break; }
+        CloseHandle(snap);
+    }
+    int st_el = -1;
+    if (pid) {
+        HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+        if (h) { st_el = proc_elevated(h); CloseHandle(h); }
+    }
+    DWORD user = 0, upid = 0, sz = sizeof user; HKEY k;
+    int have_user = 0;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_READ, &k) == ERROR_SUCCESS) {
+        if (RegQueryValueExA(k, "ActiveUser", NULL, NULL, (BYTE *)&user, &sz) == ERROR_SUCCESS) have_user = 1;
+        sz = sizeof upid; RegQueryValueExA(k, "pid", NULL, NULL, (BYTE *)&upid, &sz);
+        RegCloseKey(k);
+    }
+    int me_el = proc_elevated(GetCurrentProcess());
+    xlog("  steam.exe %s (pid %lu), registry ActiveProcess pid %lu, ActiveUser %s%lu%s", steam_up ? "running" : "NOT running", (unsigned long)pid,
+         (unsigned long)upid, have_user ? "" : "(none) ", (unsigned long)user, have_user && !user ? " = NOT LOGGED IN" : "");
+    xlog("  admin: steam %s, this helper %s%s", st_el == 1 ? "yes" : st_el == 0 ? "no" : "unknown (no access: likely yes)", me_el == 1 ? "yes" : me_el == 0 ? "no" : "unknown",
+         (st_el == 1 && me_el == 0) || (st_el == 0 && me_el == 1) ? " - MISMATCH: Steam and the game must both run as admin or both not" : "");
+}
+
 static void write_out(const char *path, const char *name, uint64_t id) {
     FILE *f = fopen(path, "wb");
     if (!f) return;
@@ -176,7 +219,8 @@ static void pump_priority(void) {
 static int g_fake;                         // --fake-id mode
 static SOCKET g_fake_sock = INVALID_SOCKET;
 
-// Mid-match the host's gameplay stopped arriving at ONE client (helper: 'peer slot 0: state 3 ping 36 ms ... out 120 pkt/s, in 0 pkt/s', the other
+// (a client report:
+// mid-match the host's gameplay stopped arriving at ONE client (helper: 'peer slot 0: state 3 ping 36 ms ... out 120 pkt/s, in 0 pkt/s', the other
 // players played on), the Steam session stayed 'connected' (state 3) with the send buffer stuck at 32 KB (pending 32639 B, queue 60 ms) and then crawled
 // at 2-3 pkt/s of Steam's own acks for 3 more minutes, across the player's leave and re-join ('gameplay packets in' frozen at 1332231 from 00:50:04 to
 // the end; the re-join got nothing from the host). The helper never closed that ISteamNetworkingMessages session, so a wedged session stayed wedged for
@@ -600,7 +644,7 @@ int main(int argc, char **argv) {
     const char *name = "fake";
     if (!g_fake) {
         HMODULE api = LoadLibraryExA(dll, NULL, LOAD_WITH_ALTERED_SEARCH_PATH);
-        if (!api) { write_out(out, NULL, 0); return 3; }
+        if (!api) { steam_diag("steam_api64.dll did not load", GetLastError()); write_out(out, NULL, 0); return 3; }
 #define SYM(t, n) (t)GetProcAddress(api, n)
         fn_Init Init = SYM(fn_Init, "SteamAPI_Init");
         Shutdown = SYM(fn_Void, "SteamAPI_Shutdown");
@@ -620,10 +664,11 @@ int main(int argc, char **argv) {
         CloseSession = SYM(fn_CloseSession, "SteamAPI_ISteamNetworkingMessages_CloseSessionWithUser");
         MsgRelease = SYM(fn_MsgRelease, "SteamAPI_SteamNetworkingMessage_t_Release");
         if (!Init || !Shutdown || !RunCallbacks || !Friends || !User || !GetName || !GetID) {
+            steam_diag("steam_api64.dll lacks a needed export (wrong or damaged DLL)", 0);
             write_out(out, NULL, 0);
             return 3;
         }
-        if (!Init()) { write_out(out, NULL, 0); return 2; }   // Steam not running
+        if (!Init()) { steam_diag("SteamAPI_Init failed (Steam not running, not logged in, another Windows user, or an admin mismatch)", 0); write_out(out, NULL, 0); return 2; }   // Steam not running
         name = GetName(Friends());
         steamid = GetID(User());
         write_out(out, name, steamid);

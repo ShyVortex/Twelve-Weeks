@@ -99,10 +99,17 @@ static float ex13_scale(int slot, int molotov) {                              //
 }
 // the player ring of explosions.bin: kill R0, R1 (mult m1), R2 (mult m2), R3 flinch.
 // R3 = PS4 Remastered v1.11 values (bin/dc1/explosions.bin, the final Factions): the reaction-only band beyond R2 was cut from the PS3 8 / 6 / 9 m to R2 (5 / 4.5 / 6 m), i.e. no flinch-only band any more (re/factions2013/ps4/logic/utilities.md)
-static const struct { float kill, r1, r2, r3, m1, m2; } EX13_RING[6] = {{0}, {2.0f, 3.5f, 5.0f, 5.0f, 0.6f, 0.25f}, {1.6f, 3.0f, 4.5f, 4.5f, 0.5f, 0.25f}, {0},
+typedef struct { float kill, r1, r2, r3, m1, m2; } ex13_ring_t;
+static const ex13_ring_t EX13_RING[6] = {{0}, {2.0f, 3.5f, 5.0f, 5.0f, 0.6f, 0.25f}, {1.6f, 3.0f, 4.5f, 4.5f, 0.5f, 0.25f}, {0},
     {3.0f, 4.5f, 6.0f, 6.0f, 0.6f, 0.2f},      // [4] = *bomb-explosion-online* PLAYER ring (explosions.bin 0x182c): kill 3 / 4.5 x0.6 / 6 x0.2 / flinch 9
     {0.0f, 2.5f, 6.0f, 8.0f, 1.2f, 0.55f}};   // group-getter - inside 2.5 m one hit DOWNS (x1.2 so partly hidden still downs; never kills: no kill band), 6 m x0.55, flinch 8 m. Was the 2013 ring below:  // [5] = the 2013 Launcher: TLOU2's own port `*gren-launcher-explosion-factions*` (explosions.bin 0x1120) PLAYER ring (+0x40, T1 slot 2):
                                                // kill 0 (no kill band) / R1 3.25 x0.55 / R2 5.0 x0.30 / flinch 5.0 - the only ring of the struct that differs from the nail bomb's
+// the 2013 LAUNCHER (t2r-launcher) blast = TLOU2's own port `*gren-launcher-explosion-factions*` (explosions.bin 0x1120) PLAYER ring: no kill band,
+// R1 3.25 m x0.55, R2 5.0 m x0.30, flinch 5.0 (x the 100 hp base, expbow_dmg_base: 2 hits down, never one - the wiki rows).
+// The Explosive Bow keeps the ring above. g_ex13_by_launcher[slot] = the slot's last explosive-arrow blast came from the Launcher.
+static const ex13_ring_t EX13_RING_LAUNCHER = {0.0f, 3.25f, 5.0f, 5.0f, 0.55f, 0.30f};
+static int ex13_launcher_shot(int kind, int slot) { return kind == EX13_LAUNCH && slot >= 0 && slot < T2R_MAX_PEERS && g_ex13_by_launcher[slot]; }
+static const ex13_ring_t *ex13_ring(int kind, int slot) { return ex13_launcher_shot(kind, slot) ? &EX13_RING_LAUNCHER : &EX13_RING[kind]; }
 static const char *ex13_name(int kind) { return kind == EX13_MOLO ? "molotov" : kind == EX13_PBOMB ? "placed nail bomb" : kind == EX13_LAUNCH ? "explosive bow arrow" : "nail bomb"; }
 
 // start the 6 probe rays for one explode event; a fire field is registered for every molotov burst
@@ -144,7 +151,7 @@ static void ex13_start(int kind, int slot, const float *pos) {
     const char *nm = ex13_name(kind);
     if (kind == EX13_MOLO) molotov_burst_note((uint32_t)slot == self ? -1 : slot, pos);     // the fire field (ex13_burn), even when the blast is out of range
     if (match_substate() != 6 || r13_off(R13_EXPLO)) return;
-    imm_blast_note(kind, pos);
+    if (!ex13_launcher_shot(kind, slot)) imm_blast_note(kind, pos);  // (a Launcher burst plays the stun bomb's screen + sound instead: stun_launcher_judge)
     if ((uint32_t)slot != self && is_teammate((uint32_t)slot)) { xlog("explosive: %s of teammate slot %d - no friendly fire", nm, slot); TT_LOG_FRIENDLY(kind, slot); return; }
     float lb[16], shift[3] = {0, 0, 0};
     const float *pl = player_locator(lb);
@@ -166,7 +173,7 @@ static void ex13_start(int kind, int slot, const float *pos) {
     float s = ex13_scale(slot, kind == EX13_MOLO);
     float dx = pos[0] - pl[0], dy = pos[1] - (pl[1] + 0.9f), dz = pos[2] - pl[2], d = __builtin_sqrtf(dx * dx + dy * dy + dz * dz);
     {   float ex = dx - shift[0], ez = dz - shift[2], d2 = __builtin_sqrtf(ex * ex + dy * dy + ez * ez); if (d2 < d) d = d2; }
-    float reach = EX13_RING[kind].r3 * s + 1.0f;
+    float reach = ex13_ring(kind, slot)->r3 * s + 1.0f;
     xlog("explosive: %s of slot %d%s burst at (%.2f %.2f %.2f), %.2f m from our body (ring scale %.1f, reach %.1f)", nm, slot,
          (uint32_t)slot == self ? " (OURS)" : "", pos[0], pos[1], pos[2], d, s, reach);
     TT_LOG_BURST(kind, slot, pos, pl, d, reach, s);
@@ -270,7 +277,7 @@ static void ex13_result_recv(uint32_t from, const uint8_t *b, uint64_t len) {
 }
 static void ex13_deliver(int kind, int slot, int lethal, float dmg, int type) {
     uint32_t self = *(uint32_t *)VMA(0x180138090);
-    uint64_t w = kind == EX13_MOLO ? 0x2a3164cb4a1c95d9ULL : kind == EX13_LAUNCH ? expbow_weapon_sid() : SID_PIPE_BOMB_EXPLOSION;
+    uint64_t w = kind == EX13_MOLO ? 0x2a3164cb4a1c95d9ULL : kind == EX13_LAUNCH ? (slot >= 0 && slot < T2R_MAX_PEERS && g_ex13_by_launcher[slot] ? fnv64(LAUNCHER_ID) : expbow_weapon_sid()) : SID_PIPE_BOMB_EXPLOSION;
     const char *nm = ex13_name(kind);
     typedef uint64_t (*fn_me)(void);
     uint64_t me = ((fn_me)VMA(0x180050390))();
@@ -342,7 +349,8 @@ static void ex13_finish_core(int q) {
         float dx = c[0] - g_ex_q[q].pt[i][0], dy = c[1] - g_ex_q[q].pt[i][1], dz = c[2] - g_ex_q[q].pt[i][2];
         float d = __builtin_sqrtf(dx * dx + dy * dy + dz * dz);
         {   float ex = dx - g_ex_shift[q][0], ez = dz - g_ex_shift[q][2], d2 = __builtin_sqrtf(ex * ex + dy * dy + ez * ez); if (d2 < d) d = d2; }   // ring: the closer of now / where the thrower saw us
-        int ty = d < EX13_RING[kind].kill * s ? 4 : d <= EX13_RING[kind].r1 * s ? 3 : d <= EX13_RING[kind].r2 * s ? 2 : d <= EX13_RING[kind].r3 * s ? 1 : 0;
+        const ex13_ring_t *rg = ex13_ring(kind, slot);
+        int ty = d < rg->kill * s ? 4 : d <= rg->r1 * s ? 3 : d <= rg->r2 * s ? 2 : d <= rg->r3 * s ? 1 : 0;
         if (ty > best) best = ty;
     }
     float ratio = (float)reached / EX13_PROBES;
@@ -355,7 +363,7 @@ static void ex13_finish_core(int q) {
     float hp = local_hp();
     if (!(hp > 0.0f)) return;
     float base = kind == EX13_LAUNCH ? expbow_dmg_base(hp) : hp;               // every other blast: a share of the target's CURRENT health (rules/molotov-nailbomb-2013.md section 3)
-    float dmg = best == 4 ? hp : (best == 3 ? EX13_RING[kind].m1 : EX13_RING[kind].m2) * base * ratio;
+    float dmg = best == 4 ? hp : (best == 3 ? ex13_ring(kind, slot)->m1 : ex13_ring(kind, slot)->m2) * base * ratio;
     dmg = __builtin_floorf(dmg);
     TT_NOTE_DMG(dmg);
     if (dmg < 1.0f) return;

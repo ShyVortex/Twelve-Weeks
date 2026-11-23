@@ -11,10 +11,10 @@ static inline int rank13_weeks(int wk) { return wk < 0 ? 0 : wk > RANK13_MAX_WEE
 static inline void rank13_path(char *o, size_t n, int rk) { snprintf(o, n, "streaming/t2r/icons/rank-%d.png", rank13_sym(rk) < 0 ? 0 : rank13_sym(rk)); }
 
 // player roles (tools/roles.py: 1 OG, 2 admin, 3 dev, 4 lead dev): the badge in the role's colour - the symbol image rank-<k>-r<1..4>.png (tools/models/rank_icons.py
-// tinted(), each with a baked glow; the lead dev has its own hot pink r4) and the weeks number in the same colour. 0 / unknown = the plain chalk badge.
+// tinted, each with a baked glow; the lead dev has its own pink r4; the Discord role colours: admin green, dev blue, lead pink) and the weeks number in the same colour. 0 / unknown = the plain chalk badge.
 static inline int rank13_role_tint(int role) { return (role >= 1 && role <= 4) ? role : 0; }
 static inline const char *rank13_role_hex(int role) {
-    switch (rank13_role_tint(role)) { case 1: return "#f2c14e"; case 2: return "#ff5a4f"; case 3: return "#3fd6c0"; case 4: return "#ff3d8b"; default: return NULL; }
+    switch (rank13_role_tint(role)) { case 1: return "#f2c14e"; case 2: return "#2ecc71"; case 3: return "#206694"; case 4: return "#ff537d"; default: return NULL; }
 }
 static inline void rank13_role_path(char *o, size_t n, int rk, int role) {
     int s = rank13_sym(rk) < 0 ? 0 : rank13_sym(rk), t = rank13_role_tint(role);

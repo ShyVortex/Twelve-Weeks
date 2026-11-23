@@ -127,7 +127,7 @@ static int mdp_pick(int aset, int side, int pcls, int *exact) {
     }
     return -1;
 }
-// (the same clash animation played even with a hammer and the right arm went behind the character; A [111480] 2h-blunt swing vs a hammer parrier and [113935] 2h-blunt swing vs FISTS both played
+// A [111480] 2h-blunt swing vs a hammer parrier and [113935] 2h-blunt swing vs FISTS both played
 // mp-1h-blunt-right-1h-parry-sync: AS[] maps a 2h swinger onto the 1h-blunt swinger rows and PC[] maps an unarmed parrier onto the 1h-weapon parrier half,
 // so the fist player's body played an NPC's 1h-blunt block with an empty hand - the right arm swings back holding nothing). SP has a parry pair only for
 // the exact (swinger set, parrier class) combos of MDP_ROWS. Now a parry / clash plays only an EXACT row (either hand). A clash is started by the side
@@ -411,7 +411,7 @@ static int mdp_press2(int r, uint64_t now, int dry) {
     else if (kind == MDPK_PARRY && now < g_mdp.cool_until[s]) no = "parry cooldown (SP 4 s)";
     else if (kind == MDPK_CLASH && now < g_mdp.clash_cool[s]) no = "clash cooldown (3 s, no clash chains)";
     else if (kind == MDPK_PARRY && og && til - ow <= MDP_MIN_LEAD_MS) no = "too late: frames-til-hit <= 4 once the claim reaches the attacker";
-    else if (kind == MDPK_PARRY && !og && seen <= mdp_lo(ow)) no = mw_strict() ? "too late: the contact as we saw it was inside the latency-compensated gate (133 ms, claim must reach the attacker 30 ms before its contact)" : "too late: the contact as we saw it was already due (claim would reach the attacker after its contact; 11-08 looser late edge)";
+    else if (kind == MDPK_PARRY && !og && seen <= mdp_lo(ow)) no = mw_strict() ? "too late: the contact as we saw it was inside the latency-compensated gate (133 ms, claim must reach the attacker 30 ms before its contact)" : "too late: the contact as we saw it was already due (claim would reach the attacker after its contact;  looser late edge)";
     else if (kind == MDPK_PARRY && !og && seen > hi50) no = "too early: SP accepts the parry only 133-300 ms before the contact, this press is an ordinary swing";
     else if (kind == MDPK_PARRY && g_mdu.sw_on) no = "our own swing already runs (parry is a reaction)";
     if (!no && kind == MDPK_CLASH && (ws = dry ? g_mdp_in.ws[r] : mdp_clash_we_start((uint32_t)s, r, g_mdp.p_row)) < 0) no = "SP has no clash / parry pair for these two weapons (both blows go on)";
@@ -507,7 +507,7 @@ static int mdp_recv(uint32_t slot, int op, const uint8_t *buf, uint64_t len) {
         if (sw < 0) no = "no swing row";
         else if (kind == MDPK_PARRY) {
             int til = mdu_my_tc(sw) - rel, left = (int)(int64_t)(g_mdu.sw_tc - now);
-            if (!mdp_old_gate() && !mw_strict()) { if (left < 0) no = "late: our contact already passed (11-08 looser late edge: a claim up to the contact itself)"; else MDLOG("DUEL: PARRY claim from slot %u accepted on our timeline (loose late edge): their press at +%d ms of our swing %s (tc %d ms), contact in %d ms (window ends at the contact)", slot, rel, MDU_MOVES[sw].move, MDU_MOVES[sw].tc_ms, left); }   // (looser, tuning: the sender already judged the window)
+            if (!mdp_old_gate() && !mw_strict()) { if (left < 0) no = "late: our contact already passed ( looser late edge: a claim up to the contact itself)"; else MDLOG("DUEL: PARRY claim from slot %u accepted on our timeline (loose late edge): their press at +%d ms of our swing %s (tc %d ms), contact in %d ms (window ends at the contact)", slot, rel, MDU_MOVES[sw].move, MDU_MOVES[sw].tc_ms, left); }   // (looser, tuning: the sender already judged the window)
             else if (til <= MDP_MIN_LEAD_MS - (mdp_old_gate() ? 0 : (int)psync_oneway((int)slot))) no = "late: frames-til-hit <= 4 on our swing timeline";   // (the parrier saw the contact one-way later than our clock - the sender already judged its window, mdp_lb)
             else if (left < (mdp_old_gate() || mw_strict() ? 30 : 0)) no = "late: our contact is due";
             else MDLOG("DUEL: PARRY claim from slot %u accepted on our timeline: their press at +%d ms of our swing %s (tc %d ms, one-way already subtracted by them), frames-til-hit %.1f > 4, contact in %d ms", slot, rel, MDU_MOVES[sw].move, MDU_MOVES[sw].tc_ms, (double)til * 0.03, left);

@@ -1,5 +1,7 @@
-// ------------------------------------------------------------------ the CUSTOMIZE stage (re/customize-1117.md "The stage")
-// The background is a quick fade out and in to a different spot in the already loaded level, in a nice position, with the same cinematic, almost cutscene lighting on the models; a click on the other model / faction logo swaps them with a smooth animation of the models exchanging (clockwise in a way); the player models can be rotated.
+// ------------------------------------------------------------------ the CUSTOMIZE stage
+// "the background was just a quick fade out and in to a different spot in the already loaded level, just in some nice position, but they
+// should still have the same good cinematic almost cutscene like lighting shining on them"; "click on the other model/faction logo for it to
+// swap, and the swap should be a smooth animation of the models exchanging (clockwise in a way)"; "be able to rotate the playermodels".
 // Opening the page: a quick fade to black, the menu camera cuts to the stage spot of the menu scene (feature_menu_cam via g_cz_cam), two
 // characters stand there in their composed outfits (t2r-cz-* records of body T2R_US, customize_compose.c cz_compose), then the fade in.
 // The edited faction's outfit stands where the page's front model area is (customize_widgets.py FRONT: x 2330, feet y 1525 of 2160), the
@@ -21,7 +23,8 @@
 //                              A/B. With them the clip plays at  ap = stand place o apReference = the body ON the place, as the
 //                              Scene Editor shows it.)
 //   spose <scene> <slot> clip  menu scene 1 (WLF) / 2 (Seraphites): the model standing in front (slot 0: the edited faction) / in the
-//                              back (slot 1) holds this clip, whatever its faction or body (the selected character uses it regardless of sex; on a switch they blend into the other anim); before fpose.
+//                              back (slot 1) holds this clip, whatever its faction or body
+// before fpose.
 //                              "-" = none. A clip the body cannot play (duration 0) falls through to fpose / the pose list.
 //   swapmode 0|1               1 (default) = after the exchange each model blends (CZS_SWAP_BLEND s) into its new place's clip; 0 = it keeps
 //                              the clip it had. (A/B: issuing the new clip at way points with a long blend left the models off their
@@ -41,7 +44,9 @@
 // scene paks by menu_scenes.py POSE_ACTORS): rogue-mode-rattler-factions (male), rogue-mode-scar-archer (female); fallback: the standing
 // idles of anim-gen-crowds (always in the menu world). Played with animate_ and an ap-reference bound frame that places and turns the
 // body (npc-teleport stops a scripted clip: a posed model is moved by re-issuing the clip, never teleported).
-// Stage freecam (F8 in the MP menu, with WASD not navigating the menu, to find a good position to place the 2 characters): only with t2r-freecam.txt next to the exe (as the match freecam), only while the stage is up.
+// the viewer pose notes.
+// Stage freecam
+// only with t2r-freecam.txt next to the exe (as the match freecam), only while the stage is up.
 //   F8 / Scroll Lock / pad L3 + R3   toggle (starts at the stage camera); Esc leaves it too
 //   W A S D / left stick   fly along the view; Q / E, d-pad down / up: down / up (world); Shift / Ctrl fast / slow
 //   mouse                  hold a mouse button and move = look; arrow keys and the right stick look too
@@ -52,7 +57,8 @@
 //                          stage camera follows (its pitch / fov stay the page layout's)
 //   PgUp / PgDn, Home, End the pose browser (d-pad left / right, X, B): see czs_pose_browse
 // While it is on, the page ignores its keys, pad and mouse (customize.c reads g_czs_fc): no menu move, no equip, no tab, no rotate.
-// Scene Editor layout (the faction menus load in the scene editor to place both character models and position the lighting with a visualizer cone, plus a camera and camera preview with the UI): the editor's stage kit (tools/maps/editor_menu_stage.py)
+// Scene Editor layout
+// the editor's stage kit (tools/maps/editor_menu_stage.py)
 // writes absolute lines per menu scene (1 WLF, 2 Seraphites); a scene with them ignores the derived layout above:
 //   model <sc> <0 front | 1 back> x y z yaw          a stand place (feet) and its facing (degrees, 0 = +Z, atan2(fx, fz))
 //   camera <sc> x y z yaw pitch fov                  the stage camera (pitch degrees DOWN, as the menu camera)
@@ -126,7 +132,8 @@ static int g_czs_fc;                    // the stage freecam is on: customize.c 
 static uint64_t g_czs_clock;
 static uint64_t czs_now(void) { return g_czs_clock ? g_czs_clock : GetTickCount64(); }
 static uint64_t g_czs_spawn_ms;         // when the stage last spawned a model (spawn gap, removal quiet time)
-// STAGE LIGHT (the light intensity can be changed live to adjust it): every stage light's intensity x g_czs_light_k. Default CZS_LIGHT_DEF; [ and ] on the CUSTOMIZE page change it live in
+// STAGE LIGHT
+// every stage light's intensity x g_czs_light_k. Default CZS_LIGHT_DEF; [ and ] on the CUSTOMIZE page change it live in
 // steps of CZS_LIGHT_STEP (customize.c), the value is shown and kept in t2r-cz-light.txt next to the exe (per cent).
 // (after trying it, 13 % stage light is good on the WLF menu - the default is 13 % now; the two stages are different places
 // with their own light, so each faction's stage has its own value: [ and ] change the one on screen. File: "wlf <per cent>" /
@@ -134,7 +141,8 @@ static uint64_t g_czs_spawn_ms;         // when the stage last spawned a model (
 #define CZS_LIGHT_DEF 0.13f
 #define CZS_LIGHT_STEP 1.10f
 static float g_czs_light_f[2] = {CZS_LIGHT_DEF, CZS_LIGHT_DEF};
-// LIGHTING SETUPS (cinematic lighting for the customization scenes; the hand-placed lights looked bad at any intensity, so different lighting setups are offered). Setups to look at in the game: L on the
+// LIGHTING SETUPS
+// . Setups to look at in the game: L on the
 // CUSTOMIZE page steps through them for the stage on screen - 0 = the layout's own lights (Scene Editor), 1.. = CZS_CINE. A setup is
 // three lights around the FRONT model's chest (the three photo-mode slots; the back model gets the spill): az = degrees around the
 // model from the direction of the camera (0 = from the camera, + = the camera's right, 180 = straight behind), el = degrees up,
@@ -288,7 +296,8 @@ static void czs_read_file(void) {
 // the editor layout of scene sc is complete enough to use (front model + camera)
 static int czs_abs_on(int sc) { return sc >= 1 && sc <= 2 && CZS.ab[sc].m[0] && CZS.ab[sc].c; }
 // the stage spot of this scene: front model's feet + view yaw (radians). Not set in the file: the menu player's spot (known ground in every
-// scene) looking along the scene camera's view - read ONCE per stage (A/B: the player model started flying to the left until it flew down the hill: read every frame, the spot followed the hidden player, the front model was placed on it again, pushed it again - the
+// scene) looking along the scene camera's view - read ONCE per stage
+// read every frame, the spot followed the hidden player, the front model was placed on it again, pushed it again - the
 // player slid 40 m down the slope, died, and the menu lost its UI). czs_off forgets it.
 static int czs_spot(int sc, float *p, float *yaw) {
     if (sc < 0 || sc > 2) return 0;
@@ -501,7 +510,8 @@ static void czs_spawn_as(czs_model_t *m, int slot, int fac, const char *look, co
 // (2) a standing model is not replaced before it is CZS_MIN_LIFE_MS old (fast flipping updates the preview that often).
 #define CZS_MIN_LIFE_MS 1200
 #define CZS_UNARM_MS 120
-// THE FACE (the characters looked angry and squinted; offline: it is the game's own TENSE facial idle - brows down and together, eyes narrowed - and a stock
+// THE FACE ("the character is still
+// squinting"; dev-model session, offline: it is the game's own TENSE facial idle - brows down and together, eyes narrowed - and a stock
 // head wears the same; the zoom shows it). The stage models get an emotion of their own, CZS.face ("neutral"; t2r-cz-stage.txt line
 // `face <symbol>`: neutral joy uneasy tense stealth combat ..., `face -` = the game's idle), re-issued before it runs out:
 // npc-set-emotion(npc, symbol, duration, fade-in, weight), the call of the execution faces.
@@ -854,6 +864,11 @@ static void czs_grave_tick(void) {
         if (!g_czs_grave[i].id || (go && i == old)) continue;
         czs_model_t *w = &g_czs_grave[i].m;
         if (!czs_alive(w)) continue;
+        // (- CUSTOMIZE opened and closed within 7 frames while searching, then opened again. The
+        //  first SERAPHITES model left the stage 125 ms old, before it was posed; its npc-teleport up here (and every CZS_HOLD_FRAMES) did
+        //  not move it, so it stood in the bind pose next to the new back-slot model for 24 s until it was removed. Posed waiting models
+        //  never stayed: their clip's ap holds them. So a model that left unposed gets its clip once it is 150 ms old, like a stage model.)
+        if (!w->clip[0] && !w->clip_tried && now - w->t_spawn > 150) czs_pose_pick(w);
         if (w->clip[0]) czs_place(w, g_czs_grave[i].hp, w->yaw);
         else if (!(g_frame % CZS_HOLD_FRAMES)) {
             uint64_t bf = czs_bf(g_czs_grave[i].hp, w->yaw);
@@ -1234,7 +1249,8 @@ static void czs_tick(int page_up, int edit_fac) {
         // ZOOM IN ON ITEM: the camera stays where it is and turns / narrows onto the part of the front model the shown category is about.
         // y = the framed point's height over the feet (m, male; female x 0.955), w = the picture's width there (m), turn = the model's
         // extra turn (BACKPACK: its back to the camera). The model keeps its place across the picture (right of the list): the view
-        // aims beside the point by the same part of the half width as un-zoomed. Everything is eased (a hard cut / teleport of the camera looked wrong).
+        // aims beside the point by the same part of the half width as un-zoomed. Everything is eased
+        // .
         static const struct { float y, w, turn; } ZF[CZ_NCAT] = {
             [CZ_HAT] = {1.70f, 1.25f, 0}, [CZ_TORSO] = {1.24f, 2.30f, 0}, [CZ_LOWER] = {0.52f, 2.30f, 0}, [CZ_BACKPACK] = {1.26f, 2.00f, 180.0f},
             [CZ_FACE] = {1.63f, 1.00f, 0}, [CZ_MELEE] = {0.90f, 1.80f, 0}, [CZ_MASK] = {1.63f, 1.00f, 0}, [CZ_SEX] = {0, 0, 0}};
@@ -1350,7 +1366,7 @@ static void czs_tick(int page_up, int edit_fac) {
     // the exchange: CZ.fac changed (SWITCH FACTION / a click on the back model or its logo)
     if (edit_fac != CZS.front && !CZS.swap_t0) {
         CZS.swap_t0 = now; CZS_LOG("swap to %s (%d ms, dir %d, mode %d)", CZ_FAC_NAME[edit_fac], CZS.swap_ms, CZS.swap_dir, CZS.swap_mode);
-        // (on a faction switch the sitting pose already started getting up, but the one already standing waited for the switch end and only sat down (or leaned back) after) the model coming to the FRONT blends into the front
+        // the model coming to the FRONT blends into the front
         // clip where it sits, CZS_RISE_MS before it starts to move (a clip re-issued along the circle cannot blend); the one leaving keeps
         // its clip until it has arrived.
         czs_model_t *in = &CZS.m[!CZS.front];

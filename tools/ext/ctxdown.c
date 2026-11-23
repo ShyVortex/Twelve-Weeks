@@ -2214,7 +2214,8 @@ static int cd_fin_list_has(const char *list, const char *move) {
     }
     return 0;
 }
-// ---- v5 DISARM finishers (finisher blows against players that have a melee weapon (except the machete) are the disarms when we have no melee weapon ourselves). SP (re/melee-dc/melee-dc.md "Disarms", melee-moves.json): player-fists-finishers-disarms (attacker mask 0x20) and
+// ---- v5 DISARM finishers
+// . SP (re/melee-dc/melee-dc.md "Disarms", melee-moves.json): player-fists-finishers-disarms (attacker mask 0x20) and
 // player-switchblade-finishers-disarms (0x4), macro melee-player-finisher-with-intro like every mf- row, picked by the defender's weapon class
 // (defender_weapons_mask); the lethal swings' own auto lists name them next to the plain finishers (mduel_fin.h MDF_SWING_DATA). SP hands the defender's
 // weapon to the player (script give-player-weapon-instance, frame 29 of the arm-break sync; set-virtual-weapon-to-enemy-weapon 0-800 ms). Here: the rows are
@@ -3005,7 +3006,8 @@ static struct { uint32_t uid; int pair; size_t i, n; struct { uint16_t ms; uint8
 // cues are then off for the move (grunts / pain stay). t2r-cd-pcm-cues.txt next to the exe = the old PCM cues instead.
 #include "ctx_sfx_events.h"
 static const struct { const char *pair; int seg, role, ms; uint64_t name, joint; } CTX_SFX[] = { CTX_SFX_DATA {NULL, 0, 0, 0, 0, 0} };
-// The hammer wall uppercut had wrong finisher audio and hit times: the weapon takedowns ("wpn-" rows) have no CD_HITS entry, so their blows sat at 35 % / 70 % of the finisher - the uppercut's ONE blow (33 ms into
+// (clip, the hammer wall uppercut: "the finisher audio either played too fast or its just not the right sounds", "the hit times were also
+// wrong"): the weapon takedowns ("wpn-" rows) have no CD_HITS entry, so their blows sat at 35 % / 70 % of the finisher - the uppercut's ONE blow (33 ms into
 // its main clip) got two generic pipe PCM hits 450 / 930 ms late. SP plays these with the melee system: the attacker clip's weapon-effect whoosh, the victim
 // clip's melee-effect (hit / finisher at a joint), wall-impact-slam and bodyfall-torso. ctx_hit_events.h (tools/ctxhit_gen.py) has their clip frames;
 // cd_sfx_arm / cd_cam_kicks put the cues and kicks there, and a blunt row plays the held weapon's SP whoosh / hit / finisher events (mws_native).
@@ -3014,7 +3016,8 @@ static const struct { const char *pair; int seg, role, ms; uint64_t name, joint;
 static const struct { const char *pair; int seg, role, ms, kind, tier, zone; } CTX_HIT[] = { CTX_HIT_DATA {NULL, 0, 0, 0, 0, 0, 0} };
 static struct { int on, blunt, zh, zf; } g_cdw;
 static int cdw_old(void) { static int v = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (v < 0 || n - at > 2000) { at = n; v = GetFileAttributesA("t2r-wpn-hit-old.txt") != INVALID_FILE_ATTRIBUTES; } return v; }
-// The knife takedowns' blood must match TLOU2 SP exactly: the clips' own blood part-effect events (type 0xc0d9313c7f55b23e, tools/ctxfx_gen.py: EVERY param of the event verbatim - group, joint,
+// (the knife takedowns' blood stream was "some weird blood particle I've never seen"; then "blood must match TLOU2 SP exactly"):
+// the clips' own blood part-effect events (type 0xc0d9313c7f55b23e, tools/ctxfx_gen.py: EVERY param of the event verbatim - group, joint,
 // offset, the per-effect knobs, blood-mask UVs, world splatters) fire through the engine's own event path on the half's body at their clip
 // frame on the chain clock (clipfx.c clipfx_fire). t2r-cd-pcm-cues.txt (the old cues) turns them off as well; t2r-clipfx-off.txt = the old
 // spawn-particles-at-joint spawns of the joint-bound ones (default knobs).
@@ -3362,7 +3365,7 @@ static float cd_dis_blow_ms(int pair, const float *st, int ns) {
     return best;
 }
 static float dc_hit_ms_now(void);    // dcounter.c: the running counter's contact (clip ms), -1 = none of ours
-static float mdp_att_free_ms(int pair);   // melee_duel_parry.c (ps28)
+static float mdp_att_free_ms(int pair);   // melee_duel_parry.c
 static void cd_sfx_arm(int pair) {
     memset(&g_cd_sfx, 0, sizeof g_cd_sfx);
     g_cd_sfx.uid = g_ps.uid; g_cd_sfx.pair = pair;
@@ -3738,7 +3741,7 @@ static void cd_sfx_tick(double t_ms) {
         if (act == CE_PAIN) { if (!cd_vox_has()) gx_play(GXS_PAIN, vic, 0); continue; }
         if (act == CE_CRY) { if (!cd_vox_has()) gx_play(GXS_PAIN, vic, 1); continue; }
         if (g_cd_sfx.native && act == CE_HEAVY && (CD_PAIRS[g_cd_sfx.pair].style == 3 || CD_PAIRS[g_cd_sfx.pair].style == 1)) {
-            // (clip 10-50-57): the clips carry no sound for the blade coming back out and no blood: the pair's extract cue
+            // (clip): the clips carry no sound for the blade coming back out and no blood: the pair's extract cue
             // (blade_sfx BLADE_CD post, BLADE_POST_MS after the final blow) and the blood stream on the victim
             const char *pn = CD_PAIRS[g_cd_sfx.pair].name;
             for (size_t i = 0; i < sizeof BLADE_CD / sizeof BLADE_CD[0]; i++)

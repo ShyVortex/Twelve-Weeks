@@ -265,6 +265,9 @@ static int lj_pick_w(int slot, const lj_n *n, int allow_none, uint32_t *w, int c
     if (!id || !*id || strlen(id) > 70) { xlog("launcher loadouts: custom %d %s: bad id, kept", ci + 1, what); return 1; }
     snprintf(spec, sizeof spec, "%s%s", id, supp ? "-supp" : "");
     uint32_t r = lo_class_row(slot, spec);
+    if (r == 0xffffffffu && slot == 2 && !strcmp(id, LAUNCHER_ID)) {   // the Launcher is not for sale (T2R_LAUNCHER_PICK 0): no purchasable, never the old one
+        xlog("launcher loadouts: custom %d %s: %s is not for sale - no purchasable", ci + 1, what, spec); *w = 0xffffffffu; return 0;
+    }
     if (r == 0xffffffffu) { xlog("launcher loadouts: custom %d %s: unknown id %s, kept", ci + 1, what, spec); return 1; }
     *w = r;
     return 0;

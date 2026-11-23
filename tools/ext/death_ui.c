@@ -122,6 +122,7 @@ static int du_weapon(uint64_t w, const char **name, const char **icon, const cha
         {"rifle-milsniper", "MILITARY SNIPER", "streaming/t2r/icons/milsniper.png"},
         {"rifle-vintage", "VINTAGE RIFLE", "streaming/t2r/icons/vintage-rifle.png"},
         {"shotgun-dragon", "DRAGON'S BUCKSHOT", "streaming/t2r/icons/dragon-buckshot.png"},
+        {"t2r-launcher", "LAUNCHER", "streaming/t2r/icons/launcher.png"},          // 2013 Launcher (launcher-weapon-1117)
     };
     static const char *const FISTS[] = {"abby-unarmed", "ellie-unarmed", "unarmed", "fists", "fist"};
     *name = NULL; *icon = NULL; *src = "-";

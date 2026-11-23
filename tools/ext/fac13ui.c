@@ -1,4 +1,5 @@
-// fac13ui.c - the 2013 Factions page header of the clan event and post-match pages (style "A Factions reborn": factions + modernization, not pure modernization). Widgets: tools/features/clan_widgets.py f13_header (one set per page, under anim-group):
+// fac13ui.c - the 2013 Factions page header of the clan event and post-match pages ("factions +
+// modernization, not pure modernization"). Widgets: tools/features/clan_widgets.py f13_header (one set per page, under anim-group):
 //   f13IcW / f13IcS   the faction's person pictogram (WLF pale blue / Seraphite red), one shown
 //   f13Day            "WEEK n: DAY d"            f13Lab   the page's label, right aligned ("INCOMING EVENT", "SUPPLIES", ...)
 //   f13Sv             "DAYS SURVIVED n | 84"     f13Pip0..83  one tick per day of the 12 weeks (survived bright, the rest faint)

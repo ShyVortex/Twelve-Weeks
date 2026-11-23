@@ -445,6 +445,37 @@ def compose_checks(L, T):
         k, kept, _, _ = run("scar", "m", it, sup)
         check(("scar-male-hoodup", 0) in kept and ("scar-male-hooddown", 1) in kept and ("scar-male-hooddown", 0) not in kept,
               f"HOOD UP: {[x for x in kept if 'hood' in x[0]]}")
+    # (live 191, player report: the hood-down collar on a Seraphite shirt in the match) a hood part the outfit keeps HIDDEN gets
+    # no armour pair - the rig shows a pair's original whenever the vest / helmet is off. Every top without a hood, and HOOD UP under
+    # a coat: no hood-down pair. The default coat + HOOD DOWN keeps its pair (hood-down copy pushed under the vest and the helmet).
+    for sex in ("m", "f"):
+        fi, si = 1, CI.SEXES.index(sex)
+        p = "scar-male" if sex == "m" else "scar-female"
+        hats = [x["label"] for x in T[("scar", sex)]["hat"]]
+        tors = T[("scar", sex)]["torso"]
+        d = CI.DEFAULTS[("scar", sex)]
+        cases = [(k, hats.index("HOOD DOWN"), False) for k, x in enumerate(tors) if p + "-hooddown" in x.get("hide", ())]
+        cases += [(d["torso"], hats.index("HOOD UP"), False), (d["torso"], hats.index("HOOD DOWN"), True)]
+        bad = []
+        for tk, hk, want in cases:
+            it = [d.get(c, 0) for c in CI.CATS[:-1]]
+            it[CI.CATS.index("torso")], it[CI.CATS.index("hat")] = tk, hk
+            sup = superset("scar", sex, [])
+            have = set(sup)
+            for q in tors[tk]["parts"]:                     # (the top's records also when its tier keeps it off the base superset)
+                for e in ((q, 0), (CI_pushed(q), 1)):
+                    if e[0] and e not in have and (e[1] == 0 or e[0].endswith("-torso")):
+                        sup.append(e); have.add(e)
+            for e in ((p + "-hooddown", 0), (p + "-hooddown", 1), (p + "-hoodup", 0), (p + "-hoodup", 1)):
+                if e not in have:
+                    sup.append(e); have.add(e)
+            k, kept, arr, keep = run("scar", sex, it, sup)
+            o, c_, m = (ctypes.c_char_p * 8)(), (ctypes.c_char_p * 8)(), (ctypes.c_int * 8)()
+            np_ = L.cz_armour_pairs(arr, keep, len(sup), o, c_, m, 4) if k > 0 else -1
+            hp = [(o[i].decode(), c_[i].decode()) for i in range(max(np_, 0)) if b"hooddown" in o[i]]
+            if k <= 0 or bool(hp) != want:
+                bad.append((tors[tk]["label"], hats[hk], k, hp))
+        check(not bad, f"scar {sex}: hood-down armour pair only where the hood-down mesh is drawn ({len(cases)} outfits): {bad}")
     # cloth props: the chosen torso's coat + its pushed copy, nothing else
     L.cz_select_props.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_char_p, ctypes.c_void_p, ctypes.c_int, ctypes.c_char_p]
     pn = [b"scar-male-a-jacket-cloth", b"scar-arm1-a-jacket-cloth", b"scar-male-b-jacket-cloth", b"scar-arm1-b-jacket-cloth"]
@@ -475,7 +506,19 @@ def CI_pushed(p):
     return None
 
 
+def cap_checks():
+    """(live 191: every WLF outfit fell back to the pool look) the worst outfit's hide lists, all categories together, fit
+    cz_select's CZ_HIDE_MAX (customize_core.h); past it the later categories' hides are cut off without a word."""
+    import re
+    src = open(os.path.join(TOOLS, "ext", "customize_core.h"), encoding="utf-8").read()
+    cap = int(re.search(r"#define CZ_HIDE_MAX (\d+)", src).group(1))
+    for (fac, sex), cats in CI.table().items():
+        worst = sum(max((len(it.get("hide", ())) for it in cats[c]), default=0) for c in CI.CATS[:-1])
+        check(worst <= cap, "%s %s: worst outfit hides %d entries <= CZ_HIDE_MAX %d" % (fac, sex, worst, cap))
+
+
 if __name__ == "__main__":
+    cap_checks()
     owner_rows_checks()
     data_checks()
     header_check()

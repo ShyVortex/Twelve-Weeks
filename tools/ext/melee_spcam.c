@@ -120,7 +120,8 @@ static volatile int g_ps23_piv = 1;     // ps23 (spm_tick, block comment at spm_
 static volatile int g_cam2_boost_old;   // main thread (cam2_tick): t2r-cam-boost-old.txt - the old 600 deg/s boost caps
 static volatile uint64_t g_cam2_boost_until;   // main thread (cam2_tick): a victim engage - fast look-at + orbit until framed
 static volatile float g_cam2_orb;              // render thread: the orbit applied this frame (rad), for the logs
-// ---- the pinned victim's camera (getting pinned adjusts the camera automatically to a set position, as in SP, that shows the attacks clearly; the engine camera used to sit inside our own back / the wall for the whole pin). While a pin
+// ---- the pinned victim's camera
+// clip: the engine camera sat inside our own back / the wall for the whole pin). While a pin
 // pair has us on a surface the render camera moves to a fixed side view of both fighters: 1.9 m out from their midpoint, square to the attacker -> victim
 // line, a little toward the attacker (away from the surface), 1.35 m above our root, looking at the midpoint at chest height. The side is the one the game
 // camera was on when the pin started; a blocked side (geometry ray) swaps, both blocked = the camera comes in to 90 % of the free distance. Blend in 0.25 s,
@@ -156,7 +157,7 @@ static void spc_tick(float dt) {
         { float k = 1.0f - __builtin_expf(-dt / 0.25f); ax += (ux - ax) * k; az += (uz - az) * k; cmx += (mx - cmx) * k; cmz += (mz - cmz) * k;
           float l = __builtin_sqrtf(ax * ax + az * az); if (l > 0.1f) { ax /= l; az /= l; } }
         float L[3] = {cmx, ly, cmz};
-        // The victim camera was obnoxious; the attacker camera mirrored (to show from the right side instead of the left) is used: the attacker's over-the-shoulder view, mirrored - behind the attacker (u = us -> attacker), over its other shoulder, at its
+        // the attacker's over-the-shoulder view, mirrored - behind the attacker (u = us -> attacker), over its other shoulder, at its
         // camera height, looking at us. One ray from the attacker's head to that spot: geometry behind the attacker pulls the camera in (hit at once,
         // the free distance back at 1.5 m/s, as before). The side-view smoothing (ax / az / cmx / cmz) stays.
         (void)side; (void)L;
@@ -218,7 +219,8 @@ static void spc_apply(float *pos, float *q) {
     l = __builtin_sqrtf(l);
     if (l > 0.5f) for (int i = 0; i < 4; i++) q[i] = r[i] / l;
 }
-// ---- the v5 pin camera (v5 = the duel rules unchanged, visually like SP; remote-player clips a4371fab / 851ea9ca / ce052301 and the later log lpslog4). What was wrong with the camera above (spc_tick / spc_apply, kept behind t2r-pincam-v4.txt):
+// ---- the v5 pin camera (the friend's clips a4371fab / 851ea9ca / ce052301 and his
+// later log lpslog4). What was wrong with the camera above (spc_tick / spc_apply, kept behind t2r-pincam-v4.txt):
 //   - its shoulder rays were ray_kick2 rays from bare points (t2r-ext.c world_ray_kick: "rays from points hit at t 0.06 everywhere"): every pin in lpslog4
 //     answered right 0.10-0.12 / left 0.38-0.43, at three different walls - the lens sat at 15-36 % of its 2.3 m arm, 0.35-0.8 m behind the attacker's
 //     shoulder, its back / backpack filling the frame;
@@ -271,9 +273,9 @@ static struct {
 } g_pc5 = {.kside = -1, .tight = 1.0f, .latm = 1.0f};
 // ======================================================================================================================================================
 // ps34 THE VICTIM's PIN CAMERA and THE VICTIM's FINISHER CAMERA - one owner for both (this pin camera: spc_tick5 -> s34_apply), t2r-ext.c g_s34_tb.
-// Goal: a cinematic, non-distracting view for the victim of a pin (the camera used to end up inside the player): somewhere over one of the attacker's
-// shoulders, pointed at the victim. For a finisher done on the victim: a cut to a camera from the side that shows the victim, like the death screens in
-// SP, that eases back to the normal downed camera.
+// / "victim pin camera should be somewhere over one of the shoulders of the attacker pointed at the victim" / "as a victim when you have a
+// finisher done on you ... the view quickly cuts to the enemy pov ... a cut to a camera from the side that shows the victim, akin to how death screens in
+// SP work ... but the camera would ease back to the normal downed camera".
 // Before (uc3 B, the pinned side of a hand-played pin; rec13 B clip 89.5-90.4 / 96.4-96.6 frames: the opponent's face, then a torso, fill the frame):
 //   23369 'pincam5: ON as the pinned victim ... over the attacker's left shoulder ..., follower in / out <= 7.0 deg / 0.14 m per frame', camrec 23376 'lat
 //   +0.77 back +1.11 ... cyaw -28.5' -> 23406 'lat +1.33 back -0.96 ... cyaw -76.1' -> 23421 'lat +0.28 back -1.69 ... cyaw -130.9' -> 23451 'lat -1.29 back
@@ -283,7 +285,7 @@ static struct {
 //   -> 64 -> 62). Then at the finisher 23454 'xcam victim: ctxdown:wall-throat-punch role 2: 2013 AUTHORED camera (... apReference-camera1 of the defender
 //   clip ...)' = the attacker-side authored shot blended in over 450 ms (the earlier rule: the victim shows the attacker's authored shot), camrec
 //   23466-23691 'cyaw +132 -> +97 -> +146 -> -163 -> -33': another 190 deg tour, then its 1 s hand-back orbit into the downed camera.
-// SP reference (an SP choke struggle, clip 16-35-27 35.9-42.6 s = melee-cur.log 753.25-759.88 s; general numbers only - it is a choke, and the other
+// SP reference (an SP choke struggle, clip = melee-cur.log 753.25-759.88 s; general numbers only - it is a choke, and the other
 //   struggle of the run was bugged): an authored camera, lens 0.93-1.10 m from the enemy, 0.78-1.06 m from the pair's midpoint, 1.38 m above the player's
 //   root (1.06-1.13 late), fov 73.7, both heads in the upper half (player x -0.04 .. -0.28 / y +0.53 .. +0.73, enemy x +0.12 .. +0.33 / y +0.41 .. +0.57),
 //   in over 28-56 frames (distance 1.30 -> 0.81 at +28 f -> 0.64 at +56 f, fov 75 -> 74.2 -> 73.7), camera world yaw 20-30 deg over 5 s. No SP camera
@@ -439,7 +441,7 @@ static int spc5_v4(void) {
     static int v = -1; static uint64_t at; uint64_t now = GetTickCount64();
     if (v < 0 || now - at >= 2000) {
         at = now ? now : 1; int o = GetFileAttributesA("t2r-pincam-v4.txt") != INVALID_FILE_ATTRIBUTES;
-        if (o != v) xlog("pincam5: %s", o ? "OFF - the 10-28 pin camera (t2r-pincam-v4.txt)" : "on (v5 pin camera, both screens; t2r-pincam-v4.txt = the 10-28 one)");
+        if (o != v) xlog("pincam5: %s", o ? "OFF - the  pin camera (t2r-pincam-v4.txt)" : "on (v5 pin camera, both screens; t2r-pincam-v4.txt = the  one)");
         v = o;
     }
     return v;
@@ -664,14 +666,14 @@ static void ps43_cfg(uint64_t now) {
 //              height, the live head leans back toward the lens in hit reactions. Hard floor: the duel lens is never closer than S44H_MIN to our live head
 //              joint (s44h_filter, after the lens guard: the lens goes up and over the head, re-aimed at the point it looked at); when the kept side is
 //              pulled in by a surface, the lens is within the floor and the other side's ray is clear, the side swap is ONE cut (spm25_rig, g_s39_flip 2).
-#define S44H_MIN 0.75f            // m (lead)
+#define S44H_MIN 0.75f            // m
 //   PS44_VOUT  t2r-ps44-cam-vout-old.txt   R5b (B 16047 'the finisher side shot's way out to the downed camera is BLOCKED ...: it lands on ONE CUT', 16048 'LENS
 //              STEP ... lens-head 0.36 m'; B 11659 / 11660 'lens-head 0.48 m'; clip B 90.70-90.97 into our own beanie, 17.07-17.6 the attacker's face / coat,
 //              196.33 the back of our cap): the cut / ease landed on the downed camera's RAW spot while it was still arriving. The side shot is now held
 //              past the pair's end until the camera under it has settled (its lens >= S44O_HEAD from our live head, our chest within S44O_FRAME of its
 //              axis, not within 0.40 m of the attacker's torso, moved < 5 cm a tick for 3 ticks); not settled within S44O_PB the held shot pulls back
 //              (S44O_BACK) and looks at our own chest until it does (at most S44O_MAX). Then the ordinary way out (one cut or the ease).
-#define S44O_HEAD 0.80f           // m (lead)
+#define S44O_HEAD 0.80f           // m
 #define S44O_FRAME 0.5236f        // rad = 30 deg off the under-camera's axis [TUNING ps44]
 #define S44O_PB 1500              // ms
 #define S44O_MAX 4000             // ms [TUNING ps44]: the hold never runs longer
@@ -818,7 +820,7 @@ static void ps45_cfg(uint64_t now) {
     at = now;
     for (int i = 0; i < PS45_N; i++) {
         int v = GetFileAttributesA(F[i]) == INVALID_FILE_ATTRIBUTES;
-        // ps46 (clip 17-52-05: the victim camera was far too wide; logs: U5 widened the side shot from
+        // ps46 (clip: the victim camera was far too wide; logs: U5 widened the side shot from
         // the ps44 33-42 deg to 50-55 deg vertical on 273 / 682 fits): U5 is OFF by default now, t2r-ps46-cam-fov-on.txt = the ps45 widening.
         if (i == PS45_FOV) { v = GetFileAttributesA("t2r-ps46-cam-fov-on.txt") != INVALID_FILE_ATTRIBUTES; if (v != g_ps45[i] || first) xlog("pincam5: ps46 victim side shot fov fit (U5) %s", v ? "ON (t2r-ps46-cam-fov-on.txt)" : "OFF - the ps44 cinematic 33-42 deg"); g_ps45[i] = v; continue; }
         if (v != g_ps45[i] || first) xlog("pincam5: ps45 %s %s", F[i], v ? "absent - the ps45 behaviour is ON" : "present - the OLD (ps44) behaviour");
@@ -1083,7 +1085,7 @@ static void s46_read(void) {      // main thread, one tick after s46_kick: the w
     else g_s46.why = 3;
     MemoryBarrier(); g_s46.pick = pick;
 }
-// ps46 V1 (clip 17-54-12 right half, B = the victim of A's mf-switchblade-quick-left-ice-pick: B's camera swings down into the ground / grass
+// ps46 V1 (clip right half, B = the victim of A's mf-switchblade-quick-left-ice-pick: B's camera swings down into the ground / grass
 //   ~7.37-7.43 s; B.log 114553-114586): the lens owner is pincam5 ps34 (s34_apply), the ps44 vicmove way in, 'arc 123 deg round the pair, 475 ms'.
 //   The lens orbits the pair, but its rotation was slerp(start view, look from the moving lens, s): the start view keeps pointing where it pointed
 //   from the START position, so half way round the view sits ~half the arc off the pair - vistrace 114572 lens 104.76 0.50 287.85 dir 0.96 -0.24 -0.16
@@ -1485,7 +1487,7 @@ static int s34_vic_take(uint64_t other_h, float dur_s, const char *name) {
 // pair's placement at later times of the clip is not sampled (no cheap psync API): it is evaluated on every tick before the decision and, with the lens
 // fixed, on every tick after it - a shot that loses us (the lens -> our head ray blocked, or the capsule on both lines) for > 0.3 s takes ONE cut to the
 // other side, once per shot, when that side is clear. t2r-ps41-cam-vis-old.txt = the ps40 choice (also the attacker's authored-camera test, t2r-ext.c).
-#define S41V_CAP_R 0.30f          // m (lead)
+#define S41V_CAP_R 0.30f          // m
 #define S41V_PEN 1.0f             // [TUNING ps41]: a fully covered victim costs as much as a fully blocked arm ray
 #define S41V_FRONT 0.12f          // [TUNING ps41]: +-0.12 = up to 0.24 between the sides, over s34_decide's 0.15 tie margin
 static struct { float occ[2], fr[2]; int flipped, told, cut_req; uint64_t hid_at; } g_s41v;
@@ -2461,7 +2463,7 @@ static void ps32_cfg(uint64_t now) {
 // main thread, ctxdown.c cd_cam_tracks (attacker): 1 = the rig keeps this move's camera
 // ps35 (ps34 had the camera positioned wrong; SP's camera positions are the reference: Abby's contextual takedown frames both of the
 // characters when ours stood behind the back; uc5 A 16924 'ps32 finisher ctxdown:cover-face-smash - the rig keeps the camera for 3500 ms and pushes in',
-// the lens behind the attacker's back, and after the attacker's release at 1.78 s inside the two bodies until the 3.5 s hand-off; SP clip 16-23-29 88.6-
+// the lens behind the attacker's back, and after the attacker's release at 1.78 s inside the two bodies until the 3.5 s hand-off; SP clip 88.6-
 // 92.6 s: an ANIMATED camera - round from behind Abby to a close side shot of both heads, then above the cover at the smash; the spec block's FINISHER line:
 // roll > 1 deg in 32 of 34 SP finishers): a CONTEXTUAL takedown (wall / cover / car / weapon pair - every ctxdown row that is not a duel finisher 'mf-')
 // plays its clip's own authored camera again, as before ps32: blended in from the frozen duel framing over 450 ms (spm_tick's hand-over), ended by
@@ -2482,7 +2484,7 @@ static int s32_fin_begin(uint64_t other_h, float dur_s, const char *name) {
     // ps39 C5 (rec38a A 16390-16440 / 19486-19535, clip A 120.13-120.70 and 171.63-172.40: through a weapon finisher on the rig our own back hides
     // the victim, the check said '100 % in frame' - frustum only): the duel's free finishers (mf-) have authored tracks like the contextual takedowns.
     // Every finisher with a track plays it now - eased in from the duel framing, out at the attacker's release, the ps38 live guard on it; the rig push
-    // only without a track / with every shot blocked. t2r-ps39-cam-mf-rig.txt = the rig push for mf- finishers (ps35).
+    // only without a track / with every shot blocked. t2r-ps39-cam-mf-rig.txt = the rig push for mf- finishers.
     int mf39 = name && !strncmp(name, "ctxdown:mf-", 11);
     // ps44 R11 (the note at S44F_*) + R14 (EVERY paired move that downs or kills - finishers, disarms (mf-*-disarm-* rows), the upgraded one-shots
     // (upg-*), contextual wall / cover / weapon / knife takedowns - plays the proper SP player camera on the attacker's screen): every ctxdown pair that comes

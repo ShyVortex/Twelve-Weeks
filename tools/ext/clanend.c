@@ -675,7 +675,7 @@ static int ce_tick(const clan_t *c) {
     }
     float t = (now - CE.t0) / 1000.0f;
     int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &CE.h_sel);
-    int act = menu_edge(fnv64("menu-action"), &CE.h_act);
+    int act = menu_edge_pad("menu-action", &CE.h_act);
     int back = menu_edge(fnv64("menu-back"), &CE.h_back);
     if (g_click_edge) {                                             // a click moves the screens on; on the stats page only the two prompts act
         if (CE.ph != CE_DONE) sel = 1;

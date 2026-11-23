@@ -1,4 +1,5 @@
-// intfoley.c - the body foley of an Interrogation (there were no struggle sounds (body, clothing etc), so the anims played just 2 sounds in total, one voice each). Included from t2r-ext.c after intvox.c (uses g_ivx, g_ex, explus.c's ep_* helpers and the PCM mixer).
+// intfoley.c - the body foley of an Interrogation
+// . Included from t2r-ext.c after intvox.c (uses g_ivx, g_ex, explus.c's ep_* helpers and the PCM mixer).
 //
 // The interrogate-enter pairs (MX_INTERROGATE fists 4.6 s, MX_INT_SHIV shiv 2.25 / 2.55 s; interrogation.c) are the 2013 clips; their authored sound events are
 // TLOU1 foot / gear / hand / voice-effect events the TLOU2 engine does not play, and there is no whole-move stream for them (rip_t1_execution_foley.py: "the

@@ -1,5 +1,6 @@
-// pairshift.c - "pws": the paired-move anti-wall SHIFT (instead of stopping the player(s) from being animated or even put in an
-// animation in the first place, both shift against the wall so nothing of them clips, and the bodies move THROUGHOUT the animation, not only at the start).
+// pairshift.c - "pws": the paired-move anti-wall SHIFT
+// update: "move both bodies
+// THROUGHOUT the animation, not only at the start").
 // Included in t2r-ext.c right after pg_gate_base (the path gate); paired.c (psync_start / tick / wire / tc_frame) uses the profile built here.
 //
 // WHAT IT DOES. pg_gate() is now this wrapper around the old gate (pg_gate_base). Before a pair is begun (every caller that already asks the gate: duel hits,

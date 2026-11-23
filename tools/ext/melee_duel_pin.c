@@ -97,7 +97,8 @@ static uint64_t mpn_ring_at_f(void) {
 }
 static int g_mpn_np_seen, g_mpn_np_used, g_mpn_f_frames, g_mpn_unfoc_frames, g_mpn_cmd_frames; static uint64_t g_mpn_pair_end; static uint64_t mpn_win_end(uint64_t now);   // v5-pinpress: presses seen / used in the running pin (the no-press END line)
 static int mpn_old_burn(void);
-// v5-pinfix3 5 (anti-mashing is a rule with visible and audible feedback that you messed up, and the QTE shows early when you have to press): the default QTE now shows from the blow's START - WAIT (the Escape prompt with its ring filling toward the press moment),
+// v5-pinfix3 5
+// the default QTE now shows from the blow's START - WAIT (the Escape prompt with its ring filling toward the press moment),
 // then PRESS at the window start (the ring gives way to the plain button + "Escape!", the TLOU2 UI select sound sfx-select); a press during WAIT FAILS that blow's QTE
 // (the prompt turns to "Too early" with an empty ring for the rest of the blow, the UI error sound sfx-menu-error, a TOO EARLY warning notification). Every blow starts
 // clean (no burn carried between blows). One press in PRESS escapes. t2r-pin-no-mash-fail.txt = the lenient rule (prompt only from the window, early presses no effect,
@@ -144,7 +145,8 @@ static int mpn_pair_is_pin(int pr) {
 static int mpn_active(void) { return g_mpn.on && g_mpn.slot >= 0 && g_mdu.slot == g_mpn.slot; }
 // ---- which pin set (male = Abby, female = Ellie, weapon = Ellie)
 static int mpn_ellie_set(int set) { return set != MDU_FIST; }
-// ---- v5-pinfix3 2: a pin never runs with a held 1h / 2h melee weapon. The weapon sets' pins are Ellie-skeleton clips (CD_WPN_PAIR, ellie-1hblunt-hwall-*) on
+// ---- v5-pinfix3 2
+// a pin never runs with a held 1h / 2h melee weapon. The weapon sets' pins are Ellie-skeleton clips (CD_WPN_PAIR, ellie-1hblunt-hwall-*) on
 // any body, 2h has no low-cover rows, 1h-blade only 1 cover / 2 wall steps, and the weapon's engine contacts (40 a blow) landed mid-pin (bat pin). The pin
 // takes the character's own unarmed set instead (male = Abby's fists, female = Ellie's knife, the female knife rule of the duel), the weapon is put away instantly at
 // PIN START (holster-player-weapon-instantly, as ctxdown's fist takedowns / the pin escape's female gun put-away do) and drawn back once the pin and its takedown are

@@ -1,2 +1,2 @@
-src_sha256=624d646aff2d566ea80e7e4cf8c51b02073dc933bc56590ac1f34aa423ce9a73
+src_sha256=e036eeb6269ebb1ae81e2beeffc418cf7fb4f0034259e2110bf4bf5c017b7c6a
 flags=-O2 -s -static -Wl,--no-insert-timestamp -lws2_32 -lwinmm

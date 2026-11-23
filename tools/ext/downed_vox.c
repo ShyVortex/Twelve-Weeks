@@ -1,4 +1,5 @@
-// Downed players groan and struggle (long pained groans under the breath, struggling while crawling). Every client plays the lines locally for EVERY downed body - our own and each puppet - from
+// Downed players groan and struggle
+// . Every client plays the lines locally for EVERY downed body - our own and each puppet - from
 // state it already has (g_downed / MSG_DOWNED's g_peer_downed, the UC4 downed loop's crawl flag), so there is no new message.
 //   lying still  : a bleed-out groan every 6-11 s
 //   crawling     : an injured breath every 2.6-4.2 s

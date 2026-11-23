@@ -1,5 +1,5 @@
 // 2013 shiv executions: TLOU2 SP's own knife-kill clip events (Ellie's knife kills), fired as "kits" at the 2013 contact times. Included after clipfx.c.
-// Goal: a throat cut with blood, choking, grunts and the slice sound taken straight from SP (Ellie's throat slash sound, all of it mixed). tools/shivkit_gen.py -> shiv_kit.h holds every sound / part-effect / voice event of
+// / "pull this straight from SP". tools/shivkit_gen.py -> shiv_kit.h holds every sound / part-effect / voice event of
 // one beat of a donor clip (STAB, PULL, DEEP, THROAT, DEATH), timed from the beat's contact frame. Each 2013 shiv move gets a plan of kits at its own
 // stab / gore times (exsfx2013.h rows, the ground shiv's blade frames). The events play exactly as in the contextual takedowns: play-sound-at-joint
 // (bank wpn-melee-switchblade, an MP level add), clipfx_fire (part-effects with every knob), say (the speaker's voice; a female look: her take).

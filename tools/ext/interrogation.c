@@ -33,6 +33,7 @@ static float g_int_total_s = 4.6f;     // seconds from the start of the running 
 #define INT_UNLOCK_PARTS 30           // 2013 "Unlock Interrupted" (stat 0x2860ee8f): shooting an unlocker
 // every Interrogation notification is the 2013 one: banners through notify.c (ntf_banner), feed lines through msg_hook (the toast)
 static int ntf_banner(const char *text, float secs);       // notify.c
+static int ntf_alert(int kind, const char *text, float secs);   // notify.c: an urgent toast (ahead of the queue), its kind's icon above the text
 static float ntf_text_size(float px);                      // notify.c: nametag-font size for a text line height in 1280 x 720 px
 static float ntf_w(const char *s, float size);             // notify.c
 static uint64_t int_safe_evt(const char *ev, int t);   // (below, after the lockbox props)
@@ -468,6 +469,32 @@ static void lb_dial_sfx(int t) {
     if (!int_safe_evt(ev, t)) lb_spin_at(t);
 }
 static int int_live(void) { return !g_no_int && g_int.ok && g_int.on && match_substate() == 6; }
+// ---- lockbox stage stingers
+// . The 2013 ui-mp-interrogation-* events int_ui_evt asked for are not in TLOU2's banks (a handle comes back, nothing is
+// heard: mp-sound-events-silent), so the stingers are the 2013 waves through our PCM mixer, 2D: tools/rip_lockbox_stings.py -> lb_sting.pcm / lb_sting.h.
+// Ours: lockbox-pos, then lockbox-pos + game-almost-over (brighter, louder), then game-almost-over. Theirs: lockbox-neg, then lockbox-neg + success-neg + TLOU2's stealth
+// sting (the loudest of all), then success-neg. WARN = the first 2.2 s of lockbox-neg for "our lockbox is being opened". Off: t2r-no-lb-stings.txt. Log: 'lockbox sting:'.
+#include "lb_sting.h"
+__asm__(".section .rdata,\"dr\"\n.balign 4\n.globl lb_sting_blob\nlb_sting_blob:\n.incbin \"lb_sting.pcm\"\n.text\n");
+extern const int16_t lb_sting_blob[];
+static void lb_sting_play(int k, const char *why) {
+    static uint64_t at; static int off;
+    if (k < 0 || k >= LBS_COUNT || feel_flag("t2r-no-lb-stings.txt", &at, &off, 120)) return;
+    const int16_t *l = lb_sting_blob + LBS_OFF[k];
+    int ok = pcm_play_stereo(l, l + LBS_N[k], LBS_N[k], 1.0f, LBS_RATE);
+    xlog("lockbox sting: %s (%s, %.2f s) %s", LBS_NAME[k], why, LBS_N[k] / (double)LBS_RATE, ok ? "playing" : "NOT played (mixer off / no free voices)");
+}
+static void int_stage_sting(int kind) {                // notify.c, the frame an NTF_LB* toast turns visible (the sound lands with the picture)
+    static const int K[6] = {LBS_OURS1, LBS_OURS2, LBS_OURS3, LBS_THEIRS1, LBS_THEIRS2, LBS_THEIRS3};
+    static const char *const W[6] = {"our stage 1 toast", "our stage 2 toast", "our lockbox win toast", "their stage 1 toast", "their stage 2 toast", "their lockbox win toast"};
+    if (kind >= NTF_LB1O && kind <= NTF_LB3T) lb_sting_play(K[kind - NTF_LB1O], W[kind - NTF_LB1O]);
+}
+// the stage toast: icon above the text + its stinger when it shows; without the toast widgets (old pak / t2r-old-notify.txt) the feed line and the stinger at once
+static void int_stage_toast(int kind, const char *text, float secs) {
+    if (ntf_alert(kind, text, secs)) return;
+    msg_hook(text, secs, 0, 0);
+    int_stage_sting(kind);
+}
 
 // the other side of the interrogation: the pair itself kills (the execution machinery, both screens). This message is only the news: 1 = you are being
 // interrogated, 2 = somebody finished an interrogation near you, 3 = [victim][3][killer] the interrogator was downed / killed before the kill frame
@@ -573,6 +600,12 @@ static void int_news_tick(int team, int enemy) {
     int need = g->need > 0 ? g->need : 5;
     int full[2] = {g->p[0] >= need, g->p[1] >= need};
     int act[2] = {g_lb_holding || g->h[team] > 0, g->h[enemy] > 0};
+    {   // the combat music's view of the lockboxes (t2r-ext.c feature_combat_music: lockbox stages lift the music)
+        uint64_t nw = GetTickCount64();
+        int hi = g->st[0] > g->st[1] ? g->st[0] : g->st[1];
+        g_int_lb_stage = hi < 0 ? 0 : hi > 3 ? 3 : hi; g_int_lb_ms = nw ? nw : 1;
+        if ((act[0] && g->rev[team]) || (act[1] && g->rev[enemy])) g_int_lb_act_ms = nw;
+    }
     if (!g_inn.init) {
         memset(&g_inn, 0, sizeof g_inn); g_inn.init = 1;
         g_inn.full[0] = full[0]; g_inn.full[1] = full[1]; g_inn.rev[0] = g->rev[0]; g_inn.rev[1] = g->rev[1]; g_inn.st[0] = g->st[0]; g_inn.st[1] = g->st[1];
@@ -590,15 +623,24 @@ static void int_news_tick(int team, int enemy) {
     }
     if (g->rev[team] && !g_inn.rev[team]) { ntf_banner("Enemy team lockbox located!", 5.0f); int_ui_evt("sfx-ui-mp-interrogation-lockbox-pos"); }
     if (act[0] && !g_inn.act[0] && g->rev[team] && g->st[team] < 3 && now - g_inn.open_at > 20000) { g_inn.open_at = now; ntf_banner("We are opening the enemy lockbox!", 5.0f); }
-    if (act[1] && !g_inn.act[1] && g->rev[enemy] && g->st[enemy] < 3 && now - g_inn.warn_at > 20000) { g_inn.warn_at = now; ntf_banner("WARNING: Our lockbox is being opened by the enemy!", 3.0f); int_ui_evt("sfx-ui-mp-interrogation-lockbox-neg"); }
+    // (the reminder that our lockbox is being worked on keeps its 2013 banner, now with an audible sting: the first 2.2 s of the 2013 lockbox-neg)
+    if (act[1] && !g_inn.act[1] && g->rev[enemy] && g->st[enemy] < 3 && now - g_inn.warn_at > 20000) { g_inn.warn_at = now; ntf_banner("WARNING: Our lockbox is being opened by the enemy!", 3.0f); lb_sting_play(LBS_WARN, "our lockbox is being opened"); }
+    // every unlock stage, ours and theirs, is a toast with its stage icon above the text (the marker ring with 1 / 2 / 3 arcs filled: red safe = ours,
+    // blue shield = theirs) and its own stinger, escalating - stage 1 of OUR lockbox is new (2013 only warned at stage 2). The 2013 banners for these stages are gone.
     if (g->st[team] > g_inn.st[team]) {
-        if (g->st[team] == 1) ntf_banner("We have the enemy lockbox partially open!", 3.0f);
-        else if (g->st[team] == 2) ntf_banner("We have the enemy lockbox almost open!", 3.0f);
-        if (g->st[team] < 3) { int_ui_evt("sfx-ui-mp-interrogation-lockbox-pos"); int_ui_evt("sfx-gbl-safe-ui-confirm-number"); }       // stage complete: the safe's own confirm tick + the 2013 stinger
+        if (g->st[team] == 1) int_stage_toast(NTF_LB1O, "We have the enemy lockbox partially open!", 5.0f);
+        else if (g->st[team] == 2) int_stage_toast(NTF_LB2O, "We have the enemy lockbox almost open!", 5.0f);
+        if (g->st[team] < 3) int_ui_evt("sfx-gbl-safe-ui-confirm-number");       // stage complete: the safe's own confirm tick (TLOU2 bank gbl-safe, loaded in MP)
     }
-    if (g->st[enemy] > g_inn.st[enemy] && g->st[enemy] == 2) { ntf_banner("WARNING: The enemy has almost opened our lockbox!", 3.0f); int_ui_evt("sfx-ui-mp-interrogation-lockbox-neg"); }
+    if (g->st[enemy] > g_inn.st[enemy]) {
+        if (g->st[enemy] == 1) int_stage_toast(NTF_LB1T, "WARNING: The enemy has our lockbox partially open!", 5.0f);
+        else if (g->st[enemy] == 2) int_stage_toast(NTF_LB2T, "WARNING: The enemy has almost opened our lockbox! Get back and defend it!", 6.0f);
+    }
     if (g->sp > g_inn.sp && g->rev[team] && g->st[team] < 3 && g->win < 0) msg_hook("Unlock speed increased!", 5.0f, 0, 0);
-    if (g->win >= 0 && !g_inn.win && g->st[g->win] >= 3) ntf_banner(g->win == team ? "You Win - Enemy lockbox opened" : "You Lose - Your team's lockbox was opened", 3.0f);
+    if (g->win >= 0 && !g_inn.win && g->st[g->win] >= 3) {
+        if (g->win == team) int_stage_toast(NTF_LB3O, "You Win - Enemy lockbox opened", 4.0f);
+        else int_stage_toast(NTF_LB3T, "You Lose - Your team's lockbox was opened", 4.0f);
+    }
     if (full[0] > g_inn.full[0]) g_inn.full[0] = full[0];
     if (full[1] > g_inn.full[1]) g_inn.full[1] = full[1];
     for (int i = 0; i < 2; i++) {

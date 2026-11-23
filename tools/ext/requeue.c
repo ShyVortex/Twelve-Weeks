@@ -20,8 +20,8 @@
 #define RQ_SETTLE_MS 1500                // MP menu on top this long before the push (move_rejoin_tick waits 1.2 s; the clan pages push within 1 s of the menu)
 #define RQ_POLL_MS 1500                  // the waiting-text poll on the search page (modepick polls its counts at the same rate)
 static struct {
-    uint64_t armed, end_at, menu_since, asked_at, poll_at, chk;
-    int off, ans_rq, ans_w, asked, pushed;
+    uint64_t armed, end_at, menu_since, asked_at, poll_at, chk, ans_t;
+    int off, ans_rq, ans_w, asked, pushed, ans_s, ans_b, ans_p;
 } g_rq = {.off = -1, .ans_rq = -1};
 static volatile LONG g_rqp_busy, g_rqp_have;
 static uint8_t g_rqp_req[66];
@@ -72,13 +72,17 @@ static int rqp_ask(void) {                  // op 0xBC [token][sub 0 = poll][0]:
     CloseHandle(h);
     return 1;
 }
-static void rqp_parse(const char *t, int *rq, int *w) {      // "... rq=<0|1> rqw=<n>" (an old daemon sends neither: no ticket)
+static void rqp_parse(const char *t, int *rq, int *w) {      // "... rq=<0|1> rqw=<n> [rqs=<s> rqb=<n> rqp=<n>]" (an old daemon sends neither: no ticket)
     char k[16];
     int v, n;
     *rq = 0; *w = 0;
+    g_rq.ans_s = g_rq.ans_b = g_rq.ans_p = 0;
     while (sscanf(t, " %15[^= ]=%d%n", k, &v, &n) == 2) {
         if (!strcmp(k, "rq")) *rq = v;
         else if (!strcmp(k, "rqw")) *w = v;
+        else if (!strcmp(k, "rqs")) g_rq.ans_s = v;      // (persistent lobby) s until the next match forms anyway
+        else if (!strcmp(k, "rqb")) g_rq.ans_b = v;      // members back (searching)
+        else if (!strcmp(k, "rqp")) g_rq.ans_p = v;      // members still on the post-match screens
         t += n;
     }
 }
@@ -108,15 +112,33 @@ static void requeue_tick(void) {
         if (g_rqp_have == 1) rqp_parse(g_rqp_rep, &rq, &w);
         InterlockedExchange(&g_rqp_have, 0);
         g_rq.ans_rq = rq; g_rq.ans_w = rq == 1 ? w : 0;
+        g_rq.ans_t = now;
     }
     if (g_rq.armed && g_kick_ms > g_rq.armed) rq_disarm("kicked from the match - no requeue");
     if (g_rq.armed && now - g_rq.armed > RQ_ARM_MS) rq_disarm("no MP menu within 300 s of the match end - given up");
     int st = *(volatile int *)VMA(0x180167968);
     uint64_t top = top_page();
     // 3. WAITING FOR PLAYERS... while the daemon holds our search for the others of the last match
-    int onfm = !off && top == P_FM && st == 3 && sub != 6 && g_rq.pushed && now - g_rq.pushed < RQ_ARM_MS;
+    // (also when the search was pushed by someone else - the player's own FIND MATCH press or the A/B autofind - within 300 s of our last match end;
+    // the label and the lobby rows stayed FINDING MATCH... / plain then. The daemon's answer decides: no ticket, no lobby.)
+    int onfm = !off && top == P_FM && st == 3 && sub != 6 && ((g_rq.pushed && now - g_rq.pushed < RQ_ARM_MS) || (g_rq.end_at && now - g_rq.end_at < RQ_ARM_MS));
     if (onfm && !g_rqp_busy && now >= g_rq.poll_at) { g_rq.poll_at = now + RQ_POLL_MS; rqp_ask(); }
     int wt = onfm && g_rq.ans_rq == 1 && g_rq.ans_w > 0;
+    // (persistent lobby) the label's lobby part: members back / members and the countdown, counted down locally between the 1.5 s polls
+    {
+        int l = 0, b = 0, p = 0;
+        if (wt) {
+            b = g_rq.ans_b; p = g_rq.ans_p;
+            int64_t ms = (int64_t)g_rq.ans_s * 1000 - (int64_t)(now - g_rq.ans_t);
+            l = g_rq.ans_s > 0 ? (ms > 0 ? (int)((ms + 999) / 1000) : 0) : 0;
+        }
+        if (l != g_rq_left || b != g_rq_back || p != g_rq_post) {
+            int chg = b != g_rq_back || p != g_rq_post;
+            g_rq_left = l; g_rq_back = b; g_rq_post = p;
+            if (wt && wt == g_rq_waiting && top == P_FM && st == 3) rq_label_refresh();
+            if (chg && wt) { static int nl; if (nl++ < 40) xlog("requeue: lobby %d/%d back, next match in %d s at the latest", b, b + p, l); }
+        }
+    }
     if (!onfm && g_rq.pushed && top != P_FM && now - g_rq.pushed > 3000) g_rq.pushed = 0;     // (left the search page: cancelled or matched; the push needs a few frames)
     if (wt != g_rq_waiting) {
         g_rq_waiting = wt;
@@ -127,7 +149,8 @@ static void requeue_tick(void) {
     // 2. back on the MP menu, every post-match screen done: search again
     if (!g_rq.armed || g_rq.pushed) return;
     if (off) { rq_disarm("off"); return; }
-    if (sub == 6 || top != P_MM || st != 2 || g_pm.pending || cl13_post_active() || g_ev.pending || g_lo_state != LO_NONE || g_mm_back) { g_rq.menu_since = 0; g_rq.asked = 0; return; }
+    if (sub == 6 || top != P_MM || st != 2 || g_pm.pending || cl13_post_active() || g_ev.pending || g_lo_state != LO_NONE || g_mm_back
+        || ms_world_busy()) { g_rq.menu_since = 0; g_rq.asked = 0; return; }      // (not before a side pick's scene reload - its level load drops the session)
     if (g_steam_only && !steam_connected()) { g_rq.menu_since = 0; return; }           // (FIND MATCH is refused then anyway)
     if (fr_in_party() && !g_f13.me_leader) { rq_disarm("party member - the leader's search takes us along (ready state kept)"); return; }
     if (!g_rq.menu_since) { g_rq.menu_since = now; return; }

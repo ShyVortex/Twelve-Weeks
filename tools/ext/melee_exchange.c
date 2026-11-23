@@ -1,4 +1,5 @@
-// melee_exchange.c - the melee EXCHANGE: a scripted-ish sequence between two standing enemies on a shared clock (spec re/melee-exchange-1027.md; goal: melee that feels fair, like a proper sequence with rewarding QTEs).
+// melee_exchange.c - the melee EXCHANGE: a scripted-ish sequence between two standing enemies on a shared clock (spec re/melee-exchange-1027.md; 01:00 live PT95:
+// "do everything (hell, even implement a new system ...) to make melee feel fair and like a proper feeling sequence with genuine rewarding QTE's instead of buggy shit like it is rn").
 // Included after melee_hitreact.c in t2r-ext.c. Log prefix "mex:". Opt-out: t2r-no-melee-exchange.txt next to the exe (re-read every 2 s) = today's free swings.
 // Extra opt-outs / tuning: t2r-mex-hold.txt (the attacker's contact is held for the defender's verdict; off by default), t2r-mex-tune.txt "<fist tc ms> <weapon tc ms> <max vis ms>" (default 440 520 60).
 //

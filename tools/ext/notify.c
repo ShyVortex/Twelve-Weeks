@@ -22,6 +22,8 @@
 #define NTF_PADX     26.0f       // padding left / right of the content (the smudge reaches well beyond it)
 #define NTF_PADY     14.0f
 #define NTF_ICON_PX  28.0f       // = notify_widgets.ICON / 3
+#define NTF_LAST_PX  44.0f       // NTF_LAST (the 2013 Last One Standing frame): the figure is drawn this big, centred ABOVE the text (the icon widget scaled)
+#define NTF_LAST_GAP 4.0f
 // the smudge: per blob (width = box w * wm + wa, height = box h * hm + ha, centre offset dx * box w / dy * box h, peak alpha); same numbers as
 // notify_preview.py NT_BLOBS (the offline preview of this look)
 static const float NTF_BLOBS[3][7] = {{1.18f, 70.0f, 1.45f, 16.0f, 0.00f, 0.00f, 0.60f}, {0.78f, 36.0f, 1.30f, 10.0f, -0.20f, 0.07f, 0.36f},   // lighter, smaller, flatter (was 0.94 / 0.60 / 0.55)
@@ -55,9 +57,24 @@ static const char *const NTF_ICON[NTF_N] = {
     "streaming/t2r/icons/notify-craft.png",           // CRAFT (supplies jar)
     "streaming/t2r/icons/notify-blade.png",              // BLADE (shiv: interrogation / execute)
     "streaming/t2r/icons/notify-bomb.png",          // BOMB
-    "streaming/t2r/icons/notify-supply.png"};       // SUPPLY (the clan supply satchel: 2013 supplies glyph, off-white, satchel_icon.py)
+    "streaming/t2r/icons/notify-supply.png",
+    "streaming/t2r/icons/notify-last.png",          // LAST
+    // LB1O..LB3T (an icon with every lockbox stage notification, like Last One Standing; white, with the ENEMY faction's logo; lockbox_stage_icon.py):
+    // the lockbox marker's ring with the stages filled around the wolf head / scar mark. These are the WLF ones; ntf_icon_of() swaps in the Seraphite set
+    // when the enemy team wears Seraphites. Ours and theirs share the icon (the enemy is on it either way).
+    "streaming/t2r/icons/notify-lb1-wlf.png", "streaming/t2r/icons/notify-lb2-wlf.png", "streaming/t2r/icons/notify-lb3-wlf.png",
+    "streaming/t2r/icons/notify-lb1-wlf.png", "streaming/t2r/icons/notify-lb2-wlf.png", "streaming/t2r/icons/notify-lb3-wlf.png"};  // (LAST (Last One Standing: the 2013 standing figure ABOVE the text; last_standing_icon.py)       // SUPPLY (the clan supply satchel: 2013 supplies glyph, off-white, satchel_icon.py)
 static const char *ntf_icon_path(int kind) { return kind >= 0 && kind < NTF_N ? NTF_ICON[kind] : NTF_ICON[NTF_INFO]; }
-static const char *const NTF_KIND[NTF_N] = {"info", "heal", "revive", "warn", "server", "loadout", "covert", "move", "craft", "blade", "bomb", "supply"};
+static const char *const NTF_KIND[NTF_N] = {"info", "heal", "revive", "warn", "server", "loadout", "covert", "move", "craft", "blade", "bomb", "supply", "last",
+                                            "lb1-ours", "lb2-ours", "lb3-ours", "lb1-theirs", "lb2-theirs", "lb3-theirs"};
+static int ntf_is_lb(int kind) { return kind >= NTF_LB1O && kind <= NTF_LB3T; }
+static int ntf_icon_up(int kind) { return kind == NTF_LAST || ntf_is_lb(kind); }       // the icon drawn big ABOVE the text (NTF_LAST_PX), not at its left
+static int music_faction(void);       // t2r-ext.c: the faction OUR team wears here (0 WLF, 1 Seraphites); the enemy team wears the other (client-side faction looks)
+static const char *ntf_icon_of(int kind) {
+    static const char *const SCAR[3] = {"streaming/t2r/icons/notify-lb1-scar.png", "streaming/t2r/icons/notify-lb2-scar.png", "streaming/t2r/icons/notify-lb3-scar.png"};
+    if (ntf_is_lb(kind) && music_faction() == 0) return SCAR[(kind - NTF_LB1O) % 3];   // we wear WLF -> the enemy is Seraphite
+    return NTF_ICON[kind];
+}
 typedef struct { int kind; float secs; char text[200]; uint64_t t_enq; int banner; } ntf_item_t;
 static ntf_item_t g_ntfq[NTF_QN];
 static int g_ntfqn;
@@ -65,7 +82,7 @@ static volatile LONG g_ntf_lock;
 static uint64_t g_ntfw[4];                      // t2rNtL, t2rNtM, t2rNtR, t2rNtIc
 static int g_ntf_ok;                            // widgets resolved for this match
 static int g_ntf_old_flag; static uint64_t g_ntf_old_chk;
-static struct { int st, kind, nl, banner; char text[200], line[2][160]; float lw[2], tbw, size, th, innerw, boxh, cy, a, la; uint64_t t0, until, set_frame, key; int menu; ntf_item_t it; } g_ntf;   // st 0 idle, 1 written (hidden, waits a frame), 2 shown
+static struct { int st, kind, nl, banner; char text[200], line[2][160]; float lw[2], tbw, size, th, innerw, boxh, cy, tcy, a, la; int up; uint64_t t0, until, set_frame, key; int menu; ntf_item_t it; } g_ntf;   // st 0 idle, 1 written (hidden, waits a frame), 2 shown
 static void ntf_lock(void) { while (__sync_lock_test_and_set(&g_ntf_lock, 1)) YieldProcessor(); }
 static void ntf_unlock(void) { __sync_lock_release(&g_ntf_lock); }
 static int ntf_has(const char *s, const char *w) {      // case-insensitive substring
@@ -77,6 +94,7 @@ static int ntf_kind_of(const char *t) {
     // the icon follows the CONTEXT: the '!' ring only for real alerts (marked, interrogated, lockbox stolen / leaking, defend);
     // checked in this order, first match wins
     if (!t) return NTF_INFO;
+    if (!_stricmp(t, "Last One Standing")) return NTF_LAST;                         // lms.c's popup: the 2013 figure over the text
     if (!_strnicmp(t, "Gift:", 5) || ntf_has(t, "crafted a gift")) return NTF_CRAFT;       // Crafter gifts (gift.c)
     if (ntf_has(t, "Covert")) return NTF_COVERT;                                   // "Player can't be marked due to Covert Training III"
     if (ntf_has(t, "been marked")) return NTF_WARN;                                // "You've been marked!"
@@ -110,6 +128,15 @@ static int ntf_resolve(void) {
 static int ntf_push2(int kind, const char *text, float secs, int banner);
 static int ntf_push(int kind, const char *text, float secs) { return ntf_push2(kind, text, secs, 0); }
 static int ntf_banner(const char *text, float secs) { return ntf_push2(NTF_INFO, text, secs, 1); }      // the 2013 centre banner (see NTF_BAN_*)
+// An urgent toast: queued AHEAD of the waiting toasts (after the banners) and a plain
+// toast on screen is cut to its fade-out, so it shows within ~0.3 s.
+static int g_ntf_urgent;
+static int ntf_alert(int kind, const char *text, float secs) {
+    g_ntf_urgent = 1;
+    int r = ntf_push2(kind, text, secs, 0);
+    g_ntf_urgent = 0;
+    return r;
+}
 static int ntf_push2(int kind, const char *text, float secs, int banner) {
     if (!text || !text[0] || IsBadReadPtr(text, 2)) return 0;
     if (ov_off("t2r-old-notify.txt", &g_ntf_old_flag, &g_ntf_old_chk)) return 0;
@@ -124,6 +151,11 @@ static int ntf_push2(int kind, const char *text, float secs, int banner) {
         if (g_ntfqn >= NTF_QN) { memmove(g_ntfq, g_ntfq + 1, sizeof g_ntfq[0] * (NTF_QN - 1)); g_ntfqn = NTF_QN - 1; }   // full: the oldest waiting one gives way
         int at = g_ntfqn;
         if (banner) { at = 0; while (at < g_ntfqn && g_ntfq[at].banner) at++; memmove(g_ntfq + at + 1, g_ntfq + at, sizeof g_ntfq[0] * (size_t)(g_ntfqn - at)); }   // banners go before the toasts, in order among themselves
+        else if (g_ntf_urgent) {                                 // urgent: after the banners and the urgent ones already waiting, before the plain toasts
+            at = 0; while (at < g_ntfqn && (g_ntfq[at].banner || ntf_is_lb(g_ntfq[at].kind))) at++;
+            memmove(g_ntfq + at + 1, g_ntfq + at, sizeof g_ntfq[0] * (size_t)(g_ntfqn - at));
+            if (g_ntf.st && !g_ntf.banner && !g_ntf.menu && !ntf_is_lb(g_ntf.kind) && g_ntf.kind != NTF_SERVER && g_ntf.until > now) g_ntf.until = now;   // the plain toast on screen fades out now
+        }
         g_ntfqn++;
         ntf_item_t *q = &g_ntfq[at];
         q->kind = kind; q->secs = secs; q->t_enq = now; q->banner = banner;
@@ -194,10 +226,14 @@ static void ntf_start(const ntf_item_t *it, uint64_t now) {
     g_ntf.banner = it->banner;
     g_ntf.kind = it->kind; g_ntf.menu = 0; g_ntf.it = *it; g_ntf.banner = it->banner;
     snprintf(g_ntf.text, sizeof g_ntf.text, "%s", it->text);
-    float icw = it->banner ? 0.0f : NTF_ICON_PX + NTF_GAP;
+    int up = !it->banner && ntf_icon_up(it->kind);          // the icon above the text, not at its left (NTF_LAST, NTF_LB*)
+    float icw = (it->banner || up) ? 0.0f : NTF_ICON_PX + NTF_GAP;
     float innerw = mx + icw;
-    float innerh = (float)(nl - 1) * NTF_PITCH + g_ntf.th;
-    if (innerh < NTF_ICON_PX && !it->banner) innerh = NTF_ICON_PX;
+    float texth = (float)(nl - 1) * NTF_PITCH + g_ntf.th;
+    float innerh = texth;
+    if (up) { innerh = NTF_LAST_PX + NTF_LAST_GAP + texth; if (innerw < NTF_LAST_PX) innerw = NTF_LAST_PX; }
+    else if (innerh < NTF_ICON_PX && !it->banner) innerh = NTF_ICON_PX;
+    g_ntf.up = up;
     float boxw = innerw + 2.0f * (it->banner ? NTF_BAN_PADX : NTF_PADX);
     float boxh = innerh + 2.0f * (it->banner ? NTF_BAN_PADY : NTF_PADY);
     g_ntf.innerw = innerw; g_ntf.boxh = boxh;
@@ -205,6 +241,7 @@ static void ntf_start(const ntf_item_t *it, uint64_t now) {
     // moved up to the top centre (the old match timer's place is free) - was the radar's centre (winmm .rdata 0x1800A79D0, ~177)
     float cy = it->banner ? NTF_BAN_CY : NTF_TOP_Y;
     g_ntf.cy = cy;
+    g_ntf.tcy = up ? cy + innerh * 0.5f - texth * 0.5f : cy;   // the text block's centre line (under the figure for NTF_LAST)
     // widgets (canvas units = 3 x text px; x is the offset from the screen centre; the blobs are top-left pivoted, scaled about it)
     uint64_t *w = g_ntfw;
     for (int i = 0; i < 4; i++) w_visible(w[i], 0);
@@ -215,8 +252,9 @@ static void ntf_start(const ntf_item_t *it, uint64_t now) {
         w_scale(w[i], wp / NTF_BLOB_W0, hp / NTF_BLOB_H0);
         w_pivot(w[i], b[4] * boxw * 3.0f - wp * 0.5f, (cy + b[5] * boxh) * 3.0f - hp * 0.5f);
     }
-    ((fn_settext_t)VMA(0x180068260))(w[3], NTF_ICON[it->kind]);
-    w_pivot(w[3], -innerw * 1.5f, (cy - NTF_ICON_PX * 0.5f) * 3.0f);
+    ((fn_settext_t)VMA(0x180068260))(w[3], ntf_icon_of(it->kind));
+    if (up) { w_scale(w[3], NTF_LAST_PX / NTF_ICON_PX, NTF_LAST_PX / NTF_ICON_PX); w_pivot(w[3], -NTF_LAST_PX * 1.5f, (cy - innerh * 0.5f) * 3.0f); }   // top-left pivot: scaled about it
+    else { w_scale(w[3], 1.0f, 1.0f); w_pivot(w[3], -innerw * 1.5f, (cy - NTF_ICON_PX * 0.5f) * 3.0f); }
     g_ntf.st = 1; g_ntf.set_frame = g_frame; g_ntf.la = -1.0f; g_ntf.a = 0.0f;
     float secs = it->secs;
     g_ntf.until = now + (uint64_t)((secs > 0 && secs < (it->kind == NTF_SERVER ? 600.0f : 30.0f) ? secs : 5.0f) * 1000);
@@ -263,7 +301,7 @@ static void ntf_start_menu(const ntf_item_t *it, uint64_t now, uint64_t *w, uint
     float mx = mxu / 3.0f * 1.18f;
     float innerw = mx + NTF_ICON_PX + NTF_GAP, innerh = (float)nl * 20.0f; if (innerh < NTF_ICON_PX) innerh = NTF_ICON_PX;
     float boxw = innerw + 2.0f * NTF_PADX, boxh = innerh + 2.0f * NTF_PADY, cy = NTF_MENU_CY;
-    g_ntf.innerw = innerw; g_ntf.boxh = boxh; g_ntf.cy = cy; g_ntf.nl = nl;
+    g_ntf.innerw = innerw; g_ntf.boxh = boxh; g_ntf.cy = cy; g_ntf.tcy = cy; g_ntf.up = 0; g_ntf.nl = nl;
     for (int i = 0; i < 5; i++) { w_visible(w[i], 0); feed_alpha(w[i], 0.0f); }
     for (int i = 0; i < 3; i++) {
         const float *b = NTF_BLOBS[i];
@@ -271,7 +309,7 @@ static void ntf_start_menu(const ntf_item_t *it, uint64_t now, uint64_t *w, uint
         w_scale(w[i], wp / NTF_BLOB_W0, hp / NTF_BLOB_H0);
         w_pivot(w[i], b[4] * boxw * 3.0f - wp * 0.5f, (cy + b[5] * boxh) * 3.0f - hp * 0.5f);
     }
-    ((fn_settext_t)VMA(0x180068260))(w[3], NTF_ICON[it->kind]);
+    ((fn_settext_t)VMA(0x180068260))(w[3], ntf_icon_of(it->kind));
     w_pivot(w[3], -innerw * 1.5f, (cy - NTF_ICON_PX * 0.5f) * 3.0f);
     ((void (*)(uint64_t, const char *))VMA(0x180064450))(w[4], buf);                        // the text widget: 1500 x 250 units, centred in both axes
     w_pivot(w[4], (-innerw * 0.5f + NTF_ICON_PX + NTF_GAP + mx * 0.5f) * 3.0f - 750.0f, cy * 3.0f - 125.0f);
@@ -365,7 +403,8 @@ static void feature_notify(void) {
         if (g_frame <= g_ntf.set_frame) return;            // the icon path / string has had no frame yet
         for (int i = 0; i < nw; i++) w_visible(w[i], 1);
         g_ntf.st = 2; g_ntf.t0 = now;
-        if (!g_ntf.banner) ntf_sound();
+        if (ntf_is_lb(g_ntf.kind)) int_stage_sting(g_ntf.kind);   // the stage's own stinger instead of the toast chime (interrogation.c)
+        else if (!g_ntf.banner) ntf_sound();
     }
     float a = 1.0f;
     if (!g_ntf.banner && now - g_ntf.t0 < 150) a = 0.1f + 0.9f * (float)(now - g_ntf.t0) / 150.0f;     // (a banner pops in on one frame)
@@ -379,8 +418,8 @@ static void feature_notify_draw(void) {
     typedef void (*fn_text_va)(...);
     if (g_ntf.st != 2 || g_ntf.menu || g_ntf.a <= 0.0f || match_substate() != 6) return;
     uint32_t al = (uint32_t)(g_ntf.a * 255.0f + 0.5f) << 24;
-    float left = 640.0f - g_ntf.innerw * 0.5f + (g_ntf.banner ? 0.0f : NTF_ICON_PX + NTF_GAP);            // the text block starts right of the icon
-    float y0 = g_ntf.cy - (float)(g_ntf.nl - 1) * NTF_PITCH * 0.5f - g_ntf.th * 0.5f;
+    float left = g_ntf.up ? 640.0f - g_ntf.tbw * 0.5f : 640.0f - g_ntf.innerw * 0.5f + (g_ntf.banner ? 0.0f : NTF_ICON_PX + NTF_GAP);   // right of the icon (centred under it for NTF_LAST)
+    float y0 = g_ntf.tcy - (float)(g_ntf.nl - 1) * NTF_PITCH * 0.5f - g_ntf.th * 0.5f;
     for (int i = 0; i < g_ntf.nl; i++) {
         if (g_ntf.lw[i] <= 0.0f) continue;
         float x = left + (g_ntf.tbw - g_ntf.lw[i]) * 0.5f;

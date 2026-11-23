@@ -285,14 +285,24 @@ def render(page, out, show=(), hide=(), scale=0.5, bg=None):
                 for ch in t:
                     d.text((x, y), ch, font=f, fill=c)
                     x += f.getlength(ch) + trk
+            cc = [c for t, c in runs for _ in t]                    # colour of each character of txt (<font color> runs)
+            coloured = len(runs) > 1 or runs[0][1] != rgba
+            pos = 0
             for ln in lines:
                 lw = tlen(ln)
                 al = g(i, "alignH", 0)
                 tx = x0 * S if al == 0 else ((x0 + sw / 2) * S - lw / 2 if al == 1 else (x0 + sw) * S - lw)
-                if (len(runs) > 1 or runs[0][1] != rgba) and len(lines) == 1:              # <font color> runs (single line; a text that is ONE coloured run too)
-                    for t, c in runs:
-                        tdraw(tx, ty, t, c)
-                        tx += tlen(t)
+                at = txt.find(ln, pos) if coloured and ln else -1
+                if at >= 0:                                         # the runs, split at the line breaks / wraps
+                    pos = at + len(ln)
+                    k = 0
+                    while k < len(ln):
+                        e = k
+                        while e < len(ln) and cc[at + e] == cc[at + k]:
+                            e += 1
+                        tdraw(tx, ty, ln[k:e], cc[at + k])
+                        tx += tlen(ln[k:e])
+                        k = e
                 else:
                     tdraw(tx, ty, ln, rgba)
                 ty += lh

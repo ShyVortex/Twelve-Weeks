@@ -38,6 +38,33 @@ static float nr_est(const char *t, float pt) {          // = gearup13.c gu_est: 
     return est * pt;
 }
 static float nr_tw(const char *t, float pt) { return nr_est(t, pt) * 1.06f; }     // nr_style: est * 1.06 (the tracking)
+// A finer per-character width (the prompt boxes / quick reply chips had room left at their right; long chat lines ran out of the box): the game's
+// menu face (DINPro Medium, core.psarc fonts/seriffont-Medium.otf) advance widths for ' ' .. '~', in the units of nr_cw (x pt x 1.06 = widget units), scaled to the
+// in-game width of "TYPE A MESSAGE" at 36 pt (388 units, screenshot). Other characters (Polish letters etc.): 0.66.
+// Used where a box is fitted to its text (nr_prompts' labels, the friends page chips, the chat rows); nr_cw / nr_est stay for the rest of the layouts.
+static const float NR_CWF[95] = {
+    0.308f, 0.427f, 0.570f, 0.863f, 0.781f, 1.082f, 0.938f, 0.330f, 0.407f, 0.407f, 0.623f, 0.685f,
+    0.349f, 0.547f, 0.357f, 0.488f, 0.685f, 0.685f, 0.685f, 0.685f, 0.685f, 0.685f, 0.685f, 0.685f,
+    0.685f, 0.685f, 0.389f, 0.389f, 0.685f, 0.685f, 0.685f, 0.657f, 0.946f, 0.803f, 0.852f, 0.807f,
+    0.856f, 0.775f, 0.752f, 0.834f, 0.888f, 0.378f, 0.650f, 0.845f, 0.737f, 1.045f, 0.928f, 0.830f,
+    0.808f, 0.830f, 0.842f, 0.758f, 0.719f, 0.867f, 0.725f, 1.119f, 0.743f, 0.699f, 0.709f, 0.446f,
+    0.488f, 0.446f, 0.734f, 0.734f, 0.642f, 0.681f, 0.710f, 0.623f, 0.710f, 0.692f, 0.421f, 0.705f,
+    0.727f, 0.339f, 0.339f, 0.704f, 0.400f, 1.127f, 0.730f, 0.690f, 0.710f, 0.710f, 0.564f, 0.641f,
+    0.439f, 0.730f, 0.605f, 0.955f, 0.646f, 0.601f, 0.603f, 0.523f, 0.434f, 0.523f, 0.737f,
+};
+static float nr_cwf(const unsigned char *q) { return *q >= 32 && *q < 127 ? NR_CWF[*q - 32] : *q >= 0x80 ? 0.66f : 0.0f; }
+static float nr_twf(const char *t, float pt) {          // = nr_tw with nr_cwf (translated, colour tags skipped)
+    const char *tr = loc_tr(t ? t : "");
+    float est = 0.0f;
+    int tag = 0;
+    for (const unsigned char *q = (const unsigned char *)(tr ? tr : t ? t : ""); *q; q++) {
+        if (*q == '<') tag = 1;
+        if (tag) { if (*q == '>') tag = 0; continue; }
+        if ((*q & 0xC0) == 0x80) continue;
+        est += nr_cwf(q);
+    }
+    return est * pt * 1.06f;
+}
 
 // a rule / bar fill built at NR_RULE_W0 with its pivot at the left middle: move its left end to x and make it w long
 static void nr_rule(const char *path, float x, float y, float w) {
@@ -248,8 +275,8 @@ static void nr_prompts(const nr_prompt_t *it, int n) {
         }
         float kw = glyph ? (k2[0] ? 136.0f : 64.0f) : nr_tw(key, NR_PROMPT_KEY_PT) + 28.0f;
         if (!glyph && kw < 60.0f) kw = 60.0f;
-        float lw = nr_tw(q->label, NR_PROMPT_PT);
-        float tot = 18.0f + kw + 22.0f + lw + 34.0f;
+        float lw = nr_twf(q->label, NR_PROMPT_PT);
+        float tot = 18.0f + kw + 22.0f + lw + 26.0f;            // (the label centred between the key and the box's right edge - was + 34 with the coarser width)
         ui_visible(p, 1);
         w_pivot(ui_w(p), x - tot, NR_PROMPT_Y - NR_PROMPT_H / 2.0f);
         g_nr_pb_x0[k] = x - tot; g_nr_pb_x1[k] = x;

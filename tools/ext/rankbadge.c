@@ -3,32 +3,36 @@
 // Look: tools/features/rank_badge_widgets.py (one geometry function: symbol = the name's point size, weeks number 0.62 x, the name moves right by the same width on every
 // screen). Drawing: rank_ui (rank13.h) on an image + text widget pair; this file only finds out WHOSE rank it is.
 // Data: the daemon's rank table (op 0xBF -> reply 0xBF "n=<k> HHHHHHHH:r:w ...", tools/rankbadge.py: one entry per recently seen player, keyed by a hash of the SHOWN
-// name = ASCII letters / digits only, lower case, so "[TAG] Name", the vote page's "_TAG__Name" and the lobby's " (party lead)" suffix reach the same key). Polled
-// every 12 s (2.5 s while a name was missing) as long as some screen asked for a rank in the last 15 s. The map vote's roster carries its ranks itself (0xEB pk<i> / pw<i>).
-// Included after rank13.h, before clan13.c / friends13.c (the lobby rows and the friends panel call rkb_draw / rkb_draw_me / rkb_draw_at).
+// name = ASCII letters / digits only, lower case, so "[TAG] Name", the vote page's "_TAG__Name" and the lobby's "
 #define RKB_MAX 400
-static struct { uint32_t h; uint8_t rk, ro; uint16_t wk; } g_rkb[RKB_MAX];     // guarded by g_clan_cs; ro = role (tools/roles.py): 0 none 1 OG 2 admin 3 dev 4 lead dev
+static struct { uint32_t h; uint8_t rk, ro; uint16_t wk; } g_rkb[RKB_MAX];
 static int g_rkb_n;
-static volatile LONG g_rkb_ver, g_rkb_dead;                                  // g_rkb_dead: an older daemon ignores the op (2 unanswered tries stop the polling)
-static volatile uint64_t g_rkb_want_at;                                      // GetTickCount64 of the last lookup
-static volatile LONG g_rkb_miss;                                             // the last lookup found nothing: ask again soon
+static volatile LONG g_rkb_ver, g_rkb_dead;
+static volatile uint64_t g_rkb_want_at;
+static volatile LONG g_rkb_miss;
 
-static void nrim_tick(uint64_t now);                                        // namerim.c (included after friends13.c)
+static void nrim_tick(uint64_t now);
+// >,..,<", all-Cyrillic) hashed to 0 = drawn as an empty row (no badge). It is keyed on its other bytes instead
+// (> 0x20, not one of " _[]()<>"), the same fallback as tools/rankbadge.py key().
 static uint32_t rkb_hash(const char *name) {                                // = tools/rankbadge.py key()
-    uint32_t h = 2166136261u; int any = 0;
+    uint32_t h = 2166136261u, h2 = 2166136261u; int any = 0, any2 = 0;
     for (const unsigned char *p = (const unsigned char *)name; *p; p++) {
         if (*p == '<') { const char *e = strchr((const char *)p, '>'); if (e) { p = (const unsigned char *)e; continue; } }      // <font ...> markup
         if (p[0] == ' ') {                                                  // suffixes "  (YOU)" (friends panel: two spaces), " (party lead)", " (not searching)", "  (TY)"
             const unsigned char *q = p; while (*q == ' ') q++;
-            if (*q == '(' && (!strncmp((const char *)q + 1, "party", 5) || !strncmp((const char *)q + 1, "YOU", 3) || !strncmp((const char *)q + 1, "TY", 2) || !strncmp((const char *)q + 1, "not searching", 13))) break;
+            if (*q == '(' && (!strncmp((const char *)q + 1, "party", 5) || !strncmp((const char *)q + 1, "YOU", 3) || !strncmp((const char *)q + 1, "TY", 2) || !strncmp((const char *)q + 1, "not searching", 13)
+                                || !strncmp((const char *)q + 1, "lobby)", 6) || !strncmp((const char *)q + 1, "summary)", 8) || !strncmp((const char *)q + 1, "new)", 4))) break;      // (lobby rows)
         }
         if (p[0] == ' ' && p[1] == '[' && p[2] == 'T' && p[3] >= '1' && p[3] <= '2' && p[4] == ']') { p += 4; continue; }              // " [T1]"
         int c = *p;
         if (c >= 'A' && c <= 'Z') c += 32;
-        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) continue;
+        if (!((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) {
+            if (*p > 0x20 && !strchr("_[]()<>", *p)) { h2 = (h2 ^ (uint32_t)*p) * 16777619u; any2 = 1; }
+            continue;
+        }
         h = (h ^ (uint32_t)c) * 16777619u; any = 1;
     }
-    return any ? h : 0;
+    return any ? h : any2 ? h2 : 0;
 }
 static void rkb_parse(const char *t) {                                       // worker thread (clan_worker)
     static struct { uint32_t h; uint8_t rk, ro; uint16_t wk; } tmp[RKB_MAX];
@@ -69,7 +73,7 @@ static int rkb_lookup(const char *name, int *rk, int *wk) { return rkb_lookup_ro
 static int rkb_role_of(const char *name) { int rk, wk, ro = 0; return rkb_lookup_ro(name, &rk, &wk, &ro) ? ro : 0; }
 // a row with no player: empty, the page's template texts ("SEARCHING", "PLAYER 3", "-") - never a badge (a stray badge showed on every empty SEARCHING row)
 static int rkb_placeholder(const char *name) {
-    if (!name || !name[0] || !strcmp(name, "-") || !strncmp(name, "PLAYER", 6)) return 1;
+    if (!name || !name[0] || !strcmp(name, "-") || !strncmp(name, "PLAYER", 6) || strstr(name, "OPEN SEAT") || strstr(name, "WOLNE MIEJSCE")) return 1;      // (lobby panel open seats)
     static uint32_t hs; if (!hs) hs = rkb_hash("SEARCHING");
     return rkb_hash(name) == hs || !rkb_hash(name);
 }

@@ -8,7 +8,11 @@
 //   - keyboard + mouse: GetLastInputInfo (the session's last hardware input tick: keys, clicks, raw mouse movement), counted only while the game window
 //     is the foreground window (alt-tabbed into a browser = idle in the game);
 //   - any pad (DualSense / Steam Input / XInput): the engine's own Pad as Joypad::Update reads it (padinject.c padinj_upd_hook: button mask Pad+0x528
-//     changed or a stick past 0.3), the same object every gameplay command reads (memory controller-parity: never raw XInput);
+// changed or a stick past 0.3), the same object every gameplay command reads (memory controller-parity: never raw XInput).: on
+//     EVERY joypad the hook sees (padact.h), not only the one the command reader learned - in pad mode the engine reads its commands on a path the
+//     reader hook never sees, nothing was learned and a pad player who kept playing was removed as idle;
+// - a pad on Steam Input: the engine reads its commands through Steam Input actions (padinject.c padinj_si_hook); a changed answer of a
+//     watched command (fire, aim, evade, melee, crouch, sprint, jump, reload ...) counts as input, whether or not Steam Input fills the Pad;
 //   - the dev bots' injected presses / sticks (padinj btn_applied / st_applied counters): a bot that plays is not AFK.
 // Without the pad hook (t2r-no-pad-inject.txt / not installed) the whole feature stays off: a pad player could not be told from an idle one.
 // At AFK_WARN_MS idle: a centred warning with a countdown (YOU ARE INACTIVE / MOVE OR YOU WILL BE REMOVED FROM THE MATCH IN n). The countdown runs only while
@@ -63,19 +67,21 @@ static void afk_tick(void) {
     if (live && !g_afk.was_live) { g_afk.idle = 0; g_afk.warn = 0; g_afk.vis = 0; g_afk.logged_s = 0; }     // a new match starts at 0
     g_afk.was_live = (uint8_t)live;
     if (afk_off() || !padinj_ready()) { g_afk.idle = 0; g_afk.warn = 0; g_afk.vis = 0; g_afk.counting = 0; return; }
-    int input = 0;
+    int input = 0;      // bit 1 keyboard / mouse, 2 pad, 4 dev bot (for the log)
     LASTINPUTINFO li = {sizeof li, 0};
     if (GetLastInputInfo(&li)) {
-        if (li.dwTime != g_afk.lii && game_focused()) input = 1;                   // keyboard / mouse while the game has the focus
+        if (li.dwTime != g_afk.lii && game_focused()) input |= 1;                  // keyboard / mouse while the game has the focus
         g_afk.lii = li.dwTime;
     }
-    if (g_pad_act_ms && now - g_pad_act_ms < 250) input = 1;                       // any pad
+    if (g_pad_act_ms && now - g_pad_act_ms < 250) input |= 2;                      // any pad, any joypad (padact.h)
     unsigned b = padinj_applied(), s = g_padi.st_applied;
-    if (b != g_afk.btn || s != g_afk.st) input = 1;                                // a dev bot's injected input
+    if (b != g_afk.btn || s != g_afk.st) input |= 4;                               // a dev bot's injected input
     g_afk.btn = b; g_afk.st = s;
     if (input) {
-        if (g_afk.warn) xlog("afk: input after %.0f s idle - warning cleared", g_afk.idle / 1000.0);
-        else if (g_afk.idle >= 30000) xlog("afk: input after %.0f s idle", g_afk.idle / 1000.0);
+        char src[128]; snprintf(src, sizeof src, "%s%s%s (pad slot %d, %u pad inputs, %u Steam Input answer changes so far)", input & 1 ? " keyboard/mouse" : "", input & 2 ? " pad" : "", input & 4 ? " bot" : "",
+                               g_padact.act_src, g_padact.act_n, g_padi.si_flips);
+        if (g_afk.warn) xlog("afk: input after %.0f s idle - warning cleared:%s", g_afk.idle / 1000.0, src);
+        else if (g_afk.idle >= 30000) xlog("afk: input after %.0f s idle:%s", g_afk.idle / 1000.0, src);
         g_afk.idle = 0; g_afk.warn = 0; g_afk.vis = 0; g_afk.logged_s = 0;
     }
     g_afk.counting = !input && afk_countable();
@@ -83,7 +89,8 @@ static void afk_tick(void) {
     if (g_afk.counting && g_afk.warn && !hud_menu_up()) g_afk.vis += dt;
     if (!g_afk.warn && g_afk.idle >= AFK_WARN_MS) {
         g_afk.warn = 1; g_afk.warn_at = now; g_afk.vis = 0;
-        xlog("afk: no input for %.0f s - warning shown (the server removes us at %d s)", g_afk.idle / 1000.0, AFK_KICK_MS / 1000);
+        int ns = 0; for (int i = 0; i < PADACT_N; i++) if (g_padact.s[i].seen) ns++;
+        xlog("afk: no input for %.0f s - warning shown (the server removes us at %d s; joypad sources seen %d, pad inputs so far %u, Steam Input reads %u / answer changes %u)", g_afk.idle / 1000.0, AFK_KICK_MS / 1000, ns, g_padact.act_n, g_padi.si_reads, g_padi.si_flips);
     }
     if (g_afk.warn && g_afk.idle / 10000 != g_afk.logged_s) { g_afk.logged_s = g_afk.idle / 10000; xlog("afk: idle %.0f s, warning visible %.0f s%s", g_afk.idle / 1000.0, g_afk.vis / 1000.0, afk_rep_ms() >= AFK_KICK_MS ? " - removal due, waiting for the server" : ""); }
 }

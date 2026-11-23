@@ -178,12 +178,14 @@ static void *ccg_filter(uint8_t *dst, const float *loc, void *r) {
     int k = !m ? -1 : dst == m + 0x130 ? 0 : dst == m + 0x550 ? 1 : -1;
     if (k < 0 || !r || IsBadReadPtr(loc, 0x80) || IsBadReadPtr(r, 0x80)) return r;
     int mode = g_ccg.mode;
-    // The victim's finisher shot turned 12-20 deg a frame for 0.3 s (its own timed blend). This filter took that as a source switch (log: 'camcont: ... OUR FILTER rotation
-        // jump 9.2 / 12.8 / 17.3 / 20.5 / 20.2 / 21.0 / 69.0 deg ... absorbed', 'residual 151.5 deg / 0.95 m', and a frame check warning that both heads stood BEHIND the lens;
-        // also 'cam2: duel framing -> pin camera ... blended over 450 ms', 'lensguard: the lens is pulled in ... clear length 0.22 m from the head', 'downlens: lens pulled in
-        // front of a wall ... max 1.07 m'), kept the old view and paid the 150 deg back over the next second, cam2 blended the same switch a second time, and the two lens guards
-        // pulled the shot's lens toward a HEAD point that stays 1.45 m above the root of a body lying on the floor. The victim's shot (melee_spcam.c s34_apply) is one timed
-        // owner with its own rays: all four stages pass it through and restart from the game camera when it has eased back onto it.
+    // ps35 (rec23 B, the victim's finisher shot of ps34: 9710-9716 'camcont: ... OUR FILTER rotation jump 9.2 / 12.8 / 17.3 / 20.5 / 20.2 / 21.0 / 69.0
+    // deg ... absorbed', 9717 'residual 151.5 deg / 0.95 m', 9726 'ps34 frame check - WARNING ... our head x +9.99 y +9.99, the attacker's head x +9.99 y +9.99'
+    // = both BEHIND the lens; the same at 14157-14165 'residual 42.1 deg / 1.19 m'; and 9697 'cam2: duel framing -> pin camera ... blended over 450 ms', 9944
+    // 'lensguard: the lens is pulled in ... clear length 0.22 m from the head', camrec 9957 'dist 0.38', 9981 'downlens: lens pulled in front of a wall ... max
+    // 1.07 m'): the shot's own timed blend turns 12-20 deg a frame for 0.3 s - this filter took that as a source switch, kept the old view and paid the
+    // 150 deg back over the next second, cam2 blended the same switch a second time, and the two lens guards pulled the shot's lens toward a HEAD point
+    // that stays 1.45 m above the root of a body lying on the floor. The victim's shot (melee_spcam.c s34_apply) is one timed owner with its own rays: all
+    // four stages pass it through and restart from the game camera when it has eased back onto it.
     if (!mode || g_fcam_on || (g_s34_tb && g_pcam.w > 0.001f) || s40_exec_cam() || s45s_swing()) { S[k].ok = 0; return s40_exec_cam() ? s41_roll(k, r) : r; }      // (ps45 S1: the rig's timed side swing - melee_spcam.c PS45_SIDE)      // (ps40 E5: nor a 2013 execution camera - melee_spcam.c spm_tick's line)
     // ps39 C7 (melee_spcam.c spm25_rig): the rig took its spot on one cut (g_s37_gen bumped on the render thread, before this stage) - not a jump to
     // absorb and pay back over 0.5 s through our own body: this stage restarts on it, like cam2_filter does
@@ -623,13 +625,14 @@ static void *cam2_filter(uint8_t *dst, const float *loc, void *r) {
     if (k < 0 || !r || IsBadReadPtr(r, 0x80)) return r;
     int mode = g_ccg.mode;
     if (!g_cam2_on || !mode || g_fcam_on || !g_ccg.root_ok || (g_s34_tb && g_pcam.w > 0.001f) || s40_exec_cam() || s45s_swing()) { S[k].ok = 0; if (k == 0) g_cam2.err_ok = 0; return r; }   // (ps35: the victim's timed shot - ccg_filter's note)
-    // An own-body teleport broke the camera: the log showed 'camcont: filter reset - our root moved 52.88 m', then 'cam2: duel camera FLIP REJECTED in duel framing - ... its lens
-        // swung 117.6 deg round our head in one frame ... engine lens moved 56.38 m', then 13 s of 'frame check - our head x +9.99 y +9.99 ... rig latched, look-at 1.00': the ENGINE
-        // camera arrived at the teleported body 8 frames after the body; its arrival read as the lens swinging round our head, the flip guard took the 117.6 deg back
-        // and held that correction 'for the rest of the duel' - the lens stood on the far side of our head, the look-at aimed from there, our own head behind
-        // the lens. Now: (1) an own-body teleport (melee_spcam.c spm_tick, g_s37_gen) restarts this stage and no flip is rejected for 1 s after it, nor on a
-        // frame where the live lens itself moved > 2 m; (2) a held correction under which our own head is behind / more than ~70 deg off the view for 0.3 s
-        // is dropped and the view re-acquires the live camera over 0.6 s. t2r-ps37-cam-reset-old.txt = neither.
+    // ps37: 20584 'bot: ... teleported', 20586 'camcont: filter reset - our
+    // root moved 52.88 m', 20591 ENGAGE, 20594 'cam2: duel camera FLIP REJECTED in duel framing - ... its lens swung 117.6 deg round our head in one frame ...
+    // engine lens moved 56.38 m', then 13 s of 'ps25 frame check - our head x +9.99 y +9.99 ... rig latched, look-at 1.00' (20592-21369): the ENGINE camera
+    // arrived at the teleported body 8 frames after the body; its arrival read as the lens swinging round our head, the flip guard took the 117.6 deg back
+    // and held that correction 'for the rest of the duel' - the lens stood on the far side of our head, the look-at aimed from there, our own head behind
+    // the lens. Now: (1) an own-body teleport (melee_spcam.c spm_tick, g_s37_gen) restarts this stage and no flip is rejected for 1 s after it, nor on a
+    // frame where the live lens itself moved > 2 m; (2) a held correction under which our own head is behind / more than ~70 deg off the view for 0.3 s
+    // is dropped and the view re-acquires the live camera over 0.6 s. t2r-ps37-cam-reset-old.txt = neither.
     if (g_ps37 && S[k].gen37 != g_s37_gen) { S[k].gen37 = g_s37_gen; S[k].ok = 0; S[k].grace = gsh_now() + 1.0; }
     const float *U = (const float *)r;
     float Up[3] = {U[0], U[1], U[2]}, Uq[4] = {U[4], U[5], U[6], U[7]};

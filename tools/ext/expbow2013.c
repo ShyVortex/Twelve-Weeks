@@ -32,6 +32,15 @@ static uint64_t expbow_weapon_sid(void) {
     if (!w) w = fnv64(EXPBOW_ID);
     return w;
 }
+// the 2013 Launcher (LAUNCHER_ID, dc_data_patches.LAUNCHER) fires the same explosive arrow: every arrow / blast rule here is the same for it;
+// only the weapon NAME differs (kill card, feed): MSG_EXPBOW_BURST byte 12 = 1 when the arrow came from the Launcher (old clients send 0).
+static uint64_t launcher_weapon_sid(void) {
+    static uint64_t w;
+    if (!w) w = fnv64(LAUNCHER_ID);
+    return w;
+}
+static int arrow_gun(uint64_t w) { return w && w != ~0ULL && (w == expbow_weapon_sid() || (launcher_built() && w == launcher_weapon_sid())); }
+static uint64_t g_eb_last_gun;          // the arrow gun held last (expbow_det_tick): the weapon our own detonation names
 // Damage base of a Launcher blast. The nail bomb / molotov rule decoded from the PS3 code is "ring multiplier x the target's CURRENT health"
 // (rules/molotov-nailbomb-2013.md section 3, [code] + [inferred]); with the Launcher's 0.55 that needs 4 hits to down a full-health player, while the
 // wiki says 2 shots ("Area of effect weapon that downs an enemy in 2 shots"). Default = the wiki (a share of the 100 hp MAXIMUM: 55 in the
@@ -75,7 +84,7 @@ static void expbow_explosion_hook(uint64_t *ret, int argc, uint64_t *argv, uint6
 }
 
 static void expbow_install(void) {
-    if (!expbow_built()) return;
+    if (!arrow_blast_built()) return;
     g_eb_orig = hook_rec8(fnv64("spawn-explosion"), expbow_explosion_hook);
     xlog("expbow: spawn-explosion native %s (the explosive arrow's SP script ss-explosive-arrow calls it at impact + 0.2 s)", g_eb_orig ? "hooked" : "NOT found - the Explosive Bow's blast cannot be shared");
 }
@@ -83,15 +92,15 @@ static void expbow_install(void) {
 // every frame: our own arrow's explosion -> judge it on us + tell the others; log what we hold
 static void expbow_tick(void) {
     static uint64_t last_w;
-    if (!expbow_built()) return;
+    if (!arrow_blast_built()) return;
     if (match_substate() != 6) { g_eb_pend.n = 0; last_w = 0; return; }
     if (!(g_frame % 15)) {
         uint64_t w = current_weapon();
         if (w != last_w) {
             last_w = w;
-            if (w && w != ~0ULL && w == expbow_weapon_sid())
-                xlog("expbow: Explosive Bow in hand (ammo-arrow-explosive %d, hook %s, %llu explosions seen so far, %llu of them the arrow's) - an arrow that lands must log "
-                     "'own explosive arrow blew up' within ~0.5 s", (int)inv_qty(fnv64("ammo-arrow-explosive")), g_eb_orig ? "on" : "OFF",
+            if (arrow_gun(w))
+                xlog("expbow: %s in hand (ammo-arrow-explosive %d, hook %s, %llu explosions seen so far, %llu of them the arrow's) - an arrow that lands must log "
+                     "'own explosive arrow blew up' within ~0.5 s", w == expbow_weapon_sid() ? "Explosive Bow" : "Launcher", (int)inv_qty(fnv64("ammo-arrow-explosive")), g_eb_orig ? "on" : "OFF",
                      (unsigned long long)g_eb_hook_calls, (unsigned long long)g_eb_arrow_calls);
         }
     }
@@ -100,18 +109,20 @@ static void expbow_tick(void) {
     uint32_t self = *(uint32_t *)VMA(0x180138090);
     for (int i = 0; i < n && i < 4; i++) {
         uint8_t m[13];
-        memcpy(m, g_eb_pend.e[i].pos, 12); m[12] = 0;
+        memcpy(m, g_eb_pend.e[i].pos, 12); m[12] = launcher_built() && g_eb_pend.e[i].w == launcher_weapon_sid();
+        g_ex13_by_launcher[self < T2R_MAX_PEERS ? self : 0] = m[12];
         if (g_send_tramp) g_send_tramp(MSG_EXPBOW_BURST, m, sizeof m, 0xff);
         xlog("expbow: own explosive arrow blew up at (%.2f %.2f %.2f) (weapon %llx) - MSG_EXPBOW_BURST sent, judged on us as slot %u", g_eb_pend.e[i].pos[0],
              g_eb_pend.e[i].pos[1], g_eb_pend.e[i].pos[2], (unsigned long long)g_eb_pend.e[i].w, self);
         ex13_pend(EX13_LAUNCH, (int)self, g_eb_pend.e[i].pos);
+        if (m[12]) { launcher_cloud(self, g_eb_pend.e[i].pos); stun_launcher_judge(self, g_eb_pend.e[i].pos); }   // the stun bomb's cloud + screen fx (no lock)
     }
 }
 
 // another player's arrow blew up (MSG_EXPBOW_BURST from `s`): the burst fx + sound at the exact point, and the damage judged from it on our own body
 static void expbow_recv(uint32_t s, const uint8_t *buf, uint64_t len) {
     static struct { uint64_t ms; float at[3]; } last[T2R_MAX_PEERS];
-    if (!expbow_built() || s >= T2R_MAX_PEERS || !buf || len < 12 || match_substate() != 6) return;
+    if (!arrow_blast_built() || s >= T2R_MAX_PEERS || !buf || len < 12 || match_substate() != 6) return;
     uint32_t self = *(uint32_t *)VMA(0x180138090);
     if (s == self) return;
     float at[3];
@@ -129,10 +140,17 @@ static void expbow_recv(uint32_t s, const uint8_t *buf, uint64_t len) {
         return;
     }
     last[s].ms = now; memcpy(last[s].at, at, 12);
+    g_ex13_by_launcher[s] = len >= 13 && buf[12] == 1;
     xlog("expbow: MSG_EXPBOW_BURST from slot %u - its explosive arrow blew up at (%.2f %.2f %.2f) -> burst (carrier %s) + damage judged from there", s, at[0], at[1], at[2], EXPBOW_CARRIER);
     g_eb_burst_frame = g_frame ? g_frame : 1;
     // the carrier copy is a REAL engine explosion - near us it killed us 4 frames after the 2013 ring's 55 (no damage hook sees it).
     // Within its reach of our body: no carrier copy (the ring judges the damage; camera shake / tinnitus / muffle still play); farther: the copy as before.
+    if (g_ex13_by_launcher[s]) {         // the Launcher: the stun bomb's cloud at the point (no damage of its own), the 2013 ring, the stun's screen fx
+        launcher_cloud(s, at);
+        ex13_pend(EX13_LAUNCH, (int)s, at);
+        stun_launcher_judge(s, at);
+        return;
+    }
     { float pb[16]; const float *me = player_locator(pb);
       float d2 = me ? (me[0] - at[0]) * (me[0] - at[0]) + (me[1] - at[1]) * (me[1] - at[1]) + (me[2] - at[2]) * (me[2] - at[2]) : 1e9f;
       if (d2 > 9.0f * 9.0f) rb_visual(fnv64(EXPBOW_CARRIER), at);
@@ -199,12 +217,20 @@ static void eb_guard_tick(void) {
     }
 }
 static void eb_detonate(const float *p, const char *why) {
+    if (launcher_built() && g_eb_last_gun == launcher_weapon_sid()) {
+        // the Launcher's shot bursts as a stun bomb: no *arrow-explosive-explosion* - the point goes straight to expbow_tick (send +
+        // the 2013 ring on us + launcher_cloud + stun_launcher_judge), 35 cm up as below
+        int n = g_eb_pend.n;
+        if (n < 4) { g_eb_pend.e[n].pos[0] = p[0]; g_eb_pend.e[n].pos[1] = p[1] + 0.35f; g_eb_pend.e[n].pos[2] = p[2]; g_eb_pend.e[n].w = launcher_weapon_sid(); g_eb_pend.n = n + 1; }
+        xlog("expbow det: Launcher shot %s at (%.2f %.2f %.2f) -> stun bomb burst (no engine explosion)", why, p[0], p[1], p[2]);
+        return;
+    }
     eb_guard_puppets(p);
     static float pt[4] __attribute__((aligned(16)));
     memcpy(pt, p, 12); pt[3] = 1.0f;
     pt[1] += 0.35f;          // a heavy arrow ends IN the ground / grass - from that point every damage probe was blocked (0 of 6 at 2.8 m): burst 35 cm up
     float m1 = -1.0f; uint64_t fm1 = 0; memcpy(&fm1, &m1, 4);
-    uint64_t a[9] = {(uint64_t)(uintptr_t)pt, fnv64("*arrow-explosive-explosion*"), 0, 0, fm1, expbow_weapon_sid(), SID_PLAYER, 0, 0};
+    uint64_t a[9] = {(uint64_t)(uintptr_t)pt, fnv64("*arrow-explosive-explosion*"), 0, 0, fm1, g_eb_last_gun ? g_eb_last_gun : expbow_weapon_sid(), SID_PLAYER, 0, 0};
     uint64_t r = dc_call(fnv64("spawn-explosion"), 9, a);
     xlog("expbow det: arrow %s at (%.2f %.2f %.2f) -> spawn-explosion *arrow-explosive-explosion* -> %llx", why, p[0], p[1], p[2], (unsigned long long)r);
 }
@@ -220,8 +246,8 @@ static void expbow_det_tick(void) {
     if (!g_eb_det_on) return;
     if (match_substate() != 6) { memset(tr, 0, sizeof tr); held_until = 0; last_qty = ~0ULL; return; }
     uint64_t w = current_weapon(), q = inv_qty(fnv64("ammo-arrow-explosive"));
-    if (w == expbow_weapon_sid()) held_until = g_frame + secs_frames(2.0f);
-    if (w == expbow_weapon_sid() && last_qty != ~0ULL && q != ~0ULL && q < last_qty)
+    if (arrow_gun(w)) { held_until = g_frame + secs_frames(2.0f); g_eb_last_gun = w; }
+    if (arrow_gun(w) && last_qty != ~0ULL && q != ~0ULL && q < last_qty)
         xlog("expbow det: Explosive Bow ammo %llu -> %llu", (unsigned long long)last_qty, (unsigned long long)q);
     last_qty = q;
     float pb[16];

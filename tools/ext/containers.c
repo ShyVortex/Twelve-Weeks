@@ -262,7 +262,7 @@ static int cl_height(int ci, uint64_t now) {
 }
 static void cl_tick(void) {
     // procedural container loot DISABLED on every map - opt-in t2r-container-loot.txt
-    if (g_cl_off < 0) { FILE *f = exe_side_open("t2r-container-loot.txt", "r"); g_cl_off = f == NULL; if (f) fclose(f); xlog("container loot: %s", g_cl_off ? "OFF (default since 10-15; t2r-container-loot.txt = on)" : "ON (t2r-container-loot.txt)"); }
+    if (g_cl_off < 0) { FILE *f = exe_side_open("t2r-container-loot.txt", "r"); g_cl_off = f == NULL; if (f) fclose(f); xlog("container loot: %s", g_cl_off ? "OFF (default since; t2r-container-loot.txt = on)" : "ON (t2r-container-loot.txt)"); }
     if (g_cl_off) return;
     if (match_substate() != 6) { if (g_cl.active || g_cl.live_ms) cl_reset(); return; }
     uint64_t now = GetTickCount64();

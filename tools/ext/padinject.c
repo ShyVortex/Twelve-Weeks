@@ -22,6 +22,7 @@
 // The window must be focused for Joypad::Update to run (0x1415933ae: focus flag 0x1442620ac, else debug flag "Enable Joypad w/o Focus" 0x148e03f65): the dev
 // bot sets that flag (padinj_nofocus) so an unfocused A/B window still takes injected input.
 // Opt out (old native wrapper only): t2r-no-pad-inject.txt next to the exe.
+#include "padact.h"
 #define PADINJ_UPD_RVA 0x1593350u
 #define PADINJ_RD_RVA 0x158eb70u
 #define PADINJ_NOFOCUS_RVA 0x8e03f65u
@@ -29,10 +30,20 @@
 #define PADINJ_NS 8
 typedef uint64_t (*padinj_upd_t)(void *, uint8_t *, uint64_t, uint64_t);
 typedef unsigned char (*padinj_rd_t)(void *, void *, uint64_t, uint32_t, const uint8_t *, uint32_t);
+// (static RE of 0x158f370, the C++ / native command entry): after the command lookup (cmd = 0x158c460(jp, sid)) the entry asks
+// 0x14c0800 (vfunc +0x18 of the platform object at exe 0x84b6bb0). True -> the answer comes from 0x1591190(jp, cmd, sid, r9) at call site 0x158f5a6,
+// which walks the command's Steam Input action bindings (cmd+0x30: 16-byte entries {kind, threshold, action id}, the ids resolved through
+// ActionCommandManager's table) and never calls the reader 0x158eb70 we hook for learning. A Steam copy with a pad on Steam Input reads
+// every command there: 0 'padinj: learned' lines, g_padi.jp never set. The Joypad::Update hook still sees every Pad; whether Steam Input fills
+// Pad+0x528 there is not known yet (padinj_tick logs the first pad input it sees and the first Steam Input read).
+#define PADINJ_SI_RVA 0x1591190u
+#define PADINJ_SI_SITE 0x158f5a6u
+typedef unsigned char (*padinj_si_t)(void *, void *, uint64_t, uint64_t);
 static struct padinj_w {                        // watched commands
     uint64_t sid; char name[24];
     volatile uint64_t mask; uint32_t kind; void *volatile jp; volatile unsigned reads_true, reads_all; uint64_t learned_ms, seen_ms; int logged; volatile int learn_log;
     uint32_t n_ent; uint32_t ent[8][4];         // last entry table, for the log
+    padact_ans_t si[2];                         // Steam Input path (padinj_si_hook): the last answer per joypad (padact.h)
 } g_padw[PADINJ_NW];
 static struct padinj_slot {                     // pending injections
     volatile uint64_t until, hard_until; uint64_t mask; volatile int phase; volatile unsigned applied; int w; int blockable;      // blockable: a dev bot press, hidden by an armed block like a real one; phase 0 new, 1 release frame done, 2 pressed
@@ -49,9 +60,23 @@ static struct {
     volatile float raw_lx, raw_ly; volatile uint64_t raw_f;  // the primary pad's left stick as the engine reads it (dodge direction on a non-XInput pad)
     struct padinj_w *mel_w;                                  // the melee-attack watch (padinj_watch_defaults)
     volatile int raw_mel; volatile unsigned raw_mel_seq; volatile uint64_t raw_mel_f, raw_mel_ms;
+    padinj_si_t si; int sites_si; volatile unsigned si_reads, si_flips; void *volatile si_jp; volatile int si_log;   //: the Steam Input command path (padinj_si_hook)
+    volatile int act_log; void *volatile act_jp; void *volatile act_pad;                                            //: the first pad input seen (padact.h), logged once
     struct padinj_w *dg_w[3];                                // ps53: the dodge commands (evade, dodge, evade-start)
     volatile uint64_t dg_mask; volatile int raw_dg; volatile uint64_t raw_dg_f;   // ps53: every input bit of their entries (keyboard + any pad), the device state   // v5-pinpress: melee-attack's input bit as the device gave it (before block / injection), its rising edges
 } g_padi;
+// ("L1 / R1 does not change page" on CUSTOMIZE and the CLAN tabs): a menu command's PAD buttons as the read joypad
+// holds them (DualSense, Steam Input, XInput: whatever the engine reads), not through joypad-command-active? - winmm's menu lock
+// (joypad-disable-all-commands-except, on the MP menu) can leave the command disabled while our pages are up. Every bit of every pad
+// entry of the command (kinds 8 / 0x20 / 2 / 4 without bit 63, as ps53's dodge), read after injection (a padinj press shows here too).
+#define PADINJ_NRAW 8
+static struct { struct padinj_w *volatile w; volatile uint64_t f; } g_praw[PADINJ_NRAW];      // f: the last frame a pad button of the command was held
+static uint64_t padinj_pad_bits(const struct padinj_w *w) {
+    uint64_t m = 0;
+    for (uint32_t i = 0; i < w->n_ent && i < 8; i++) { uint32_t kd = w->ent[i][0]; uint64_t b = (uint64_t)w->ent[i][2] | ((uint64_t)w->ent[i][3] << 32);
+        if ((kd == 8 || kd == 0x20 || kd == 2 || kd == 4) && !(b & 0x8000000000000000ULL)) m |= b; }
+    return m;
+}
 // ---- the hooks
 static void padinj_apply(void *jp, uint8_t *pad) {
     uint64_t now = GetTickCount64();
@@ -83,12 +108,17 @@ static void padinj_apply(void *jp, uint8_t *pad) {
         g_padi.st_applied++;
     }
 }
-static volatile uint64_t g_pad_act_ms;          // afk.c (anti-AFK): last real input on the primary joypad (a button edge or a stick out of rest), before injection
+static volatile uint64_t g_pad_act_ms;          // afk.c (anti-AFK): last real input on ANY joypad (a button change or a stick out of rest), before injection
+static padact_t g_padact;                       //: every Joypad::Update call is a source (padact.h) - in pad mode g_padi.jp is never learned
 static uint64_t padinj_upd_hook(void *jp, uint8_t *pad, uint64_t r8, uint64_t r9) {
+    if (jp && pad) {                            // (before injection: an injected press is not the player's input; the dev bots are counted in afk.c)
+        uint64_t now = GetTickCount64();
+        if (padact_note(&g_padact, jp, pad, *(const uint64_t *)(pad + 0x528), (const float *)pad, now)) {
+            g_pad_act_ms = now;
+            if (!g_padi.act_log) { g_padi.act_jp = jp; g_padi.act_pad = pad; g_padi.act_log = 1; }     // (written by padinj_tick, not from the input hook)
+        }
+    }
     if (jp == g_padi.jp && jp) { const float *f = (const float *)pad; g_padi.raw_lx = f[0]; g_padi.raw_ly = f[1]; g_padi.raw_f = g_frame;   // the real left stick of ANY pad (DualSense / Steam Input / XInput), before injection
-        { static uint64_t lbm; uint64_t bm = *(const uint64_t *)(pad + 0x528);
-          if (bm != lbm || fabsf(f[0]) > 0.3f || fabsf(f[1]) > 0.3f || fabsf(f[2]) > 0.3f || fabsf(f[3]) > 0.3f) g_pad_act_ms = GetTickCount64();
-          lbm = bm; }
         // v5-pinpress (controller: could not follow through after the first hit in a pin): the duel / pin read a pad melee press only through raw_blk,
         // which exists only while a block is armed and is zeroed by every padinj_block(.., 0) - melee_pace.c cleared it every frame of a paired move (mpace_tick
         // runs before mdu_tick / mpn_tick), so a pad press during a pin was never seen (keyboard F was, through GetAsyncKeyState). The device's own bit is
@@ -108,6 +138,12 @@ static uint64_t padinj_upd_hook(void *jp, uint8_t *pad, uint64_t r8, uint64_t r9
     if (g_padi.act_until) {
         if (GetTickCount64() < g_padi.act_until) padinj_apply(jp, pad);
         else g_padi.act_until = 0;
+    }
+    if (jp && g_praw[0].w && !IsBadReadPtr(pad + 0x528, 8)) {      // the menu commands' pad buttons (padinj_raw_down) on ANY joypad (two alternate on the reader: a held bit on either counts)
+        uint64_t bm = *(const uint64_t *)(pad + 0x528);
+        for (int i = 0; i < PADINJ_NRAW; i++) { struct padinj_w *w = g_praw[i].w; if (!w) break;
+            uint64_t m = padinj_pad_bits(w);
+            if (m && (bm & m)) g_praw[i].f = g_frame; }
     }
     return g_padi.upd(jp, pad, r8, r9);
 }
@@ -136,6 +172,22 @@ static unsigned char padinj_rd_hook(void *jp, void *cmd, uint64_t sid, uint32_t 
         w->reads_all++; if (r) w->reads_true++;
         uint64_t now = GetTickCount64();
         if (now - w->seen_ms > 1000 || jp != w->jp) { w->seen_ms = now; padinj_learn(w, jp, cnt, ent); }   // refreshed once a second (scheme changes)
+    }
+    return r;
+}
+//: the Steam Input command path (see PADINJ_SI_RVA). Counts the watched commands' reads like padinj_rd_hook (padinj_reads_true works on this
+// path too) and takes a changed answer of a watched command on the same joypad as player input for the anti-AFK (afk.c via g_pad_act_ms): an answer
+// only changes while a button is pressed or released (a script disabling a held command still needs the held button). No learning here - the entries
+// are action ids, not Pad bits.
+static unsigned char padinj_si_hook(void *jp, void *cmd, uint64_t sid, uint64_t r9) {
+    unsigned char r = g_padi.si(jp, cmd, sid, r9);
+    g_padi.si_reads++;
+    if (!g_padi.si_jp) { g_padi.si_jp = jp; g_padi.si_log = 1; }
+    struct padinj_w *w = NULL;
+    for (int i = 0; i < PADINJ_NW; i++) if (g_padw[i].sid == sid) { w = &g_padw[i]; break; }
+    if (w) {
+        w->reads_all++; if (r) w->reads_true++;
+        if (padact_answer(w->si, jp, r)) { g_padi.si_flips++; g_pad_act_ms = GetTickCount64(); }
     }
     return r;
 }
@@ -184,14 +236,22 @@ static int padinj_install(void) {
     if (!th) { xlog("padinj: no page within rel32 reach of the image - not installed"); return 0; }
     g_padi.upd = (padinj_upd_t)(exe + PADINJ_UPD_RVA); g_padi.rd = (padinj_rd_t)(exe + PADINJ_RD_RVA);
     padinj_watch_defaults();
-    uint8_t *t1 = th, *t2 = th + 32;
+    uint8_t *t1 = th, *t2 = th + 32, *t3 = th + 64;
     t1[0] = 0xFF; t1[1] = 0x25; *(uint32_t *)(t1 + 2) = 0; *(uint64_t *)(t1 + 6) = (uint64_t)(uintptr_t)padinj_upd_hook;
     t2[0] = 0xFF; t2[1] = 0x25; *(uint32_t *)(t2 + 2) = 0; *(uint64_t *)(t2 + 6) = (uint64_t)(uintptr_t)padinj_rd_hook;
-    FlushInstructionCache(GetCurrentProcess(), th, 64);
+    t3[0] = 0xFF; t3[1] = 0x25; *(uint32_t *)(t3 + 2) = 0; *(uint64_t *)(t3 + 6) = (uint64_t)(uintptr_t)padinj_si_hook;
+    FlushInstructionCache(GetCurrentProcess(), th, 96);
     g_padi.sites_rd = padinj_patch_sites(rsites, 2, PADINJ_RD_RVA, t2);               // the reader first: learning must be running before an injection is asked for
+    {   //: the Steam Input command path (optional: the rest works without it)
+        static const uint8_t spro[12] = {0x48, 0x8b, 0xc4, 0x48, 0x89, 0x58, 0x18, 0x55, 0x56, 0x57, 0x41, 0x54};
+        static const uint32_t ssites[] = {PADINJ_SI_SITE};
+        g_padi.si = (padinj_si_t)(exe + PADINJ_SI_RVA);
+        if (!memcmp(exe + PADINJ_SI_RVA, spro, sizeof spro)) g_padi.sites_si = padinj_patch_sites(ssites, 1, PADINJ_SI_RVA, t3);
+        else xlog("padinj: Steam Input command reader prologue differs - its call site stays unhooked");
+    }
     g_padi.sites_upd = padinj_patch_sites(usites, 5, PADINJ_UPD_RVA, t1);
     g_padi.ok = g_padi.sites_upd == 5 && g_padi.sites_rd >= 1;
-    xlog("padinj: %s - Joypad::Update hook on %d/5 call sites, command reader hook on %d/2 (thunks at %p)", g_padi.ok ? "installed" : "PARTLY installed, injection disabled", g_padi.sites_upd, g_padi.sites_rd, (void *)th);
+    xlog("padinj: %s - Joypad::Update hook on %d/5 call sites, command reader hook on %d/2, Steam Input command path on %d/1 (thunks at %p)", g_padi.ok ? "installed" : "PARTLY installed, injection disabled", g_padi.sites_upd, g_padi.sites_rd, g_padi.sites_si, (void *)th);
     return g_padi.ok;
 }
 // ---- API
@@ -222,6 +282,20 @@ static int padinj_dodge_held(void) {
     return !off && g_padi.ok && g_padi.raw_dg && g_frame - g_padi.raw_dg_f <= 30;
 }
 static int padinj_ready(void) { return g_padi.ok; }
+// 1 while one of the command's pad buttons is held on a joypad (seen held this frame or the last). The first call
+// watches the command; its buttons are known once the engine reads it (a forced read once a second until then).
+static void padinj_probe_read(const char *name);
+static int padinj_raw_down(const char *name) {
+    if (!g_padi.ok) return 0;
+    struct padinj_w *w = padinj_watch(name);
+    if (!w) return 0;
+    int i = 0;
+    while (i < PADINJ_NRAW && g_praw[i].w && g_praw[i].w != w) i++;
+    if (i == PADINJ_NRAW) return 0;
+    if (!g_praw[i].w) { g_praw[i].f = 0; g_praw[i].w = w; xlog("padinj: menu command '%s' read from its pad buttons too (slot %d)", name, i); }
+    if (!w->n_ent) { static uint64_t at[PADINJ_NRAW]; uint64_t now = GetTickCount64(); if (now - at[i] > 1000) { at[i] = now; padinj_probe_read(name); } return 0; }
+    return g_praw[i].f && g_frame - g_praw[i].f <= 1;
+}
 // forced read of a command through the engine (the reader hook then learns its input bit); a command the game is not reading right now stays unlearned
 static void padinj_probe_read(const char *name) { uint64_t c = fnv64_rt(name); dc_call(fnv64("joypad-command-active?"), 1, &c); }
 // press a command for ms (the engine sees a real press edge). 1 = queued on the pad path (bit known, hooks in); 0 = caller falls back to the native wrapper
@@ -305,8 +379,11 @@ static void padinj_tick(void) {
         char b[400]; int q = snprintf(b, sizeof b, "padinj: learned '%s' on joypad %p: %u entr%s", w->name, w->jp, w->n_ent, w->n_ent == 1 ? "y" : "ies");
         for (uint32_t k = 0; k < w->n_ent && q < (int)sizeof b - 60; k++) q += snprintf(b + q, SNLEFT(b, q), " [kind %u thr %.2f mask %08x%08x]", w->ent[k][0], *(float *)&w->ent[k][1], w->ent[k][3], w->ent[k][2]);
         snprintf(b + q, SNLEFT(b, q), " -> injects input bit %016llx", (unsigned long long)w->mask);
-        static int nlog; if (LOGCAP(nlog, 20)) xlog("%s", b);
+        static int nlog; if (LOGCAP(nlog, 40)) xlog("%s", b);   // (40: the menu commands of padinj_raw_down learn after the ~20 defaults)
     }
+    if (g_padi.si_log == 1) { g_padi.si_log = 2; xlog("padinj: commands are read on the Steam Input path (exe 0x1591190, joypad %p) - the command reader hook learns nothing there; the anti-AFK takes changed command answers as input", g_padi.si_jp); }
+    if (g_padi.act_log == 1) { g_padi.act_log = 2; xlog("padinj: first pad input seen in Joypad::Update - joypad %p%s, pad %p (padact slot %d)", g_padi.act_jp,
+        g_padi.act_jp == g_padi.jp ? " (the learned joypad)" : g_padi.jp ? " (not the learned joypad)" : " (nothing learned)", g_padi.act_pad, g_padact.act_src); }
     uint64_t now = GetTickCount64();
     if (g_padi.act_until && now - g_padi.rep_ms >= 1500) {
         g_padi.rep_ms = now;

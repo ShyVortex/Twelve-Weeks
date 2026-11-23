@@ -124,6 +124,9 @@ static volatile uint32_t g_ns_tx_n[256], g_ns_tx_b[256];
 // host capacity report (re/host-capacity-1019.md): what the 30 s performance report (mem_probe.c perf_report_tick, op 0xCA trailer) says about OUR upload and
 // the loss we saw through the host's relay. Filled every 10 s stat window in a match; the report takes and clears it.
 static volatile uint32_t g_cap_tx_sum_kb, g_cap_tx_peak_kb, g_cap_n, g_cap_loss10;
+// packet loss limit (tools daemon.py loss_check): msg 7 received / lost per slot since the last 0xCA report (mem_probe.c perf_report_tick
+// trailer 3), keyed by the slot's roster name read when the counts are added (a slot whose name changes starts over: another player)
+static uint32_t g_lr_rx[T2R_MAX_PEERS], g_lr_lost[T2R_MAX_PEERS]; static char g_lr_nm[T2R_MAX_PEERS][24];
 static volatile uint64_t g_ns_tx_total;                   // never reset: every datagram byte winmm's low send got (hostbw.h demand)
 // One-way link detector (re/oneway-p2p-1019.md): in a match we SEND (>= OW_TX_BYTES since the last datagram we received) but nothing has arrived for
 // OW_QUIET_MS = the Steam P2P inbound path is dead (tester des: host, rx 0, the match ended 4-6 s after the start). Logs once per quiet spell and
@@ -1239,6 +1242,12 @@ static void feature_netsmooth(void) {
             if (!s->st_m5 && !s->st_frames) continue;
             double fr = s->st_frames ? (double)s->st_frames : 1.0;
             if (s->st_m7 >= 100) { uint32_t l10 = (uint32_t)(1000.0 * s->st_lost7 / (s->st_m7 + s->st_lost7)); if (l10 > g_cap_loss10) g_cap_loss10 = l10 > 255 ? 255 : l10; }
+            {   // per-peer loss for the 0xCA trailer 3 (the daemon's loss limit): the same REAL loss counts as the line below
+                uint8_t *pp = t2r_peer(sl); char nm[24]; memset(nm, 0, sizeof nm);
+                if (pp && !IsBadReadPtr(pp + 6, 24)) memcpy(nm, pp + 6, 24);
+                if (strncmp(nm, g_lr_nm[sl], 24)) { memcpy(g_lr_nm[sl], nm, 24); g_lr_rx[sl] = g_lr_lost[sl] = 0; }
+                g_lr_rx[sl] += s->st_m7; g_lr_lost[sl] += s->st_lost7;
+            }
             xlog("net stats: slot %u rx msg5 %.0f/s (rejected %u, seq gaps %u = %.1f%% - the host relays a state once per host frame, so these are mostly states it skipped, not lost datagrams; "
                  "REAL loss = msg7 seq gaps %u = %.1f%%), msg7 %.0f/s; sender frame %.1f ms, msg5 sample spacing %.1f ms; jitter mean %.0f peak %.0f max %.0f ms; "
                  "delay %.0f ms, loss ewma (msg7) %.0f%%; extrapolating %.1f%% of frames (held >100 ms %u), corrections %u (max %.2f m), snaps %u, teleports %u, clock resyncs %u; "

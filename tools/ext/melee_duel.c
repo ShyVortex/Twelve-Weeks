@@ -60,9 +60,9 @@ static int mdu_miss_lock_ms(void) { static int v = -1; static uint64_t at; uint6
 #define MDU_LATE_DODGE_MS 70   // [TUNING] a dodge press reaching the attacker later than this before its contact is too late (the blow lands)
 #define MDU_LUNGE_MAX 8.0f          // a free swing engages out to its lunge reach (a clash works regardless of the duel reach); 8 m = safety cap only
 #define MDU_FAR_MS 300
-// Midpoint of ours and SP 330 / ~1.0 s / 1.0-1.3 s / 0.6-0.9 s: next-press 450 -> 390, breath 820 -> 910, 4th-hit gap 1400 -> 1275, old-pace windup floors 420/360 -> 585/555 (cap x0.65 -> x0.45)
-// The queue is spaced out more: combo steps 330 -> 450 ms after the contact, the late steps 500 -> 620, 4th-hit gap 1150 -> 1400
-// Spamming melee looked janky, so this is back to the earlier press flow, fluid and reactive on the client with no jumps, slower only through the windup animations -
+// (midpoint of ours and SP 330 / ~1.0 s / 1.0-1.3 s / 0.6-0.9 s): next-press 450 -> 390, breath 820 -> 910, 4th-hit gap 1400 -> 1275, old-pace windup floors 420/360 -> 585/555 (cap x0.65 -> x0.45)
+// - combo steps 330 -> 450 ms after the contact, the late steps 500 -> 620, 4th-hit gap 1150 -> 1400
+// back to the PT120 (01:09, d6842f48) press flow -
 // the next press is taken while the -hit pair still runs (330 / 500 ms), so each step starts from the previous step's -hit pose, never from idle.
 #define MDU_FAIR_MAX_MS 60          // [TUNING ps24] ms the dodge-exit fairness floor may add to the next-press gate
 #define MDU_NEXT_MS 330            // SP: the next press is accepted 330 ms after the -hit switch
@@ -481,7 +481,7 @@ static int mdu_p32_engine_hit(uint64_t aname) {
     return 0;
 }
 // ps33 (variety that does not change functionality): the 1h blunt chain gets the same two extra blows by the same rule -
-// blow 5 = the left backhand to the head 1hblunt-stun-breaker-combo-left-1 (ellie-1hblunt-knee-bash-1-left; SP clip 16-23-29 @64.1 s: the enemy doubles over, stays on
+// blow 5 = the left backhand to the head 1hblunt-stun-breaker-combo-left-1 (ellie-1hblunt-knee-bash-1-left; SP clip @64.1 s: the enemy doubles over, stays on
 // its feet) or its right-hand twin 1hblunt-stun-breaker-combo-1, taken in turn (ours; the game data lists the left one after light-1 / -3 and the right one after
 // light-2 / the sprint / dodge attacks, none after light-4); blow 6 = 1hblunt-stun-breaker-combo-2-breaker, the knee-free variant of SP's second strike (victim half
 // ellie-1hblunt-knee-bash-2-hit^breaker--npc-f, 1.7 s). NOBODY HAS SEEN THAT CLIP PLAY (no combo list of the game data references the move) - its own switch,
@@ -499,7 +499,7 @@ static int mdu_p32_row(int row) {
 static int mdu_engaged(void) { return g_mdu.on && g_mdu.slot >= 0; }
 static int mdu_partner_slot(void) { return g_mdu.on ? g_mdu.slot : -1; }
 static int mdu_in_pair(void) { return g_mdu.on && g_mdu.pair_on && g_ps.role && g_ps.uid == g_mdu.ps_uid; }
-// melee_dodge.c mdg_busy (ps36): our body is the attacker half of our own duel -hit pair = the follow-through of a landed blow (no pin, parry / clash, finisher)
+// melee_dodge.c mdg_busy: our body is the attacker half of our own duel -hit pair = the follow-through of a landed blow (no pin, parry / clash, finisher)
 static int mdu_att_hit_pair(void) {
     static int old = -1; static uint64_t at; uint64_t n = GetTickCount64();
     if (old < 0 || n - at > 3000) { at = n; old = GetFileAttributesA("t2r-dodge-follow-ps35.txt") != INVALID_FILE_ATTRIBUTES; }
@@ -571,7 +571,7 @@ static void mdu_fire(int i, uint64_t now) {
     case MDUA_SWISH:
         // (swings had no slash sounds; clip audio: 14 of 28 knife swings and 11 of 30 fist swings had no high-band transient at the swish time):
         // the knife duel rows passed the held weapon id (not a knife_weapon_id) and played sfx-unarmed-finisher-whoosh - SP's switchblade swing is
-        // sfx-weapon-switchblade-whoosh at r_wrist (re/sp-sandbox-runs/2026-10-12-round3-abby-ellie.md: player x14). The knife set forces that event.
+        // sfx-weapon-switchblade-whoosh at r_wrist (re/sp-sandbox-runs/-round3-abby-ellie.md: player x14). The knife set forces that event.
         // (the kick row's own whoosh: our running swing's row; a partner's kick comes through the replica cue with its row unknown here = the fist whoosh)
         g_mdg_whoosh_kick = set == MDU_FIST && g_mdu.sw_on && g_mdu.q[i].slot < 0 && g_mdu.sw_row >= 0 && strstr(MDU_MOVES[g_mdu.sw_row].move, "kick") != NULL;
         mdg_whiff_whoosh(ent, set == MDU_KNIFE ? fnv64("knife-survival-mel-player") : w, g_mdu.q[i].slot);
@@ -1698,7 +1698,7 @@ static void mdu_swing_note(int started, uint64_t move) {
         DULOG("DUEL: u%04x melee move %016llx started inside the MISS recovery (%d ms left) - cancelled (-> %llx), no swing", g_mdu.uid, (unsigned long long)move, (int)(g_mdg.atk_lock_until - GetTickCount64()), (unsigned long long)cr);
         g_mdu.sw_on = 0; return;
     }
-    { static int nl; if (r >= 0 && LOGCAP(nl, 400)) DULOG("DUEL: swing start %s (row %d, slot %d, sw_on %d, fw %d) (11-10 trace)", MDU_MOVES[r].move, r, g_mdu.slot, g_mdu.sw_on, g_mdfwu.on); }
+    { static int nl; if (r >= 0 && LOGCAP(nl, 400)) DULOG("DUEL: swing start %s (row %d, slot %d, sw_on %d, fw %d) ( trace)", MDU_MOVES[r].move, r, g_mdu.slot, g_mdu.sw_on, g_mdfwu.on); }
     // v5-disfix (half a finisher and then a disarm instead of a smooth disarm with SP's timing; log 15468-15472: victim hp 10, the engine itself picked its fist KILL move
     // (fist-kick-face-kill-sync 948b37d65066cf63 / fist-kick-face-kill 599731b7fef0a6b5 - not duel rows) for the swing, mdu_row_of = -1, this function returned silently, the
     // lethal swing was a FREE swing: no pick at the start, no SP-intro windup; ctxdown.c cd_contact_fin then started the finisher at the jab's contact with the intro passed
@@ -1738,7 +1738,7 @@ static void mdu_swing_note(int started, uint64_t move) {
     if (r < 0 && g_mdu.sw_on && p34_enghit) {   // the engine's own contact (dropped) switches our swing to its -hit move - that is still our blow
         DULOG("DUEL: u%04x swing %s -> engine -hit move %llx after its dropped contact - kept, the duel's contact still lands", g_mdu.uid, MDU_MOVES[g_mdu.sw_row].move, (unsigned long long)move);
         g_mdu_ehit_move = move; g_mdu_ehit_ms = GetTickCount64(); sptl_engine_hit(move); return; }   // (sptl: SP's -hit starts once, at the duel's contact, with the victim half - the engine's early one is undone)
-    if (r < 0 && !g_mdu.sw_on) { static int nl; if (LOGCAP(nl, 40)) DULOG("DUEL: engine move %016llx is no duel row - plain engine move (11-10 trace)", (unsigned long long)move); }
+    if (r < 0 && !g_mdu.sw_on) { static int nl; if (LOGCAP(nl, 40)) DULOG("DUEL: engine move %016llx is no duel row - plain engine move ( trace)", (unsigned long long)move); }
     if (r < 0) { if (g_mdu.sw_on) { DULOG("DUEL: swing %s replaced by move %llx - warp off", MDU_MOVES[g_mdu.sw_row].move, (unsigned long long)move); g_mdu.sw_on = 0; } return; }
     const mdu_row_t *m = &MDU_MOVES[r];
     uint64_t now = GetTickCount64();
@@ -2156,7 +2156,8 @@ static void mdu_warp(uint64_t now, const float *vl) {
     mo_write(SID_PLAYER, &bf, MO_SRC("duel.mdu_warp"), 0);
 }
 // the pair: placement + path gate (asked ahead, cached by pg_gate) + psync START. 1 = started
-// Wall steer (with A placed in a straight line to some low cover the attacks steered left instead of traveling towards it; SP guides the travel to the closest wall / half wall): the -hit clips knock the
+// Wall steer
+// "the travel animations still dont guide to closest wall/half wall collision - thats how SP does it"): the -hit clips knock the
 // victim back AND to one side (slash-1 ~23 deg left), so a chain drifted off the cover. SP turns the hit toward the nearest wall / low cover. Here the
 // engine's own contextual probe (the takedowns' wall / low-cover finder, dc_probe) is asked along the clip's recoil and up to +-60 deg off it; the closest
 // surface within 1.6 m turns the whole pair round the victim (the attacker steps with it) so the recoil points at it, at most MDU_STEER_MAX. One answer per
@@ -2792,8 +2793,8 @@ static void mdu_contact(uint64_t now) {
         // standing hit reaction (back / left / right). Outside the victim's front arc (+-60 deg) the blow is PLAIN like the armed case: MDUO_PLAIN, the
         // victim's client plays ellie-1h-hr-<zone>-<behind / left / right> (melee_hitreact.c dir_around) on its own body, facing kept.
         // t2r-duel-side-pairs.txt = the old front pair from every side.
-        // Punching someone from the back no longer turned them towards the attacker (B [47330]-[47466] four blows 167-178 deg "from behind ... plain blow"): the reference build
-        // played the -hit pair from every side and the pair turned the victim to face the attacker. That is the default again; the plain side / back
+        // B [47330]-[47466] four blows 167-178 deg "from behind ... plain blow"): the reference build (PT120 / School hammer
+        // clip) played the -hit pair from every side and the pair turned the victim to face the attacker. That is the default again; the plain side / back
         // blow is opt-in: t2r-duel-side-plain.txt.
         int side = 0; float side_deg = 0.0f;
         // (a sprint hit turned the victim 148 deg): a blow from outside the
@@ -3660,7 +3661,7 @@ static int mdu_sp_miss(int vslot) {
 // (fights were much slower than live): the 800 ms MISS lock is set for the LATEST possible dodge (a dodger who pressed at the contact lands up to
 // ~1 s later). The attacker knows when the press reached it: the lock is only as long as that dodger needs - its dodge clip lands MD45_LAND_MS after its press
 // (measured: 'lands at 752-991 ms'), then MD45_REDODGE_MS to see the next swing and press, before that swing's window closes (md45_vic_lead before a
-// MDU45_NEXT_TC_MS contact). Clamped to [650 (live), 800 (ps44)] - never longer than ps44. t2r-miss-lock-ps45-old.txt = 800 always.
+// MDU45_NEXT_TC_MS contact). Clamped to [650 (live), 800] - never longer than ps44. t2r-miss-lock-ps45-old.txt = 800 always.
 #define MD45_LAND_MS 1000              // measured (rec44a A/B 'combat dodge travel ... lands at 752-991 ms'), rounded up
 #define MD45_REDODGE_MS 200            // [TUNING ps45] a reaction to the next swing after the landing
 #define MDU45_NEXT_TC_MS (mw45_contact_ms())          // = melee_npcwind.c NPCW_CONTACT_MS (included after this file): the next light swing's contact
@@ -3748,7 +3749,7 @@ static int mdu_miss_note(int vslot, const char *why) {
 // dodgeable follow-up blow. A press with no follow-up swing does not cut the pair: the reaction plays to its hand-off and the press is queued
 // (melee_dodge.c g_mdg_qpress: it fires as a dodge when the pair lets us go, inside 700 ms). Returns 0 = no dodge now. t2r-duel-dodge-cut-old.txt = old.
 static int mdu_vic_pair_on(void) { return mdu_in_pair() && g_mdu.pair_role == 2; }
-// melee_dodge.c mdg_tick (ps23): the queued press may fire now although the pair still runs - past the reaction's exit point with the attacker's follow-up swing in flight
+// melee_dodge.c mdg_tick: the queued press may fire now although the pair still runs - past the reaction's exit point with the attacker's follow-up swing in flight
 static int mdu_vic_dodge_exit(uint64_t now) {
     if (!mdu_vic_pair_on() || mdu_dodge_exit_old() || g_mdu.slot < 0 || g_mdu.slot >= T2R_MAX_PEERS || now < g_mdu_vic_exit_at) return 0;
     uint64_t swms = g_mdg.sw[g_mdu.slot].ms;

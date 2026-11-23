@@ -50,7 +50,9 @@ def add_team_tabs(wdir):
 AMBER, OKG, DIMG = 0xFFE2B45A, 0xFF7FD07A, 0xFF9A9CA0
 BAR_W = 8.0
 TAG_W, TAG_RX = 210.0, -30.0                     # tag box width, right margin (the name label ends at 78 % = 842 of the 1080 row, the tag starts at 840)
-PM_TEXTS = (("pmRole", AMBER, 14.0, 26), ("pmReady", OKG, 52.0, 30), ("pmNot", DIMG, 52.0, 30))     # name, colour, y of the text box top, point size
+PM_TEXTS = (("pmRole", AMBER, 14.0, 26), ("pmReady", OKG, 52.0, 30), ("pmNot", DIMG, 52.0, 30),     # name, colour, y of the text box top, point size
+            ("lbSt", 0xFFFFFFFF, 33.0, 26))      # (lobby panel) the lobby status, one line centred: READY / IN SUMMARY / NEW (font colours from friends13.c)
+PM_W = {"lbSt": 360.0}
 
 
 def add_party_marks(wdir):
@@ -75,7 +77,7 @@ def add_party_marks(wdir):
             t.update({"guid": t2guid.guid(), "name": name, "parent": root["guid"], "depth": 2.1 + k * 0.01, "visible": 0, "text": "", "pointSize": pt, "alignH": 2, "alignV": 1,
                       "multiline": 0, "tracking.x": 3.0, "color.a": 255, "tint.start": argb, "tint.end": argb, "tint.blend": 0.0,
                       "anchorMinN.x": 1.0, "anchorMinN.y": 0.0, "anchorMaxN.x": 1.0, "anchorMaxN.y": 0.0, "pivotN.x": 1.0, "pivotN.y": 0.0,
-                      "pivotAs.x": TAG_RX, "pivotAs.y": y, "rectSizeDelta.width": TAG_W, "rectSizeDelta.height": 34.0})
+                      "pivotAs.x": TAG_RX, "pivotAs.y": y, "rectSizeDelta.width": PM_W.get(name, TAG_W), "rectSizeDelta.height": 34.0})
             items.append(t)
         json.dump(w, open(path, "w", encoding="utf-8"), indent=4)
         n += 1

@@ -167,9 +167,21 @@ def p1_build_cfg(m):
         return None
     sub = {"main": _MAIN, "wt": os.environ.get("T2R_WT", "../t2r-wt")}
     out = {k: os.path.normpath(b[k].format(**sub)) for k in ("conv", "audio") if b.get(k)}
+    iw = os.environ.get("T2R_P1_IMPORT_WORK")
+    if iw:
+        # the build takes the IMPORTER's conversion (p1conv install --work <dir>: <dir>/<key>/conv, its audio in conv/audio), so the
+        # shipped Part I files are exactly what players' p1conv makes (re/launcher/part1-dlc.md 10.6)
+        conv = os.path.join(iw, m["key"], "conv")
+        assert os.path.isdir(conv), f"T2R_P1_IMPORT_WORK: {conv} missing (run tools/part1/p1conv.py install --work {iw} first)"
+        out["conv"] = conv
+        if os.path.isdir(os.path.join(conv, "audio")):
+            out["audio"] = os.path.join(conv, "audio")
     env = os.environ.get("T2R_P1_CONV_" + m["key"].upper().replace("-", "_"))
     if env:
         out["conv"] = env
+    env = os.environ.get("T2R_P1_AUDIO_" + m["key"].upper().replace("-", "_"))     # the importer's own audio set (p1conv stage_build)
+    if env:
+        out["audio"] = env
     if "actors_converted" in b:
         out["actors_converted"] = bool(b["actors_converted"])
     return out
@@ -1001,7 +1013,7 @@ def patch_tasks(path, maps):
     f.set_ptr(mp + 8, ko)
     f.set_ptr(mp + 0x10, vo)
     # adjacency (EDGES above): default chain = the stock layout, stock tail -> new1 -> ... -> %end, every node exactly one
-    # successor. NOT branch: several out-edges of one node are parallel branches, all of them active at once (A/B).
+    # successor. NOT branch: several out-edges of one node are parallel branches, all of them active at once.
     cnt = struct.unpack_from("<I", f.data, adj)[0]
     d = f.q(adj + 8)
     edges = [(f.q(d + 16 * i), f.q(d + 16 * i + 8)) for i in range(cnt)]
@@ -1318,15 +1330,11 @@ def _strip_step(collectibles, key):
     if CACHE_PARTS is None:
         return collectibles.sp_strip_collectibles_workbench(key)
     import buildcache as bc
-    import re as _re
     parts = [bc.Code("collectibles", skip_data=("sp_maps.json",)), CACHE_PARTS, key, _strip_spec(key)]
     import spedit                                  # the cached strip output must follow the Scene Editor spawner edits
     parts.append(bc.File(spedit.spec_path(key)) if os.path.exists(spedit.spec_path(key)) else "no-spedits")
-    try:                                           # the SceneEditor library the spawner dumps load (path inside dump_spawners.ps1)
-        m = _re.search(r'\$u\s*=\s*"([^"]+)"', open(collectibles.DUMP, encoding="utf-8").read())
-        parts.append(bc.Stat(m.group(1)) if m and os.path.isdir(m.group(1)) else "no-scene-editor")
-    except OSError:
-        parts.append("no-dump-script")
+    import p1_spawner_pak                          # the spawner dumps (p1_spawner_pak.dump_rows, was the SceneEditor through dump_spawners.ps1)
+    parts.append(bc.File(p1_spawner_pak.__file__))
 
     def run():
         r = collectibles.sp_strip_collectibles_workbench(key)

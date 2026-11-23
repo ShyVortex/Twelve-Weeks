@@ -113,11 +113,19 @@ static int kf_use_old(void) {
     if (ov_off("t2r-old-killfeed.txt", &g_kf_old_flag, &g_kf_old_chk)) return 1;
     return !g_kf_ok;           // (the hooks may run off the main thread - no gui2 natives there; feature_killfeed resolves)
 }
+//: a Steam name with '<' / '>' crashed the game at a down (exe+123bb4d "Allocation failed ... Single Frame").
+// winmm's text measure / draw read '<' as a markup tag start (<color=> / <scale>). The names are shown without them (as the nametag).
+static void kf_strip_markup(char *s) {
+    char *o = s;
+    for (; *s; s++) if (*s != '<' && *s != '>') *o++ = *s;
+    *o = 0;
+}
 static void kf_queue(const char *killer, const char *victim, int have_killer, int kf, int vf) {
     kf_ev_t ev, *e = &ev;                      // built outside the lock, copied in under it
     memset(e, 0, sizeof *e);
     snprintf(e->killer, sizeof e->killer, "%.40s", killer);
     snprintf(e->victim, sizeof e->victim, "%.40s", victim);
+    kf_strip_markup(e->killer); kf_strip_markup(e->victim);
     e->have_killer = have_killer; e->kf = kf != 0; e->vf = vf != 0;
     e->wsid = g_kf_pending ? g_kf_pw : 0;
     e->vslot = g_kf_pending ? g_kf_pv : -1; e->kslot = g_kf_pending ? g_kf_pk : -1;
@@ -391,6 +399,7 @@ static void feature_killfeed(void) {
                 if (!g_kf_fi_ok) continue;                                   // older pak without the status icon: no down entries
                 kf_slot_info(ready[i].kslot, ready[i].killer, &f); ready[i].kf = f;
                 kf_slot_info(ready[i].vslot, ready[i].victim, &f); ready[i].vf = f;
+                kf_strip_markup(ready[i].killer); kf_strip_markup(ready[i].victim);
                 if (!ready[i].killer[0] || !ready[i].victim[0]) continue;
                 int late = 0;                                                // its own kill already came (late packet): no down entry after the kill
                 for (int k = 0; k < g_kf_rkn; k++) if (!strcmp(g_kf_rk[k].name, ready[i].victim) && now - g_kf_rk[k].ms < 1500) late = 1;

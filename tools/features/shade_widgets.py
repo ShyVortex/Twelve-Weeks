@@ -7,7 +7,7 @@ page builders).
   options-menu-multiplayer). The main menu has its own (clan_widgets.add_menu_shade); the clan / match flow /
   name / mission pages have an opaque dark background already.
 - The same gradient behind every DETAILS panel (picker-skill / primary / secondary detailPanel, find-match-menu
-  lobbyPanel): the first child of the panel (so it follows the panel's visibility), a little larger than it.
+ lobbyPanel until): the first child of the panel (so it follows the panel's visibility), a little larger than it.
 - Row text fit: the row widgets' name labels get a wrapping box that ends before the LP column / selected tick, at
   a size that holds a long name on two lines ("SUPPRESSED HUNTING RIFLE" used to run into "2 LP")."""
 import copy
@@ -122,7 +122,9 @@ def add_shades(wdir):
             _save(p, w)
     # 2. DETAILS panels
     for page, panel_name in (("picker-skill", "detailPanel"), ("picker-primary", "detailPanel"),
-                             ("picker-secondary", "detailPanel"), ("picker-purchase", "detailPanel"), ("find-match-menu", "lobbyPanel")):
+                             ("picker-secondary", "detailPanel"), ("picker-purchase", "detailPanel")):
+        # (- find-match-menu lobbyPanel has no detailShade any more:
+        # the box has its own blur + black, and the shade ran past it on the left / top after the FRIENDS strip + CHAT panel layout)
         p, w = _load(wdir, page)
         if any(i["name"] == "detailShade" for i in w["items"]):
             continue

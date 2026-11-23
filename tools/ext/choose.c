@@ -366,7 +366,11 @@ extern const int16_t chi_blob[], chi_blob_end[];
 #define CHI_PARALLAX_P 0.2f
 #define CH_HEM (CH_DECK_HEM - CH_DECK_LIFT)
 #define CHI_Y0 ((2160.0f - CH_HEM + 80.0f) * CH_DECK_DEPTH / CE_FPX)   // the start height (m): the tarp's hem 80 units under the frame
-static struct { int on, skippable, skipping, jumped, tag, lore_on, tag_on, lines_off, logo_k, ui_on, art_on; uint64_t t0, skip_t, skip_a; float lore_g, tag_g; } CHI;
+static struct { int on, skippable, skipping, jumped, tag, lore_on, tag_on, lines_off, logo_k, ui_on, art_on, held; uint64_t t0, skip_t, skip_a, held_at; float lore_g, tag_g; } CHI;
+// (A/B, no side): the boot now hands off straight to CHOOSE YOUR SIDE, so the page comes up under the entry black / the TWELVE WEEKS page. The intro's
+// clock (and its lore track) waits until both are gone, as the clan end screens do (clanend.c CE.hold), so the first line is seen. Capped at CHI_HOLD_MS.
+#define CHI_HOLD_MS 9000
+static int chi_hold_wanted(void) { return g_ent_st != 0 || g_lds_hold; }
 // the crossfade from the clan end page into the intro passed the engine's 32-image table (t2r-ext.c gui2_slot_full: drawn images evicted =
 // flicker): the end page's images + the tarp + the 5 layers + the shade + chUi's logos (alpha 0.003) all asked in the same frames. Under the tarp the
 // layers / shade / logos are not seen until the drop, so they come on CHI_ART_MS into the intro (the end page is gone by then), or at once on a skip.
@@ -465,6 +469,7 @@ static void chi_start(int skippable) {                              // after ch_
     if (skippable && !chi_seen()) { skippable = 0; xlog("choose intro: SKIP held back - the intro has not been watched through on this install (%s)", CHI_SEEN_FILE); }
     if (!CH.on || !chi_enabled()) { xlog("choose intro: off (%s)", CH.on ? "t2r-no-choose-intro.txt" : "old look"); return; }
     CHI.on = 1; CHI.skippable = skippable; CHI.t0 = GetTickCount64();
+    CHI.held = chi_hold_wanted(); CHI.held_at = CHI.t0;
     ce_img("anim-group.side.chArt.chLayers.chDeck", !strcmp(ch_art_test(), "1080") ? "streaming/t2r/choose/ce-choose-deck_1080p.png" : "streaming/t2r/choose/ce-choose-deck.png");
     ui_visible("anim-group.side.chArt.chLayers.chDeck", 1);
     ui_visible("anim-group.side.chIntro", 1);
@@ -475,13 +480,14 @@ static void chi_start(int skippable) {                              // after ch_
     ui_visible("anim-group.side.chIntroFade", 0);
     chi_art(0);
     chi_lines();
-    CHI.lore_on = chi_play(CHI_LORE, 0.0f);
+    CHI.lore_on = CHI.held ? 0 : chi_play(CHI_LORE, 0.0f);         // (held: the lore starts with the clock)
     xlog("choose intro: start (%s, %d lines, logo at %.2f s, drop at %.2f s, UI at %.2f s, camera %.2f m up, lore %s, tag at %.2f s out %.2f..%.2f s, audio picks %s)",
          skippable ? "SKIP shown" : "unskippable", CHI_N, CHI_LOGO_IN_MS / 1000.0f, CHI_T_DROP / 1000.0f, CHI_T_UI / 1000.0f, CHI_Y0,
          CHI.lore_on ? "on" : "no mixer voice", CHI_T_TAG / 1000.0f, CHI_T_TAG_OUT / 1000.0f, (CHI_T_TAG_OUT + CHI_TAG_OUT_MS) / 1000.0f, CHI_PICK);
+    if (CHI.held) xlog("choose intro: held at 0 s - the entry hand-off (%d) / the TWELVE WEEKS page (%d) is still up", g_ent_st, g_lds_hold);
 }
 static void chi_skip(void) {
-    if (!CHI.on || !CHI.skippable || CHI.skipping || CHI.jumped) return;
+    if (!CHI.on || CHI.held || !CHI.skippable || CHI.skipping || CHI.jumped) return;
     uint64_t now = GetTickCount64();
     if (chi_el(now) >= CHI_T_DROP) return;                          // (the drop has begun: it is nearly over anyway)
     CHI.skipping = 1; CHI.skip_t = CHI.skip_a = now;
@@ -539,6 +545,12 @@ static void chi_audio(uint64_t now, int64_t el) {                   // LORE from
 }
 static void chi_tick(uint64_t now) {                                // ch_tick, before the camera: the lines, the skip, the UI fade, the sounds
     if (!CHI.on) return;
+    if (CHI.held) {
+        if (chi_hold_wanted() && now - CHI.held_at < CHI_HOLD_MS) { CHI.t0 = now; ce_menu_music_hold(now); return; }   // (the tarp: black; the lines, the UI, the camera stay at 0 s)
+        CHI.held = 0; CHI.t0 = now; CHI.lore_on = chi_play(CHI_LORE, 0.0f);
+        xlog("choose intro: clock starts after the entry hand-off (%llu ms held%s, lore %s)", (unsigned long long)(now - CHI.held_at),
+             chi_hold_wanted() ? ", cap" : "", CHI.lore_on ? "on" : "no mixer voice");
+    }
     int64_t el = chi_el(now);
     if (!CHI.art_on && (el >= CHI_ART_MS || CHI.skipping || CHI.jumped)) { chi_art(1); xlog("choose intro: key art layers + logos on (%lld ms in%s)", (long long)el, CHI.skipping ? ", skip" : ""); }
     if (CHI.skipping && !CHI.jumped) {

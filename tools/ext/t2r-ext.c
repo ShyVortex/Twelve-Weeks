@@ -39,6 +39,9 @@
 #include "match_horn.h"        // Seraphite war horn for the match-found intro, PCM (tools/rip_match_horn.py, re/match-horn.md)
 #include <stdarg.h>
 #include <math.h>
+#if __has_include("release_files.h")
+#include "release_files.h"     // optional module, not in the public tree
+#endif
 
 #define VMA(x) ((uintptr_t)g_winmm + ((x) - 0x180000000ULL))
 
@@ -588,6 +591,7 @@ static void award_down(uint32_t downer, uint32_t victim);
 static void ac_note_down(uint32_t downer, uint32_t victim);              // anticheat.c: demo record + plausibility check of a down (passive)
 static void bk_pay(uint32_t downer, uint32_t victim, uint64_t w);      // bomb kill bonus (+25 molotov / nail bomb), 2013 scoring.md kill-type table
 static void bk_weapon(uint32_t victim, uint64_t w);                 // the weapon that downed `victim` (killfeed.c, from the victim's MSG_KFWEAPON)
+static void cw_kill_weapon(uint32_t victim, uint64_t w);            // the weapon of an outright kill (no down first): the down missions / challenges count it
 static int du_weapon(uint64_t w, const char **name, const char **icon, const char **src);   // death_ui.c (included later)
 static int du_is_melee_weapon(uint64_t w);
 static void kf_down_note(uint32_t victim, uint32_t downer);      // killfeed.c: a peer went down (fist entry)
@@ -739,6 +743,7 @@ static int rv_pup_slot(uint32_t sl);                        // the revive move p
 static void rvp_tick(void);
 static float local_hp(void);
 static void install_end_hold(void);
+static void install_lq_site(void);
 static void install_session_close_diag(void);
 static void install_session_reattach(void);
 // Multi-reviver (2013 EBOOT revive controller 0x3f3958, re/factions2013/rules/revive.md): every attached reviver i (0 = first to
@@ -863,6 +868,7 @@ static const char *g_stall_slow_nm;
 static volatile uint64_t g_stall_ring[8];         // last dc_call sids
 static volatile LONG g_stall_ring_i;
 static volatile LONG g_hwid_done, g_hwid_tries;    // hwid.c: HWID report (op 0xB2, reply 0xB3)
+static volatile LONG g_att_acks, g_att_tries;      // attest.h: install check report (op 0xA1, reply 0xA3)
 static volatile LONG g_perf_dead;                 // mem_probe.c perf_report_tick: reports the server ignored (older server)
 // perf30: the release build's own cost accounting, one "perf30:" log line every 30 s in a match (mem_probe.c perf_line_tick). Cumulative
 // since the last line: per PF feature (time / calls / worst call), our whole tick, the HUD draw hook, and the engine-event hooks that run on every
@@ -1527,6 +1533,16 @@ static uint64_t g_eb_burst_frame;         // frame of the last Explosive Bow bur
 // (rifle-bolt-scar); a large primary row after the Burst Rifle, 2 body shots to down (the Frontier's damage), magazine 2 / 3 / 4 and a faster bolt
 // per level (VT_CYC); Part I hunting rifle gunshot (vintage.c, side file with the Part I pack), Seraphite NPC bolt rifle bolt / reload foley
 #define VINTAGE_ID "rifle-vintage"
+// 2013 Launcher (dc_data_patches.LAUNCHER, launcher-weapon-1117): a clone of TLOU2's flamethrower (its hold / Abby overlay set / clips / audio set)
+// on the t2r-launcher model (launcher-model-1117: the Part I flamethrower kitbash), its own firearm def firing the game's explosive arrow
+// (ammo-arrow-explosive, net10 grenade-launcher: 0.3 s, magazine 1) - the blast, its 2013 rings and the sharing are the Explosive Bow's
+// (expbow2013.c, ex13 EX13_LAUNCH), keyed by the arrow, not the gun. A purchasable after the Dragon's Buckshot: 3 LP, 375 parts, start 3, 3 for 450
+// (wiki). Its own base gun (no base_weapon entry): the flamethrower's damage ticks (flame2013.c) never apply to it.
+#define LAUNCHER_ID "t2r-launcher"            // dc_data_patches.LAUNCHER (= the model's actor name)
+static int launcher_built(void);           // defined after faction_guns_built.h is included (see arrow_blast_built): a default of 0 set here
+                                           // would win over the header's 1 (build 197t: the macro expanded before the header, the Launcher was never on)
+static uint32_t g_launcher_row = 0xffffffffu;   // the Launcher's purchasable row (0xffffffff: not built)
+static uint8_t g_ex13_by_launcher[T2R_MAX_PEERS];   // the last explosive-arrow blast of slot s came from the Launcher (not the Explosive Bow): kill card / feed name
 static int g_fl_off = -1;                  // flame2013.c: t2r-no-flame.txt (-1 = not read yet)
 static int flame_is_gun(uint64_t w);       // flame2013.c
 static int flame_hit_recent(uint32_t slot);
@@ -1558,7 +1574,7 @@ static int base_weapon_is_gun(uint64_t wid) {
     static const char *G[] = {"rifle-vepr", "rifle-remington-bolt", "rifle-mpx5", "rifle-m14-semi", "rifle-burst", "shotgun-remington-pump",
                               "shotgun-baserri-over-under", "shotgun-tactical", "bow-ellie", "crossbow", "pistol-beretta",
                               "pistol-glock", "pistol-revolver-taurus", "pistol-cz75-enforcer", "rifle-galil", "pistol-xcaliber",
-                              "pistol-el-diablo", "shotgun-shorty", "rifle-frontier", "rifle-milsniper", "pistol-snubby", ASSAULT_ID, EXPBOW_ID, FLAME_ID, VINTAGE_ID};
+                              "pistol-el-diablo", "shotgun-shorty", "rifle-frontier", "rifle-milsniper", "pistol-snubby", ASSAULT_ID, EXPBOW_ID, FLAME_ID, VINTAGE_ID, LAUNCHER_ID};
     uint64_t b = base_weapon(wid);
     for (size_t i = 0; i < sizeof G / sizeof *G; i++) if (fnv64(G[i]) == b) return 1;
     return 0;
@@ -2263,7 +2279,7 @@ static void weapon_reload_rate_tick(void) {
 // so a gun with a lower 2013 cap than another sharing its ammo (Beretta / Enforcer vs Burst Pistol) is trimmed here.
 static int reserve_cap_of(uint64_t gun) {
     gun = base_weapon(gun);
-    if (gun == fnv64(EXPBOW_ID)) return 11;      // 2013 Launcher: net10 ammo record ammo-grenade-launcher {type 4, cap 11} (net10.bin 0xc9bc)
+    if (gun == fnv64(EXPBOW_ID) || gun == fnv64(LAUNCHER_ID)) return 11;      // 2013 Launcher: net10 ammo record ammo-grenade-launcher {type 4, cap 11} (net10.bin 0xc9bc)
     for (size_t k = 0; k < sizeof WEAPON_STATS / sizeof *WEAPON_STATS; k++)
         if (fnv64(WEAPON_STATS[k].weapon) == gun) return WEAPON_STATS[k].rcap;
     if (gun == fnv64("pistol-el-diablo")) return 6;     // 2013 El Diablo: net10 ammo-pistol-uber max carried 6 (own pool ammo-revolver-joel, inventory cap 6 + 6 loaded)
@@ -2573,7 +2589,7 @@ static void shop_refresh(void) {
         int weapon = slot == 2 && !((fn_v8)VMA(0x180018F20))();          // purchasable not bought yet
         typeof(g_shop[0]) *it = &g_shop[g_nshop++];
         memset(it, 0, sizeof *it);
-        if (slot == 2 && w.id && !strcmp(w.id, "machete")) {            // the loadout's purchasable is the machete (2013: 2 LP, 400 parts)
+        if (slot == 2 && w.id && !strcmp(w.id, "machete")) {            // the loadout's purchasable is the machete (3 LP, 400 parts; 2013: 2 LP)
             it->slot = 2; it->melee = 1; it->weapon = 1;
             it->icon = w.icon; it->full = MACHETE_PARTS;                // MACHETE_PARTS (the weapon table says 400)
             it->cost = boost_price(it->full, 4);
@@ -3120,7 +3136,7 @@ static struct { volatile float w, cx, cy, cz, lx, ly, lz, px, pz; volatile int s
 static void spc_apply(float *pos, float *q);   // melee_spcam.c (render thread)
 static void spm_pitch(const float *pos, float *q);       // melee_spcam.c: duel look-at pitch, q rotated in place
 static float cam2_orbit(float *pos);   // melee_spcam.c (v5-cam2): the duel camera's orbit round us toward a partner beside / behind us (render thread)
-static volatile int g_s25_lock = 1;   // melee_spcam.c spm_tick (ps25): 1 = the engine's duel camera lock may be taken; 0 = we are in a duel and have not swung - our camera stays ours (SP: the melee camera comes on with the player's own move only). t2r-ps25-cam-victim-old.txt = always 1
+static volatile int g_s25_lock = 1;   // melee_spcam.c spm_tick: 1 = the engine's duel camera lock may be taken; 0 = we are in a duel and have not swung - our camera stays ours (SP: the melee camera comes on with the player's own move only). t2r-ps25-cam-victim-old.txt = always 1
 // ps32 (match SP's smooth shakes after each hit, the transitions between hits and the smooth zoom in on a contextual takedown): the switches of the ps32 camera pass (melee_spcam.c ps32_cfg re-reads the files every 2 s; 1 = new):
 //   PS32_SHAKE t2r-ps32-cam-shake-old.txt  SP's measured hit shake (melee_feel.c mfk_rot: camera-shake-melee-hit-b per unit scale, fists 1.5 / weapons 1.0 / hit taken 1.75 / finisher blow 0.5)
 //   PS32_TRANS t2r-ps32-cam-trans-old.txt  the fov / lens height leave the melee values on SP's delayed S-curves (melee_spcam.c spm_tick), not on an exponential from the first idle tick
@@ -3132,17 +3148,17 @@ static struct { volatile int on, ctx; volatile uint64_t t0, until, ph; volatile 
                 volatile float hy0, hy1, zl; volatile int hok; } g_s32;      // (ps35: our / the partner's head height (world y, smoothed), the zoom limit 0..1, valid - melee_spcam.c spm_tick)
 static int s32_fin_begin(uint64_t other_h, float dur_s, const char *name);     // melee_spcam.c: 1 = the duel rig takes this finisher's camera (no xcam_start)
 static void s32_fin_kicks(float trk_off);                                      // melee_spcam.c: the finisher's blow times (g_xcam_kicks, track clock) for the rig's shake
-static volatile int g_s32_fb_req;                                             // xcam_choose_tick -> melee_spcam.c spm_tick (ps35): the attacker's authored takedown camera found no usable shot - the duel rig takes the move
-static int s32_fin_force(uint64_t other_h, float dur_s, const char *name, const char *why);   // melee_spcam.c (ps35): the rig takes a takedown whose authored camera is missing / blocked
-static volatile int g_s34_tb;                                                  // melee_spcam.c (ps34): the pin camera runs as the VICTIM's timed shot (pin over-the-shoulder / finisher side shot)
-static int s34_vic_take(uint64_t other_h, float dur_s, const char *name);      // melee_spcam.c (ps34): 1 = the victim's shot keeps / takes the camera of a takedown on us (no xcam_start)
+static volatile int g_s32_fb_req;                                             // xcam_choose_tick -> melee_spcam.c spm_tick: the attacker's authored takedown camera found no usable shot - the duel rig takes the move
+static int s32_fin_force(uint64_t other_h, float dur_s, const char *name, const char *why);   // melee_spcam.c: the rig takes a takedown whose authored camera is missing / blocked
+static volatile int g_s34_tb;                                                  // melee_spcam.c: the pin camera runs as the VICTIM's timed shot (pin over-the-shoulder / finisher side shot)
+static int s34_vic_take(uint64_t other_h, float dur_s, const char *name);      // melee_spcam.c: 1 = the victim's shot keeps / takes the camera of a takedown on us (no xcam_start)
 static void *cam2_filter(uint8_t *dst, const float *loc, void *r);   // melee_camcont.c (v5-cam2): ONE duel camera - every state switch blends at SP times
 static float spm_yaw(const float *pos, const float *q);   // melee_spcam.c: duel look-at, the yaw (rad, world +Y) that turns the render camera toward the opponent (render thread)
 static void *ccg_filter(uint8_t *dst, const float *loc, void *r);   // melee_camcont.c: v5 camera continuity on the final render camera (render thread)
 static void ccg_xcam_blend_in(float *bin_f, const char *name);
 static float ccg_xcam_blend_out(float *bout_f, const char *name);   // melee_camcont.c (v5-cam7): inside a duel an exec / takedown camera releases over >= 0.6 s       // melee_camcont.c: inside a duel an exec / takedown camera never cuts in (xcam_start)
 static void *s41b_filter(uint8_t *dst, const float *loc, void *r);      // melee_spcam.c (ps41 H): the behind-the-body hold, the chain's last stage
-static void *s43_filter(uint8_t *dst, const float *loc, void *r);       // melee_spcam.c (ps43): the attacker's pair-frame two-shot (finisher / takedown / execution), after it
+static void *s43_filter(uint8_t *dst, const float *loc, void *r);       // melee_spcam.c: the attacker's pair-frame two-shot (finisher / takedown / execution), after it
 static void *s44h_filter(uint8_t *dst, const float *loc, void *r);      // melee_spcam.c (ps44 R7): the duel lens's floor from our live head, after the lens guard
 static void *clg_filter(uint8_t *dst, const float *loc, void *r);       // melee_camcont.c (cam-lens): the last camera stage of a fight
 static void clg_diag(uint8_t *dst, const float *loc, const float *r);   // melee_camcont.c: 'camdiag' trigger
@@ -3214,7 +3230,20 @@ static void feature_chain_prompts(void) {
     }
 }
 static const char *g_pup_lie_cur[T2R_MAX_PEERS];             // the UC4 lying / crawl clip that played on a puppet when its down ended in a death (stopped at the ragdoll)
-static struct { uint64_t h, at, hold_t60; uint8_t on, stopped, fb, rep; } g_bo_rd[T2R_MAX_PEERS];   // bleed-out ragdoll hand-over per puppet slot (hold_t60: a death reaction clip plays on the dead body until then - deathreact.c)
+static struct { uint64_t h, at, hold_t60; uint8_t on, stopped, fb, rep; } g_bo_rd[T2R_MAX_PEERS];
+// Bodies vanishing on a downed death: our npc-die on a
+// downed puppet (killed by a hit while down, the remote bleed-out death, the held shiv kill) makes the body a ragdoll at once, but character-is-dead?
+// reads 0 for 1-4 more frames, and winmm's net locator / msg-5 root writes go on until it reads dead (fling_hold, dead_root_slot): the net position
+// is written onto a ragdoll. In .. logs 3.1 % of those deaths (247 of 7937+247) ended 15-196 m from the death spot, against 0.7 % of downed
+// deaths without our npc-die; 238 of the 247 already sat 10-98 m off on the dead-here frame. From our npc-die on, the body counts as dead for those
+// writes (NPCDIE_DEAD_FRAMES at most; the engine reading it dead ends it sooner). t2r-no-npcdie-hold.txt = old.
+#define NPCDIE_DEAD_FRAMES 30
+static int npcdie_dead(uint32_t slot, uint64_t h) {
+    static int off = -1; static uint64_t chk;
+    if (slot >= T2R_MAX_PEERS || !h || !g_bo_rd[slot].on || g_bo_rd[slot].h != h || g_frame - g_bo_rd[slot].at > NPCDIE_DEAD_FRAMES) return 0;
+    if (off < 0 || g_frame - chk > 300) { chk = g_frame; off = GetFileAttributesA("t2r-no-npcdie-hold.txt") != INVALID_FILE_ATTRIBUTES; }
+    return !off;
+}   // bleed-out ragdoll hand-over per puppet slot (hold_t60: a death reaction clip plays on the dead body until then - deathreact.c)
 // shiv kills (the newer ones did not have the victims follow them, they just ragdoll): winmm's kill of the victim's PUPPET (the victim's
 // type 4 -> FUN_1800501d0 -> FUN_18002c7b0, damage 1e6) arrives at the authored kill frame - the stab - and a dead puppet ragdolls. The 2013 stealth
 // shiv kills stab at 0.31 / 0.58 s of a 3.5 / 3.7 s victim half (the DLC insta-shiv at 1.30 / 1.45 s of 2.0 s, which is why only the old ones looked
@@ -3385,7 +3414,7 @@ static void feature_remote_deaths(void) {
 
 // ---------------------------------------------------------------- held weapon orientation (Abby guns)
 // Abby's guns (Vepr, Glock, double barrel) are held canted by our Ellie-based MP bodies, own and
-// puppets (user: abbyweapon/wrong.png vs correct.png). The gun is a process attached to the hand
+// puppets (abbyweapon/wrong.png vs correct.png). The gun is a process attached to the hand
 // (exe 0x1CD2140 attach(weapon, file, line, func, &owner{handle, instance}, attach point, offset
 // xform{pos4, quat4}) - spec's AttachWeaponToCorrectHand). The character's held weapon: vtable
 // +0xD38. World transform of a process: exe+0x133db30(proc+0x100, out) -> {pos4, quat4}.
@@ -3612,7 +3641,7 @@ static const char *const ARMOR_RIG_CLASH[ARMOR_RIG_N] = {      // part hidden wh
 // Body parts pushed in under the armour (tools/models/armour_push.py, dc_data_patches.ARMOUR_UNDER_*): each twin
 // also carries copies of the parts under the armour ('-male-' -> '-arm1-'; rigged bags '-rigged' -> '-armour')
 // with the clothes pushed inside the vest / helmet (no triangles removed) and the BACKPACK pulled outward
-// over the carrier (user: bags stay over the armour, never hidden), all hidden at spawn. While the piece
+// over the carrier (bags stay over the armour, never hidden), all hidden at spawn. While the piece
 // in `mask` (bit 0 helmet, bit 1 vest) shows: copy on, original off; else the other way. Only when the copy
 // is really on the character (presence probe), else the original stays. The Seraphite coat / WLF 05 shirt
 // are cloth PROPS (own processes): the twin carries both coats and armor_coat_apply shows one per vest state.
@@ -4684,6 +4713,94 @@ static void install_faction_looks(void) {
         xlog("faction look: intro-spawn fallback look re-pointed at our buffer");
     } else if (b && !faction_looks_off()) hook_miss((void *)VMA(0x1800508AC), 18, "faction look: intro-spawn fallback look bytes differ, intro keeps winmm's default");
 }
+// Own respawn at the compaction point (re/respawn-frame-1123.md). Reports: c0000005 on an engine job thread
+// (exe+14453c7, exe+b8fbf7, exe+d70b71) in the frame of our own respawn, the worker's stack holding the OLD Player (AJRZ) or the NEW one (BMBP).
+// winmm's respawn grant FUN_1800374f0 spawns the new Player ("spawn-player") and kills the old one (KillProcess -> Process::KillTree: OnKillProcess
+// runs at once) from t2r_tick - and t2r_tick is itself one of the frame's process updates, so the job threads updating that Player run beside it.
+// The one point in a frame where no process update runs is ProcessMgr::CompactProcessMemory (cm_hook); the customize stage already moves its
+// removals there (czs_kill_drain). The own-slot grant is queued here and run from cm_hook: the grant, the dead list reaped (czs_reap), the
+// compaction pass held back 2 frames like after any removal of ours. The grant's callers (the host's own grant 0x1800336d1, the message handler
+// 0x180036c2a) do not use its return value and pass plain values (slot, a 64-bit id, a byte), so the call can run later with the same arguments.
+// A grant not run by cm_hook within RGQ_TICK_FRAMES (no compaction call: loading, hook missing) runs from the tick as before.
+// t2r-no-respawn-defer.txt = off (the grant runs at once, as winmm does).
+#define RGQ_TICK_FRAMES 3
+static fn_spawn4 g_resp_grant_tramp;
+static volatile uint64_t g_cm_hook_frame;              // cm_hook was entered in this frame (held-back passes too; g_cm_frame counts passes that ran)
+static struct { volatile LONG on; uint64_t a1, a2, a3, a4, asked; } g_rgq;
+static struct { uint64_t asked, done, tid; uint32_t slot; char path; } g_rgq_log[8];
+static volatile LONG g_rgq_n, g_rgq_superseded;
+static int g_rgq_in;                                   // the grant is running (from the queue or at once)
+static int czs_reap(void);
+static int rgq_off(void) {
+    static int off = -1;
+    if (off < 0) { FILE *f_ = exe_side_open("t2r-no-respawn-defer.txt", "r"); off = f_ != NULL; if (f_) fclose(f_); if (off) xlog("respawn defer: off (t2r-no-respawn-defer.txt)"); }
+    return off;
+}
+static void rgq_note(uint32_t slot, uint64_t asked, char path) {
+    LONG n = InterlockedIncrement(&g_rgq_n);
+    LONG k = (n - 1) & 7;
+    g_rgq_log[k].asked = asked; g_rgq_log[k].done = g_frame; g_rgq_log[k].tid = GetCurrentThreadId(); g_rgq_log[k].slot = slot; g_rgq_log[k].path = path;
+}
+static uint64_t rgq_run(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4, uint64_t asked, char path) {
+    g_rgq_in = 1;
+    uint64_t r = g_resp_grant_tramp(a1, a2, a3, a4);
+    g_rgq_in = 0;
+    rgq_note((uint32_t)a1, asked, path);
+    return r;
+}
+static uint64_t resp_grant_hook(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a4) {
+    uint32_t slot = (uint32_t)a1;
+    uint32_t own = ((uint32_t (*)(void))VMA(0x18005DA60))();
+    int cm_live = g_cm_hook_frame && g_frame - g_cm_hook_frame <= 2;
+    if (slot != own || g_rgq_in || rgq_off() || !cm_live) {
+        if (slot == own && !g_rgq_in && !rgq_off()) {
+            static int nl; if (nl++ < 8) xlog("respawn defer: own grant runs at once from the tick (frame %llu, compaction hook last seen frame %llu)", (unsigned long long)g_frame, (unsigned long long)g_cm_hook_frame);
+        }
+        return rgq_run(a1, a2, a3, a4, g_frame, slot == own ? 'T' : 'P');
+    }
+    if (g_rgq.on) {         // (one-shot callers: a second grant before the first ran - the newer one wins, both would spawn a Player)
+        LONG s = InterlockedIncrement(&g_rgq_superseded);
+        xlog("respawn defer: a queued own grant (asked frame %llu) replaced by a newer one (frame %llu; %ld so far)", (unsigned long long)g_rgq.asked, (unsigned long long)g_frame, (long)s);
+    }
+    g_rgq.a1 = a1; g_rgq.a2 = a2; g_rgq.a3 = a3; g_rgq.a4 = a4; g_rgq.asked = g_frame;
+    MemoryBarrier();
+    g_rgq.on = 1;
+    return 0;
+}
+// cm_hook, before the hold-back test (as czs_kill_drain): the queued own grant, then the dead list, then this pass and the next 2 held back
+static void rgq_drain(const char *where, char path) {
+    if (!InterlockedCompareExchange(&g_rgq.on, 0, 1)) return;
+    uint64_t a1 = g_rgq.a1, a2 = g_rgq.a2, a3 = g_rgq.a3, a4 = g_rgq.a4, asked = g_rgq.asked;
+    rgq_run(a1, a2, a3, a4, asked, path);
+    const int reaped = path == 'Q' ? czs_reap() : 0;
+    g_cm_skip_until = g_frame + 2;
+    LONG n = g_rgq_n;
+    if (n <= 12 || n % 100 == 0) xlog("respawn defer: own grant done %s (frame %llu, asked frame %llu, thread %lu, dead list cleaned %d)", where,
+                                     (unsigned long long)g_frame, (unsigned long long)asked, (unsigned long)GetCurrentThreadId(), reaped);
+}
+// t2r_tick: a grant cm_hook did not take within RGQ_TICK_FRAMES runs here (the old path)
+static void rgq_tick(void) {
+    if (g_rgq.on && g_frame - g_rgq.asked >= RGQ_TICK_FRAMES) rgq_drain("from the tick (no compaction call came)", 'L');
+}
+static void rgq_crash_report(void) {
+    LONG n = g_rgq_n;
+    if (!n && !g_rgq.on) return;
+    xlog("  respawn defer: frame %llu, %ld grant(s) so far, one waiting %d (asked frame %llu), %ld replaced, compaction hook last seen frame %llu", (unsigned long long)g_frame, (long)n,
+         (int)g_rgq.on, (unsigned long long)g_rgq.asked, (long)g_rgq_superseded, (unsigned long long)g_cm_hook_frame);
+    for (LONG j = 0; j < 4 && j < n; j++) {
+        LONG k = (n - 1 - j) & 7;
+        xlog("  respawn defer: grant -%ld slot %u path %c (%s), asked frame %llu, done frame %llu (%llu frames ago) on thread %llu", (long)j, g_rgq_log[k].slot, g_rgq_log[k].path,
+             g_rgq_log[k].path == 'Q' ? "compaction point" : g_rgq_log[k].path == 'L' ? "tick, late" : g_rgq_log[k].path == 'P' ? "puppet, at once" : "tick, at once",
+             (unsigned long long)g_rgq_log[k].asked, (unsigned long long)g_rgq_log[k].done, (unsigned long long)(g_frame - g_rgq_log[k].done), (unsigned long long)g_rgq_log[k].tid);
+    }
+}
+static void install_respawn_defer(void) {
+    if (rgq_off()) return;
+    // push r15; push r14; push rsi; push rdi; push rbx; sub rsp, 0x120 (14 bytes, no rip-relative operands)
+    static const uint8_t P_GRANT[14] = {0x41, 0x57, 0x41, 0x56, 0x56, 0x57, 0x53, 0x48, 0x81, 0xEC, 0x20, 0x01, 0x00, 0x00};
+    int ok = faction_hook_at(0x1800374F0, P_GRANT, 14, (void *)resp_grant_hook, &g_resp_grant_tramp, "respawn grant (respawn defer)");
+    xlog("respawn defer: respawn grant hook %d - the own grant runs at the compaction point", ok);
+}
 // A live puppet spawned with another look than its player has in this life (late join: spawned
 // with winmm's string before any message; a lost / reordered message): spawn it again with the
 // right look through winmm's own puppet re-spawn (FUN_1800507a0, what winmm does for a respawn:
@@ -4949,7 +5066,7 @@ static void feature_weapon_straps(void) {
                                              off ? "game table (t2r-strap-slot2-off.txt)" : "game table (out of a match)");
     state = want;
 }
-// User: the native backpack menu (TAB, crafting + buy tab) shows the SP Abby backpack, not the MP
+// the native backpack menu (TAB, crafting + buy tab) shows the SP Abby backpack, not the MP
 // character's. The menu's 3D backpack is not made by any DC script (checked: no menu script spawns
 // a backpack actor; only cinematics reference backpack-abby/-ellie) so it follows engine state about
 // the player's backpack. t2r-backpackprobe.txt next to the exe (persistent): on every open of the
@@ -5261,7 +5378,7 @@ static int bp_ctrl_is_own(uint8_t *c, uint8_t **me_out) {
 // ---- TAB opened ON THE MOVE. MP let the player run with the menu open, locomotion won on the body while the
 // prop followed the craft clip's prop channel (bag + guns above the head). 0674878 / 47b7481 answered that with a speed gate on the swap
 // (enter skipped above 0.6 m/s, deferred EnterBackpack once stopped, engine leave forced the moment the body moved with the prop out).
-// clips 12-13-41 / 12-15-48 (A [21092] [40180] [40319] [40984] [41176], B [27936] [28507] [44107]): that broke it - the craft
+// clips / (A [21092] [40180] [40319] [40984] [41176], B [27936] [28507] [44107]): that broke it - the craft
 // intro still drives the worn rigged bag off the back while its enter is skipped (bag + rifle slide off the running body, B clip
 // +0.4..0.8 s), the deferred enter then pops the bag from the back to the prop's ground pose in one frame (A clip +7.9 s / +10.9 s),
 // and the forced leave ~0.5 s after the close snaps the bag + guns back on mid stand-up (every close followed by a step: "prop pulled
@@ -6809,8 +6926,8 @@ static void pup_hide_restore(uint32_t slot, uint64_t h, int busy) {
         uint8_t *pn = pst_npc(h), *cur = pn ? pst_current(pn) : NULL;
         uint8_t *now = cur && !IsBadReadPtr(cur + 0x80, 0x18) && *(uint32_t *)(cur + 0x94) == g_pup_hid[slot].id ? cur : NULL;
         static int nm; if (now != w && LOGCAP(nm, 20)) {
-            if (now) xlog("pup hide: slot %u hidden item moved %p -> %p (heap compaction) - restored at its new address (R-RQL3 stale-pointer write avoided)", slot, (void *)w, (void *)now);
-            else xlog("pup hide: slot %u hidden item %p is not the puppet's current item any more (destroyed / replaced / moved on) - not touched (R-RQL3 stale-pointer write avoided)", slot, (void *)w);
+            if (now) xlog("pup hide: slot %u hidden item moved %p -> %p (heap compaction) - restored at its new address ( stale-pointer write avoided)", slot, (void *)w, (void *)now);
+            else xlog("pup hide: slot %u hidden item %p is not the puppet's current item any more (destroyed / replaced / moved on) - not touched ( stale-pointer write avoided)", slot, (void *)w);
         }
         w = now;
     }
@@ -7990,7 +8107,7 @@ static void feature_backpack_prop(void) {
             if (opt < 0 || GetTickCount64() > opt_at) { opt_at = GetTickCount64() + 3000; opt = GetFileAttributesA("t2r-bp-menu-move.txt") != INVALID_FILE_ATTRIBUTES; }
             if (!menu) logged = 0;
             // ps57: the stop is the craft intro's: the lock runs while the engine's backpack is active (c[0x190]) or for the first 1.2 s after the open (the
-            // stow + intro start); a menu whose bag never came up gives the stick back (R-37YQ: 8470 frames rooted). t2r-bp-hold-old.txt = lock always.
+            // stow + intro start); a menu whose bag never came up gives the stick back (8470 frames rooted). t2r-bp-hold-old.txt = lock always.
             else if (!opt && match_substate() == 6 && !g_downed && me && ((c && c[0x190]) || now - t_menu_open < 1200.0 || GetFileAttributesA("t2r-bp-hold-old.txt") != INVALID_FILE_ATTRIBUTES)) {
                 uint64_t none = 0;
                 dc_call(fnv64("player-disable-move-stick"), 0, &none);
@@ -8431,7 +8548,7 @@ static void armor_coat_apply(int idx, uint8_t *chr, int look_i, int want) {
     }
 }
 
-// ---- coat cloth reboot on an instant placement (clip 12-44-34: B's coat DETACHED from its body at the start of the execution
+// ---- coat cloth reboot on an instant placement (clip: B's coat DETACHED from its body at the start of the execution
 // and lay in the world beside it for ~2 s; A's puppet of B kept the coat). The coat is a simulated cloth PROP (own process,
 // world-space solver): a body that is placed instantly (psync start of the victim half, the root drive, respawn / intro
 // teleports, t2r-tp) leaves the cloth where it was, or flings it. The engine resets cloth with the event reboot-cloth
@@ -8727,7 +8844,7 @@ static void feature_armor_visual(void) {
         last_helm[i] = hp;
     }
     // a downed body (ours or a puppet's), its kill and the 3 s after it (corpse / get-up / respawn re-instance) get the same
-    // per-frame coat check as a paired move: the coat must never be off for up to 9 frames of a down -> death flip (clip 12-44-34)
+    // per-frame coat check as a paired move: the coat must never be off for up to 9 frames of a down -> death flip (clip)
     if (match_substate() == 6 && (g_downed || g_peer_downed[0] || g_peer_downed[1] || g_peer_downed[2] || g_peer_downed[3])) ps_until = g_frame + secs_frames(3.0f);
     if (match_substate() == 6 && g_down_dying) ps_until = g_frame + secs_frames(8.0f);   // our own shot / melee / bleed-out death: the ragdoll hand-over (dd_limp_tick) and the corpse
     if (match_substate() == 6 && psync_active()) ps_until = g_frame + secs_frames(2.0f);
@@ -9123,8 +9240,22 @@ static void feature_aim_unstick(void) {
         last_reset = now; stale_since = 0;
     }
     // 3. last resort: barrel far off the camera while aiming and the engine reports nothing
+    // (Joe, "my weapon fires once and that's it"): the barrel leaves the camera ray while a gun cycles after a shot - the
+    // Remington bolt (39 deg, scoped) and the Enforcer pump (81 deg) - and this rule re-drew the gun 50 frames after each shot. The instant
+    // re-draw cancels the bolt / pump cycle, so the gun never rechambers: one shot per life. No re-draw while firing or reloading, nor for
+    // 2.5 s after our last shot (sampled every frame: the firing flag can be shorter than the 6-frame cadence below).
+    {
+        static uint64_t last_shot;
+        uint64_t nn = 0, fr = dc_call(fnv64("player-is-firing?"), 0, &nn);
+        if (fr != ~0ULL && (fr & 0xff)) last_shot = now;
+        if (last_shot && now - last_shot < 2500) { off_frames = 0; return; }
+    }
     if (!aiming) { off_frames = 0; return; }
     if (g_frame % 6) return;
+    {
+        uint64_t nn = 0, rl = dc_call(fnv64("player-is-reloading?"), 0, &nn);
+        if (rl != ~0ULL && (rl & 0xff)) { off_frames = 0; return; }
+    }
     if (blocked == 1 || empty) { off_frames = 0; return; }
     {   // (log lines 123738 / 123918 / 126030 ...): a held THROWABLE in its throw-aim pose never points its 'barrel' at the camera
         // (109-155 deg), so this last resort re-drew the pipe bomb (player-instant-draw-weapon-by-name) in the middle of the throw: the character
@@ -9417,7 +9548,7 @@ static void feature_respawn_grace(void) {
                         // wild, not a slide: it is left alone (the velocity cap runs on it; the visdiag/hide code owns a stray body). t2r-no-fling-pin-cap.txt = off.
                         float d2 = dx * dx + dy * dy + dz * dz;
                         if (d2 > FLING_PIN_MAX_M * FLING_PIN_MAX_M && GetFileAttributesA("t2r-no-fling-pin-cap.txt") == INVALID_FILE_ATTRIBUTES) {
-                            static int nc; if (LOGCAP(nc, 20)) xlog("fling: slot %u dead puppet %.2f m (dy %.2f) off its death spot - a wild ragdoll, NOT teleported back (Havok alloc assert, R-WVBV)", slot, __builtin_sqrtf(d2), dy);
+                            static int nc; if (LOGCAP(nc, 20)) xlog("fling: slot %u dead puppet %.2f m (dy %.2f) off its death spot - a wild ragdoll, NOT teleported back (Havok alloc assert,)", slot, __builtin_sqrtf(d2), dy);
                             pin_n[slot] = 0; wild = 1;
                         } else
                         if (dx * dx + dy * dy + dz * dz > (pin_ext_t0[slot] ? 1.0f : 2.25f)) {   /* was 0.05 m = the ragdoll teleported back every frame (the spin and fly); only the lying clip's 19-30 m slide is put back */
@@ -9729,6 +9860,7 @@ static const struct { const char *gun; float body, head, table; } FACTIONS_DMG[]
     {"pistol-beretta", 20, 60, 20}, {"pistol-glock", 22, 44, 20},
     {"rifle-remington-bolt", 64, 110, 55}, {"bow-ellie", 55, 110, 60}, {"crossbow", 55, 110, 55},
     {"rifle-mpx5", 20, 52, 1e6f},      // Full-Auto 5 body, 2 head (or 1 head + 3 body) to down, 1 head executes: 40 made 2 head 80 (no down); 52 as before
+    {LAUNCHER_ID, 1, 1, 60},       // Launcher: the same explosive arrow, the same rule (a 1 hp tick; the blast is the damage)
     {EXPBOW_ID, 1, 1, 60},         // Explosive Bow: the arrow itself does nothing but a 1 hp tick (2013 Launcher: the blast is the damage, expbow2013.c); never the bow's 55 / 110
     {ASSAULT_ID, 20, 60, 1e6f},    // 2013 Assault Rifle (net10 assault-rifle-automatic d065a364 'player' 22): 5 body shots, head by zone like the FAR
     {"rifle-galil", 17, 52, 1e6f},      // 2013 Specter (net10 galil fd5f87e5 'player' 17), head 52 = x3 (2 headshots must down like every 2013 auto rifle; 40 left 2 heads = 80 hp, no down; 2 head or 1 head + 3 body = 102 / 103)
@@ -9739,7 +9871,7 @@ static const struct { const char *gun; float body, head, table; } FACTIONS_DMG[]
     {"pistol-el-diablo", 65, 110, 35},      // 2013 El Diablo (net10 pistol-uber 'player' 65): 2 body, 1 head
     {"rifle-frontier", 66, 92, 55},         // 2013 Frontier Rifle (net10 rifle-short 'player' 64): 2 body; NO headshot multiplier (head = body 64; was 110 = a one-shot down)
     {"rifle-milsniper", 55, 110, 55},       // 2013 Military Sniper (net10 rifle-mil-sniper 'player' 55): 2 body, 1 head
-    {VINTAGE_ID, 66, 92, 55},               // Vintage Rifle: the Frontier's (2 body shots to down like the lever rifle; no one-shot head)
+    {VINTAGE_ID, 66, 92, 55},               // Vintage Rifle: the Frontier's (2 body shots to down like the lever rifle; no one-shot head); vintage_range_damage cuts it past 15 m
 };
 #define N_FACTIONS_DMG (sizeof FACTIONS_DMG / sizeof *FACTIONS_DMG)
 #define TAC_PELLET 0.55f
@@ -9958,6 +10090,34 @@ static void snubby_range_damage(uint8_t *di, uint8_t *peer) {
     *(float *)(di + 0x40) = was * k;
     static int n;
     if (LOGCAP(n, 200)) xlog("snubby range: %.1f m x%.2f, %.1f -> %.1f", dist, k, was, was * k);
+}
+// Vintage Rifle range falloff: full 66 / 92 to 15 m, then down to 70% at 25 m and
+// 52% from 35 m (body 66 -> 46 / 34: 2 body shots to down out to ~23 m, 3 past that, never more; head 92 -> 64 / 48). After the armour soak, like
+// the Snubby's.
+static const float VINTAGE_FALL[][2] = {{0, 1.0f}, {15, 1.0f}, {25, 0.70f}, {35, 0.52f}};
+static float vintage_range_scale(float d) {
+    int n = (int)(sizeof VINTAGE_FALL / sizeof *VINTAGE_FALL);
+    if (d <= VINTAGE_FALL[0][0]) return VINTAGE_FALL[0][1];
+    for (int i = 1; i < n; i++)
+        if (d <= VINTAGE_FALL[i][0])
+            return VINTAGE_FALL[i - 1][1] + (VINTAGE_FALL[i][1] - VINTAGE_FALL[i - 1][1]) * (d - VINTAGE_FALL[i - 1][0]) / (VINTAGE_FALL[i][0] - VINTAGE_FALL[i - 1][0]);
+    return VINTAGE_FALL[n - 1][1];
+}
+static void vintage_range_damage(uint8_t *di, uint8_t *peer) {
+    typedef void *(*fn_proc)(uint64_t);
+    typedef uint8_t *(*fn_me)(void);
+    static uint64_t vw;
+    if (!vw) vw = fnv64(VINTAGE_ID);
+    if (base_weapon(*(uint64_t *)(di + 0x20)) != vw) return;
+    uint64_t h = *(uint64_t *)(peer + 0x60);
+    uint8_t *proc = h ? ((fn_proc)VMA(0x18000A200))(h) : NULL, *me = ((fn_me)VMA(0x180050390))();
+    float mp[3], pp[3];
+    if (!proc_pos(me, mp) || !proc_pos(proc, pp)) { xlog("vintage range: distance unknown - full damage"); return; }
+    float dx = pp[0] - mp[0], dy = pp[1] - mp[1], dz = pp[2] - mp[2], dist = __builtin_sqrtf(dx * dx + dy * dy + dz * dz);
+    float k = vintage_range_scale(dist), was = *(float *)(di + 0x40);
+    *(float *)(di + 0x40) = was * k;
+    static int n;
+    if (LOGCAP(n, 200)) xlog("vintage range: %.1f m x%.2f, %.1f -> %.1f", dist, k, was, was * k);
 }
 // one bullet of a slow single-shot gun = one hit (see the call in the hit filter): per victim slot, the frame + base weapon of the last counted event
 #define SLOWGUN_DUP_FRAMES 6
@@ -12362,14 +12522,14 @@ static void dmg_probe(uint64_t p1, uint64_t victim, uint8_t *di, uint32_t p4) {
             (unsigned long long)(g_frame - g_eb_burst_frame), (unsigned long long)*(uint64_t *)(di + 0x20), (unsigned long long)*(uint64_t *)(di + 0x28), *(float *)(di + 0x40));
         if (*(uint64_t *)(di + 0x20) != fnv64(EXPBOW_ID) || 1) {
             uint64_t wv = *(uint64_t *)(di + 0x20);
-            if (wv == fnv64("pipe-bomb-manny") || wv == fnv64(EXPBOW_ID) || wv == 0 || *(uint64_t *)(di + 0x28) == fnv64("ammo-arrow-explosive")) *(float *)(di + 0x40) = 0.0f;
+            if (wv == fnv64("pipe-bomb-manny") || wv == fnv64(EXPBOW_ID) || wv == fnv64(LAUNCHER_ID) || wv == 0 || *(uint64_t *)(di + 0x28) == fnv64("ammo-arrow-explosive")) *(float *)(di + 0x40) = 0.0f;
         }
     }
     // Explosive Bow (it downs, not kills): the shooter's spawn-explosion is the engine's real explosion and its damage
     // reached the victim (or was forwarded as a hit) on top of the 2013 Launcher ring judged on the victim's own screen (ex13) - every engine
     // damage event naming the Explosive Bow / its explosive arrow ammo is zeroed: the only damage is the 2013 ring (and the arrow's 1 hp tick)
     if (di && !IsBadReadPtr(di, 0x48) && *(float *)(di + 0x40) > 1.5f &&
-        (*(uint64_t *)(di + 0x20) == fnv64(EXPBOW_ID) || *(uint64_t *)(di + 0x28) == fnv64("ammo-arrow-explosive") ||
+        (*(uint64_t *)(di + 0x20) == fnv64(EXPBOW_ID) || *(uint64_t *)(di + 0x20) == fnv64(LAUNCHER_ID) || *(uint64_t *)(di + 0x28) == fnv64("ammo-arrow-explosive") ||
          *(uint64_t *)(di + 0x20) == fnv64("pipe-bomb-manny") || *(uint64_t *)(di + 0x28) == fnv64("pipe-bomb-manny"))) {   // + the observers' burst carrier (55 from the ring, then the carrier's own blast killed B 4 frames later)
         static int nez;
         if (LOGCAP(nez, 30)) xlog("expbow: engine damage event %.2f on %s zeroed - only the 2013 Launcher ring hurts", *(float *)(di + 0x40), peer ? "a puppet" : "us");
@@ -12508,6 +12668,7 @@ static void dmg_probe(uint64_t p1, uint64_t victim, uint8_t *di, uint32_t p4) {
             g_armor_hit_weapon = 0; }
         burst_range_damage(di, peer);          // Burst Rifle: damage falls off with range (after the armour soak, which keys on the head damage value)
         snubby_range_damage(di, peer);         // Snubby: full damage to 8 m, then SNUBBY_FALL
+        vintage_range_damage(di, peer);        // Vintage Rifle: full damage to 15 m, then VINTAGE_FALL
         // Downed (2013): winmm predicts the target's hp (peer+0x9ec) and a hit that empties it goes
         // out as the lethal marker (250) and kills the puppet here - nobody could be downed. Below
         // 200 (not a finisher / lethal request) a would-kill hit is cut to leave 1 hp: the victim
@@ -12695,6 +12856,7 @@ static void expbow_install(void);
 static void expbow_tick(void);
 static void expbow_recv(uint32_t s, const uint8_t *buf, uint64_t len);
 static int expbow_built(void);
+static int arrow_blast_built(void);
 static int ex13_own_pop(int *kind);
 static void ex13_pend(int kind, int slot, const float *pos);
 static void pb_blast_near(int kind, int slot, const float *pos);   // placedbomb2013.c
@@ -14022,7 +14184,11 @@ static uint64_t recv_hit_hook(uint64_t me, uint64_t att, uint64_t w, uint64_t am
         // (log lines [50538]-[50539]: a third player's hatchet blow on a standing victim = "Melee Down" + award +100 Downed Enemy + the fall clip + killfeed DOWN, then "lethal melee: downed by a
         // blade - killed at once" one frame later): a blade blow should to KILL AT THE HIT (no downed pose, no revive); the kill-at-the-hit rule further down never ran because this block takes every
         // would-kill melee hit first. A would-kill BLADE blow (not in Interrogation, not on the victim of a pair: that one dies / downs at the hand-off) is the kill now.
-        if (psync_role() != 2 && (dmg >= 200.0f || (hp > 0 ? dmg >= hp - 1.0f : 0)) && mhs_is_blow(w) && melee_blade_kills(w) && g_last_hit_slot < T2R_MAX_PEERS && !g_down_dying &&
+        //: NOT the upgraded one-shot's fallback marker (ONETAP13_DMG): the attacker sends it after our side refused / could not play the pair and
+        // counts on our Melee Down below. Killed here instead, the host kept us downed: no respawn grant, the round never ended, a dead body others could hit.
+        int onetap_marker = dmg >= ONETAP13_DMG - 0.5f && dmg <= ONETAP13_DMG + 0.5f;
+        if (onetap_marker && mhs_is_blow(w) && melee_blade_kills(w)) xlog("blade melee hit %.1f = the upgraded one-shot marker: a down, not the blade kill", dmg);
+        if (!onetap_marker && psync_role() != 2 && (dmg >= 200.0f || (hp > 0 ? dmg >= hp - 1.0f : 0)) && mhs_is_blow(w) && melee_blade_kills(w) && g_last_hit_slot < T2R_MAX_PEERS && !g_down_dying &&
             GetFileAttributesA("t2r-melee-down-revivable.txt") == INVALID_FILE_ATTRIBUTES && GetFileAttributesA("t2r-blade-kill-hit-old.txt") == INVALID_FILE_ATTRIBUTES) {
             g_down_hit.me = me; g_down_hit.att = att; g_down_hit.w = w; g_down_hit.ammo = ammo; g_down_hit.flag = flag;
             g_down_slot = g_last_hit_slot;
@@ -14286,7 +14452,7 @@ static void exe_patch_diff_once(void) {
 }
 
 // ---------------------------------------------------------------- keybinds persistence (probe + fallback)
-// User: control remaps are lost between launches while MP options persist. Where the remap table
+// control remaps are lost between launches while MP options persist. Where the remap table
 // lives is unknown (the profile object exe 0x141270a80(0,0) is the best guess: Menu2::ButtonSchemeEdit-
 // Page edits an ActionSchemeCollection). Two parts:
 //  PROBE  t2r-keyprobe.txt next to the exe: at the first profile save (and every later one) the
@@ -14489,7 +14655,7 @@ static void install_dmg_lookup_hook(void) {
 // winmm's HUD message (FUN_18000bc00(text, seconds, flag, text id)) copies the text into the
 // buffer of text id 0xae4c7f46d2c1da94 (its own text: "Placeholder text. " x100) and shows
 // that id. Callers with 3 args leave the id = whatever is in r9, and a level load reloads the
-// text table, so "Alpha connected!" at match start turned into 100x PLACEHOLDER (user). The
+// text table, so "Alpha connected!" at match start turned into 100x PLACEHOLDER. The
 // detour always uses that id and writes the message back into the buffer every frame while
 // it is on screen.
 #define MSG_TEXT_ID 0xae4c7f46d2c1da94ULL
@@ -14553,7 +14719,12 @@ static void mw_tick(void) {
 #define MT_GAP 8.0f
 static void msg_hook(const char *text, float secs, int flag, uint64_t id);
 // the styled notification (notify.c): every gameplay message ends in ntf_push when the match HUD + its widgets are there
-enum { NTF_INFO, NTF_HEAL, NTF_REVIVE, NTF_WARN, NTF_SERVER, NTF_LOADOUT, NTF_COVERT, NTF_MOVE, NTF_CRAFT, NTF_BLADE, NTF_BOMB, NTF_SUPPLY, NTF_N };
+enum { NTF_INFO, NTF_HEAL, NTF_REVIVE, NTF_WARN, NTF_SERVER, NTF_LOADOUT, NTF_COVERT, NTF_MOVE, NTF_CRAFT, NTF_BLADE, NTF_BOMB, NTF_SUPPLY, NTF_LAST,
+       NTF_LB1O, NTF_LB2O, NTF_LB3O, NTF_LB1T, NTF_LB2T, NTF_LB3T, NTF_N };    // NTF_LB*: Interrogation lockbox stage toasts (stage 1..3, O = ours opening theirs, T = theirs opening ours)
+static void int_stage_sting(int kind);   // interrogation.c: the stinger of an NTF_LB* toast, played when it shows
+// Interrogation lockbox state for the combat music (interrogation.c int_news_tick writes them while the mode is live, feature_combat_music reads them):
+// the highest unlock stage either lockbox reached (0..3), when that was written, the last time anybody was opening a lockbox
+static int g_int_lb_stage; static uint64_t g_int_lb_ms, g_int_lb_act_ms;
 static const char *ntf_icon_path(int kind);
 static int ntf_push(int kind, const char *text, float secs);
 static int ntf_kind_of(const char *t);
@@ -14626,6 +14797,7 @@ static volatile uint64_t g_move_ms;
 static int msg_is_move(const char *t) { return t && !IsBadReadPtr(t, 12) && (!strncmp(t, "TEAMS: ", 7) || !strncmp(t, "DRUÅ»YNY: ", 10)); }
 static int msg_is_kick(const char *t) { return t && !IsBadReadPtr(t, 30) && (!strncmp(t, "You got kicked from the match", 29) || !strncmp(t, "Wyrzucono ci", 12) || msg_is_move(t)); }   // (+ the Polish kick text)
 static int kn_set(const char *t);       // kicknote.c: the kick text opens a box on the MP menu that stays until closed
+static uint64_t top_page(void);
 static void msg_hook(const char *text, float secs, int flag, uint64_t id) {
     (void)id;
     // admin kick: the daemon sends the text as op 0x11 right before 0x0d (back to the menu). As a plain HUD line it died with the match (the level unload) and
@@ -14657,6 +14829,10 @@ static void msg_hook(const char *text, float secs, int flag, uint64_t id) {
     if (text) { strncpy(g_msg_text, text, sizeof g_msg_text - 1); g_msg_text[sizeof g_msg_text - 1] = 0; }
     g_msg_until = GetTickCount64() + (uint64_t)((secs > 0 && secs < 30 ? secs : 5) * 1000) + 1000;
     if (text && mw_show(g_msg_text, secs)) return;
+    if (text && match_substate() != 6) {      //: winmm's HUD message off the match HUD drew "Placeholder text." x100 - names the caller
+        static int nl; if (LOGCAP(nl, 12)) xlog("msg: \"%.80s\" goes to winmm's HUD message off the match HUD (substate %d, page 0x%llx, from %p)", text, (int)match_substate(),
+                                         (unsigned long long)top_page(), __builtin_return_address(0));
+    }
     // every message shares one text id: a queued / still showing one kept its old text (the
     // loadout message over later ones) and queued ones came up as the text table's placeholder
     // after it was reset - drop the current one first, one message at a time
@@ -15044,12 +15220,21 @@ static uint64_t g_rb_fb_ms[T2R_MAX_PEERS];   // GetTickCount64 of the last FALLB
 // Remote bursts wait one frame for a line-of-sight ray (burst -> our chest): a wall between us and the burst blocks the stun / the
 // molotov kill (explosives had no collision checks). kind 1 = stun bomb, 2 = molotov.
 static struct { int kind; uint32_t slot; float pos[3]; uint64_t job, frame; int dir; float dmg; uint64_t sj[6][3]; float spt[6][3], srl[6][3]; int sin; } g_burst_pend[4];   // sj/spt/srl/sin: the stun bomb's per-probe rays (kind 1)
+static uint8_t g_burst_fx[4], g_burst_q_fx;    // kind 1 entry of a Launcher burst (g_burst_q_fx set by the caller): stun_fx_local, not stun_local
 static uint64_t world_ray_kick(const float *a, const float *b);
 static float ray_t(uint64_t job);
 static int g_ray_err;                         // set by ray_t: the last read was an engine error (wait-raycast-t refused), not a miss
 static uint64_t g_stun_total, g_stun_bo, g_stun_cough;     // stun length / blend-out lead / cough interval in g_t60 ticks (1/60 s, real time)
 static uint64_t g_stun_ended_t60;     // g_t60 our own stun lock last ran out (the shiv victim check allows a short grace)
 static uint64_t g_stun_until, g_stun_from;   // local stun lock (feature_stun_lock): g_t60 deadline
+// the 2013 Launcher's burst (stun_fx_local): the stun's screen + sound only, no lock. immersion.c (muffle, blur) and alert_sting.c (the
+// concussion tone) run while the lock OR this runs; everything else that asks "are we stunned" (input lock, cough, front shiv, menus) reads g_stun_until.
+static uint64_t g_stunfx_until, g_stunfx_total;
+static int stun_fx_live(void) { return (g_stun_until && g_t60 < g_stun_until) || (g_stunfx_until && g_t60 < g_stunfx_until); }
+static void stun_fx_clock(uint64_t *total, uint64_t *until) {      // length + deadline of the one running (the lock wins)
+    if ((g_stun_until && g_t60 < g_stun_until) || !(g_stunfx_until && g_t60 < g_stunfx_until)) { *total = g_stun_total; *until = g_stun_until; }
+    else { *total = g_stunfx_total; *until = g_stunfx_until; }
+}
 static uint64_t g_stun_cnext;                // left-time (ticks) of the next cough; each event below fires ONCE (edge) at any fps
 static uint8_t g_stun_fit_done, g_stun_bo_done, g_stun_pup_fit[T2R_MAX_PEERS];
 // Teams come from the server's 0x04 match record, stored in the lobby object (FUN_18004bf70):
@@ -15598,6 +15783,23 @@ static void stun_local(uint32_t from) {
     uint64_t r = dc_call(fnv64("gesture_"), 3, ga);      // (the cough SOUND: alert_sting.c stuncough_tick, PCM, ours muffled / theirs 3-D and loud)
     xlog("stun: cough gesture %s -> %llx", G[g_frame % 3], (unsigned long long)r);
 }
+// the 2013 Launcher
+// a Launcher burst is judged like a stun bomb's (stun radius, line-of-sight ratio: burst_queue kind 1 with g_burst_q_fx) and plays
+// the stun's screen + sound on us - the jolt + slow sway, the concussion tone, the world muffle, the blur - for the stun's 3.5 s. No input lock, no
+// stun clip, no cough, no MSG_STUNNED (no front-shiv window on the others' screens). The damage is the blast's own (ex13 EX13_LAUNCH).
+static void stun_fx_local(uint32_t from) {
+    if (sk_stun_immune(from)) return;
+    if (g_downed || g_down_dying || g_uc4_dying_until || local_hp() <= 0.0f) return;
+    if (g_stun_until && g_t60 < g_stun_until) { xlog("stun fx: Launcher burst by slot %u - a real stun is running, its effects play already", from); return; }
+    uint64_t now = g_t60 ? g_t60 : 1;
+    int fresh = !g_stunfx_until || g_t60 >= g_stunfx_until;
+    g_stunfx_total = S60(STUN_SECONDS);
+    g_stunfx_until = now + g_stunfx_total;
+    gsh_add(2.4f, 0.55f, 13.0f);                  // (stun_local's jolt + sway)
+    gsh_add(3.2f, STUN_SECONDS + 0.5f, 0.32f);
+    if (fresh) stuntone_stunned();
+    xlog("stun fx: Launcher burst by slot %u - stun screen + sound for %.1f s (%s), no lock", from, STUN_SECONDS, fresh ? "fresh" : "timer restarted");
+}
 // ("everyone sounds like they wear a gas mask": not a runtime thing - the armoured look twins carry the mesh slaver-male-helmet-02, which
 // the DC map *mesh-audio-config* flags as a gas mask; fixed in the data, dc_data_patches.make_mesh_audio_overlay.
 // The old get-/set-gas-mask-setting-id audit is gone: that id is a StringId at character+0x7b80 that only picks the put-on/off anims.)
@@ -15805,7 +16007,7 @@ static void burst_queue(int kind, uint32_t slot, const float *pos, const float *
     for (int k = 0; k < 4; k++) {
         if (g_burst_pend[k].kind) continue;
         g_burst_pend[k].kind = kind; g_burst_pend[k].slot = slot; memcpy(g_burst_pend[k].pos, pos, 12);
-        g_burst_pend[k].sin = 0;
+        g_burst_pend[k].sin = 0; g_burst_fx[k] = kind == 1 && g_burst_q_fx;
         if (kind == 1) {
             float rr = stun_radius(slot);
             float dxz = __builtin_sqrtf((pos[0] - pl[0]) * (pos[0] - pl[0]) + (pos[2] - pl[2]) * (pos[2] - pl[2])); if (dxz < 0.001f) dxz = 1.0f;
@@ -15836,7 +16038,7 @@ static void burst_queue(int kind, uint32_t slot, const float *pos, const float *
     }
 }
 static void burst_resolve(void) {
-    if (match_substate() != 6) { memset(g_burst_pend, 0, sizeof g_burst_pend); return; }     // a burst queued at match end must not stun / burn in the next match
+    if (match_substate() != 6) { memset(g_burst_pend, 0, sizeof g_burst_pend); memset(g_burst_fx, 0, sizeof g_burst_fx); return; }     // a burst queued at match end must not stun / burn in the next match
     for (int k = 0; k < 4; k++) {
         if (!g_burst_pend[k].kind || g_frame == g_burst_pend[k].frame) continue;
         int kind = g_burst_pend[k].kind;
@@ -15851,9 +16053,11 @@ static void burst_resolve(void) {
             }
             float ratio = (float)reached / ST_PROBES;
             g_burst_pend[k].kind = 0;
-            xlog("burst LOS: stun bomb from slot %u - %d of %d probes in the %.1f m sphere, %d reached by a ray, ratio %.2f (need %.2f) -> %s", g_burst_pend[k].slot, inr, ST_PROBES,
-                 stun_radius(g_burst_pend[k].slot), reached, ratio, STUN_NEED_RATIO, ratio >= STUN_NEED_RATIO ? "stunned" : "no effect (too little of us in reach / hidden)");
-            if (ratio >= STUN_NEED_RATIO) { g_stun_dir = g_burst_pend[k].dir; memcpy(g_stun_cur_pos, g_burst_pend[k].pos, 12); stun_local(g_burst_pend[k].slot); }
+            int fxo = g_burst_fx[k]; g_burst_fx[k] = 0;
+            xlog("burst LOS: %s from slot %u - %d of %d probes in the %.1f m sphere, %d reached by a ray, ratio %.2f (need %.2f) -> %s", fxo ? "Launcher burst" : "stun bomb", g_burst_pend[k].slot, inr, ST_PROBES,
+                 stun_radius(g_burst_pend[k].slot), reached, ratio, STUN_NEED_RATIO, ratio < STUN_NEED_RATIO ? "no effect (too little of us in reach / hidden)" : fxo ? "stun screen + sound, no lock" : "stunned");
+            if (ratio >= STUN_NEED_RATIO && fxo) stun_fx_local(g_burst_pend[k].slot);
+            else if (ratio >= STUN_NEED_RATIO) { g_stun_dir = g_burst_pend[k].dir; memcpy(g_stun_cur_pos, g_burst_pend[k].pos, 12); stun_local(g_burst_pend[k].slot); }
             continue;
         }
         float t = ray_t(g_burst_pend[k].job);
@@ -15951,7 +16155,7 @@ static int ob_find(uint64_t h) { for (int i = 0; i < OB_MAX; i++) if (g_ob[i].us
 // 0x1411c54f0 (kill events with a token compare) and its update tail end there, and so does the explode 0x11c6420). This hook sits on that one funnel:
 // when the process is one of OUR tracked throwables that has not exploded, we are down, and the explode is not on the stack, the destroy is
 // refused (the kill flag the by-handle entry already set is cleared) so the throw keeps flying and bursts / burns on its own - 2013 behaviour. The first
-// refusals are logged with a backtrace: that is the evidence of WHO kills it (A/B). t2r-no-keep-throw.txt = the old behaviour (put-back below only).
+// refusals are logged with a backtrace: that is the evidence of WHO kills it. t2r-no-keep-throw.txt = the old behaviour (put-back below only).
 typedef void (*fn_proc_destroy)(void *);
 static fn_proc_destroy g_pd_tramp;
 static int g_pd_via_pk;          // the player kill watch (paired.c pk_hook) owns the funnel's prologue: pk_hook asks pd_refuse first
@@ -16392,6 +16596,12 @@ static uint64_t expl_hook(void *p, void *b, void *c, void *d, uint64_t e, uint64
             // the fresh projectile rb_visual explodes at the thrower's point
             // gives the flash + sound but not the stun / smoke CLOUD. With the fuse no longer changed per client (Bomb Expert), a stun / smoke
             // copy bursts at nearly the thrower's moment on its own - with its real cloud: it is let through (only nail copies are held)
+            if (g_rproj[i].stun && g_rproj[i].keep == 2) {         // the Launcher's burst cloud (launcher_cloud): the cloud + the concussion tone only
+                g_rproj[i].ev_done = 1;
+                if (!is_teammate(g_rproj[i].slot)) { float nb[16]; const float *np = ((fn_loc)((uint8_t *)GetModuleHandleW(NULL) + 0x133db30))(po + 0x100, nb);
+                    if (np) stuntone_burst(g_rproj[i].slot, np, stun_radius(g_rproj[i].slot)); }
+                return g_expl_tramp(p, b, c, d, e, f, g, h);
+            }
             if (g_rproj[i].stun && !g_old_expl) {
                 g_stun_nat_ms[g_rproj[i].slot < T2R_MAX_PEERS ? g_rproj[i].slot : 0] = GetTickCount64();
                 {   float nb[16]; const float *np = ((fn_loc)((uint8_t *)GetModuleHandleW(NULL) + 0x133db30))(po + 0x100, nb);
@@ -16904,6 +17114,34 @@ static void stun_judge(uint32_t s, const float *at, const char *src) {
          in ? "in the stun radius, line-of-sight ray next" : "out of range");
     if (in) burst_queue(1, s, at, cur);
 }
+// the 2013 Launcher's burst (expbow2013.c, every screen, the shooter's too):
+// .
+// launcher_cloud: a stun bomb placed AT the burst point (stun_copy_place, keep 2) that bursts by the engine's own explode once it lies still = the
+// stun bomb's real cloud, flash and sound (expl_hook lets it through and plays the concussion tone in reach; it carries burst_done: no stun is
+// judged from it). stun_launcher_judge: the stun bomb's judging (radius, line of sight) with the stun's screen + sound only (stun_fx_local).
+#define LAUNCHER_CLOUD_SID 0xa2aa922866d0479dULL     // smoke-bomb = the MP stun bomb (the default sid of MSG_STUN_BURST)
+#define LAUNCHER_CLOUD_MS 1500                      // the copy must have burst by then, else a forced flash + sound (rb_visual)
+#define LAUNCHER_CLOUD_LAND_MS 900                  // a copy still falling (or rolling) by then bursts where it is
+static void launcher_cloud(uint32_t s, const float *at) {
+    if (match_substate() != 6) return;
+    float c[3] = {at[0], at[1] - 0.30f, at[2]};                    // the burst point is 35 cm above the impact (eb_detonate): the canister starts 5 cm above it
+    int k = g_no_stun_copy_burst || g_old_expl ? -1 : stun_copy_place(-1, s, LAUNCHER_CLOUD_SID, 0, c, 2);
+    if (k < 0) { xlog("launcher: no burst cloud copy at (%.2f %.2f %.2f) - flash + sound only", at[0], at[1], at[2]); rb_visual(LAUNCHER_CLOUD_SID, at); return; }
+    g_rproj[k].burst_done = 1; g_rproj[k].sync_dl = GetTickCount64() + LAUNCHER_CLOUD_MS;
+    xlog("launcher: slot %u's shot burst at (%.2f %.2f %.2f) - stun bomb cloud copy placed (rproj %d)", s, at[0], at[1], at[2], k);
+}
+static void stun_launcher_judge(uint32_t s, const float *at) {
+    if (s > T2R_MAX_PEERS - 1 || match_substate() != 6) return;
+    smoke_add(at, (int)s);                                         // (the cloud vetoes enemy markers / listen lines, as a stun bomb's)
+    if (is_teammate(s)) return;
+    float lb[16]; const float *pl = player_locator(lb);
+    if (!pl || local_hp() <= 0.0f || g_downed) return;
+    float d = 0, r = r13_off(R13_EXPLO) ? STUN_RADIUS : STUN_RADIUS13;
+    int in = stun_in_range(at, pl, r, &d);
+    xlog("stun fx: Launcher burst of slot %u at (%.2f %.2f %.2f): %.2f m from our nearest probe (radius %.2f) -> %s", s, at[0], at[1], at[2], d, r,
+         in ? "line-of-sight rays next" : "out of range");
+    if (in) { g_burst_q_fx = 1; burst_queue(1, s, at, pl); g_burst_q_fx = 0; }
+}
 static void stun_fb_arm(uint32_t s, const float *pos, uint64_t born_ms, uint64_t sid) {
     if (s < T2R_MAX_PEERS && g_stun_auth_ms[s] && GetTickCount64() - g_stun_auth_ms[s] < 3000) {
         xlog("stun: slot %u's burst point already came (%llu ms ago) - our copy's guess ignored", s, (unsigned long long)(GetTickCount64() - g_stun_auth_ms[s]));
@@ -16973,7 +17211,7 @@ static void stun_burst_recv(uint32_t s, const uint8_t *buf, uint64_t len) {
     float tt_cd = -1.0f;
 #endif
     for (int i = 0; i < MAX_REMOTE_PROJ; i++) {
-        if (!g_rproj[i].born || !g_rproj[i].stun || g_rproj[i].slot != s) continue;
+        if (!g_rproj[i].born || !g_rproj[i].stun || g_rproj[i].slot != s || g_rproj[i].keep == 2) continue;
         uint8_t *p = ob_proc(g_rproj[i].handle);
         float lb[16];
         const float *cp = p ? ob_loc(p, lb) : NULL;
@@ -17030,6 +17268,28 @@ static void feature_remote_impacts(void) {
         if (!g_rproj[i].born) continue;
         uint8_t *p = ((fn_proc)VMA(0x18000A200))(g_rproj[i].handle);
         typedef const float *(*fn_loc)(void *, float *);     // exe+0x133db30(locator, out) -> world pos
+        if (g_rproj[i].keep == 2) {
+            if (!p) {
+                if (!g_rproj[i].ev_done) { float at3[3]; memcpy(at3, g_rproj[i].sync_at, 12); xlog("launcher: burst cloud copy vanished before it burst - flash + sound at %.2f %.2f %.2f", at3[0], at3[1], at3[2]); rb_visual(g_rproj[i].sid, at3); }
+                g_rproj[i].born = 0; g_rproj[i].keep = 0; continue;
+            }
+            float lb3[16]; const float *cp3 = ob_loc(p, lb3);
+            float mv = cp3 ? stun_d3(cp3, g_rproj[i].last) : 1.0f;
+            if (cp3) memcpy(g_rproj[i].last, cp3, 12);
+            uint64_t nowl = GetTickCount64(), placed = g_rproj[i].sync_dl - LAUNCHER_CLOUD_MS;
+            // a fresh stun bomb has no cloud before its first contact (STUN_DET_MS): it bursts once it lies still (falling from a wall hit lands it first),
+            // after LAUNCHER_CLOUD_LAND_MS anyway
+            if (!g_rproj[i].ev_done && g_frame - g_rproj[i].born >= 8 && (mv < 0.003f || nowl >= placed + LAUNCHER_CLOUD_LAND_MS))
+                if (stun_copy_detonate(i, mv < 0.003f ? "Launcher burst cloud landed" : "Launcher burst cloud, landing time out")) g_rproj[i].ev_done = 1;
+            if (!g_rproj[i].ev_done && nowl >= g_rproj[i].sync_dl) {
+                float at3[3]; memcpy(at3, g_rproj[i].sync_at, 12);
+                xlog("launcher: burst cloud copy did not burst in %d ms - forced flash + sound at %.2f %.2f %.2f", LAUNCHER_CLOUD_MS, at3[0], at3[1], at3[2]);
+                uint64_t h = g_rproj[i].handle; dc_call(fnv64("kill-entity"), 1, &h);
+                g_rproj[i].born = 0; g_rproj[i].keep = 0; rb_visual(g_rproj[i].sid, at3);
+            }
+            if (g_rproj[i].ev_done && g_frame - g_rproj[i].born > 600) { g_rproj[i].born = 0; g_rproj[i].keep = 0; }   // (burst; the engine keeps the canister)
+            continue;
+        }
         if (!p && g_rproj[i].keep) {
             // (the smoke did not launch, the player just got stunned): the copy kept to make the cloud by its own fuse vanished without
             // bursting; it also carries burst_done, so the line below dropped it silently and nothing was shown. No own-fuse burst since it was kept = forced burst.
@@ -17077,7 +17337,7 @@ static void feature_remote_impacts(void) {
         if (!p && g_rproj[i].molotov && !is_teammate(g_rproj[i].slot)) {
             // an enemy molotov burst (its last position): within MOLOTOV_KILL_RADIUS of us it
             // kills, 2013 style, decided here on the victim's screen - the thrower only knows
-            // their aim target, which can be metres off the real burst (user: 20 cm in front of
+            // their aim target, which can be metres off the real burst (20 cm in front of
             // the enemy did not kill). Sent into winmm's own type 3 hit handler as the thrower's.
             if (!me) me = ((fn_me)VMA(0x180050390))();
             float lb[16];
@@ -17472,6 +17732,7 @@ static int trade_filter(uint32_t s, uint8_t *buf, uint64_t len) {
     return 1;
 }
 static void vx_ally_exec_react(uint32_t s, int killer);
+static void downer_drop_arm(uint32_t victim, int killer);
 // type 4 (a death) from slot s: 1 = dropped (the same death twice)
 static int trade_kill_msg(uint32_t s, const uint8_t *buf, uint64_t len) {
     if (g_no_trade_fix || s > T2R_MAX_PEERS - 1 || !buf || len < 11 || buf[9] != s) return 0;
@@ -17497,9 +17758,14 @@ static int trade_kill_msg(uint32_t s, const uint8_t *buf, uint64_t len) {
         xlog("trade: our blade %llx killed slot %u - the award books it as a blade finisher kill (Execution + Downed Enemy)", (unsigned long long)*(const uint64_t *)buf, s);
     }
     vx_ally_exec_react(s, killer);
+    downer_drop_arm(s, killer);           // our down finished by someone else: the downer's Assist + ammo pack (kill_drop_gate runs on the killer's screen only)
     // an outright kill (no down first: molotov / shiv / sniper): the bonus awards judge it like a down. A bleed-out / execution death of a
     // downed player is not one (its down was judged)
-    if (killer >= 0 && killer < T2R_MAX_PEERS && !g_peer_downed[s] && !(g_down_end[s] && g_t60 - g_down_end[s] < 240)) { bk_pay((uint32_t)killer, s, *(const uint64_t *)buf); ev_down((uint32_t)killer, s); }
+    if (killer >= 0 && killer < T2R_MAX_PEERS && !g_peer_downed[s] && !(g_down_end[s] && g_t60 - g_down_end[s] < 240)) {
+        bk_pay((uint32_t)killer, s, *(const uint64_t *)buf);
+        if (killer == (int)me) cw_kill_weapon(s, *(const uint64_t *)buf);
+        ev_down((uint32_t)killer, s);
+    }
     return 0;
 }
 static int gunexec_recv(uint32_t slot, const uint8_t *buf, uint64_t len);
@@ -17576,6 +17842,7 @@ static int nd_relay_in(uint64_t slot, uint64_t type, const uint8_t *buf, uint64_
 static int bs_recv(uint32_t slot, const uint8_t *buf, uint64_t len);
 static int bs_ff_allow(uint32_t slot);
 static void bs_on_hit(uint32_t slot, float dmg);
+static void ch_recv(uint32_t slot, const uint8_t *buf, uint64_t len);      // chat.c (MSG_CHAT 0xC7)
 static uint64_t recv_hook_body(uint64_t slot, uint64_t type, uint8_t *buf, uint64_t len) {
     if (nd_relay_in(slot, type, buf, len)) return 0;       // netdirect.c: this message already arrived over the direct path
     if ((uint8_t)slot == SQ_NO_SLOT && (uint8_t)type >= SQ_MIN_TYPE) {   // sender stamped 255 (queued before its session slot was set): every receiver range-checks the slot and drops it
@@ -17601,6 +17868,7 @@ static uint64_t recv_hook_body(uint64_t slot, uint64_t type, uint8_t *buf, uint6
     if ((uint8_t)type == 0xB && *(volatile uint8_t *)VMA(0x180177F40) == 1) xlog("respawn: request event received from slot %u (we are the host)", (unsigned)(uint8_t)slot);   // winmm NEVT_RESPAWN_REQUEST
     if ((uint8_t)type == 0xC && buf && len >= 10) xlog("respawn: grant event for slot %u (team %u) from slot %u, we are slot %u%s", buf[8], buf[9], (unsigned)(uint8_t)slot, *(uint32_t *)VMA(0x180138090), (uint8_t)slot ? " - NOT from the host, winmm ignores it" : "");   // NEVT_RESPAWN_GRANT [u64 spawner sid][u8 slot][u8 team]
     if ((uint8_t)type == 0x66 /* MSG_CLOOT */) { cl_recv((uint32_t)(uint8_t)slot, buf, len); return 0; }   // ours: container loot (containers.c)
+    if ((uint8_t)type == 0xC7 /* MSG_CHAT */) { ch_recv((uint32_t)(uint8_t)slot, buf, len); return 0; }   // ours: a MATCH / TEAM chat line (chat.c)
     if ((uint8_t)type == 0x97 /* MSG_DODGE_SWING */) {
         // pace watch (log only, nothing dropped): the sender's own pace lock (melee_pace.c, fists 850 ms between swing starts) is what spaces its swings; a
         // swing announced much sooner than that after the previous one from the same slot means that client's lock did not hold (low fps, no pad block, an old build)
@@ -17910,7 +18178,7 @@ static uint64_t recv_hook_body(uint64_t slot, uint64_t type, uint8_t *buf, uint6
         uint64_t h = peer ? *(uint64_t *)(peer + 0x60) : 0;
         const char *an = buf && len >= 1 && buf[0] >= 1 && buf[0] <= 4 ? stun_clip_for(buf[0] - 1) : g_stun_puppet;
         if (h && (uint8_t)slot < T2R_MAX_PEERS && (g_peer_downed[(uint8_t)slot] || g_puppet_dead_here[(uint8_t)slot])) h = 0;      // crashes-1015 B: no stun clip on a downed / dead puppet (a late message)
-        if (h && (uint8_t)slot < T2R_MAX_PEERS && psync_busy_slot((uint32_t)(uint8_t)slot) && !rv_pup_slot((uint32_t)(uint8_t)slot) && !rv_reviver_slot((uint32_t)(uint8_t)slot)) { h = 0; xlog("stun: MSG_STUNNED from slot %u ignored - its puppet plays a paired move half (R-XP9J: a stunned flag on a takedown victim let a shiv through)", (unsigned)(uint8_t)slot); }
+        if (h && (uint8_t)slot < T2R_MAX_PEERS && psync_busy_slot((uint32_t)(uint8_t)slot) && !rv_pup_slot((uint32_t)(uint8_t)slot) && !rv_reviver_slot((uint32_t)(uint8_t)slot)) { h = 0; xlog("stun: MSG_STUNNED from slot %u ignored - its puppet plays a paired move half (: a stunned flag on a takedown victim let a shiv through)", (unsigned)(uint8_t)slot); }
         if (h && (uint8_t)slot < T2R_MAX_PEERS) {
             // the victim's stun began one-way latency ago (it sends this at its burst): our window / blend-out run on its clock
             float ow = psync_oneway((int)(uint8_t)slot);
@@ -19293,11 +19561,9 @@ static void start_melee_hook(uint64_t *ret, int argc, uint64_t *argv, uint64_t s
 // aligned both), send where OUR copy of the victim stands; the victim teleports itself there.
 #define MSG_FIN_POS 0x46            // ours: [f32 pos 3][f32 quat 4] for the finisher victim
 // The one choke point of every set-object-locator (winmm's wrapper, FUN_18000B0E0) we call: a BoundFrame whose world / local locator is NaN, inf or
-// absurd is refused. a crash dump shows int3 in MeshRayCaster::CastRayJob "User pass a NaN start pos to MeshRayCaster" from
-// NdGameObject::KickGroundSurfaceTypeProbe on the anim job - some game object's locator was NaN when its ground probe ran; our locator writes
-// (paired moves, slides, puppet placement) are the only ones we can vouch for here, so they may not write one.
-static uint64_t g_sol_own_frame; static const void *g_sol_own_ra;   // v5-body: the last set-object-locator on OUR body through this wrapper (frame + caller) - named by melee_duel_tl.c's SNAP lines on us
-static uint64_t g_tp_frame; static const void *g_tp_ra;              // v5-body: the last teleport-player of our body (frame + caller)
+// absurd is refused. a crash dump shows int3 in MeshRayCaster::CastRayJob "
+static uint64_t g_sol_own_frame; static const void *g_sol_own_ra;
+static uint64_t g_tp_frame; static const void *g_tp_ra;
 static void set_obj_loc(uint64_t h, void *bfp) {
     const psync_bf *bf = (const psync_bf *)bfp;
     if (h == SID_PLAYER) { g_sol_own_frame = g_frame ? g_frame : 1; g_sol_own_ra = __builtin_return_address(0); }
@@ -19307,8 +19573,7 @@ static void set_obj_loc(uint64_t h, void *bfp) {
         float qn = bf->local[4] * bf->local[4] + bf->local[5] * bf->local[5] + bf->local[6] * bf->local[6] + bf->local[7] * bf->local[7];
         if (!(qn > 0.25f && qn < 4.0f)) ok = 0;
         if (!ok) { static int nbad; if (LOGCAP(nbad, 20)) xlog("set-object-locator: refused a non-finite / out of range locator for %llx", (unsigned long long)h); return; }
-        // (a 44 m set-object-locator jump of our own player left the character moving 3.25 m EVERY frame afterwards - the engine
-        // took the jump as velocity - until its coordinates blew up and the ground-surface probe asserted "meshraycast start: ([3921302910 ...]"
+        // meshraycast start: ([3921302910 ...]"
         // (the int3 crash exe+15b2427). Our player moved more than 1.5 m in one call = a real teleport, which resets the
         // character controller: teleport-player.)
         // (never on a dead / dying body - a psync-held corpse or limp half must not get a teleport-player event)
@@ -19901,7 +20166,7 @@ static float anim_len(uint64_t ent, const char *clip) {   // get-animation-durat
 // authored root motion (DOWN2013[i].s, metres along its net direction per 1/30 s), played by the slide (slide_start / slide_tick). Knock slots D13_BASE ..
 // D13_BASE+9 (MSG_DOWNED [2] = slot + 1: old peers read > 4 as 'no direction' and play the default fall). t2r-no-2013-downs.txt = the UC4 / stun-bomb path again.
 #include "down2013_carriers.h"
-static int mhr_knockback_recent(void);   // melee_hitreact.c (ps25): our momentum right now is a melee hit reaction's knock-back
+static int mhr_knockback_recent(void);   // melee_hitreact.c: our momentum right now is a melee hit reaction's knock-back
 #define D13_BASE 7
 #define D13_N 10
 #define D13_STAND 6                  // DOWN2013[6..9]: front, behind, left, right of the attacker
@@ -21856,7 +22121,8 @@ static const char *uc4_gik_hold_why(void) {
     return NULL;
 }
 static void uc4_gik_restore(void) {
-    // downed hit pose (UC4 arm-up bug when getting shot in the downed state; log 20339-20342 and 24432-24435): a lethal shot on the downed body is a downed death (g_down_dying: lying pose kept,
+    // downed hit pose (clip 1.6-4.3 s on
+    // A, A log 20339-20342 and 24432-24435): a lethal shot on the downed body is a downed death (g_down_dying: lying pose kept,
     // the death controller ragdolls it). dd_limp_tick then turned the lying overlay off -> this restore faded the prone ground IK
     // layer back in to 1.00 over 0.2 s and switched the forearm probes back on while the body still held the UC4 lying pose: the
     // IK pinned the forearm to probes placed for the STOCK prone pose, and the victim's own arm rose straight up within ~0.3 s and
@@ -22595,7 +22861,8 @@ static void downed_unstick_tick(void) {
 static struct { uint8_t b[6]; int n; uint64_t next; } g_up_rs;
 static struct { uint8_t who; int n; uint64_t next; } g_rv_rs;
 static int dc_down_supine(void);        // dcounter.c: our down comes out of the haymaker's collapse (we lie on the back) -> the sit-up clip into the downed pose
-// v5-supine: the finisher to downed transition had regressed to a linear blend; the only takedown whose down used the supine sit-up was the dodge counter's haymaker (dc_down_supine, a fixed row). The duel's lethal blow is
+// v5-supine
+// the only takedown whose down used the supine sit-up was the dodge counter's haymaker (dc_down_supine, a fixed row). The duel's lethal blow is
 // now a pool of SP finishers (mf- rows: kick-face, left-hook, nose-break, throat-punch, haymaker-kill...) and none of them qualified, so their down was
 // always cd_blend_out_victim's 0.6 s blend into the lying pose. The body decides now: at the down, our victim half's pose is measured (the supine probe's
 // chest normal, pelvis height over the locator, head direction) - lying on the back with the head behind = the sit-up half carries it into the downed pose.
@@ -22794,44 +23061,52 @@ static uint8_t *dh_handle(uint8_t *base, int off) {      // gui2 handle {slot pt
     if (!w || IsBadReadPtr(w, 0x410) || *(uint32_t *)(w + 0x94) != id) return NULL;
     return w;
 }
-// The in-match HUD health ring stayed on the MP menu (substates 1 / 2): hide the HealthAndAmmo widget
-// there (gui2-set-widget-visible), show it again once the match runs. The armour icons / supply row are
-// already gated on substate 6 (feature_armor_hud / feature_supply_counter).
+// The in-match HUD health ring (canvas.hudRoot.healthAndAmmoV2) must never draw over a UI page (strict: it exists only in a running
+// match). Hidden on every frame outside match state 6, and inside a match while ring_cover_page() says a full-screen page is up; shown again
+// once when that ends. The armour icons / supply row are already gated on substate 6 (feature_armor_hud / feature_supply_counter).
+// (build 198): it still drew on the main MP menu, the clan intro card, the post-match pages and more. This used to pass the RootGame
+// HealthAndAmmo OBJECT POINTER to gui2-set-widget-visible, but that native takes a widget HANDLE (the path's hash, as ui_visible / ui_w pass);
+// the friends page fix (chat-ab-1123 9d7e87e5a) hides the ring through its handle with gui2-set-widget-visible AND
+// gui2-set-widget-alpha every frame (the engine's own HUD update may show it again), and that is what runs here now, for every page.
+static uint8_t *g2_find(uint64_t path);
+static int g2_ok(void);
+static int ring_cover_page(void);           // in a match: a full-screen page is up (defined with the menu stack helpers)
+static int fr13_page_up(void);          // friends13.c: the FRIENDS page is up (in a match it is pushed over the ESC menu)
 static void menu_hud_hide_tick(void) {
     static int hidden;
-    static uint8_t *last;
+    static uint64_t since;
     uint8_t st = match_substate();
-    int menu = st != 6;      // strict: the ring exists only in a running match; menus, lobby, loading, results all hide it
+    int menu = st != 6 || fr13_page_up();      // strict: the ring exists only in a running match; menus, lobby, loading, results all hide it
     static uint8_t last_st = 0xff;
     static uint64_t st_since;
     if (st != last_st) { xlog("menu hud: match state %u -> %u (%s)", last_st, st, menu ? "ring hidden" : "ring allowed"); last_st = st; st_since = GetTickCount64(); }
     // state 5 = level loaded, waiting for the server's GAME-START (0x0a). A join-in-progress joiner sat here for ever because the daemon
     // never sent it; say so in the log every 20 s so the cause is visible on the client side too.
     if (st == 5) { static uint64_t said; uint64_t n = GetTickCount64(); if (n - st_since > 15000 && n - said > 20000) { said = n; xlog("jip: match state 5 for %llu s - waiting for the server's GAME-START (0x0a)", (unsigned long long)((n - st_since) / 1000)); } }
-    if (!menu && !hidden) return;
-    uint8_t *exe = (uint8_t *)GetModuleHandleW(NULL);
-    static const uint8_t SIG_HAM[8] = {0x48, 0x83, 0xEC, 0x28, 0x48, 0x8B, 0x81, 0xE0}, SIG_ROOT[8] = {0x48, 0x8B, 0x05, 0x21, 0x92, 0x63, 0x07, 0x48};
-    // (this check was two string literals holding the bytes as UTF-8 mojibake - never equal, so this function returned here on
-    // every call since it was written and the ring hide below never ran; only the hide-health-ammo/f call in t2r_tick did anything)
-    if (memcmp(exe + 0xF79F90, SIG_HAM, 8) || memcmp(exe + 0x1F21500, SIG_ROOT, 8)) { static int nl; if (!nl++) hook_miss(exe + 0xF79F90, 8, "menu hud: exe signature mismatch, ring hide off"); return; }
-    typedef uint8_t *(*fn_root)(void);
-    typedef uint8_t *(*fn_ham)(uint8_t *);
-    uint8_t *root = ((fn_root)(exe + 0x1F21500))();
-    uint8_t *ham = root ? ((fn_ham)(exe + 0xF79F90))(root) : NULL;
-    if (menu && ham && !IsBadReadPtr(ham, 0x9a0)) {      // every frame: a cadence let the engine's own HUD update flash it back
-        int first = !hidden || ham != last;
-        uint64_t a[2] = {(uint64_t)ham, 0};
-        dc_call(0xccf99aa7589d1af9ULL /* gui2-set-widget-visible */, 2, a);
-        hidden = 1; last = ham;
-        if (first) xlog("menu hud: health ring hidden (state %u)", st);
-    } else if (!menu && hidden) {
-        if (ham && !IsBadReadPtr(ham, 0x9a0)) {
-            uint64_t a[2] = {(uint64_t)ham, 1};
-            dc_call(0xccf99aa7589d1af9ULL, 2, a);
-        }
-        hidden = 0; last = NULL;
-        xlog("menu hud: health ring restored (state %u)", st);
+    // in a match the page signal must hold 3 frames: hud_state_tick's 'a page above the base page' blips for single frames in live play
+    // (seen in a log), which would blink the ring off
+    static int page_run;
+    int page = menu ? 0 : ring_cover_page();
+    page_run = page ? page_run + (page_run < 1000) : 0;
+    if (page && page_run < 3 && !hidden) page = 0;
+    int want = menu || page;
+    if (!want && !hidden) return;
+    uint64_t h = fnv64("canvas.hudRoot.healthAndAmmoV2");
+    if (want || hidden) {                     // every frame while hidden, once on the way back
+        union { float f; uint32_t u; } al = {want ? 0.0f : 1.0f};
+        uint64_t va[2] = {h, (uint64_t)!want}, aa[2] = {h, al.u};
+        dc_call(0xccf99aa7589d1af9ULL /* gui2-set-widget-visible */, 2, va);
+        dc_call(0x48d6c1859a4eba13ULL /* gui2-set-widget-alpha */, 2, aa);
     }
+    if (want != hidden) since = g_frame;
+    if (want != hidden || (want && g_frame - since == 2)) {   // the start and 2 frames later: does it still draw?
+        uint8_t *o = g2_ok() ? g2_find(h) : NULL;
+        int ok = o && !IsBadReadPtr(o, 0x3c0);
+        xlog("menu hud: health ring %s (state %u%s) object %p draw alpha %.2f own alpha %.2f", want ? (g_frame == since ? "hidden" : "still hidden") : "shown again",
+             st, page == 1 ? ", UI page up" : page == 2 ? ", CHANGE LOADOUT" : page == 3 ? ", match over" : "", (void *)o,
+             ok ? *(float *)(o + 0x2d4) : -1.0f, ok ? *(float *)(o + 0x3bc) : -1.0f);
+    }
+    hidden = want;
 }
 static void downed_hud_tick(void) {
     static struct { uint8_t *w; uint32_t id; uint8_t col[0x18]; uint8_t fl; } sv[5];
@@ -22906,7 +23181,8 @@ static void downed_hud_tick(void) {
 // ("both stuck"). Our downer is down / dead too and no teammate of ours is up -> nobody can act
 // on us: bleed out now (1 s after going down; same credit to the downer). Each side reaches the
 // same verdict from its own state. Off with t2r-no-trade-fix.txt.
-// lethal melee (blunt weapons go to down, sharp weapons (including machete) skip down and kill; melee takes longer now, so a long fight followed by a revive would feel wrong): a down by a BLADE (knife,
+// lethal melee (the reason: "since melee
+// takes longer now ... its not like u spend 15 seconds melee fighting someone and then have them get revived anyways"): a down by a BLADE (knife,
 // switchblade, machete, hatchet ... = melee_hitfx.c class 2, the downing weapon g_down_hit.w) is a kill - we bleed out on the first downed frame, no revive,
 // no execution needed, the credit stays the downer's (the trade_down_now path). Blunt weapons and fists down as before. Opt-out t2r-melee-down-revivable.txt.
 static int mhfx_class(uint64_t w, int *two_h, const char **name);   // melee_hitfx.c: 1 blunt, 2 blade, 0 fists / other
@@ -23304,7 +23580,7 @@ static void feature_downed_hitbox(void) {
         // collider (the hit bodies lie, the swing's volume found nothing) - back on while we swing within 3 m,
         // held 45 frames, off again after (shots keep hitting the lying bodies only)
         uint64_t *melee_win = g_dhb_melee_win;
-        // (16-40-50 / 16-42-02): a punch on a downed puppet flung it onto its back (the engine's standing hit
+        //: a punch on a downed puppet flung it onto its back (the engine's standing hit
         // reaction on an NPC whose pose is the replayed stream) and re-enabling the standing capsule for the swing popped it
         // before it snapped back to the lying pose. Downed puppets: hit reactions off (our own hit already carries the
         // damage / marker / flesh sound, feature_downed_melee), back on when up; the capsule stays off for the swing
@@ -24277,7 +24553,7 @@ static void feature_downed(void) {
     if (g_down_at && g_t60 < g_down_at) { uint64_t none0 = 0; dc_call(fnv64("set-player-cannot-die"), 0, &none0); }
     if (g_down_at && g_t60 >= g_down_at) {
         g_down_at = 0;
-        // A finisher by a BLADE (knife / machete / hatchet ...) used to go downed here and bleed out one frame later
+        // a finisher by a BLADE (knife / machete / hatchet ...) used to go downed here and bleed out one frame later
         // (melee_lethal_down_now) - a downed pose, then the ragdoll. The victim now dies AT the clip's kill frame, straight from the clip pose (hp 0 + kill-player,
         // credit to the attacker). Blunt weapons / fists still down. t2r-melee-down-revivable.txt = the old down.
         {   static int koff = -1; static uint64_t kchk; uint64_t kn = GetTickCount64();
@@ -24431,7 +24707,7 @@ static void feature_downed(void) {
             static int nl;
             if (LOGCAP(nl, 6)) xlog("downed: loop anim %s -> %llx", g_down_loop, (unsigned long long)r);
         }
-        // the animations didn't take (user: stood upright) - keep the body down with forced prone
+        // the animations didn't take (stood upright) - keep the body down with forced prone
         // the fall (heavy-landing) plays first; the forced prone only after its cut (
         // forcing prone at once skipped it)
         if (el >= cut) {
@@ -24669,7 +24945,7 @@ static void feature_downed(void) {
                         }
                     }
                 }
-                // stuck guard, LOG ONLY now.  (B log 98921): it fired while crawling fine (a turn in place /
+                // stuck guard, LOG ONLY now.: it fired while crawling fine (a turn in place /
                 // against a wall with a key held, or keys read while unfocused - GetAsyncKeyState) and switched to the
                 // old route for the match: TLOU2's prone crawl + the raised arm for the rest of the down.
                 // t2r-uc4-stuck.txt = the old fallback.
@@ -26325,7 +26601,7 @@ static int weapon_is_throwable(uint64_t w) {
 // a 14-byte entry detour whose stub returns at once while g_marc_hide is set). The flag follows the same test as the aim block, every frame.
 // t2r-no-melee-arc-hide.txt = off. Log: 'melee arc:'.
 static volatile uint8_t g_arc_hide[2];          // RenderGrenadeArc is skipped while either byte is set (the detour stub tests the WORD)
-#define g_marc_hide g_arc_hide[0]                // a melee weapon is held (R-CX3P)
+#define g_marc_hide g_arc_hide[0]                // a melee weapon is held
 #define g_bow_rib_hide g_arc_hide[1]             // the bow is held and our bow arc is not live - no stale ribbon of the renderer's own
 static void feature_no_melee_aim(void) {
     // holding a melee weapon picked up from a box, right click went into a throw aim (no arc)
@@ -26420,7 +26696,7 @@ static int g_no_throw_skel;
 #endif
 static uint8_t weapon_skel_of(uint64_t w) {          // 0 default, 1 Ellie, 2 Abby (w = base gun)
     static const char *ABBY[] = {"rifle-vepr", "rifle-galil", "shotgun-baserri-over-under", "crossbow",
-                                 "pistol-glock", "pistol-xcaliber", "rifle-m14-semi", "rifle-burst", FLAME_ID SHORTY_SKEL_ABBY};
+                                 "pistol-glock", "pistol-xcaliber", "rifle-m14-semi", "rifle-burst", FLAME_ID, LAUNCHER_ID SHORTY_SKEL_ABBY};   // Launcher: the flamethrower's Abby overlay set
     static const char *ELLIE[] = {"rifle-remington-bolt", "rifle-mpx5", "shotgun-remington-pump", "bow-ellie",
                                   "pistol-beretta", "pistol-revolver-taurus", "shotgun-tactical", "pistol-cz75-enforcer",
                                   "pistol-el-diablo", "rifle-frontier", "rifle-milsniper", "pistol-snubby", ASSAULT_ID, EXPBOW_ID, VINTAGE_ID SHORTY_SKEL_ELLIE};
@@ -26532,7 +26808,8 @@ static int install_skel_fix(void) {
 // locomotion / gun sets); so only winmm's IsEllie trampoline (exe jmp -> stub `jmp [rip]` + target) is pointed at fem_is_ellie, which
 // answers 1 for the own player while the knife is in use and asks winmm otherwise.
 static volatile int g_fem_ellie_on;
-// Knife hits played Abby's punch sounds: the punch is winmm's own local hit feedback (PlayLocalHitFeedback: play-sound-at-position of a fixed list sfx-unarmed-hit-* / sfx-unarmed-finisher-*, winmm .rdata 0x1800a1120 / 0x1800a1100),
+// ("knife hits still play Abby's punch sounds"): the punch is winmm's own local hit feedback (spec gameplay/melee.cpp
+// PlayLocalHitFeedback: play-sound-at-position of a fixed list sfx-unarmed-hit-* / sfx-unarmed-finisher-*, winmm .rdata 0x1800a1120 / 0x1800a1100),
 // silent until 3feb42c put wpn-melee-unarmed in the MP level. While a female's knife is in use the two lists hold the knife's own events of
 // wpn-melee-switchblade (the same hits: face / gut-cotton / head / gut, finishers face / gut-skin / gut / eye-stab), the fists keep Abby's.
 // t2r-no-knife-hit-sfx.txt = winmm's lists always.
@@ -26630,7 +26907,7 @@ static int install_fem_is_ellie(void) {
     return 1;
 }
 static int g_fem_ellie_hook = -1;                  // install_fem_is_ellie result (-1 not tried)
-// Female characters forgot to put the knife away into the back pocket, so it stayed stuck in the hand (special executions mess with it). The knife's put-away goes to the back pocket only on the engine's ELLIE branch (the 'switch_blade'
+// . The knife's put-away goes to the back pocket only on the engine's ELLIE branch (the 'switch_blade'
 // attach point, attach_points_knife_holster.py); on any other answer it has no holster place and stays in the hand. feature_weapon_skeleton answers
 // Ellie only while the knife is held and nothing else wants the hands (no unarmed execution / paired half): the swaps our own executions do
 // (fem_unarm_empty_hands: knife -> fists -> away; xr_finish / the move's end: the knife drawn back; ctxdown / revive / shiv hand emptying) therefore ran
@@ -26924,7 +27201,7 @@ static void feature_puppet_abby(void) {
     typedef uint8_t *(*fn_peer)(uint32_t);
     typedef uint8_t *(*fn_proc)(uint64_t);
     static const char *ABBY[] = {"rifle-vepr", "rifle-galil", "shotgun-baserri-over-under", "crossbow",
-                                 "pistol-glock", "pistol-xcaliber", "rifle-m14-semi", "rifle-burst", "shotgun-shorty", FLAME_ID};
+                                 "pistol-glock", "pistol-xcaliber", "rifle-m14-semi", "rifle-burst", "shotgun-shorty", FLAME_ID, LAUNCHER_ID};
     static const char *ELLIE[] = {"rifle-remington-bolt", "rifle-mpx5", "shotgun-remington-pump", "bow-ellie",
                                   "pistol-beretta", "pistol-revolver-taurus", "shotgun-tactical", "pistol-cz75-enforcer",
                                   "pistol-el-diablo", "rifle-frontier", "rifle-milsniper", "pistol-snubby", ASSAULT_ID, EXPBOW_ID, VINTAGE_ID};
@@ -28328,7 +28605,7 @@ static int ex_play_label(int label, float gain, const char *pair, int exec) {   
             int ok1 = pcm_play_at2(t2m_blob + T2M_WAVE[stab].off, (int)T2M_WAVE[stab].n, gain * master, T2M_RATE, fe, EXPOS);
             int ok2 = pcm_play_at2(t2m_blob + T2M_WAVE[gore].off, (int)T2M_WAVE[gore].n, gain * master, T2M_RATE, fe, EXPOS);
             xlog("exec sfx plan: %s: machete slash -> stab wave %u (%d) + blood wave %u (%d) + chop", pair ? pair : "?", stab, ok1, gore, ok2);
-            // Machete throat slash: the switchblade neck-tear (blade through the throat + the wet tear, t2melee waves 80..85) on the
+            // the switchblade neck-tear (blade through the throat + the wet tear, t2melee waves 80..85) on the
             // victim, and a blood stream from the neck (throat_blood_start: repeated neck particles for ~1.3 s)
             unsigned tear = T2M_NECK_TEAR[rm % 6u];
             int ok3 = pcm_play_at2(t2m_blob + T2M_WAVE[tear].off, (int)T2M_WAVE[tear].n, gain * master, T2M_RATE, fe, EXPOS);
@@ -28336,7 +28613,8 @@ static int ex_play_label(int label, float gain, const char *pair, int exec) {   
             xlog("exec sfx plan: %s: throat slash -> neck-tear wave %u (%d) + neck blood stream", pair ? pair : "?", tear, ok3);
         }
     }
-    // The butt stock smashing special executions had a poor contact sound and then a pipe-like one; the SP takedown audio is used, layered like the kicks: the long-gun butt smash plays TLOU2's rifle-bash sound,
+    // ("butt stock smashing special executions ... the contact sounds like someone eating fried chicken") + ("the new sound is
+    // CLEARLY a pipe sound ... use the SP takedown audio, layered like the kicks"): the long-gun butt smash plays TLOU2's rifle-bash sound,
     // rebuilt from the SP gun-hit / gun-finisher layers (gbl-fight sfx-unarmed-finisher-longgun-head-skin / sfx-longgun-hit-head-skin, silent in MP;
     // tools/rip_t2_melee.py "butt cue": skull crack + heavy thump + flesh + long-gun rattle + gear leather + body weight, the kill blow with the
     // finisher skin hit + gore + elbow bone on top). No pipe waves. The swings are in ex_tick (bx swing). t2r-no-buttsmash-fx.txt = the old single wave.
@@ -30625,7 +30903,7 @@ static void xr_refusal_watch(void) {
 static void xr_tick(void) {
     xr_verify_tick();
     xr_refusal_watch();
-    if (!g_xr_on) {                                       // revive2013 / any other g_unarm_exec user: its own timing, the same verified restore
+    if (!g_xr_on) {                                       // revive2013 / any other g_unarm_exec its own timing, the same verified restore
         if (g_unarm_exec && g_t60 >= g_unarm_until) xr_finish("unarmed move over");
         return;
     }
@@ -30982,7 +31260,7 @@ static void pg_read(pg_ent *e) {
             float best = -1.0f;
             for (int a = 0; a < 4; a++) for (int b = a + 1; b < 4; b++)
                 if (hd[a] >= 0.0f && hd[b] >= 0.0f && __builtin_fabsf(hd[a] - hd[b]) < 0.35f) { float m = hd[a] < hd[b] ? hd[a] : hd[b]; if (best < 0.0f || m < best) best = m; }
-            // (clip 20-04-06, the victim went through a wall): a lone LEFT / RIGHT edge ray hit 0.17 m along the recoil was taken as foliage -
+            // (clip, the victim went through a wall): a lone LEFT / RIGHT edge ray hit 0.17 m along the recoil was taken as foliage -
             // it was the room's wall right at the victim's flank. An edge ray hit inside the first 0.5 m is a wall whatever the others read.
             for (int r = 2; r < 4 && best < 0.0f; r++) if (hd[r] >= 0.0f && hd[r] < 0.5f) best = hd[r];
             if (best >= 0.0f) { bad |= 2; why[1] = "a wall in the way"; wt[1] = best / e->len[1]; e->vwall = best; }
@@ -32165,7 +32443,8 @@ static void exec_crouch_tick(void) {
     if (until && g_t60 < until && !busy && local_hp() > 0.0f && !g_downed) { uint64_t none = 0; dc_call(fnv64("player-force-crouch"), 0, &none); }
     else if (until && g_t60 >= until) { until = 0; crouched = 0; }
 }
-// Faces in special executions (characters' faces should react to pain; they were pretty blank). ROOT CAUSE of the blank faces (DC bytecode tools/local/dcx/out/m.bin.txt play-melee-facial-gesture
+// Faces in special executions ("faces during
+// special executions are pretty blank"). ROOT CAUSE of the blank faces (DC bytecode tools/local/dcx/out/m.bin.txt play-melee-facial-gesture
 // + ph.bin.txt): the natives are player-set-emotion(symbol, duration, fade-in, weight) and npc-set-emotion(npc, symbol, duration, fade-in,
 // weight) - 4 / 5 args, the engine's own melee gesture passes (symbol, duration, 0.1, 1.0). The old call sent 2 / 3 args (symbol, fade 0.2),
 // so duration / fade-in / WEIGHT were zero = a zero-weight pose = no expression - and "pain" / "strain" are not emotion symbols at all
@@ -32794,7 +33073,7 @@ static void execute_enemy_tick(const float *mp) {
         if (pass == 1 && sl != st_slot) continue;
         if (sl == self || is_teammate(sl) || g_peer_downed[sl] != 1) continue;
         if (psync_busy_slot(sl) || g_puppet_dead_here[sl]) continue;      // already under someone's execution (a half plays on them) / dead
-        {   // ps52 (R-D7AA): a victim whose position states stopped > 2 s ago cannot answer the START - no Execute / Interrogate prompt, no E (the
+        {   // ps52: a victim whose position states stopped > 2 s ago cannot answer the START - no Execute / Interrogate prompt, no E (the
             // pair would only abort). It can still be shot. t2r-exec-stale-ps52-old.txt = the old rule.
             static int s52 = -1; static uint64_t s52_at;
             if (s52 < 0 || g_t60 - s52_at > 120) { s52_at = g_t60; FILE *sf = exe_side_open("t2r-exec-stale-ps52-old.txt", "r"); s52 = sf != NULL; if (sf) fclose(sf); }
@@ -34177,6 +34456,16 @@ static void cw_try(uint32_t victim) {    // our own down of `victim` with a know
     mis_down_book(w, victim);
     int k = cw_class(w);
     if (k > 0 && k < 12) g_cw_wn[k]++;
+}
+// a molotov KILLS a standing player (2013), so no down message ever came and the
+// victim's MSG_KFWEAPON is sent for downs only (killfeed.c) - cw_try never had a weapon and mission 8 / the molotov-downs challenge stayed 0, while the
+// same kill pays "Downed Enemy" (bk_pay: a standing victim's outright kill stays a down). The death message carries the weapon: hand it to cw_try
+// before ev_down, so an outright kill counts for its weapon's down mission exactly like a down (molotov 8, a blade kill 11, a sniper kill 17 / 13).
+// One count per kill: cw_try clears the weapon, the down path never sends one for a kill, and ev_down drops the same death learnt twice.
+static void cw_kill_weapon(uint32_t victim, uint64_t w) {
+    if (victim > T2R_MAX_PEERS - 1 || !w || w == ~0ULL) return;
+    g_cw_w[victim] = w; g_cw_ms[victim] = GetTickCount64();
+    xlog("mission: outright kill of slot %u with weapon %llx - counted like a down", victim, (unsigned long long)w);
 }
 static void bk_weapon(uint32_t victim, uint64_t w) {
     if (victim > T2R_MAX_PEERS - 1) return;
@@ -35788,7 +36077,7 @@ static uint8_t *g_exhold_comp; static int32_t g_exhold_hp; static int g_exhold_s
 static int psync_is_exec_victim_comp(const uint8_t *comp);
 static uint64_t psync_puppet(int slot);
 static void set_hp_hook(uint8_t *comp, int32_t hp) {
-    // (clip 00-41-14): the executed puppet died engine-side at the kill (hp 0 -> character-is-dead, its ragdoll)
+    // (clip): the executed puppet died engine-side at the kill (hp 0 -> character-is-dead, its ragdoll)
     // while psync still placed it on the clip for ~60 frames - the dragged ragdoll flailed. While our attacker half plays, a
     // lethal hp set on any body but ours is held (hp 1) and applied when the clip is over (exhold_tick): the body goes limp
     // from the clip's final pose.
@@ -35983,7 +36272,7 @@ typedef uint8_t (*fn_peer_dead)(uint8_t *);
 static fn_peer_dead g_peer_dead_tramp;
 static uint8_t peer_dead_hook(uint8_t *peer) {
     uint8_t r = g_peer_dead_tramp(peer);
-    // (clip 00-41-14, A at 4 fps): the executed puppet ragdolled at the kill while psync still placed it on the clip
+    // (clip, A at 4 fps): the executed puppet ragdolled at the kill while psync still placed it on the clip
     // (17-59 frames) - the teleported ragdoll flailed for the 4 s of the fling cap. On the attacker's client the victim is held
     // alive to winmm until our move's clip is over (as for a finisher), so the puppet stays in the clip and goes limp from its
     // final pose afterwards (remote death, no death anim) - the victim's own client does the same with its body.
@@ -37322,6 +37611,7 @@ static const char *ammo_of_gun(const char *gun) {
     if (w == fnv64("rifle-frontier")) return "ammo-rifle";           // the hunting rifle's clone: its ammo
     if (w == fnv64("rifle-milsniper")) return "ammo-rifle";          // the hunting rifle's clone: its ammo
     if (w == fnv64(EXPBOW_ID)) return "ammo-arrow-explosive";       // the Explosive Bow's own pool (pickup look: arrow-bundle, MP_LEVEL_ADDS)
+    if (w == fnv64(LAUNCHER_ID)) return "ammo-arrow-explosive";     // the Launcher fires the same explosive arrow (its firearm def's one ammo, dc_data_patches.LAUNCHER)
     if (w == fnv64(ASSAULT_ID)) return "ammo-rifle-mpx5";       // the game's own ammo for Marlene's rifle in No Return: the Full-Auto Rifle's pool
     if (w == fnv64(FLAME_ID)) return "ammo-flamethrower";       // the game's own flamethrower fuel (ammo-to-weapon-array); 2013 power weapons get no box ammo (supplybox.c has no row for it)
     return NULL;
@@ -37806,7 +38096,9 @@ static void xdrop_verify(void) {
         g_xv[i].h = 0;
     }
 }
+static void downer_drop_tick(void);
 static void xdrop_tick(void) {
+    downer_drop_tick();
     xdrop_verify();
     for (int i = 0; i < 4; i++) {
         if (!g_xds[i].on || g_t60 < g_xds[i].due) continue;
@@ -37914,9 +38206,7 @@ static void kill_drop_gate(uint32_t killer, uint32_t victim, uint64_t weapon) {
     uint32_t me_k = *(uint32_t *)VMA(0x180138090);
     uint32_t owner = killer;
     if (down && victim < T2R_MAX_PEERS && g_ev_downer[victim] && GetTickCount64() - g_ev_downer_ms[victim] < 90000) owner = g_ev_downer[victim] - 1u;
-    if (owner == me_k && killer != me_k && killer < T2R_MAX_PEERS && down) {
-        ev_pay(int_pts(50, 30), me_k, "Assist", "we downed it, a teammate executed / finished it", victim);
-    }
+    // (the downer's Assist + pack when someone else finished our down: downer_drop_arm from the death message - this gate only runs on the killer's screen)
     if (g_gx.role == 1 && g_gx.until && g_t60 < g_gx.until && g_gx.slot == (int)victim && owner != me_k) {
         if (lg) xlog("drops: our execution of slot %u downed by slot %u - the pack is theirs, none here", victim, owner);
         return;
@@ -37961,6 +38251,53 @@ static void kill_drop_gate(uint32_t killer, uint32_t victim, uint64_t weapon) {
     if (victim < T2R_MAX_PEERS && ret[0] && ret[0] != ~0ULL) { g_xre[victim].h = ret[0]; g_xre[victim].item = item; g_xre[victim].count = count; g_xre[victim].at = g_t60; memcpy(g_xre[victim].xf, xf, 32); }
     if (lg) xlog("drops: %s x%llu at %.1f %.1f %.1f -> handle %llx", b13_name(item), (unsigned long long)count, xf[0], xf[1], xf[2],
                   (unsigned long long)ret[0]);
+}
+// ---- the DOWNER's pack when a teammate finishes our down ("if I down an enemy player and a teammate finishes them off, I do not
+// receive the usual rewards"). winmm calls kill_drop_gate on the KILLER's machine only, so its "someone else executes our down = the pack is
+// ours (+ an assist)" branch never ran on the downer's screen: the killer's screen skips the pack ("not ours") and the downer's
+// screen never heard of the kill (log: [35114] our down of slot 2, [35138] slot 2 died by teammate 5 - no drop line, no Assist).
+// The death message (trade_kill_msg, every client) arms it here: an enemy we downed (g_ev_downer, 90 s like kill_drop_gate) killed by
+// someone else while down -> the Assist award and our 2013 downer ammo pack (b13_drop_pick mode 0; Scavenger: sk_scav_pay, II+ straight
+// into the pack). The pack spawns from the tick 2 frames later (box-style spawn, as the execution satchel's sd_tick). The killer's screen
+// pays nothing for that pack (owner != killer), so the pack is paid once. A crossbow special execution keeps its one bolt drop.
+// t2r-no-downer-drop.txt = off.
+static uint64_t g_dnd_due[T2R_MAX_PEERS];       // g_t60 at which our downer pack of that victim slot is paid / spawned (0 = none)
+static void downer_drop_arm(uint32_t victim, int killer) {
+    uint32_t me = *(uint32_t *)VMA(0x180138090);
+    if (g_kill_drop_gate || !g_spawn_pickup_orig || match_substate() != 6 || victim >= T2R_MAX_PEERS || victim == me) return;
+    if (killer < 0 || killer >= T2R_MAX_PEERS || (uint32_t)killer == me || same_team(me, victim)) return;
+    int down = g_peer_downed[victim] || (g_down_end[victim] && g_t60 - g_down_end[victim] < 240);
+    if (!down || !g_ev_downer[victim] || g_ev_downer[victim] - 1u != me || GetTickCount64() - g_ev_downer_ms[victim] >= 90000) return;
+    if (GetFileAttributesA("t2r-no-downer-drop.txt") != INVALID_FILE_ATTRIBUTES) return;
+    ev_pay(int_pts(50, 30), me, "Assist", "we downed it, a teammate executed / finished it", victim);
+    // 2013 ss-respawn-intro gives the DOWNER a supply bottle too (group-pickup-supplies, re/factions2013/executions-2013.md 4),
+    // besides the executer's own. Our own local satchel at the body, the same one an execution of ours drops (Scavenger II+: booked at once).
+    // t2r-no-downer-satchel.txt = no satchel for the downer (the pack + Assist stay).
+    if (GetFileAttributesA("t2r-no-downer-satchel.txt") == INVALID_FILE_ATTRIBUTES) sd_originate(victim, kill_body_locator(victim));
+    if (xbx_marked(victim) && !xbx_off()) { xlog("drops: our down of slot %u finished by slot %d with a crossbow special execution - its bolt is the one drop, no pack", victim, killer); return; }
+    g_dnd_due[victim] = g_t60 + 2;
+    xlog("drops: our down of slot %u finished by slot %d - the downer's pack is ours (2013 downer ammo spawn)", victim, killer);
+}
+static void downer_drop_tick(void) {
+    for (uint32_t v = 0; v < T2R_MAX_PEERS; v++) {
+        if (!g_dnd_due[v] || g_t60 < g_dnd_due[v]) continue;
+        g_dnd_due[v] = 0;
+        if (match_substate() != 6) continue;
+        uint64_t item = 0, count = 0;
+        if (!b13_drop_pick(0, &item, &count) || !strncmp(b13_name(item), "?", 2)) { xlog("drops: downer pack for slot %u - no valid ammo for our guns, nothing dropped", v); continue; }
+        if (sk_scav_pay(item, &count)) continue;      // Scavenger II / III: straight into the pack (I: x1.5, spawned below)
+        const float *l = kill_body_locator(v);
+        if (!l) { xlog("drops: downer pack for slot %u - no body locator, nothing dropped", v); continue; }
+        float p[3] = {l[0], l[1] + 0.3f, l[2]};       // 30 cm above the body, like the kill drops
+        uint64_t ret[4] = {0};
+        box_spawn_like(ret, item, p, count);
+        if (ret[0] && ret[0] != ~0ULL) {
+            float *xf = drop_xf();
+            xf[0] = p[0]; xf[1] = p[1]; xf[2] = p[2]; xf[3] = 1.0f; xf[4] = xf[5] = xf[6] = 0.0f; xf[7] = 1.0f;
+            g_xre[v].h = ret[0]; g_xre[v].item = item; g_xre[v].count = count; g_xre[v].at = g_t60; memcpy(g_xre[v].xf, xf, 32);
+        }
+        xlog("drops: downer pack %s x%llu for slot %u at %.1f %.1f %.1f -> handle %llx", b13_name(item), (unsigned long long)count, v, p[0], p[1], p[2], (unsigned long long)ret[0]);
+    }
 }
 static void install_kill_drop_gate(void) {
     uint8_t *call = (uint8_t *)VMA(0x180037A6B);
@@ -38217,6 +38554,11 @@ static uint32_t g_dragon_row = 0xffffffffu;   // Dragon's Buckshot's purchasable
 static uint32_t g_ar_row = 0xffffffffu;   // the Assault Rifle's purchasable row (0xffffffff: not built)
 static uint32_t g_eb_row = 0xffffffffu;   // the Explosive Bow's purchasable row (0xffffffff: not built)
 static int expbow_built(void) { return T2R_EXPBOW_BUILT; }
+#ifndef T2R_LAUNCHER_BUILT
+#define T2R_LAUNCHER_BUILT 0           // generated header (faction_guns_built.h): 1 when the DLL carries the Launcher (T2R_LAUNCHER=1 at build)
+#endif
+static int launcher_built(void) { return T2R_LAUNCHER_BUILT; }
+static int arrow_blast_built(void) { return expbow_built() || launcher_built(); }   // the explosive arrow's blast machinery (expbow2013.c): the Explosive Bow's or the Launcher's
 // t2r-old-purchasables.txt next to the exe: the old purchasable list (8 rows, the Galil row as the game named it, no Assault Rifle row)
 static int old_purchasables(void) {
     static int off = -1;
@@ -38278,6 +38620,7 @@ static const char *ammo_noun(const char *id) {
     if (!strcmp(id, "bow-ellie") || !strncmp(id, "bow", 3)) return "Arrows";
     if (!strncmp(id, "crossbow", 8)) return "Bolts";
     if (!strcmp(id, FLAME_ID)) return "Fuel";
+    if (!strcmp(id, LAUNCHER_ID)) return "Explosive arrows";          // (the projectile is TLOU2's explosive arrow)
     if (!strncmp(id, "pistol-el-diablo", 16)) return "Magnum rounds";       // its own pool (2013 ammo-pistol-uber), not the revolver's
     if (!strncmp(id, "pistol-revolver", 15) || !strcmp(id, "pistol-snubby")) return "Revolver rounds";
     if (!strncmp(id, "pistol", 6)) return "Pistol rounds";
@@ -38425,7 +38768,7 @@ static void install_weapon_tables(void) {
         *(const char **)(vr + 0x08) = "streaming/t2r/icons/vintage-rifle.png";
         *(uint32_t *)(vr + 0x18) = 2;
         *(uint32_t *)(vr + 0x1c) = 6;
-        *(const char **)(vr + 0x28) = "An old bolt-action rifle with iron sights. Small magazine, quick bolt. Two body shots to down.";
+        *(const char **)(vr + 0x28) = "An old bolt-action rifle with iron sights. Quick bolt, small magazine. Close to mid range: two body shots to down up close, three at long range.";
         nbase_large++;
     }
     // (the 2013 Military Sniper is a PURCHASABLE, not a large firearm: its row is built with the purchasables below)
@@ -38484,14 +38827,14 @@ static void install_weapon_tables(void) {
     *(uint32_t *)(ed + 0x28) = 3;
     *(const char **)(ed + 0x30) = "Handgun that comes with a scope. Two body shots to down.";
     *(const char **)(ed + 0x38) = "Magnum rounds for your El Diablo.";
-    // 2013 Machete: a PURCHASABLE row, 2 LP; bought in-match for 400 parts (store: purchasable section) and re-given on
-    // every respawn. Row after El Diablo (or in its place without faction guns). The game's id "machete" is the melee item.
+    // 2013 Machete: a PURCHASABLE row, 3 LP since (2 LP before, 2013's price); bought in-match for 400 parts (store:
+    // purchasable section) and re-given on every respawn. Row after El Diablo (or in its place without faction guns). The game's id "machete" is the melee item.
     uint8_t *mc = np + (fg ? 5 : 4) * 0x40;
     memcpy(mc, purch + 1 * 0x40, 0x40);
     *(const char **)mc = "MACHETE";
     *(const char **)(mc + 0x08) = "streaming/t2r/icons/machete.png";   // tools/models/make_icons.py machete_icon (the game's own pickup icon)
     *(const char **)(mc + 0x10) = "machete";
-    *(uint32_t *)(mc + 0x18) = 2;
+    *(uint32_t *)(mc + 0x18) = 3;
     *(uint32_t *)(mc + 0x1c) = 0;
     *(uint32_t *)(mc + 0x20) = 400;
     *(uint32_t *)(mc + 0x24) = 0;
@@ -38630,6 +38973,33 @@ static void install_weapon_tables(void) {
             g_dragon_row = npurch++;
             xlog("dragon: purchasable row %u = %s (Double Barrel clone, incendiary shells; 2 LP, 300 parts, start 4, 4 for 340)", g_dragon_row, DRAGON_ID);
         }
+        // 2013 Launcher (dc_data_patches.LAUNCHER, wiki `*[[Launcher]] - Area of effect weapon that downs an enemy in 2 shots (3 LP) [375] {DLC}`,
+        // "Starting Ammunition: 3", "Ammo - 3 [450]"): the row after the Dragon's Buckshot, from the Flamethrower's row (a purchasable power weapon).
+        // Only when the DLL carries it (T2R_LAUNCHER_BUILT), it is for sale (T2R_LAUNCHER_PICK) and the page has room (PURCH_MAX).
+        // T2R_LAUNCHER_PICK 0 (default): the data may carry the Launcher, but no GEAR UP / store row is made, so nobody can pick or buy it.
+        // A saved loadout that pointed at its row gets no purchasable (lo_load: a row past the list = none); a launcher loadout file naming
+        // t2r-launcher gets none too (loadjson.c lj_pick_w).
+#ifndef T2R_LAUNCHER_PICK
+#define T2R_LAUNCHER_PICK 0
+#endif
+        g_launcher_row = 0xffffffffu;
+        if (T2R_LAUNCHER_PICK && launcher_built() && npurch < purch_cap) {
+            uint8_t *lr = np + npurch * 0x40;
+            memcpy(lr, sp, 0x40);
+            *(const char **)lr = "LAUNCHER";
+            *(const char **)(lr + 0x08) = "streaming/t2r/icons/launcher.png";
+            *(const char **)(lr + 0x10) = LAUNCHER_ID;
+            *(uint32_t *)(lr + 0x18) = 3;                  // wiki: 3 LP
+            *(uint32_t *)(lr + 0x1c) = 3;                  // wiki: starting ammunition 3
+            *(uint32_t *)(lr + 0x20) = 375;                // wiki: [375]
+            *(uint32_t *)(lr + 0x24) = 450;                // wiki: ammo 3 [450]
+            *(uint32_t *)(lr + 0x28) = 3;
+            *(const char **)(lr + 0x30) = "Area of effect weapon that downs an enemy in 2 shots.";   // the 2013 wiki line
+            *(const char **)(lr + 0x38) = "Grenades for your Launcher.";   // the shot is no arrow any more (2013 ammo record ammo-grenade-launcher)
+            g_launcher_row = npurch++;
+            xlog("launcher: purchasable row %u = %s (flamethrower clone firing ammo-arrow-explosive; 2013: 3 LP, 375 parts, start 3, 3 for 450)", g_launcher_row, LAUNCHER_ID);
+        } else if (launcher_built())
+            xlog("launcher: built but NO purchasable row - %s", T2R_LAUNCHER_PICK ? "the page is full" : "not for sale (T2R_LAUNCHER_PICK 0)");
         *(const char **)sp = "SPECTER";
         *(uint32_t *)(sp + 0x18) = 3;
         *(uint32_t *)(sp + 0x1c) = 15;                     // wiki: starting ammunition 15
@@ -38883,6 +39253,7 @@ static const struct { uint64_t gun; const char *ammo; int reserve, per_level; co
     {0x0ULL, "ammo-shotgun-baserri", 3, 1, "shotgun-shorty"},   // 2013 Shorty: start 5 = 2 + 3
     {0x0ULL, "ammo-rifle", 4, 1, "rifle-frontier"},              // Frontier Rifle (the hunting rifle's ammo pool): start 8 = 4 + 4
     {0x0ULL, "ammo-rifle-mpx5", 0, 0, ASSAULT_ID},            // 2013 Assault Rifle (the FAR's ammo pool): the loaded magazine of 20, no reserve at spawn
+    {0x0ULL, "ammo-arrow-explosive", 2, 0, LAUNCHER_ID},        // 2013 Launcher (wiki: starting ammunition 3, magazine 1 -> 1 loaded + 2): the explosive arrow's pool
     {0x0ULL, "ammo-arrow-explosive", 2, 0, EXPBOW_ID},          // 2013 Launcher (wiki: starting ammunition 3, magazine 1 -> 1 loaded + 2): its own pool, the game's explosive arrow
     {0x0ULL, "ammo-shotgun-baserri", 2, 1, DRAGON_ID},          // Dragon's Buckshot (the Double Barrel's shells): start 4 = 2 loaded + 2
     {0x0ULL, "ammo-flamethrower", 0, 0, FLAME_ID},               // 2013 Flamethrower: starting ammunition 30 = the clip (flame_after_spawn sets it), no reserve at spawn (ammo 30 for 360 is bought in the match)
@@ -38892,7 +39263,7 @@ static const struct { uint64_t gun; const char *ammo; int reserve, per_level; co
 
 // Loaded magazine at spawn of the purchasables the spawn grant sets (their WEAPON_STATS row, when it has one, wins): picker text only.
 static const struct { const char *weapon; int mag; } SPAWN_MAG[] = {
-    {ASSAULT_ID, 10}, {"rifle-milsniper", 4}, {"shotgun-baserri-over-under", 2}, {EXPBOW_ID, 1}, {FLAME_ID, 30}, {DRAGON_ID, 2},   // Assault Rifle / Military Sniper: the 2013 STARTING ammunition (10 / 4) is the loaded rounds (magazines 20 / 5), see spawn_clip_after_spawn
+    {ASSAULT_ID, 10}, {"rifle-milsniper", 4}, {"shotgun-baserri-over-under", 2}, {EXPBOW_ID, 1}, {LAUNCHER_ID, 1}, {FLAME_ID, 30}, {DRAGON_ID, 2},   // Assault Rifle / Military Sniper: the 2013 STARTING ammunition (10 / 4) is the loaded rounds (magazines 20 / 5), see spawn_clip_after_spawn
 };
 // purchasables whose starting ammunition is below the magazine (Assault Rifle 10 of 20, Military Sniper 4 of 5) spawn with that many rounds
 // loaded and no reserve (their SPAWN_AMMO reserve is 0): the clip is set after the spawn kit, like the Flamethrower's.
@@ -38903,7 +39274,7 @@ static void spawn_clip_after_spawn(void) {
             if (base_weapon(g_spawn_guns[i]) != fnv64(T[k].gun)) continue;
             uint64_t a[2] = {(uint64_t)T[k].n, g_spawn_guns[i]};
             uint64_t r = dc_call(fnv64("set-player-weapon-clip-ammo"), 2, a);
-            xlog("spawn clip: %s clip set to %d (2013 starting ammunition, readthisfile 11-02) -> %llx", T[k].gun, T[k].n, (unsigned long long)r);
+            xlog("spawn clip: %s clip set to %d (2013 starting ammunition, readthisfile) -> %llx", T[k].gun, T[k].n, (unsigned long long)r);
         }
 }
 // "Starts with N rounds" of a gun = the loaded magazine + the SPAWN_AMMO reserve (level 0): the numbers the spawn really applies.
@@ -39430,7 +39801,7 @@ static void fem_dead_press_diag(uint64_t cw, uint64_t gw, uint64_t id, uint64_t 
          (long long)(has == ~0ULL ? -1 : (has & 0xff)), pw && !IsBadReadPtr(pw, 8) && player_weapon(pw) ? "yes" : "no", gun_out, can_swing, !psync_active(), !g_exec_until, g_t60 - g_mcam_busy_t60 > S60(0.5f), g_ms_atk,
          g_stun_until != 0, g_unarm_exec, bz ? bz : "none", mdu_engaged(), mpace_locked(), (unsigned long long)g_fem_swing_t60, (unsigned long long)g_t60, g_fem_knife_mode);
 }
-static int fem_box_busy(void);   // supplybox.c (ps46)
+static int fem_box_busy(void);   // supplybox.c
 static int fem46_off(void) { static int v = -1; static uint64_t at; uint64_t t = GetTickCount64(); if (v < 0 || t - at > 2000) { int o = v; at = t; v = GetFileAttributesA("t2r-fem-knife-ps46-old.txt") != INVALID_FILE_ATTRIBUTES; if (o != v) xlog("female: ps46 box-press gate %s", v ? "OFF (t2r-fem-knife-ps46-old.txt)" : "on"); } return v; }
 static void female_knife_item(void) {
     static uint64_t life, drawn_t60, wait_t60, press_t60, swings_at_draw;
@@ -39723,7 +40094,8 @@ static void knife_prop_tick(void) {
         else knife_prop_gun_hide(s);
     }
 }
-// v5-knife: a female's knife swing is the engine's FIST attack with IsEllie on, so its hit reaches the victim with the fists' id (abby-unarmed 6ac05fba9c921900;
+// v5-knife
+// a female's knife swing is the engine's FIST attack with IsEllie on, so its hit reaches the victim with the fists' id (abby-unarmed 6ac05fba9c921900;
 // B [12008]-[12224] "hit received: weapon 6ac05fba9c921900", A [18864] "damage 15 (weapon 6ac05fba9c921900)"). Every victim layer read it as a punch: the TLOU2 punch
 // wave ("hitreact: punch wave 4 (PCM, was sfx-unarmed-hit-face-skin) at us"), the fists' head-front-c / chest reaction pick, the take-face grunt, the FIST concussion -
 // and no knife sound at all on the victim's screen. SP (re/sp-sandbox-runs/sea-1026-human-melee-dodge-parry-disarm.log F=165232, Ellie's switchblade-light-attack-1 on an
@@ -40445,7 +40817,7 @@ static void slot_guard_tick(void) {
     uint8_t *o = g_slotg_last[which];
     uint64_t q0 = 0, q8 = 0;
     if (o && !IsBadReadPtr(o, 16)) { q0 = *(uint64_t *)o; q8 = *(uint64_t *)(o + 8); }
-    xlog("slot array guard: dead component skipped in the %s walk (R-VHL9: its vtable / vfunc is not code) - object %p (+0 %llx +8 %llx; +0 == itself = a freed list header) | so far destroy %ld, relocate %ld",
+    xlog("slot array guard: dead component skipped in the %s walk (: its vtable / vfunc is not code) - object %p (+0 %llx +8 %llx; +0 == itself = a freed list header) | so far destroy %ld, relocate %ld",
          which ? "relocate" : "destroy", (void *)o, (unsigned long long)q0, (unsigned long long)q8, seen0, seen1);
 }
 // Craft-menu / journal null-this guard (clicking journal in the craft menu crashed MP; AV read at exe+be58df
@@ -40454,7 +40826,7 @@ static void slot_guard_tick(void) {
 // == [obj+0x94]) or 0 when that handle is stale. Opening the SP journal from the craft menu leaves the handle stale in MP, so rcx = 0 and the first
 // dereference faults. A null this now returns at once (the callers ignore the result; be4d8c re-reads the handle itself and handles 0).
 // Hook = be58a0 'mov [rsp+0x10],rbx' (5 bytes). t2r-no-menunull-guard.txt = off. UNVERIFIED in game: the crash path is proven by the dump only.
-static void menu_null_guard_hit(void) { static int n; if (LOGCAP(n, 10)) xlog("menu null guard: be58a0 called with this = 0 (craft menu journal, R-UQJD) - skipped"); }
+static void menu_null_guard_hit(void) { static int n; if (LOGCAP(n, 10)) xlog("menu null guard: be58a0 called with this = 0 (craft menu journal,) - skipped"); }
 static void install_menu_null_guard(void) {
     uint8_t *exe = (uint8_t *)GetModuleHandleW(NULL), *site = exe + 0xbe58a0;
     static const uint8_t expect[10] = {0x48, 0x89, 0x5c, 0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18};
@@ -40490,7 +40862,7 @@ static void install_menu_null_guard(void) {
 // function after the be5520 call) resolves the object behind the handle at [menu+0x130] (generation [menu+0x138] vs [obj+0x94]) into rdi and falls through
 // with rdi = 0 when the handle is stale, then reads [rdi+0x840] for the call to 1574c00. With rdi = 0 the read is skipped and the state still goes on
 // to be146a (menu state = 4), the engine's own next step. Hook = be145e (7 bytes -> jmp + nop). t2r-no-menunull-guard.txt = off (shared).
-static void menu_null_guard2_hit(void) { static int n; if (LOGCAP(n, 10)) xlog("menu null guard: be145e reached with the journal object = 0 (R-LTCF) - skipped"); }
+static void menu_null_guard2_hit(void) { static int n; if (LOGCAP(n, 10)) xlog("menu null guard: be145e reached with the journal object = 0 - skipped"); }
 static void install_menu_null_guard2(void) {
     uint8_t *exe = (uint8_t *)GetModuleHandleW(NULL), *site = exe + 0xbe145e;
     static const uint8_t expect[12] = {0x48, 0x8b, 0x8f, 0x40, 0x08, 0x00, 0x00, 0xe8, 0x96, 0x37, 0x99, 0x00};
@@ -41113,7 +41485,7 @@ static void feature_inf_ingredients(void) {
 //   Inputs (all verified, a miss logs once and draws nothing): the weapon object = 0x141184b30(0x140bdc1f0(*(player+0x2f60))), its vtable
 //   +0xbf8 (must be false), +0xb88 (bullet settings, first qword must be the ProjectileArrow id 0x1b9e9b79cb7d05e7), +0xc58 (muzzle point out);
 //   camera ray = 0x140c72440(*(player+0x3278), out): out+0x10 origin, out+0x20 direction.
-// Not driven by the user's "Throw Arc" accessibility option (the producers gate on a player flag "object-arc"; we skip that gate on purpose:
+// Not driven by the accessibility option (the producers gate on a player flag "object-arc"; we skip that gate on purpose:
 // 2013 always showed it).  t2r-no-bow-arc.txt next to the exe = off.  Log lines: "bow: arc ...".
 // The beam is a ribbon of constant WORLD width (art params +4 = 0.04 m), so seen from the bow it is fat near the muzzle and a
 // 1-2 px "plain line" in the far half - RenderGrenadeArc (0x1411bf3c0) always draws all 50 samples of the whole flight as one ribbon (the sample
@@ -41218,7 +41590,8 @@ static void bow_dots_build(const struct bow_snap *sp) {
     } else if (g_bow_dots_n) memcpy(g_bow_dots_pos, g_bow_dots[g_bow_dots_n - 1], 12);
     g_bow_dots_frame = g_frame;
 }
-// ---- BOW ARC RIBBON, REWORK (it broke frequently: zigzag, not shown, shown on the ground).  What broke, from the code + A/B logs:
+// ---- BOW ARC RIBBON, REWORK
+// . What broke, from the code + A/B logs of:
 //  * ground / short arcs: the start (and the hit probe) was the engine "spawn function" point 0x1411861d0, which while aiming sits at the player's FEET
 //    (A log: y 7.23 constant while the muzzle moved 8.44 -> 8.57 and the camera ray was at 8.80 - 1.2..1.5 m below the bow), so the probe ran
 //    along the floor and stopped on the first low box / the ground in front of the player (the Bookstore screenshot: a short streak + the landing
@@ -41353,7 +41726,7 @@ static int g_bow_arc_on;
 static volatile int32_t g_mp_ui_off;          // MP option DISABLE MP UI (OPTIONS > MULTIPLAYER, t2r-settings.txt 8th field): 1 = every MP HUD element hidden in a match (mp_ui_off_tick)
 // the stock OPTIONS > HUD design (HEALTH AND WEAPON + its child rows) for DISABLE MP UI: child rows DISABLE RADAR / DISABLE LIVES COUNTER /
 // DISABLE SUPPLIES / PARTS (t2r-settings.txt fields 9-11, 1 = that element hidden in a match; mpui_sync / mpui_child_tick)
-static volatile int32_t g_mp_hide[3];
+static volatile int32_t g_mp_hide[4];           // [3] = DISABLE CHAT (chat, t2r-settings.txt 15th field; chat.c ch_enabled) - its own row, the DISABLE MP UI parent leaves it alone
 static int g_mpui_hid[3];                      // applied this frame: radar, lives counter, supplies / parts (the radar draws read [0])
 static volatile int32_t g_bow_arc_pref = 1;   // MP option BOW AIM ARC (OPTIONS > MULTIPLAYER, t2r-settings.txt 6th field): 1 on (default), 0 off; read live by bow_arc_tick
 static void install_bow_arc(void) {
@@ -41418,7 +41791,7 @@ static int bow_build_params(uint8_t *pl, uint8_t *exe, float *P, struct bow_info
     if (!bow_in_exe(vt, exe) || IsBadReadPtr(vt + 0xb88, 0xc58 + 8 - 0xb88)) { *why = "weapon vtable"; return 0; }
     void *f_dis = *(void **)(vt + 0xbf8), *f_set = *(void **)(vt + 0xb88), *f_muz = *(void **)(vt + 0xc58);
     if (!bow_in_exe(f_dis, exe) || !bow_in_exe(f_set, exe) || !bow_in_exe(f_muz, exe)) { *why = "weapon vfuncs"; return 0; }
-    { static int nb; if (((fn_b1)f_dis)(wobj) && nb++ < 3) xlog("bow: arc: weapon +0xbf8 answers true for the bow (A/B 10-15: always) - not a stop any more"); }
+    { static int nb; if (((fn_b1)f_dis)(wobj) && nb++ < 3) xlog("bow: arc: weapon +0xbf8 answers true for the bow ( always) - not a stop any more"); }
     uint8_t *set = ((fn_p1)f_set)(wobj);
     if (!set || ((uintptr_t)set & 7) || IsBadReadPtr(set, 0x120)) { *why = "no bullet settings"; return 0; }
     if (*(uint64_t *)set != 0x1b9e9b79cb7d05e7ULL) { *why = "bullet settings are not ProjectileArrow"; return 0; }
@@ -41946,7 +42319,8 @@ static void install_bridge(void) {
     { FILE *df = exe_side_open("t2r-decal-diag.txt", "r"); if (df) { fclose(df); install_decal_diag(); } }   // opt-in: log the decal path of real flesh hits
 #endif
     {   // lethal gore pick for killing gun hits / gun executions on puppets (gore_note_hit). It was dev-only + opt-in (t2r-gore-fix.txt,
-        // after a crash AV exe+497e80) - so the test builds never had execution / kill gore at all (A/B carry t2r-gore-fix.txt). Now ON everywhere; t2r-no-gore-hook.txt turns it off.
+        // after a crash AV exe+497e80) - so the PT builds never had execution / kill gore at all
+        // - A/B carry t2r-gore-fix.txt). Now ON everywhere; t2r-no-gore-hook.txt turns it off.
         FILE *nf = exe_side_open("t2r-no-gore-hook.txt", "r");
         if (!nf) install_gore_hook();
         else { fclose(nf); xlog("gore: Gore_Spawn hook NOT installed (t2r-no-gore-hook.txt)"); }
@@ -41961,6 +42335,7 @@ static void install_bridge(void) {
     install_box_open_gate();
     install_spawn_picker();
     install_end_hold();
+    install_lq_site();
     install_session_close_diag();
     if (!g_no_coinimg) install_coin_icon();
     install_weapon_tables();
@@ -41988,6 +42363,8 @@ static uint64_t top_page(void);
 // something on the other screen): on the idle MP menu with winmm's session connected (state 2), push the matchmaking page - winmm's
 // match page tick starts the search itself once to1/find-match-menu is on the stack (re/decomp_match.c FUN_180063370). Every 20 s at most.
 static int g_test_autofind;          // t2r-test-autofind.txt present (ev_tick: the clan event page closes itself after 3 s)
+static int ms_switching(void);
+static int ms_world_busy(void);                      // the menu world is switching / a side pick's reload is due: no search (its level load drops the session)
 static void feature_test_autofind(void) {
     static int on = -1;
     static ULONGLONG last;
@@ -42030,6 +42407,7 @@ static void feature_test_autofind(void) {
     }
     ev_since = 0;
     if (top != 0xe847a875eef5981cULL || st != 2) return;
+    if (ms_world_busy()) return;                  // (A/B: a search pushed between a side pick and its scene reload was matched, then the reload dropped the session)
     ULONGLONG now = GetTickCount64();
     if (last && now - last < 20000) return;
     last = now;
@@ -44494,7 +44872,19 @@ static void feature_nametags_draw(void) {
                      ox, oy, on ? __builtin_sqrtf((ox - x) * (ox - x) + (oy - y) * (oy - y)) : -1.0f, tri);
             }
         }
-        const char *name = (const char *)(peer + 6);
+        // (also YV2Q/WC3E, XHMF): every log that measured a '<' glyph here crashed in that same frame with
+        // exe+123bb4d "Allocation failed ... Double Game Frame". winmm's measure / draw read '<' as the start of a markup
+        // tag (<color=> / <scale>), and the plain path below passes a lone "<" per call. The name field is 0x18 bytes and
+        // not always terminated (same copy as the roster dump). Angle brackets are dropped from the drawn tag, as
+        // lo_nm_clean already does for loadout names.
+        char name_buf[0x18 + 1];
+        {
+            const uint8_t *src = peer + 6;
+            int o = 0;
+            for (int i = 0; i < 0x18 && src[i]; i++) if (src[i] != '<' && src[i] != '>') name_buf[o++] = (char)src[i];
+            name_buf[o] = 0;
+        }
+        const char *name = name_buf;
         if (!name[0]) continue;
         if (vis[slot] * tag_fade * lhl < 0.99f) {     // scale the colour's alpha by the fades (and the 2013 highlight's)
             uint32_t al = (uint32_t)(((color >> 24) & 0xff) * vis[slot] * tag_fade * lhl);
@@ -44551,7 +44941,7 @@ static void feature_nametags_draw(void) {
             // pink rim. winmm's text draw has no outline colour (its only markup is <color=> / <scale>), so the rim is the same glyphs in pink at 8 offsets under the
             // normal tag; the name keeps its own colour and the routine's own dark outline sits between fill and rim.
             if (rkb_role_of(name) == 4) {
-                const uint32_t pink = (color & 0xff000000u) | 0x008b3dffu;          // ABGR of #ff3d8b, the tag's alpha (fades)
+                const uint32_t pink = (color & 0xff000000u) | 0x007d53ffu;          // ABGR of #ff537d (Discord Creator pink, was #ff3d8b), the tag's alpha (fades)
                 const float r = 2.0f * size;
                 static const float DX[8] = {1, 0.7071f, 0, -0.7071f, -1, -0.7071f, 0, 0.7071f}, DY[8] = {0, 0.7071f, 1, 0.7071f, 0, -0.7071f, -1, -0.7071f};
                 for (int o = 0; o < 8; o++) {
@@ -45181,7 +45571,8 @@ static void feature_listen_2013(void) {
         }
         if (radar_marked_shot((int)slot)) { hold = LISTEN_SHOT_HOLD_MS; why = "shot"; }   // unsuppressed shot (g_shot_until): always heard
         if (hold && now + hold > hold_until[slot]) hold_until[slot] = now + hold;
-        // 'prone always shows' showed a motionless prone player for as long as they lay there. Prone now behaves like standing still (shown while moving: a crawl is > 0.35 m/s,
+        //: 'prone always shows' showed a motionless prone player for as long as they lay there.
+        // - prone now behaves like standing still (shown while moving: a crawl is > 0.35 m/s,
         // and for the hold after a noise; hidden when still). A prone enemy in grass gets its nametag instead (feature_grass_prone_tag).
         // t2r-listen-prone-always.txt next to the exe = the old 'prone always shows' rule (the t2r-prone-listen-hide.txt switch is gone: it is the default now).
         static int pla = -1; static uint64_t pla_at;
@@ -46162,7 +46553,7 @@ static uint64_t pa_replay_hook(uint64_t ac, uint64_t a2, uint64_t a3) {
 // never logged: winmm does not send it for a dead puppet; A's own body stayed at 109.3 288.4). What it shows: the tick's put-back is undone AFTER the tick every
 // frame by a pull that fades (5.67 -> 0.86 m in 5 frames) toward a spot ~6.1 m away = 114.5 285.2, where this same puppet body stood for 600 frames after its
 // attacker half of execution u0104dc36 ended ([16738]..[17098] matchdiag). The writers that run after the tick on a puppet are this anim callback: the engine's
-// own (clip align) and winmm's msg-5 root write behind it. Which of the two it is, is NOT proven by rec42a. The rule (lead): a puppet that is dead here is moved by
+// own (clip align) and winmm's msg-5 root write behind it. Which of the two it is, is NOT proven by rec42a. The rule: a puppet that is dead here is moved by
 // the ragdoll / fling only - winmm's root write is skipped for it (the engine's callback still runs, as for a psync-taken puppet), and both modes measure how far
 // one call moved the body (logged by the tick 12 frames after the death: 'fling: ... dead puppet - 12 frames after it died here'). If the engine's own callback is
 // the mover the line says so and the fling lines stay. t2r-dead-root-write-old.txt = winmm writes the dead puppet's root as before. (The frame of the kill itself
@@ -46175,9 +46566,10 @@ static int dead_root_slot(uint64_t proc, uint64_t *hp) {
     typedef uint8_t *(*fn_proc)(uint64_t);
     if (!proc || !*(volatile uint8_t *)VMA(0x180135284)) return -1;           // winmm MP active
     for (uint32_t s = 0; s < T2R_MAX_PEERS; s++) {
-        if (!g_puppet_dead_here[s]) continue;
+        if (!g_puppet_dead_here[s] && !(g_bo_rd[s].on && g_bo_rd[s].h)) continue;
         uint8_t *peer = ((fn_peer)t2r_peer)(s);
         uint64_t h = peer && peer[4] ? *(uint64_t *)(peer + 0x60) : 0;
+        if (!g_puppet_dead_here[s] && !npcdie_dead(s, h)) continue;      // (npc-die called, not read dead yet: corpse-fling-1123)
         if (h && (uint64_t)((fn_proc)VMA(0x18000A200))(h) == proc && pa_ptr_ok(proc, 0xfe48)) { *hp = h; return (int)s; }
     }
     return -1;
@@ -46727,7 +47119,13 @@ static int g_no_fling_fix;
 #define FLING_MAX_ANG 20.0f
 static int fling_hold(uint32_t slot, uint8_t *peer, uint64_t h) {
     uint64_t hh = h, d = dc_call(0xe93f704f02a9ecd5ULL /* character-is-dead? */, 1, &hh);
-    if (d == ~0ULL || !(d & 0xff)) return 0;
+    if (d == ~0ULL || !(d & 0xff)) {
+        if (!npcdie_dead(slot, h)) return 0;
+        static uint64_t lh[T2R_MAX_PEERS]; static int nl;
+        if (lh[slot] != h) { lh[slot] = h; if (LOGCAP(nl, 60)) xlog("fling: slot %u puppet %llx - npc-die %llu frame(s) ago, not read dead yet: net locator / root writes stop now (t2r-no-npcdie-hold.txt = old)",
+                                                                     slot, (unsigned long long)h, (unsigned long long)(g_frame - g_bo_rd[slot].at)); }
+        return 1;
+    }
     if (g_peer_downed[slot] && !peer[5]) return 0;    // downed: alive on the network, keeps following
     return 1;
 }
@@ -47423,7 +47821,8 @@ static void lo_snap_take(void) {
 }
 static void lo_snap_drop(void) { g_lo_snap.ok = 0; }
 static void lo_snap_tick(void) {
-    // a mid-match pick whose spawn never came (match over first): apply it now and drop the snapshot. Before this the snapshot stayed armed in the menus after the match, so every GEAR UP pick was put back the next frame
+    // a mid-match pick whose spawn never came (match over first): apply it now and drop the snapshot. PT55 (yuyumaster clip
+    // 22:51): the snapshot stayed armed in the menus after the match, so every GEAR UP pick was put back the next frame
     // ("selecting didn't select") until a spawn.
     if (g_lo_pending && match_substate() != 6) {
         lo_snap_drop();
@@ -47461,12 +47860,20 @@ static void lo_save(void) {
     fclose(f);
 }
 static void sk4_fit_budget(loadout_t *l, int idx);   // skills.c
-// A saved custom that is over 13 LP only because the bow went from 2 to 3 LP: keep it, drop what costs least to lose (see sk4_fit_budget).
+// A saved custom that is over 13 LP only because the bow or the machete went from 2 to 3 LP: keep it, drop what costs least to lose
+// (see sk4_fit_budget).
 static void lo_migrate_budget(loadout_t *l, int idx) {
-    if (!g_large_tab || l->w[0] == 0xffffffffu || l->w[0] >= ((const uint32_t *)VMA(0x1800A0DA4))[0]) return;
-    const char *id = *(const char **)(g_large_tab + l->w[0] * 0x38 + 0x10);
-    if (!id || strcmp(id, "bow-ellie")) return;
-    sk4_fit_budget(l, idx);
+    const uint32_t *cnt = (const uint32_t *)VMA(0x1800A0DA4);
+    int bow = 0, machete = 0;
+    if (g_large_tab && l->w[0] != 0xffffffffu && l->w[0] < cnt[0]) {
+        const char *id = *(const char **)(g_large_tab + l->w[0] * 0x38 + 0x10);
+        bow = id && !strcmp(id, "bow-ellie");
+    }
+    if (g_purch_tab && l->w[2] < cnt[2]) {                // our table is installed (winmm's own has no machete row)
+        const char *id = *(const char **)(g_purch_tab + l->w[2] * 0x40 + 0x10);
+        machete = id && !IsBadReadPtr(id, 8) && !strcmp(id, "machete");
+    }
+    if (bow || machete) sk4_fit_budget(l, idx);
 }
 // A secondary is mandatory. GEAR UP has no NO SMALL FIREARM row now
 // (gearup13.c gu_build_opts) and the launcher never wrote one (loadjson.c lj_pick_w small: allow_none 0); a saved custom loadout
@@ -47556,7 +47963,8 @@ static void lo_load(void) {
             const uint32_t *pc = (const uint32_t *)VMA(0x1800A0DA4);
             if (l.w[2] != 0xffffffffu && l.w[2] >= pc[2]) { xlog("loadout: custom %d's purchasable row %u is not in the list (%u rows) - set to none", i, l.w[2], pc[2]); l.w[2] = 0xffffffffu; }
         }
-        if (i < N_CUSTOM) lo_migrate_budget(&l, i);     // bow 2 -> 3 LP: a saved custom now over 13 keeps its guns and loses its cheapest skill
+        if (i < N_CUSTOM_MAX) lo_migrate_budget(&l, i); // bow / machete 2 -> 3 LP: a saved custom now over 13 keeps its guns and loses its cheapest skill
+                                                        // (every custom slot: slots 7..12 exist since CREATE LOADOUT; g_sk4 is N_CUSTOM_MAX long)
         if (lo_fix_small(&l, i)) fixed_small++;         // no small firearm (an older GEAR UP had a NO SMALL FIREARM row): the free 9mm
         if (lo_valid(&l)) g_lo[i] = l;
         if (i == N_CUSTOM - 1 && v7) nlo = N_CUSTOM + 1;                 // try one more: a MORE line may follow
@@ -47855,6 +48263,16 @@ static void scrollbar_set(int total, float vis, float first, int force) {
 }
 static int page_on_stack(uint64_t page) { typedef char (*fn)(uint64_t, uint64_t); return ((fn)VMA(0x18000E2A0))(MENU_STACK, page) != 0; }
 static uint64_t top_page(void) { typedef uint64_t (*fn)(uint64_t); return ((fn)VMA(0x18000E110))(MENU_STACK); }
+// menu_hud_hide_tick, in a match: 1 = a UI page is up by the one HUD state every custom HUD element follows (hud_state_tick: the ESC menu
+// on the stack - the engine skips the HUD only while to1/pause-menu is the TOP page, so OPTIONS / FRIENDS ... over it drew the ring - or any
+// page above the base page; TAB / backpack excluded), 2 = CHANGE LOADOUT, 3 = the match is over (result banner / scoreboard). 0 = live play.
+static int ring_cover_page(void) {
+    if (g_hud_menu) return 1;
+    if (g_lo_state == LO_MATCH) return 2;
+    uint8_t *lc = lobby_obj();
+    if (lc && !IsBadReadPtr(lc + 0x2ca4, 1) && lc[0x2ca4]) return 3;
+    return 0;
+}
 // ---- menu stack queue (invisible UI bug). Root cause: a page pushed while
 // another page's open transition is still running (A 5452 main-menu -> 5453 mission-choose, B 6931 -> 6932) stalls the fade-in of
 // that page AND of every page after it (anim-group alpha stays at the template's 0). Every push / pop of ours goes through this
@@ -48071,7 +48489,7 @@ typedef struct { int ok, fac, st, day, h, hu, s, need, wk, lday, lparts, lsup, l
 static clan_t g_clan;                          // last state from the server (ok = 0 until one arrived)
 static volatile LONG g_clan_busy, g_clan_ver;
 static CRITICAL_SECTION g_clan_cs;
-static struct { uint8_t op; int len; uint8_t pl[320]; } g_clan_req;     // (64 B token + up to 250 B: the achievement report 0xA9; every other op <= 48 B)
+static struct { uint8_t op; int len; uint8_t pl[320]; } g_clan_req;     // (64 B token + up to 250 B: the achievement report 0xA9, the perf report 0xCA; every other op <= 48 B)
 #include "outage.h"            // t2r_sin, t2r_connect_to, t2r_rpc (bounded request), backoff + daemon-alive stamp (re/ext-daemon-outage-1019.md)
 static int clan_token(char out[65]) {
     // 10-19b (re/tick-cost-1019b.md): six callers (clan_send, notice, gunlimit, interrogation, hm_ask, jip_ask) keep the token in a static once they have it, and ask again
@@ -48134,7 +48552,7 @@ static void clan_parse(const char *t) {
 #define MF_VOTE_N 24
 #define MF_GRID 20
 #define MF_GRID_COLS 5
-typedef struct { int ok, st, n, m[MF_VOTE_N], v[MF_VOTE_N], my, w, pc; char p[8][21]; char pv[8]; int pk[8], pw[8]; } mf_t;   // pk / pw: the roster rows' rank symbol (-1 = not sent) and weeks
+typedef struct { int ok, st, n, m[MF_VOTE_N], v[MF_VOTE_N], my, w, pc; char p[8][21]; char pv[8]; int pk[8], pw[8], po[8]; } mf_t;   // pk / pw: the roster rows' rank symbol (-1 = not sent) and weeks; po: the option each player voted for (-1 = none / old server)
 static mf_t g_mf;                              // last vote state from the server (ok = 0 until one arrived)
 static volatile LONG g_mf_ver;
 static int g_no_matchflow;                     // t2r-no-matchflow.txt: the 2013 match flow pages off
@@ -48142,7 +48560,7 @@ static void mf_parse(const char *t) {
     mf_t m;
     memset(&m, 0, sizeof m);
     m.my = -1; m.w = -1;
-    for (int i = 0; i < 8; i++) m.pk[i] = -1;
+    for (int i = 0; i < 8; i++) m.pk[i] = m.po[i] = -1;
     char k[16], v[32];
     int n;
     while (sscanf(t, " %15[^= ]=%31s%n", k, v, &n) == 2) {
@@ -48157,6 +48575,7 @@ static void mf_parse(const char *t) {
             if (oi < MF_VOTE_N) (k[0] == 'm' ? m.m : m.v)[oi] = x;
         }
         else if (k[0] == 'p' && k[1] == 'v' && k[2] >= '0' && k[2] <= '7' && !k[3]) m.pv[k[2] - '0'] = (char)x;
+        else if (k[0] == 'p' && k[1] == 'o' && k[2] >= '0' && k[2] <= '7' && !k[3]) m.po[k[2] - '0'] = x;
         else if (k[0] == 'p' && (k[1] == 'k' || k[1] == 'w') && k[2] >= '0' && k[2] <= '7' && !k[3]) (k[1] == 'k' ? m.pk : m.pw)[k[2] - '0'] = x;
         else if (k[0] == 'p' && k[1] >= '0' && k[1] <= '7' && !k[2]) {
             char *d = m.p[k[1] - '0'];
@@ -48524,7 +48943,7 @@ static DWORD WINAPI clan_worker(LPVOID arg) {
         got = t2r_rpc(&net, &a, frame, n + 2, rep, (int)sizeof rep - 1, vote_poll ? 1200 : crit_op ? 2500 : 3000, vote_poll ? 2500 : 3500, vote_poll ? 2500 : crit_op ? 3500 : 4000, &sent);   // connect 2.5-3 s, the whole reply within 3.5-4 s
         ln = got >= 3 ? (rep[0] & 0xff) + ((rep[1] & 0xff) << 8) : 0;
         rop = ln >= 1 && got >= ln + 2 ? (uint8_t)rep[2] : 0;
-        valid = rop == 0xE1 || rop == 0xD1 || rop == 0xEB || rop == 0xE9 || rop == 0xC7 || rop == 0xB5 || rop == 0xB7 || rop == 0xB3 || rop == 0xCB || rop == 0xC9 || rop == 0xBF || rop == 0xA9 || rop == 0xAA || rop == 0xAB;
+        valid = rop == 0xE1 || rop == 0xD1 || rop == 0xEB || rop == 0xE9 || rop == 0xC7 || rop == 0xB5 || rop == 0xB7 || rop == 0xB3 || rop == 0xCB || rop == 0xC9 || rop == 0xBF || rop == 0xA9 || rop == 0xAA || rop == 0xAB || rop == 0xA3;
         if (valid) {
             if (att > 1) xlog("clan: op %02x answered on try %d (%u ms in all)", g_clan_req.op, att, (unsigned)(GetTickCount64() - t_first));
             break;
@@ -48584,6 +49003,8 @@ static DWORD WINAPI clan_worker(LPVOID arg) {
         rkb_parse(rep + 3);
     } else if (valid && rop == 0xB3) {                // hwid report accepted
         g_hwid_done = 1;
+    } else if (valid && rop == 0xA3) {                // install check report accepted (attest.h)
+        InterlockedIncrement(&g_att_acks);
     } else if (valid && rop == 0xCB) {                // performance report accepted (host pick)
         g_perf_dead = 0;
     } else if (valid && rop == 0xC9) {                // SP-map support the server stored
@@ -48608,7 +49029,7 @@ static int clan_send(uint8_t op, const uint8_t *extra, int extra_len) {   // 1 =
     static int init;
     if (!init) { InitializeCriticalSection(&g_clan_cs); init = 1; }
     if (!tok[0] && !clan_token(tok)) { tok[0] = 0; return 0; }
-    if (extra_len > (op == 0xA9 || op == 0xAB ? 250 : 48)) return 0;
+    if (extra_len > (op == 0xA9 || op == 0xAB || op == 0xA1 || op == 0xCA ? 250 : 48)) return 0;   // 0xA1: install check report; 0xCA: the perf report with its per-peer loss trailer 3 (mem_probe.c) is up to ~100 B
     // outage backoff (outage.h): polls are not started while the last requests failed (1.5 s, 3, 6, 10 s +-25 %); what the player did (side,
     // vote, booster, mission, name) and the match report always go, one at a time
     int crit = op == 0xE2 || op == 0xE4 || op == 0xEC || op == 0xEE || op == 0xEF || op == 0xD0 || op == 0xD2;
@@ -48694,6 +49115,19 @@ static int menu_edge(uint64_t sid, int *held) {   // 1 on the frame the menu act
     *held = on;
     return e;
 }
+//: L1 / R1 never changed the CUSTOMIZE / CLAN / achievements / friends tabs. The pages asked for "menu-prev" /
+// "menu-next", which are no engine commands (the stock tab bars send menu-prev-tab / menu-next-tab; "menu:prev" / "menu:next" are only
+// the GLYPH names), so only the Q / E keys the pages read themselves worked. menu_edge_pad = the command (keyboard and pad) OR its pad
+// buttons on the joypad (padinj_raw_down): winmm's menu lock on the MP menu can disable the command while the button is held.
+static int padinj_raw_down(const char *name);   // padinject.c (included later)
+static int menu_edge_pad(const char *name, int *held) {
+    int on = ((char (*)(uint64_t))VMA(0x180068AF0))(fnv64_rt(name)) != 0 || padinj_raw_down(name);
+    int e = on && !*held;
+    *held = on;
+    return e;
+}
+#define MENU_PREV_TAB(h) menu_edge_pad("menu-prev-tab", h)
+#define MENU_NEXT_TAB(h) menu_edge_pad("menu-next-tab", h)
 // Same fix as for the flickering timers: on the R3 gear up pages alpha / visibility / pivot were written every frame
 // too (rows, pills, icons, rules) - the same engine trait as the per-frame text writes (missed draws) and it restarted the rows' focus fades. While an R3
 // page is up these three skip a write that repeats the widget's last value (per widget handle, re-asserted every 5 s; the cache restarts on page changes
@@ -48865,7 +49299,8 @@ static void side_focus(int f) {
     ui_text("anim-group.side.sideDesc", SIDE_DESC[f + 1]);
 }
 #include "clanend.c"           // the clan end screens (won / lost): key art + roll call, rank page, stats (log clanend:)
-// The pick's reload (after the fade-out the proper faction level always loads with the twelve weeks screen again, reloading if needed): loadseq.c ms_pick_*. g_ms_pick_force = the scene the menu follows for the rest of the session
+// The pick's reload
+// loadseq.c ms_pick_*. g_ms_pick_force = the scene the menu follows for the rest of the session
 // after a pick (a demo sends no side, so the clan's own faction would switch it back).
 static int g_ms_pick_st, g_ms_pick_force = -1, g_ms_pick_scene = -1, g_lds_pick, g_lds_pick_rel;
 static void ms_pick_start(int scene, int demo);
@@ -49044,7 +49479,7 @@ static void side_tick(int entered, const clan_t *c) {
     int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &h_sel);
     int left = menu_edge(fnv64("menu-left"), &h_left), right = menu_edge(fnv64("menu-right"), &h_right);
     int back = menu_edge(fnv64("menu-back"), &h_back);
-    left |= menu_edge(fnv64("menu-prev"), &h_prev); right |= menu_edge(fnv64("menu-next"), &h_next);      // the bumpers (LB / RB, L1 / R1) switch the side too: the pad hint shows them
+    left |= MENU_PREV_TAB(&h_prev); right |= MENU_NEXT_TAB(&h_next);      // the bumpers (LB / RB, L1 / R1) switch the side too: the pad hint shows them
     if ((stage == 1 || stage == 2) && !ch_active()) ui_pad_hint(&hint_dev, "anim-group.side.sideHint", "anim-group.side.sideHintPad");
     static ULONGLONG ce_pick_at;                      // a demo: when the faction pick took input (the intro cinematic over)
     if (!ce_test || stage != 1) ce_pick_at = 0;
@@ -49966,6 +50401,11 @@ static void pm_tick(int entered, const clan_t *c) {
         if (mver != (int)g_meta_ver) { mver = (int)g_meta_ver; pm_mission(c); }   // the mission lines follow a late 0xE9
         clan_dots(&g_pmd, c, 0);                    // the survivors' dots drift
     }
+    {   // t2r-test-autofind.txt (unattended A/B, lobby test): one press every 2.5 s, so the page goes on to the MP menu like the other screens do
+        static uint64_t ta;
+        if (entered) ta = now;
+        if (g_test_autofind && !sel && now - ta > 2500) { ta = now; sel = 1; xlog("test autofind: post-match page press (stage %d)", stage); }
+    }
     if (!sel) return;
     if (!started || now < t0 + (uint64_t)dur) { t0 = now - 100000; return; }   // first press: skip the count
     if (stage == 2 && pmu_count(c) > 0) {           // on to the UNLOCKS stage
@@ -50733,7 +51173,7 @@ static void feature_clan(void) {
         if (veil) {
             uint64_t w = ui_w("anim-group");
             if (w) { w_alpha(w, 0.0f); w_visible(w, 0); }   // hidden, not only alpha 0: the page's own fade-in anim drives the
-                                                            // alpha and showed it for ~4 frames (clip 21-16-49)
+                                                            // alpha and showed it for ~4 frames (clip)
             if (!logged_veil) { logged_veil = 1; xlog("menu flow: MP menu on top with no side - held at alpha 0 (widget %s)", w ? "found" : "not built yet"); }
         } else if (logged_veil && top_page() != PAGE_MAIN) logged_veil = 0;
         g_veil_on = !known && !gave_up && !wd_rel;
@@ -50982,7 +51422,7 @@ static void ms_fade_load(int scene) {          // fade out, then load (ms_fade_t
     g_ms_load_scene = scene; g_ms_fade_st = 1; g_ms_fade_t0 = g_ms_black_t0 = g_ms_rearm = GetTickCount64();
     xlog("menu scene: fading out for the switch to %s", MS_SCENE[scene].name);
 }
-// ---- entry hand-off (clip 17-47-09): the menu world showed in a hard cut and the MP menu popped in ~1 s later with a click. winmm pushes to1/main-menu only
+// ---- entry hand-off (clip): the menu world showed in a hard cut and the MP menu popped in ~1 s later with a click. winmm pushes to1/main-menu only
 // when get-black-fade == 0 (decomp_match.c), i.e. after the native fade-in ended, and the native fade draws UNDER the UI, so world and UI could never come up together.
 // Now, when the menu world's load ends (settle over): the page that must be first (to1/main-menu with a clan side, to1/clan-side without one / with a dead clan -
 // feature_clan pushes it over the veiled MP menu) is pushed by US while the native black still holds, its cover widget t2rEnter (clan_widgets._enter_cover: full-screen
@@ -51066,6 +51506,14 @@ static int g_ent_rel;                          // the native black was released 
 static uint64_t g_ent_tail;                    // duck the mixer until this tick
 static void mix_under_black(void);
 static float ent_ease(float u) { u = u < 0 ? 0 : u > 1 ? 1 : u; return u * u * u * (u * (u * 6.0f - 15.0f) + 10.0f); }
+static int g_ent_cov;                          // the hand-off set its t2rEnter cover to 1 (no loading page) and has not released the black yet
+// (A/B, no side): every way out of the wait (state 1) goes through here, so g_ent_st is back at 0 (loadseq.c releases the TWELVE WEEKS page on 0 + black 0 +
+// menu live) and a cover the wait had already raised is taken down again (it would hold the menu under full black).
+static int ent_give_up(void) {
+    if (g_ent_cov) { uint64_t c = ui_w("anim-group.t2rEnter"); if (c) { w_alpha(c, 0.0f); w_visible(c, 0); } g_ent_cov = 0; }
+    g_ent_st = 0;
+    return -1;
+}
 static int ent_tick(void) {                    // 0 = waiting, 1 = finished, -1 = fall back to the native fade-in
     static uint64_t t0, rel_at, top_at, last_top; static uint64_t PM, PS;
     uint64_t now = GetTickCount64();
@@ -51073,19 +51521,22 @@ static int ent_tick(void) {                    // 0 = waiting, 1 = finished, -1 
     uint64_t top = top_page();
     if (top != last_top) { last_top = top; top_at = now; }
     if (g_ent_st == 0) {
-        t0 = now; g_ent_st = 1; g_ent_rel = 0; g_ent_rel_at_ms = 0; g_ent_cand_done = 0; g_ent_win_until = now + ENT_WAIT_MS + ENT_MS + 2500;
+        t0 = now; g_ent_st = 1; g_ent_cov = 0; g_ent_rel = 0; g_ent_rel_at_ms = 0; g_ent_cand_done = 0; g_ent_win_until = now + ENT_WAIT_MS + ENT_MS + 2500;
         { static int hk; if (!hk) { hk = 1; xlog("entry: sound request trace + UI filter %s", spp_snd_hook_install() ? "armed" : "NOT available (hook failed)"); } }
         xlog("entry: world ready (settle over), page must be up before the black lifts (veil %d)", g_veil_on);
     }
     uint64_t want = g_veil_on ? PS : PM;
     if (g_ent_st == 1) {
-        if (now - t0 > ENT_WAIT_MS) { g_ent_st = 0; xlog("entry: first page (%llx) not up after %d ms - plain fade-in", (unsigned long long)want, ENT_WAIT_MS); return -1; }
-        if (!g_veil_on && top != PM && !page_on_stack(PM) && !(g_ln_page && top == g_ln_page)) { push_page("to1/main-menu"); return 0; }
+        if (now - t0 > ENT_WAIT_MS) { xlog("entry: first page (%llx) not up after %d ms - plain fade-in", (unsigned long long)want, ENT_WAIT_MS); return ent_give_up(); }
+        // (A/B, no side): the MP menu goes on under the black with or without a side. Without one, feature_clan veils it (alpha 0, hidden) and pushes
+        // to1/clan-side over it, the page this wait is for. The push used to be for a side only: winmm pushes the MP menu only after the native fade-in, so
+        // clan-side never came under the black and every no-side entry waited the full 5 s and fell back to the plain fade-in.
+        if (top != PM && top != PS && !page_on_stack(PM) && !(g_ln_page && top == g_ln_page)) { push_page("to1/main-menu"); return 0; }
         // After a match (the symptom: a black screen for a while while the post match screens could be heard) the
         // post-match scoreboard (to1/clan13x) goes over the MP menu under the black, the hand-off waited for main-menu on top and fell back only after the
         // 5 s wait. The post-match page on top = the world and that page fade up at once (plain fade-in).
         { static uint64_t PX; if (!PX) PX = page_id("clan13x");
-          if (PX && top == PX && now - top_at >= 60) { g_ent_st = 0; xlog("entry: the post-match scoreboard is on top - plain fade-in now (%llu ms after the world was ready)", (unsigned long long)(now - t0)); return -1; } }
+          if (PX && top == PX && now - top_at >= 60) { xlog("entry: the post-match scoreboard is on top - plain fade-in now (%llu ms after the world was ready)", (unsigned long long)(now - t0)); return ent_give_up(); } }
         if (g_lds_hold && !g_veil_on) {      // (C): a clan event screen is due: the loading page hands off straight to IT (pushed over the MP menu under the black by ev_offer), no menu flash first
             static uint64_t PE; if (!PE) PE = page_id("clan-event");
             clan_t cc = clan_get();
@@ -51100,12 +51551,12 @@ static int ent_tick(void) {                    // 0 = waiting, 1 = finished, -1 
         if (g_lds_hold) {     // hand-off: the TWELVE WEEKS page is up over the world; ITS fade-out is the one fade (no black cover, no second fade); wait until the MP page's own open animation is over
             if (now - top_at < 400) return 0;
         } else {
-        if (!c) { g_ent_st = 0; xlog("entry: page %llx has no t2rEnter cover (old gui2-widgets.pak) - plain fade-in", (unsigned long long)want); return -1; }
-        w_visible(c, 1); w_alpha(c, 1.0f);
+        if (!c) { xlog("entry: page %llx has no t2rEnter cover (old gui2-widgets.pak) - plain fade-in", (unsigned long long)want); return ent_give_up(); }
+        w_visible(c, 1); w_alpha(c, 1.0f); g_ent_cov = 1;
         if (now - top_at < 120) return 0;                         // the cover has had a few frames to draw
         }
         fade_to_black(0.0f, 0.0f, 0.04f);
-        g_ent_rel = 1; rel_at = now; g_ent_st = 2; g_ent_rel_at_ms = now;
+        g_ent_rel = 1; rel_at = now; g_ent_st = 2; g_ent_rel_at_ms = now; g_ent_cov = 0;   // (state 2 fades the cover out itself)
         xlog("entry: page %llx up %llu ms under the black, %s - native black released, world + page fade up together over %d ms", (unsigned long long)want, (unsigned long long)(now - top_at), g_lds_hold ? "no cover (the loading page fades out over them)" : "cover 1", ENT_MS);
         return 0;
     }
@@ -51299,7 +51750,7 @@ static void ms_fade_tick(void) {
         if (g_ms_load_scene >= 0 && g_ms_page_main) {   // task-play-debug! wipes the whole page stack (back came only the
             uint64_t top = top_page();                  // base page ebfa..., never main-menu: no MP menu on the new scene)
             xlog("menu scene: switch done, top page %llx", (unsigned long long)top);
-            // (clip 00-38-54, B at 60 fps: main menu at 28.38 s, 6 black frames at 28.80, mission page at 28.90): the
+            // (clip, B at 60 fps: main menu at 28.38 s, 6 black frames at 28.80, mission page at 28.90): the
             // main menu is no longer pushed here - feature_missions puts the day's mission page on first and the MP menu after it
             // closes (or at once when no mission is due), so no page ever gets covered mid fade-in
             if (top != g_ms_page_main) { g_ms_main_pending = 1; g_ms_main_late = timeout; g_ms_main_pending_at = GetTickCount64(); xlog("menu scene: to1/main-menu deferred (mission page first if one is due)"); }
@@ -51317,7 +51768,14 @@ static void ms_fade_tick(void) {
             if (now >= wl) { wl = now + 2000; xlog("menu scene: no side - held black until clan-side is on top"); }
             return;
         }
-        if (!g_ms_fade_off && g_ms_load_scene < 0 && !timeout && !g_ent_fell_back) {   // winmm's own load (boot / back from a match): the hand-off
+        // (A/B, no side, 28.5 s menu world load): the black cap ran out while the hand-off waited (state 1). It was skipped from then on with g_ent_st
+        // left at 1 until the next match load, so the TWELVE WEEKS page (loadseq.c releases on g_ent_st 0) stayed up over the faction pick and the MP menu.
+        // Live reports had it too (page up ~120 s, its cap). Now: a fade-up already running (state 2, <= ENT_MS) finishes; a wait gives up = plain fade-in.
+        if (!g_ms_fade_off && g_ms_load_scene < 0 && timeout && g_ent_st == 1) {
+            xlog("entry: menu black cap (%d s) ran out while the hand-off waited - plain fade-in", MS_BLACK_MAX_MS / 1000);
+            ent_give_up(); g_ent_fell_back = 1;
+        }
+        if (!g_ms_fade_off && g_ms_load_scene < 0 && (!timeout || g_ent_st == 2) && !g_ent_fell_back) {   // winmm's own load (boot / back from a match): the hand-off
             int r = ent_tick();
             if (r == 0) return;
             if (r < 0) g_ent_fell_back = 1;
@@ -51330,6 +51788,7 @@ static void ms_fade_tick(void) {
     }
 }
 static int ms_switching(void) { return g_ms_fade_st || (g_ms_cur >= 0 && g_ms_want >= 0 && g_ms_cur != g_ms_want); }
+static int ms_world_busy(void) { return ms_switching() || g_ms_pick_st; }
 static int g_mh_st, g_ls_own;                   // (tentative; defined with the match horn / loading screen)
 static int quiet_screen(void) {
     static uint64_t fade_end;
@@ -51858,10 +52317,11 @@ static const struct { const char *weapon; int rof, reload, dmg, acc; } GUN_STATS
     {"rifle-frontier", 1, 4, 9, 9},     // 1.1 s lever cycle (more accurate), clip 4, reload x1, 64 dmg (2 body), accurate
     {ASSAULT_ID, 9, 6, 3, 5},      // 2013 Assault Rifle: .125 s, clip 20, 22 dmg (5 body)
     {"rifle-galil", 10, 6, 2, 4},       // 2013 Specter: .10 s, clip 20, 17 dmg
-    {VINTAGE_ID, 2, 4, 9, 7},           // Vintage Rifle: bolt .95 s (2 bars by the formula; the Frontier's 1.10 s = 1), the Frontier's reload / damage, unscoped (7)
+    {VINTAGE_ID, 2, 4, 8, 6},           // Vintage Rifle: bolt .95 s (2 bars by the formula; the Frontier's 1.10 s = 1), the Frontier's reload, damage 8 (the Frontier's 66, falls off past 15 m), accuracy 6 (the 2013 rifle-short spread, wider than the Frontier's 9)
     {"rifle-milsniper", 3, 3, 9, 10},   // bolt cycle .75 s (a bolt action like the hunting rifle), clip 5, 55 dmg (2 body, 1 head), scoped = most accurate
     {FLAME_ID, 10, 4, 10, 1},           // 2013 Flamethrower: continuous stream, tank of 100, 75 per tick (instantly kills), 6.5 m
     {DRAGON_ID, 2, 3, 10, 2},           // Dragon's Buckshot: the Double Barrel's bars (same gun; the burn is on top)
+    {LAUNCHER_ID, 6, 3, 9, 3},          // 2013 Launcher: the Explosive Bow's bars (the same 2013 weapon: .3 s, area damage, a lobbed arc)
 };
 // Real sustained interval T per gun (the input of the rate-of-fire formula above); test_stat_display.py checks each against its source.
 static const struct { const char *weapon; float t; } ROF_IV[] = {
@@ -51873,6 +52333,7 @@ static const struct { const char *weapon; float t; } ROF_IV[] = {
     {"pistol-cz75-enforcer", 0.30f}, {"pistol-snubby", 0.25f}, {"shotgun-tactical", 1.00f}, {"shotgun-shorty", 1.05f}, {"pistol-el-diablo", 1.00f},
     {"rifle-frontier", 1.10f}, {ASSAULT_ID, 0.125f}, {"rifle-galil", 0.10f}, {"rifle-milsniper", 0.75f}, {FLAME_ID, 0.10f},
     {VINTAGE_ID, 0.95f},                                             // Vintage Rifle level 0 bolt cycle (WEAPON_STATS iv[0])
+    {LAUNCHER_ID, 0.30f},                                            // net10 grenade-launcher def +0x0 (dc_data_patches LAUNCHER_INTERVAL)
     {DRAGON_ID, 0.90f},                                              // the Double Barrel's interval (synced to its def, weapon_stats_apply)
 };
 static void stat_values(const char *weapon, int v[4]) {
@@ -53465,6 +53926,7 @@ static void feature_combat_music(void) {
     static char amb_flag[MAX_PATH], nr_flag[MAX_PATH];
     static char rot_flag[MAX_PATH], dwell_flag[MAX_PATH], stings_flag[MAX_PATH], ambush_flag[MAX_PATH];
     static int ambush_old;
+    static int lb_pt_done;                  // the "lockbox almost open" jump of the music set was made this match
     static int rot_old, dwell_old, v5_mp_done, v5_start_lives, v5_fresh, v5_seen_ours, v5_seen_theirs;   // seen: that team's lives read > 0 this match   // v5_fresh: the set was picked at match start and no fight has used it yet
     static uint64_t v5_fight_end_at;
     static int nr_old;                      // t2r-music-nr-rules-old.txt present = the earlier rules (3 heat tiers, 4 s calm, end tag on a kill, 12 s search bed)
@@ -53529,7 +53991,7 @@ static void feature_combat_music(void) {
         }
         amb_on = 0; amb_stage = 0; set_pick[0] = set_pick[1] = -1; amb_quiet = 0; amb_started_once = 0;
         tier = 0; bed_on = 0; chain_kind = 0; chain_at = 0; g_ms_tier = 0; pend_on = 0; kill_at = 0; watch_sid = 0; search_since = 0;
-        g_v5.name = NULL; g_v5_fam = NULL; v5_mp_done = 0; v5_start_lives = 0; v5_fight_end_at = 0; v5_fresh = 0; v5_seen_ours = v5_seen_theirs = 0;   // (the composition history stays: no repeat across matches)
+        g_v5.name = NULL; g_v5_fam = NULL; v5_mp_done = 0; lb_pt_done = 0; v5_start_lives = 0; v5_fight_end_at = 0; v5_fresh = 0; v5_seen_ours = v5_seen_theirs = 0;   // (the composition history stays: no repeat across matches)
         g_mus_heat = 0; calm_since = 0; hp_prev = 0; in_match = 0; was_firing = 0; g_ms_loop_t0 = 0; loop_end_at = 0;
         memset(fire_prev, 0, sizeof fire_prev); memset(dead_prev, 0, sizeof dead_prev); memset(down_prev, 0, sizeof down_prev);
         memset(down_since, 0, sizeof down_since); memset(exec_seen, 0, sizeof exec_seen); memset(gone_until, 0, sizeof gone_until); memset(vis_since, 0, sizeof vis_since); memset(mark_prev, 0, sizeof mark_prev); memset(close_prev, 0, sizeof close_prev); memset(stun_pup_prev, 0, sizeof stun_pup_prev); melee_prev = stun_prev = ps_prev = 0; memset(vis_last, 0, sizeof vis_last); floor_held = 0;
@@ -53698,6 +54160,17 @@ static void feature_combat_music(void) {
     int final10 = final30 && rem <= 10.0f;
     if (final30 && (alive_45 || alive_near || g_mus_heat >= 1.0f)) { floor_heat += 2.0f; floor_cause = "match final 30 s"; }
     if (final10 && (alive_45 || alive_near || g_mus_heat >= 1.0f) && floor_heat < 6.0f) { floor_heat = 6.0f; floor_cause = "match final 10 s"; }
+    // Interrogation: an unlocked lockbox stage (either safe) is the match's endgame, like its final seconds.
+    // Stage 1 or 2: contact counts one step more (as in the final 30 s) and the music bed holds its build-up stage; the next fight picks a set of round 3 (stage 1)
+    // or 4 (stage 2) instead of 2. Stage 2: a fight in progress jumps to a round 4 set once (riser at once, like the match point), never below the medium tier
+    // while an enemy is near and a lockbox is being opened, and no step down while it is. Off: t2r-music-no-lockbox.txt.
+    static uint64_t lbm_at; static int lbm_off;
+    int lbst = !feel_flag("t2r-music-no-lockbox.txt", &lbm_at, &lbm_off, 120) && g_int_lb_ms && now - g_int_lb_ms < 3000 ? g_int_lb_stage : 0;
+    if (lbst > 2) lbst = 0;                                            // (3 = opened: the match is over)
+    const int lb_act = lbst && g_int_lb_act_ms && now - g_int_lb_act_ms < 3000;
+    const int lb_hold = lbst >= 2 && lb_act;
+    if (lbst && !final30 && (alive_45 || alive_near || g_mus_heat >= 1.0f)) { floor_heat += 2.0f; floor_cause = lbst >= 2 ? "lockbox almost open" : "lockbox partially open"; }
+    if (lb_hold && (alive_45 || alive_near || g_mus_heat >= 1.0f) && floor_heat < 6.0f) { floor_heat = 6.0f; floor_cause = "lockbox almost open and being opened"; }
     if (floor_heat >= floor_held) { floor_held = floor_heat; floor_held_at = now; }
     else if (now - floor_held_at < 6000) { floor_heat = floor_held; floor_cause = "recent sight / contact (held 6 s)"; }
     else floor_held = floor_heat;
@@ -53753,7 +54226,7 @@ static void feature_combat_music(void) {
     else if (tier >= 4) want = by_heat;                            // lives came back
     else if (res && tier) { want = 0; cause = "last enemy killed: end tag, no search"; }
     else if (by_heat > tier && !g_downed && !g_ms_dead) want = by_heat;   // up (not while we are down / dead: the death cut holds)
-    else if (nr && tier >= 1 && tier <= 3 && now >= g_ms_hold_until && !final30 && !(chain_kind == 1 && now < chain_at)) {
+    else if (nr && tier >= 1 && tier <= 3 && now >= g_ms_hold_until && !final30 && !lb_hold && !(chain_kind == 1 && now < chain_at)) {
         // (Supermarket 'ramps up twice in a row'): SP's trans-up always plays out into the combat loop (nr-1031 MUS: 0.95-2.5 s, 14 of 14, the
         // shortest combat dwell 6.5 s) - a fight end read while the riser still plays (its up was queued on a blip of awareness) does not cut it
         // v5: SP's shortest combat dwell is 6.5 s (nr-1031 MUS, 14 fights; typical 11 to 19 s): a fight is never over sooner (t2r-music-dwell-old.txt: no minimum)
@@ -53762,7 +54235,7 @@ static void feature_combat_music(void) {
             want = 0; cause = alive_45 ? "NR: fight end, no enemy alerted for 0.9 s (last: see log), enemies still about (search)" : "NR: fight end, no enemy alerted for 0.9 s, none about (unaware)";
         } else calm_since = 0;
     }
-    else if (by_heat < tier && now >= g_ms_hold_until && !final30) {
+    else if (by_heat < tier && now >= g_ms_hold_until && !final30 && !lb_hold) {
         int quiet = now - g_mus_evt_ms > 3000;
         if (eff < 1.0f) {                                          // the fight is over: out after 4 s
             if (!calm_since) calm_since = now;
@@ -53775,7 +54248,8 @@ static void feature_combat_music(void) {
     if (eff >= 1.0f && !nr) calm_since = 0;
     if (!tier && !bed_on && !chain_kind) th = music_faction();     // the theme is picked while silent (never switched mid-music)
     g_ms_theme = th;
-    const int v5_round = music_v5_round(lv_ours, en_lives, v5_lives_ok ? v5_start_lives : 0, rem);
+    int v5_round = music_v5_round(lv_ours, en_lives, v5_lives_ok ? v5_start_lives : 0, rem);
+    if (lbst && v5_round < 2 + lbst) v5_round = 2 + lbst;           // (lockbox stage 1 -> round 3, 2 -> round 4)
     if (v5 && !g_v5.name) { music_v5_pick(v5_round, th, "match start", 0); v5_fresh = 1; }
     const music_theme_t *T = v5 && g_v5.name ? &g_v5 : music_set(th, &set_pick[th]);
     g_ms_set = T;
@@ -53912,6 +54386,21 @@ static void feature_combat_music(void) {
             }
         }
     }
+    if (v5 && lbst >= 2 && !lb_pt_done && g_v5_round < 4) {         // lockbox almost open: a round 4 set, at once in a fight (as the match point above)
+        if (!tier || g_mus_stings_old) { lb_pt_done = 1; xlog("music: v5 lockbox almost open - no fight playing, the next fight is a round 4 set"); }
+        else if (tier >= 1 && tier <= 3 && chain_kind != 2 && !g_downed && !g_ms_dead && now >= g_ms_hold_until) {
+            lb_pt_done = 1;
+            const char *was = g_v5.name;
+            music_v5_pick(4, th, "lockbox almost open", 1);
+            if (T->up[tier] && T->loop[tier]) {
+                MPLAY(T->up[tier], "lockbox almost open riser", T->g_loop[tier], 0);
+                chain_sid = music_sid(T->up[tier]); chain_kind = 1; chain_poll = now + 100;
+                chain_at = now + (T->up_len[tier] > 0.0f ? (uint64_t)(T->up_len[tier] * 1000.0f) : 2500);
+                g_ms_loop_bpm = T->g_loop[tier].bpm; pend_on = 0; g_ms_resume_at = 0;
+                xlog("music: v5 lockbox almost open - %s -> %s, riser %s (%.2f s), its loop at the riser's end", was ? was : "-", g_v5.name, music_short(T->up[tier]), T->up_len[tier]);
+            }
+        }
+    }
     if (chain_kind && now >= chain_poll) {                         // is the riser / decay over? by its known length (whole beats); the poll is diagnostics
         chain_poll = now + 100;
         int over = now >= chain_at;
@@ -53978,12 +54467,12 @@ static void feature_combat_music(void) {
     if (amb_on && !chain_kind && !watch_sid && !g_downed) {
         if (eff >= 1.2f) amb_contact = amb_contact ? amb_contact : now; else amb_contact = 0;
         if (eff >= 1.0f) last_hot = now;
-        if (!amb_stage && ((amb_contact && now - amb_contact > 600) || now - amb_stage_at > 90000)) {
-            const char *why = amb_contact ? "contact signs" : "90 s of quiet - the tension builds";
+        if (!amb_stage && ((amb_contact && now - amb_contact > 600) || now - amb_stage_at > 90000 || lbst)) {
+            const char *why = amb_contact ? "contact signs" : lbst ? "a lockbox stage is open - the endgame" : "90 s of quiet - the tension builds";
             xlog("music: bed build-up on (%s; %s)", T->amb2, why);
             amb_stage = 1; amb_stage_at = now; amb_contact = 0;
             MPLAYQ(T->amb2, "music bed build-up", T->g_amb2, T->g_amb2.total);
-        } else if (amb_stage && now - amb_stage_at > 75000 && now - last_hot > 20000) {
+        } else if (amb_stage && !lbst && now - amb_stage_at > 75000 && now - last_hot > 20000) {
             xlog("music: bed build-up over (no contact for %.0f s) - back to the quiet stage", (now - last_hot) / 1000.0f);
             amb_stage = 0; amb_stage_at = now;
             MPLAYQ(T->amb, "music bed quiet stage", T->g_amb, T->g_amb.total);
@@ -55106,13 +55595,13 @@ static void patch_countdown_blink(void) {
 // lobby loadout, which the spawn routine (FUN_18004c5d0 -> FUN_1800189a0) reads every respawn.
 // Esc closes it.
 #define MATCH_LOADOUT_KEY VK_F1
-// The list opens ON TOP of the pause menu (user: it was under the health HUD, radar, countdown):
+// The list opens ON TOP of the pause menu (it was under the health HUD, radar, countdown):
 // with the pause menu on the stack spec's code hides the radar / HUD, and its scrim darkens the
 // game. The pause menu's own items are hidden while the list is up.
 static const char *const PAUSE_ITEMS[] = {"anim-group.title", "anim-group.menuList", "anim-group.scoreBanner", "anim-group.pauseTimer", "anim-group.pauseMission",
     "anim-group.cardBlur", "anim-group.cardBg", "anim-group.cardLineTop", "anim-group.cardLineBottom",
     "anim-group.scoreboard", "anim-group.footerLine", "anim-group.buttonLegend",
-    "anim-group.pzScore", "anim-group.pzRules", "anim-group.pzLight", "anim-group.pzFoot", "anim-group.pzClockLabel"};   // (T2R_PAUSE_RESTYLE widgets; absent = no-op)
+    "anim-group.pzScore", "anim-group.pzRules", "anim-group.pzLight", "anim-group.pzFoot", "anim-group.pzClockLabel", "anim-group.pzChat", "anim-group.pzPBadge"};   // (T2R_PAUSE_RESTYLE widgets; absent = no-op)
 static void pause_items(int on) {
     for (size_t i = 0; i < sizeof PAUSE_ITEMS / sizeof *PAUSE_ITEMS; i++) ui_visible(PAUSE_ITEMS[i], on);
 }
@@ -56472,7 +56961,7 @@ static void ls_take(int first) {                // the horn's LOADING request: t
     // faintly through the page while it faded in over a lifted black)
     xlog("loading screen: 2013 LOADING up on the engine's loading screen (widget %llx, map %d)", (unsigned long long)r, o ? o[0x18] : -1);
 }
-// (clip 23-40-51 at 60 fps): the page faded out OVER the loaded level (the fade to black draws under the engine's
+// (clip at 60 fps): the page faded out OVER the loaded level (the fade to black draws under the engine's
 // loading widget), then black, then the fade in. Now: the screen goes black under the page first (LS_BLACK_MS), then the page
 // fades out over that black (LS_FADE_MS), then the engine's disable; the intro black hold and its fade-in follow.
 #define LS_BLACK_MS 300
@@ -57263,7 +57752,7 @@ static void feature_matchflow(void) {
     int lo_pages = top == PAGE_ROOT || top == PAGE_SKILL || top == 0x1663bf5c89526c6cULL || top == 0x9ec0b61af2ecb944ULL || (g_gu13 && top == PAGE_GU13);
     int lo_user = g_lo_state == LO_LIST || g_lo_state == LO_EDIT;
     if (top == PAGE_MF && stage != 0) {
-        // the list (or edit page) is under the flow page, not on top: seen for ~20 frames = the user's request, not a pop in flight
+        // the list (or edit page) is under the flow page, not on top: seen for ~20 frames = the request, not a pop in flight
         buried = lo_user || (g_lo_state == LO_NONE && page_on_stack(PAGE_SKILL) && !g_mh_keep_page) ? buried + 1 : 0;
         if (0 && buried > 20) {   // (replaced: the flow closes the user's loadout pages instead, below)
             buried = 0;
@@ -57344,7 +57833,7 @@ static void feature_matchflow(void) {
             xlog("matchflow: flow stage %d waits for the user's loadout pages (top %s, lo_state %d)", stage, page_name(top), g_lo_state);
         }
         if (stage != stage_shown) pushes = 0;            // a new stage: its own push budget
-        if (g_lo_state == LO_NONE && !lo_pages && !suspended && pushes < 4 && now - push_at > 700) {
+        if (g_lo_state == LO_NONE && !lo_pages && !suspended && pushes < 4 && now - push_at > 700 && !pl_gate_holds(top)) {   // (not over a page the load gate still closes, e.g. the OPTIONS stack)
             push_page("to1/matchflow");
             push_at = now; pushes++; stage_shown = 0;
             xlog("matchflow: to1/matchflow pushed (code %d, stage %d, top %llx)", code, stage, (unsigned long long)top);
@@ -57361,7 +57850,7 @@ static void feature_matchflow(void) {
     int sel = menu_edge(0x6695c5b7921bb5ddULL /* menu-select */, &h_sel);
     int left = menu_edge(fnv64("menu-left"), &h_l), right = menu_edge(fnv64("menu-right"), &h_r);
     int up = menu_edge(SID_U, &h_u), down = menu_edge(SID_D, &h_d);
-    { int pv = menu_edge(fnv64("menu-prev"), &h_pv), nx = menu_edge(fnv64("menu-next"), &h_nx);       // the bumpers (LB / RB, L1 / R1) switch the map / booster too: the pad hint shows them
+    { int pv = MENU_PREV_TAB(&h_pv), nx = MENU_NEXT_TAB(&h_nx);       // the bumpers (LB / RB, L1 / R1) switch the map / booster too: the pad hint shows them
       left |= pv; right |= nx; up |= pv; down |= nx; }
     if (stage == 1) mfnr_prompts_tick(&hint_v, &m);                // boxed SWITCH / VOTE prompts (kb or pad), re-laid when the input device / the vote state changes
     if (stage == 2) ui_pad_hint(&hint_b, "anim-group.booster.boHint", "anim-group.booster.boHintPad");
@@ -57486,6 +57975,7 @@ static int ui_select_is_mouse(void) {   // the left button is down (or went up <
     if (GetAsyncKeyState(VK_SPACE) & 0x8000 || GetAsyncKeyState(VK_RETURN) & 0x8000) return 0;
     return g_lb_now || (g_lb_up_ms && GetTickCount64() - g_lb_up_ms < 350);
 }
+static int lq_gate(int *hit);                   // LEAVE GAME's ARE YOU SURE box (lq_tick, far below): 1 = the box is up, *hit = LEAVE MATCH under the cursor
 static void ui_click_gate_tick(void) {
     static int off = -1, lb_prev, n_log;
     static uint64_t P_MF, P_SIDE, P_PM, P_MC, P_NAME, P_PP, P_PS, P_EV, P_MAINM, P_FMM;
@@ -57502,7 +57992,10 @@ static void ui_click_gate_tick(void) {
                  P_NAME = page_id("name-entry"); P_PP = page_id("picker-primary"); P_PS = page_id("picker-secondary"); P_EV = page_id("clan-event"); P_MAINM = page_id("main-menu"); P_FMM = page_id("find-match-menu"); }
     uint64_t top = top_page();
     int gated = 1, hit = 0;
-    if (top == P_MF) {
+    if (lq_gate(&hit)) {
+        // the box over the Esc page: a click passes only on LEAVE MATCH (its select reaches LEAVE GAME = the leave hook); STAY / empty space never
+        // reach the stock menu under the dim (lq_tick acts on the click itself)
+    } else if (top == P_MF) {
         int st = g_mf_stage_now;
         int vn = mf_get().n;
         hit = st == 1 ? (mfnr_prompt_hit() || (vn > 3 ? ui_any_over("anim-group.vote.voteGrid.g%d", vn) : ui_any_over("anim-group.vote.voteTiles.tile%d", 3))) : st == 2 ? ui_any_over("anim-group.booster.boRow%d.boName%d", mf_bo_n) : 0;
@@ -57579,6 +58072,13 @@ static void ui_input_mode_tick(void) {
         last = pt; init = 1;
     }
     if (g_click_edge) { g_mouse_mode = 1; g_pad_mode = 0; }
+    if (!(g_frame % 6)) {      //: the engine's own device flag (what its button glyphs follow) - a DualSense without Steam Input is no XInput pad, and
+        // the XInput read below never saw it. A flip to "not mouse + keyboard" = pad mode, a flip back = keyboard; between flips the reads here decide.
+        static int mnk_last = -1;
+        uint64_t none = 0; int mnk = (uint8_t)dc_call(fnv64("is-mnk-primary-input-device?"), 0, &none) != 0;
+        if (mnk != mnk_last) { if (mnk_last >= 0) { if (mnk) g_pad_mode = 0; else { g_pad_mode = 1; g_mouse_mode = 0; } }
+            static int nl; if (LOGCAP(nl, 20)) xlog("input mode: engine primary device %s", mnk ? "mouse + keyboard" : "pad"); mnk_last = mnk; }
+    }
     if (g_click_gated || !(g_frame % 6)) {      // controller (Steam Deck = Steam Input presenting an Xbox pad): any button, trigger or a stick past the dead zone = pad mode (the last device wins)
         WORD pb = 0; BYTE lt = 0, rt = 0; SHORT lx = 0, ly = 0;
         if (pad_state(&pb, &lt, &rt, &lx, &ly) && (pb || lt > 80 || rt > 80 || lx > 16000 || lx < -16000 || ly > 16000 || ly < -16000)) { g_pad_mode = 1; g_mouse_mode = 0; }
@@ -57882,7 +58382,7 @@ static const ACC_OPT ACC_OPTS[] = {
     AG("camera-distance", 0x382d7b4, 0x3f800000, 1), AG("camera-midx", 0x382d7b8, 0x3f800000, 1),
     AG("camera-assist", 0x8f1d370, 0, 1), AP("camera-unlock-toggle", 0x4940, 0, 1),
     AG("auto-aim", 0x35c0c68, 0, 1), AP("lock-on", 0x3fd8, 0, 1), AG("auto-aim-strength", 0x35c0c70, 0x3f800000, 1),
-    AG("throwables-auto-aim-strength", 0x35c0c74, 0x3f800000, 1), AG("aim-assist-scale", 0x40da9c8, 0, 1), AP("bow-rangefinder-setting", 0x459c, 0, 1),
+    AG("throwables-auto-aim-strength", 0x35c0c74, 0x3f800000, 1), AG("aim-assist-scale", 0x40da9c8, 0x3f800000, 1), AP("bow-rangefinder-setting", 0x459c, 0, 1),
     AG("weapon-sway", 0x4104a48, 0, 1), AG("quick-draw-bow", 0x4104a5c, 0, 1),
     AP("slow-motion", 0x48fc, 0, 1), AP("slow-motion-on", 0x4900, 0, 1), AG("accessibility-combat-tuning-enabled", 0x4104a00, 0, 1),
     AGB("infinite-breath", 0x4104429, 0, 1), AG("invisible-while-prone", 0x4104a04, 0, 1), AP("pause-time-weapon-cross", 0x4914, 0, 1),
@@ -57890,8 +58390,12 @@ static const ACC_OPT ACC_OPTS[] = {
     AG("reduced-enemy-accuracy-enabled", 0x4104a10, 0, 1), AG("reduced-enemy-perception-enabled", 0x4104a14, 0, 1),
     AG("no-enemy-flank", 0x4104a18, 0, 1), AG("ally-auto-escape", 0x4104a1c, 0, 1),
     AG("ledge-guard", 0x41049e4, 0, 1), AG("auto-traversal", 0x41049e8, 0, 1), AG("navigation-assistance", 0x41049f0, 0, 1), AGB("auto-collect", 0x41066b0, 0, 1),
-    // camera-fov is not in this table: FOV is never reset, only held inside -5 .. +5 by acc_fov_clamp (camera distance / midx stay locked)
-    // ---- fair: the player's own choice (these used to be reset to default on every MP entry, which reset the HUD settings after every game)
+    // aim-assist-scale: a float the aim code
+    // multiplies by (exe 0x141212f17 vmulss); the game sets 1.0 (every player's log: "aim-assist-scale was 1"), its .data initial value is 0.
+    // Until 192 this table held 0 = aim assist OFF for every controller player. Now held at the game's 1.0.
+    // camera-fov is not in this table:
+    // -> never reset, only held inside -5 .. +5 by acc_fov_clamp (camera distance / midx stay locked)
+    // ---- fair: the player's own choice
     AP("sprinting-toggle", 0x4918, 0, 0), AP("craft-on-press", 0x4904, 0, 0), AP("weapon-swap-toggle", 0x4908, 0, 0), AP("weapon-auto-swap", 0x490c, 0, 0),
     AP("aiming-melee-enabled", 0x4910, 0, 0), AP("button-mashes-are-holds", 0x4128, 0, 0), AP("weapon-cross-setting", 0x45ac, 1, 0),
     AP("weapon-swap-mode", 0x4964, 1, 0), AP("weapon-swap-invert", 0x4960, 0, 0), AB("weapon-cross-invert-scroll", 0x4930, 0, 0),
@@ -58861,6 +59365,13 @@ static int sb_route(uint64_t w, const char *t) {
 // The SEARCHING page's rows carry " [T1]" / " [T2]" (relative to us: T1 = our team, T2 = the enemy; tools/daemon.py searching_frame) after each other searcher's name.
 // The text is cut off here and kept per row (1 blue, 2 red, 3 grey = a party mate who is not searching) for friends13.c fr_lobby_tabs, which draws the tab.
 static volatile int g_srch_tab[8];
+// (lobby panel) winmm rewrites the count ("n / 8") and the empty rows' "SEARCHING" every frame while searching: a second writer made them blink out
+// (a text set every frame does not draw). So the lobby texts replace winmm's own writes here: friends13.c sets g_lobby_ui / g_lobby_head, the hook swaps.
+static volatile int g_lobby_ui;
+static int nt_pl(void);                               // notice.c
+static char g_lobby_head[160];
+static uint64_t g_lobby_cnt_w;
+static volatile int g_srch_lob[8];                    // (persistent lobby rows) 1 = a lobby member back (' (lobby)': READY), 2 = still on the post-match screens (' (summary)': IN SUMMARY), 3 = from the queue (' (new)': NEW)
 static char g_srch_name[8][48];                       // the searchers' names as the rows show them (rank badge: friends13.c fr_lobby_ranks)
 // YOUR OWN TEAM is always on top of every list. The MATCH FOUND lobby rows are winmm's roster order (slot order, our own slot skipped, FUN_180065760); rows 1.. are
 // shown here as our team mates first (blue), then the enemy (red), each group in roster order. idx[k] = roster entry of row k + 1, enemy[k] = 1 for the enemy; returns the
@@ -58889,7 +59400,7 @@ static void srch_name_write(uint64_t w, const char **tp) {
     if (!w || !t || IsBadReadPtr(t, 1)) return;
     const char *mk = strstr(t, " [T"), *ns = strstr(t, "not searching");
     int onpfm = top_page() == page_id("find-match-menu");
-    if (!onpfm) { memset((void *)g_srch_tab, 0, sizeof g_srch_tab); memset(g_srch_name, 0, sizeof g_srch_name); return; }
+    if (!onpfm) { memset((void *)g_srch_tab, 0, sizeof g_srch_tab); memset((void *)g_srch_lob, 0, sizeof g_srch_lob); memset(g_srch_name, 0, sizeof g_srch_name); return; }
     int r = -1;
     for (int pass = 0; pass < 2 && r < 0; pass++) {
         if (pass == 1 && !(mk || g_frame - nat > 30)) break;
@@ -58914,18 +59425,31 @@ static void srch_name_write(uint64_t w, const char **tp) {
         size_t k = (size_t)(mk - t);
         snprintf(buf, sizeof buf, "%.*s%s", (int)k, t, mk + 5);
         *tp = buf;
-    } else if (ns) {           // a party mate that is not searching - the " (party lead - not searching)" text is cut off, friends13.c fr_lobby_party_marks draws the marks instead
+    } else if (ns) {           // a party mate that is not searching - the "
         const char *pp = strstr(t, " (party");
         if (pp && pp < ns) { snprintf(buf, sizeof buf, "%.*s", (int)(pp - t), t); *tp = buf; }
         tab = 3;
+    }
+    {   // i didnt see b's IN SUMMARY") the daemon's lobby state suffix: cut off, fr_lobby_party_marks draws READY / IN SUMMARY
+        static char lb[96];
+        const char *s = *tp, *a = strstr(s, " (lobby)"), *z = strstr(s, " (summary)"), *nw = strstr(s, " (new)");
+        int lob = a ? 1 : z ? 2 : nw ? 3 : 0;
+        if (lob) { const char *c = a ? a : z ? z : nw; snprintf(lb, sizeof lb, "%.*s%s", (int)(c - s), s, c + (a ? 8 : z ? 10 : 6)); *tp = lb; }
+        if (lob == 2) tab = 3;                        // (grey tab: not searching yet)
+        g_srch_lob[r] = lob;
+        if (!lob && r >= 1 && g_lobby_ui && (!strcmp(*tp, "SEARCHING") || !strcmp(*tp, "SZUKANIE")))      // an empty row of a lobby: an open seat
+            *tp = "";                                 // (design A: no name, a small grey OPEN in the status column - friends13.c lbSt)
     }
     snprintf(g_srch_name[r], sizeof g_srch_name[r], "%s", *tp);
     g_srch_tab[r] = tab;
 }
 static volatile int g_rq_waiting;        // requeue.c: our search waits for the other players of the last match (still on their post-match screens)
+static volatile int g_rq_left, g_rq_back, g_rq_post;   // requeue.c (persistent lobby): s until the next match forms anyway, members back, members on the screens
 static void settext_hook(uint64_t w, const char *t) {
     if (w && t && !IsBadReadPtr(t, 1)) { srch_name_write(w, &t); rkb_note(w, t); lbnr_note(w, t); sbt_note(w, t); nrim_note(w, t); }
-    if (g_rq_waiting && t && !IsBadReadPtr(t, 17) && !strcmp(t, "FINDING MATCH...")) t = "WAITING FOR PLAYERS...";     // (requeue text; PL row in loc_pl.h)
+    if (w && g_lobby_ui && w == g_lobby_cnt_w && g_lobby_head[0]) t = g_lobby_head;      // (lobby panel) NEXT MATCH IN m:ss over winmm's "n / 8"
+    int rq_sw = 0;
+    if (g_rq_waiting && t && !IsBadReadPtr(t, 17) && !strcmp(t, "FINDING MATCH...")) { t = "WAITING FOR PLAYERS..."; rq_sw = 1; }    // (requeue text; PL row in loc_pl.h)
     if (!g_ui_own && !g_settext_in && w && (w == g_pm_w[0] || w == g_pm_w[1])) g_pm_foreign = 1;      // (pause mission lines: refilled by pause_mission_tick)
     if (!g_ui_own && w) ui_wc_forget(g_ui_tc, w);      // a write that is not ui_text's: the widget no longer shows our last string
     {   // dev trace (a gear up option name appeared for a moment, then was cleared): file t2r-gu-trace.txt next to the exe = log every
@@ -58945,6 +59469,13 @@ static void settext_hook(uint64_t w, const char *t) {
     static char fr[64];
     if (t && t[0] == '0' && t[1] == ' ' && t[2] == 'L' && t[3] == 'P' && (!t[4] || t[4] == ' ')) { snprintf(fr, sizeof fr, "FREE%s", t + 4); t = fr; }
     if (t && !IsBadReadPtr(t, 1)) t = loc_tr(t);      // localisation: every English string of the mod / winmm that reaches a gui2 text on this path
+    if (rq_sw && t && g_rq_back + g_rq_post > 0) {       // (persistent lobby) members back / members of the lobby + the time until it goes anyway: digits only
+        static char rqb[160];
+        int l = g_rq_left;
+        if (l > 0) snprintf(rqb, sizeof rqb, "%s   %d/%d   %d:%02d", t, g_rq_back, g_rq_back + g_rq_post, l / 60, l % 60);
+        else snprintf(rqb, sizeof rqb, "%s   %d/%d", t, g_rq_back, g_rq_back + g_rq_post);
+        t = rqb;
+    }
     if (!g_settext_in && w) {
         // ---- score banner (hud): one writer, on change only
         sb_resolve_tick();
@@ -59115,7 +59646,7 @@ static void install_settext_twin(void) {
     FlushInstructionCache(GetCurrentProcess(), f, 12);
     xlog("settext twin: winmm settext hooked (STARTING MATCH IN countdown double-buffered)");
 }
-// The match timer still flickered (clip 17-17-41: 9:05 -> one blank frame -> 9:04, every second). The banner on screen in a
+// The match timer still flickered (clip: 9:05 -> one blank frame -> 9:04, every second). The banner on screen in a
 // match is winmm's HUD copy (w_scoreBanner under canvas.hudRoot), and winmm writes ITS texts from a second updater, FUN_1800623d0 (the HUD
 // block 0x180035386, every frame while not paused): allyLives / enemyLives / allyLabel / enemyLabel / matchTimer through
 // FUN_1800677f0(leaf) = gui2-build-widget-path(w_scoreBanner, "fader", "teamPanel", leaf) - the same handles sb_w resolves - and a
@@ -59156,10 +59687,8 @@ static void install_hudtext_twin(void) {
     FlushInstructionCache(GetCurrentProcess(), f, 13);
     xlog("hud text twin: winmm HUD settext FUN_18000de90 hooked (in-match timer / lives double-buffered)");
 }
-// Crash (a dump: int3 in MeshRayCaster::CastRayJob "User pass a NaN start pos" <- MeshRayCastJob::Kick <-
-// CoverController::MeshArmIkComponent::UpdateHandIk (exe 0x140b4f560) <- Player::PostAnimBlending_Async): the player's cover hand
-// IK cast a ray from a non-finite locator. The hand IK update is skipped for a frame whose locator (3rd arg, by pointer) is not
-// finite - the ray is never kicked. Logs "cover ik: ...".
+// Crash
+// cover ik: ...".
 typedef void (*fn_hik)(void *, float, const float *, void *, float);
 static fn_hik g_hik_tramp;
 static void hik_hook(void *self, float dt, const float *loc, void *cover, float w) {
@@ -59688,6 +60217,7 @@ static void feature_hud_fade(void) {
 // (FUN_1800626f0: visible = !pause-menu-on-stack, edge-triggered) whenever byte 0x18013A818, game-paused?, the to1/pause-menu page on the
 // menu stack and match-over are ALL false - so one of them drops for a frame now and then while OPTIONS is up. Not settled statically:
 // every change of the four inputs (and the top page) in a match is logged per frame here, first 200 changes per run ('hud gate:').
+// (the FRIENDS page ring hide fr13_ring_tick is gone - menu_hud_hide_tick hides the ring through its handle on every page, hudring-1122.)
 static void feature_hud_gate_diag(void) {
 #ifdef T2R_RELEASE
     return;                        // log-only diagnostic: dev builds only (perf: per-frame natives + log lines on the game thread)
@@ -59809,13 +60339,18 @@ static volatile int g_me_installed, g_me_hold_on;      // hold_on: the hold is r
 static volatile int g_me_pending;                       // a mode-0 leave was held back
 static uint64_t g_me_end;                               // winmm's end tick of the running hold (0 = none)
 static int g_me_released;
-// ---- LEAVE GAME confirm (an Are-you-sure box for quitting the match in game). LEAVE GAME on the Esc menu reaches this hook as
-// a mode-0 leave of a running match (session state 4, not ended) while the Esc menu is up (g_lq.menu_up, lq_tick). The first one is held and the box
-// anim-group.lqBox (pause_restyle_widgets.add_pause_nr) comes up on the Esc page; LEAVE GAME pressed again (Enter / the pad's A / a click: the focus is
-// still on it) = the same leave again = it goes through. Esc / menu-back / moving the focus = stay (the box closes, nothing was left). Fail-safe: when
-// the Esc page goes away by itself right after the press (not by Esc / back), the held leave is released at once (the old behaviour, never a trap).
+// ---- LEAVE GAME confirm ("in a similar style of the TWELVE WEEKS IS
+// UNFINISHED notice"). LEAVE GAME on the Esc menu reaches this hook as a mode-0 leave of a running match (session state 4, not ended) while the Esc menu is
+// up (g_lq.menu_up, lq_tick). The first one is held and the box anim-group.lqBox (pause_restyle_widgets.add_leave_box: the launch notice look, ARE YOU
+// SURE?, LEAVE MATCH | STAY) comes up on the Esc page with STAY focused. Select again (Enter / the pad's A: the stock focus is still on LEAVE GAME, so the
+// same leave comes here again) = the focused button: LEAVE MATCH lets it through, STAY closes the box and drops it. Left / right move the focus, the mouse
+// focuses the button under it and a click acts on it. Esc / menu-back / up / down (the stock focus moved off LEAVE GAME) = stay. Fail-safe: when the Esc
+// page goes away by itself right after the press (not by Esc / back), the held leave is released at once (the old behaviour, never a trap).
 // Off: t2r-no-leave-confirm.txt. Log 'leave confirm: ...'.
-static struct { int open, menu_up, shown, quit_key, hu, hd, hb; uint64_t t0; void *ctx; } g_lq;
+static struct { int open, menu_up, shown, quit_key, hu, hd, hb, hl, hr, focus, hov_last, fo_vis, stay_sel; uint64_t t0, click_at; void *ctx; } g_lq;
+#define LQ_BTN0 "anim-group.lqBox.lqPanelG.lqBtn0"
+#define LQ_BTN1 "anim-group.lqBox.lqPanelG.lqBtn1"
+static int g_lq_held_now;                               // me_leave_hook held this call (lq_site_stub reads it)
 static int lq_off(void) {
     static int on = -1; static uint64_t chk;
     uint64_t n = GetTickCount64();
@@ -59828,13 +60363,21 @@ static void me_leave_hook(void *ctx, uint8_t mode) {
         g_lq.menu_up && !lq_off()) {
         uint64_t now = GetTickCount64();
         if (!g_lq.open) {
-            g_lq.open = 1; g_lq.t0 = now; g_lq.ctx = ctx; g_lq.quit_key = 0;
-            xlog("leave confirm: LEAVE GAME on the Esc menu - held, ARE YOU SURE box up (caller %p)", __builtin_return_address(0));
+            g_lq.open = 1; g_lq.t0 = now; g_lq.ctx = ctx; g_lq.quit_key = 0; g_lq.focus = 1; g_lq.hov_last = -1; g_lq.fo_vis = -1; g_lq.click_at = 0;
+            g_lq.hl = g_lq.hr = 1;                  // (whatever is held when the box comes up)
+            xlog("leave confirm: LEAVE GAME on the Esc menu - held, ARE YOU SURE box up, STAY focused (caller %p)", __builtin_return_address(0));
+            g_lq_held_now = 1;
             return;
         }
-        if (now - g_lq.t0 < 300) return;        // (the same press seen twice)
+        if (now - g_lq.t0 < 300) { g_lq_held_now = 1; return; }        // (the same press seen twice)
+        if (g_lq.focus != 0) {                  // STAY focused: the box closes, the leave is dropped
+            g_lq.open = 0; g_lq.stay_sel = 1;       // (lq_tick hides the box on the next frame: no UI calls from this hook's thread)
+            xlog("leave confirm: STAY selected - staying in the match");
+            g_lq_held_now = 1;
+            return;
+        }
         g_lq.open = 0;
-        xlog("leave confirm: confirmed %llu ms after the box came up - leaving", (unsigned long long)(now - g_lq.t0));
+        xlog("leave confirm: LEAVE MATCH %s %llu ms after the box came up - leaving", g_lq.click_at ? "clicked" : "selected", (unsigned long long)(now - g_lq.t0));
     }
     if (mode == 0 && g_me_hold_on && (uint8_t *)ctx == lc && match_substate() == 6 && lc && lc[0x2ca4] && !g_me_released) {
         uint64_t el = GetTickCount64() - *(uint64_t *)(lc + 0x2ca8);
@@ -60064,13 +60607,84 @@ static void install_end_hold(void) {
     g_me_installed = 1;
     xlog("match end: leave hook installed (cave %p)", (void *)cave);
 }
+// (log: 'held, ARE YOU SURE box up' then 1 ms later 'session state 4 -> 0' and a second
+// leave from winmm+62a03): holding the leave call was not enough. winmm's LEAVE GAME handler (winmm+64e4e) calls the leave 0x18004c1a0 at +64eaf,
+// then clears 4 globals (0x180189b90..ba8, the HUD page pointers) and calls 0x180057800, which closes the session (state 0); the page tick then
+// leaves by itself. Now that call site goes to lq_site_stub: it runs the leave (through me_leave_hook) and returns 1 when the leave was held, and the
+// first mov after the call (11 bytes) becomes `test al, al; jnz +64ef6 (the handler's jmp to its end); nop x3` - a held LEAVE GAME runs nothing
+// else. Not held: the stub does that first mov itself (global 0x180189b90 = 0) and the handler goes on as before. Log 'leave confirm: ...'.
+static uint64_t lq_site_g1, lq_tail_g[4], lq_tail_b, lq_tail_d, lq_tail_fn;   // the handler's tail after the leave call (lq_leave_now)
+// The tick's own leave (the box's click fallback / the Esc page gone): the leave, then what winmm's LEAVE GAME handler does after it
+// (4 globals = 0, the session close 0x180057800, a byte and a dword = 0) - the bare leave alone would leave the session open.
+static void lq_leave_now(void *ctx) {
+    g_me_orig(ctx, 0);
+    if (!lq_tail_fn) return;
+    for (int i = 0; i < 4; i++) *(volatile uint64_t *)lq_tail_g[i] = 0;
+    ((void (*)(void))lq_tail_fn)();
+    *(volatile uint8_t *)lq_tail_b = 0;
+    *(volatile uint32_t *)lq_tail_d = 0;
+}
+static uint64_t lq_site_stub(void *ctx, uint8_t mode) {
+    g_lq_held_now = 0;
+    ((fn_leave_t)VMA(0x18004C1A0))(ctx, mode);          // (our entry hook me_leave_hook runs first)
+    if (g_lq_held_now) return 1;
+    *(volatile uint64_t *)lq_site_g1 = 0;
+    return 0;
+}
+static void install_lq_site(void) {
+    if (!g_me_installed) return;
+    uint8_t *c = (uint8_t *)VMA(0x180064EAF), *m = c + 5;
+    static const uint8_t pre[5] = {0x48, 0x89, 0xC1, 0x31, 0xD2};    // mov rcx, rax; xor edx, edx (just before the call)
+    if (memcmp(c - 5, pre, 5) || c[0] != 0xE8 || c + 5 + *(int32_t *)(c + 1) != (uint8_t *)VMA(0x18004C1A0) ||
+        m[0] != 0x48 || m[1] != 0xC7 || m[2] != 0x05 || *(uint32_t *)(m + 7) != 0 || ((uint8_t *)VMA(0x180064EF6))[0] != 0xE9) {
+        hook_miss(c, 16, "leave confirm: LEAVE GAME call site differs (other winmm build?) - the box can not hold the session close");
+        return;
+    }
+    lq_site_g1 = (uint64_t)(m + 11 + *(int32_t *)(m + 3));
+    // the tail (for lq_leave_now): mov qword [rip+d], 0 x4 at m, m+11, m+22, m+33; call at m+44; mov byte [rip+d], 0 at m+49 (7); mov dword [rip+d], 0 at m+56 (10)
+    int tail_ok = m[44] == 0xE8 && m[49] == 0xC6 && m[50] == 0x05 && m[55] == 0 && m[56] == 0xC7 && m[57] == 0x05 && *(uint32_t *)(m + 62) == 0;
+    for (int i = 1; i < 4; i++) if (m[i * 11] != 0x48 || m[i * 11 + 1] != 0xC7 || m[i * 11 + 2] != 0x05 || *(uint32_t *)(m + i * 11 + 7) != 0) tail_ok = 0;
+    if (tail_ok) {
+        for (int i = 0; i < 4; i++) lq_tail_g[i] = (uint64_t)(m + i * 11 + 11 + *(int32_t *)(m + i * 11 + 3));
+        lq_tail_fn = (uint64_t)(m + 49 + *(int32_t *)(m + 45));
+        lq_tail_b = (uint64_t)(m + 56 + *(int32_t *)(m + 51));
+        lq_tail_d = (uint64_t)(m + 66 + *(int32_t *)(m + 58));
+    } else xlog("leave confirm: handler tail differs - the box's own leave (click fallback) does the leave call only");
+    uint8_t *cave = alloc_near(c, 32);
+    if (!cave) { hook_fail("leave confirm: no stub memory near winmm"); return; }
+    DWORD old;
+    cave[0] = 0xFF; cave[1] = 0x25; *(uint32_t *)(cave + 2) = 0; *(uint64_t *)(cave + 6) = (uint64_t)lq_site_stub;
+    VirtualProtect(cave, 32, PAGE_EXECUTE_READ, &old);
+    FlushInstructionCache(GetCurrentProcess(), cave, 14);
+    VirtualProtect(c, 16, PAGE_EXECUTE_READWRITE, &old);
+    *(int32_t *)(c + 1) = (int32_t)(cave - (c + 5));
+    m[0] = 0x84; m[1] = 0xC0;                                                       // test al, al
+    m[2] = 0x0F; m[3] = 0x85; *(int32_t *)(m + 4) = (int32_t)((uint8_t *)VMA(0x180064EF6) - (m + 8));   // jnz the handler's end jump
+    m[8] = m[9] = m[10] = 0x90;
+    VirtualProtect(c, 16, old, &old);
+    FlushInstructionCache(GetCurrentProcess(), c, 16);
+    xlog("leave confirm: LEAVE GAME call site patched (global %p, cave %p)", (void *)lq_site_g1, (void *)cave);
+}
+static int lq_gate(int *hit) {                   // (ui_click_gate_tick)
+    if (!g_lq.open || !g_lq.shown) return 0;
+    *hit = ui_mouse_over(LQ_BTN0, 1);
+    return 1;
+}
+static void lq_fill(void) {                         // the message: the clan line only when there is a living clan to lose the day's supplies
+    clan_t c = clan_get();
+    int clan = !g_no_clan && c.ok && c.st == 1;
+    ui_text("anim-group.lqBox.lqPanelG.lqMsg", clan ? "YOU ARE ABOUT TO LEAVE THE MATCH.\nYOUR CLAN <font color=\"#fd6d51\">WILL SUFFER.</font>"
+                                                    : "YOU ARE ABOUT TO LEAVE THE MATCH.");
+}
 static void lq_tick(void) {
     int up = match_substate() == 6 && ui_w("anim-group.menuList.leaveGame") != 0 && ui_w("anim-group.lqBox") != 0;
     g_lq.menu_up = up;
     int back = menu_edge(fnv64("menu-back"), &g_lq.hb), mu = menu_edge(fnv64("menu-up"), &g_lq.hu), md = menu_edge(fnv64("menu-down"), &g_lq.hd);
+    int ml = menu_edge(0xe087ad207d99e6a0ULL /* menu-left */, &g_lq.hl), mr = menu_edge(0xa23d5059e72fc835ULL /* menu-right */, &g_lq.hr);
     int esc = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0;
     if (!g_lq.open) {
         if (g_lq.shown) { g_lq.shown = 0; ui_visible("anim-group.lqBox", 0); }
+        if (g_lq.stay_sel) { g_lq.stay_sel = 0; ui_sfx("sfx-select"); }
         return;
     }
     uint64_t now = GetTickCount64();
@@ -60079,7 +60693,7 @@ static void lq_tick(void) {
         g_lq.open = 0; g_lq.shown = 0;
         if (!g_lq.quit_key && now - g_lq.t0 < 500 && g_me_orig) {
             xlog("leave confirm: the Esc page closed by itself %llu ms after LEAVE GAME - no box possible, leaving (old behaviour)", (unsigned long long)(now - g_lq.t0));
-            g_me_orig(g_lq.ctx, 0);
+            lq_leave_now(g_lq.ctx);
         } else xlog("leave confirm: the Esc menu closed - staying in the match");
         return;
     }
@@ -60088,7 +60702,34 @@ static void lq_tick(void) {
         xlog("leave confirm: %s - staying in the match", back || esc ? "back" : "focus moved");
         return;
     }
-    if (!g_lq.shown) { g_lq.shown = 1; ui_visible("anim-group.lqBox", 1); }
+    if (!g_lq.shown) { g_lq.shown = 1; ui_visible("anim-group.lqBox", 1); lq_fill(); }
+    // focus: left / right, the mouse moving onto a button; a click acts on the button under it
+    int hov = ui_mouse_over(LQ_BTN0, 1) ? 0 : ui_mouse_over(LQ_BTN1, 1) ? 1 : -1;
+    int f0 = g_lq.focus;
+    if (hov >= 0 && hov != g_lq.hov_last) g_lq.focus = hov;
+    g_lq.hov_last = hov;
+    if (ml) g_lq.focus = 0;
+    if (mr) g_lq.focus = 1;
+    if (g_lq.focus != f0) ui_sfx("sfx-cycle");
+    if (g_click_edge && hov == 1) {                 // STAY clicked (the gate kept the click from the menu under the dim)
+        g_lq.open = 0; g_lq.shown = 0; ui_visible("anim-group.lqBox", 0); ui_sfx("sfx-select");
+        xlog("leave confirm: STAY clicked - staying in the match");
+        return;
+    }
+    if (g_click_edge && hov == 0 && !g_lq.click_at) g_lq.click_at = now;   // LEAVE MATCH clicked: its select goes on to LEAVE GAME = the hook
+    if (g_lq.click_at && now - g_lq.click_at > 500 && g_me_orig) {          // (the engine sent no select for the click: leave from here)
+        g_lq.open = 0; g_lq.shown = 0;
+        xlog("leave confirm: LEAVE MATCH clicked, no select from the menu in 500 ms - leaving");
+        lq_leave_now(g_lq.ctx);
+        return;
+    }
+    if (g_lq.focus != g_lq.fo_vis) {
+        g_lq.fo_vis = g_lq.focus;
+        ui_visible(LQ_BTN0 ".lqBtn0Fo", g_lq.focus == 0);
+        ui_visible(LQ_BTN1 ".lqBtn1Fo", g_lq.focus == 1);
+    }
+    float fin = (float)(now - g_lq.t0) / 200.0f;   // the box fades in (0.2 s)
+    w_alpha(ui_w("anim-group.lqBox"), fin > 1.0f ? 1.0f : fin < 0.0f ? 0.0f : fin);
 }
 static void feature_match_end_hold(void) {
     static int off = -1, fade_on, black_log, vol_dirty;
@@ -60711,7 +61352,7 @@ static volatile int g_ps42x; static float g_xcam_bin_f;      // (tentative: defi
 static volatile int g_ps43x = 1, g_s43x_vic; static volatile LONG g_s43x_cuts, g_s43x_td; static int g_s43x_thin = 1;
 // ps44 R8b (B 11998 'displayed step yaw +171.9', 12025 '-179.7' with camrec pitch -84.3 <-> -83.8: the picture turned 180 deg in one frame
 // each time the straight-down shot of fist-execute-enter-front crossed the 84 deg hold). Inside the hold the picture's heading is the authored heading +
-// roll (ps43); outside it the roll was DROPPED when over 80 deg (xcam_filter) - an authored roll near 180 deg = the picture upside down against the
+// roll; outside it the roll was DROPPED when over 80 deg (xcam_filter) - an authored roll near 180 deg = the picture upside down against the
 // hold; and the hold's slewed heading was kept from its last visit. Now: a steep authored shot (over ~64 deg, where melee_camcont.c s41_roll holds no
 // horizon either) keeps its full roll outside the hold, and the hold's heading restarts on the authored one at every entry.
 // t2r-ps44-cam-td-old.txt (melee_spcam.c ps44_cfg) = the ps43 behaviour.
@@ -60866,7 +61507,7 @@ static void *xcam_filter(uint8_t *dst, const float *loc) {
     }
     if (!g_xcam_authored) xcam_body_push(op);   // our own cameras: never inside the other body (authored 2013 shots: untouched)
     else if (w < 1.0f) {   // (the blend-in too: its straight line from the pin / duel camera crossed the pinner)
-        // v5-cam7 (tester 13-16-31 32.4-33.0 s: the attacker's way back from the cover takedown's authored shot went down through the lying victim's body
+        // v5-cam7 (the attacker's way back from the cover takedown's authored shot went down through the lying victim's body
         // into the grass): the authored shot itself stays untouched, its ways IN and OUT are ours - pushed out of the other body by (1 - w)
         // (no step at w 1, where the shot is shown as authored)
         float pp[3] = {op[0], op[1], op[2]}; xcam_body_push(pp);
@@ -62123,7 +62764,7 @@ static void xcam_choose_tick(const float *focus, float kill_s) {
             if (dd < bd) bd = dd;
         }
         int body = bd < 0.55f * 0.55f;
-        // v5-cam7 (user 13-16-31 29.0-29.5 s: the victim's takedown camera filled with the attacker's back / backpack; B log 44027 'cam1 t 0.0 s: hit at
+        // v5-cam7 (the victim's takedown camera filled with the attacker's back / backpack; B log 44027 'cam1 t 0.0 s: hit at
         // 0.30 of 1.59 m, 0.13 m from a body -> a body, ignored', 0.22 of 1.46, 0.19 of 1.42 = 0.27-0.48 m in front of the lens): a body hit is ignored
         // (2013: the bodies are the subject) only away from the lens - within XCAM_LENS_BODY of the lens the body covers the shot, the frame counts blocked
         if (body) {
@@ -62175,7 +62816,7 @@ static void xcam_choose_tick(const float *focus, float kill_s) {
                 float gd[3] = {g_xcam_gdir[0], g_xcam_gdir[1], g_xcam_gdir[2]}, gl = __builtin_sqrtf(gd[0] * gd[0] + gd[1] * gd[1] + gd[2] * gd[2]);
                 g_xcam_cand_base[i] = vl > 1e-4f && gl > 1e-4f ? (v[0] * gd[0] + v[1] * gd[1] + v[2] * gd[2]) / (vl * gl) : 0.0f;
                 if (g_xcam_cand_base[i] < 0.0f) g_xcam_cand_ok[i] = 0;
-                // v5-fb2 ( clip 14-17-09 29.8-33 s, log 78602 pipe-execute: all 6 dropped, the no-survivor fallback kept cam6 0.22
+                // v5-fb2 (clip, log 78602 pipe-execute: all 6 dropped, the no-survivor fallback kept cam6 0.22
                 // (6 blk = exactly the 15 % cap) whose view pitch was -78 deg: straight down over the attacker's head, the victim hidden
                 // under him - the v5-cam7 base gates only covered the +100 bonus and the right-side rule, not this fallback). A camera
                 // looking down steeper than XCAM_TOPDOWN_DEG at ANY frame of its track is never used for the attacker, by any path
@@ -62305,7 +62946,7 @@ static void xcam_choose_tick(const float *focus, float kill_s) {
     b[0] = 0;
     for (int i = 0; i < g_xcam_ncand; i++) {
         int k = xcam_cam_ix(g_xcam_cands[i]);
-        // v5-cam7 (user 13-15-29 32.2-34.0 s: the special execution's camera sat right over the attacker's head looking straight down, the victim
+        // v5-cam7 (the special execution's camera sat right over the attacker's head looking straight down, the victim
         // hidden under him; A log 40565 'cam4 0.82 L ... cam6 0.26+100 R -> camera 6', its pitch -61 .. -65 deg): the +100 of 2013's preferred camera
         // went to a shot 75 deg off the player's view. 2013's chooser measured Joel-sized bodies; a top-down shot over a TLOU2 body is covered by it.
         // The bonus (and the right-side rule below) now needs base >= XCAM_PREF_BASE (the victim's base is 1.0: unchanged).
@@ -64317,7 +64958,7 @@ static void mp_ui_full_tick(void) {
     for (int k = 0; k < 2; k++) { uint64_t h = *(uint64_t *)VMA(PGF_VAR[k]); uint8_t *w = h ? g2_find(h) : NULL; if (w) alpha(w, 0.0f); }
     g_text_hide = 1; g_radar_alpha = 0;     // (the weapon / ammo widget is SP UI - it stays)
 }
-// ---- the child rows (as in the stock HEALTH AND WEAPON row: elements can be disabled singly or the whole thing at once; here: disable radar, lives counter, supplies / parts counter)
+// ---- the child rows
 // As the stock HEALTH AND WEAPON row (its callback exe 0x140f404a1 writes one value to its three child options, then finds each child's data source through
 // exe+0x1E48A00 on the source list exe+0x949F7A6 and refreshes it through exe+0x1E4A940 so the shown rows follow):
 //  - DISABLE MP UI changed -> all three child rows take its value (and the whole MP UI hides / shows, mp_ui_full_tick);
@@ -64333,8 +64974,8 @@ static void mpui_ds_refresh(const char *sid) {
     memset(&z, 0, sizeof z);
     ((void (*)(void *, void *))(exe + 0x1E4A940))(ds, &z);
 }
-static const char *const MPUI_SID[3] = {"to1-mp-radar-off", "to1-mp-lives-off", "to1-mp-supplies-off"};
-static const char *const MPUI_NAME[3] = {"RADAR", "LIVES COUNTER", "SUPPLIES / PARTS"};
+static const char *const MPUI_SID[4] = {"to1-mp-radar-off", "to1-mp-lives-off", "to1-mp-supplies-off", "to1-mp-chat-off"};   // (mpui_sync / mpui_child_tick: the first 3)
+static const char *const MPUI_NAME[4] = {"RADAR", "LIVES COUNTER", "SUPPLIES / PARTS", "CHAT"};
 static void mpui_sync(void) {
     static int init; static int32_t lp, lc[3];
     if (!g_settings_ok || !g_bds_hooked_any()) return;
@@ -64441,7 +65082,7 @@ static void fc_body_hide(int hide) {
         if (!g_fc_body_hidden || newly) xlog("freecam: body hidden - prop set +0x%x %u entries (%u read), %d live props, %d weapons, %d newly hidden (%d remembered)", disp, n0, n, props, guns, newly, g_fch_n);
         g_fc_body_hidden = 1;
     } else if (g_fc_body_hidden) {
-        for (int r = 0; r < g_fch_n; r++) {                            // through the handle again: the heap compaction moves processes (R-RQL3)
+        for (int r = 0; r < g_fch_n; r++) {                            // through the handle again: the heap compaction moves processes
             uint8_t *pr = pst_obj(g_fch[r].hslot, g_fch[r].id);
             uint8_t *dc = pr && !IsBadReadPtr(pr + 0x1b0, 8) ? *(uint8_t **)(pr + 0x1b0) : NULL;
             if (dc && !IsBadWritePtr(dc + 0x48, 4) && !dc[0x48]) { dc[0x48] = g_fch[r].vis; back++; }
@@ -64461,6 +65102,16 @@ static void test_clock2_tick(void) {
     static float base; static int added, lbase, ladded;
     uint8_t *lo = match_substate() == 6 ? lobby_obj() : NULL;
     if (!lo) { base = 0.0f; added = 0; lbase = 0; ladded = 0; return; }
+#ifndef T2R_RELEASE
+    // dev only: t2r-dev-end-soon.txt next to the exe sets the running match clock to 5 s
+    // once, so winmm's own timeout ends the match (the host's event 6 carries it to the clients). The file is deleted after use. Not in release builds.
+    if (!r13_int_mode() && !IsBadWritePtr(lo + 0x2b8c, 0x0c) && lo[0x2b94] && !lo[0x2ca4]
+        && GetFileAttributesA("t2r-dev-end-soon.txt") != INVALID_FILE_ATTRIBUTES) {
+        float *dt = (float *)(lo + 0x2b8c);
+        if (dt[1] > 5.0f) { xlog("dev: end soon - match clock %.0f s -> 5 s", (double)dt[1]); dt[1] = 5.0f; }
+        DeleteFileA("t2r-dev-end-soon.txt");
+    }
+#endif
     if (!(g_srv_test_flags & 0x30) || r13_int_mode() || IsBadWritePtr(lo + 0x2b84, 0x14) || !lo[0x2b94] || lo[0x2ca4]) return;
     float *tm = (float *)(lo + 0x2b8c);
     if ((g_srv_test_flags & 0x20) && !ladded && tm[0] > 0.0f && tm[0] - tm[1] < 10.0f) {
@@ -64903,6 +65554,41 @@ static struct {
     float vp[8][3]; int nv;                                        // the enemy team's intro points, scored as enemies while the match is young
 } g_jp;
 #define JIP_MATE_M 1.5f                    // a point with a teammate this close (or nearer) is taken (two players clipping inside each other)
+#define JIP_INTRO_DROP_M 8.0f              // an intro point this far below the highest of its team's set is under the map (Resort t0 point 4: 20 m)
+#define JIP_FALL_M 2.0f                    // the body this far below its spawn during the black hold = falling through the void: moved at once
+static float g_jip_sy; static int g_jip_sy_ok, g_jip_rescues;
+// The joiner's body falls during the black hold (the engine put it on an intro point under the map, before our pick is done - the pick needs
+// the enemies' puppets, 1.2-1.9 s, and the fall killed two of three joiners first): move it onto the highest intro point of its own team now.
+// The pick still runs and moves it to the chosen point after. At most twice per match load.
+static void jip_fall_guard(void) {
+    if (!g_jip_sy_ok || g_jip_rescues >= 2) return;
+    float vb[16];
+    const float *vp = player_locator(vb);
+    if (!vp) return;
+    typedef uint64_t (*fn_loc)(uint64_t);
+    typedef void *(*fn_pos)(float *, uint64_t);
+    int team = (int)*(uint8_t *)VMA(0x180135388 + 0x1c);
+    if (team != 0 && team != 1) return;
+    float best[3] = {0, 0, 0}, top = -1e9f; char bn[40] = "";
+    for (int i = 1; i <= 8; i++) {
+        char nm[40]; snprintf(nm, sizeof nm, "to1-t%d-intro-spawn-point-%d", team, i);
+        uint64_t loc = ((fn_loc)VMA(0x18000ADB0))(fnv64(nm));
+        float b[16] = {0};
+        if (!loc || loc == ~0ULL || IsBadReadPtr((void *)loc, 8)) continue;
+        ((fn_pos)VMA(0x18000A6F0))(b, loc);
+        if ((b[0] == 0 && b[1] == 0 && b[2] == 0) || b[0] != b[0]) continue;
+        if (b[1] > top + 0.5f) { top = b[1]; memcpy(best, b, 12); strcpy(bn, nm); }
+    }
+    // falling (2 m below where the engine put it), or placed far below its team's start floor (already falling when we first looked)
+    if (g_jip_sy - vp[1] < JIP_FALL_M && !(top > -1e8f && top - vp[1] > JIP_INTRO_DROP_M)) return;
+    g_jip_rescues++;
+    if (top < -1e8f || top < vp[1] + 1.0f) { xlog("jip intro: body falling (%.1f m below its spawn at y %.1f) - no higher intro point to move it to", g_jip_sy - vp[1], g_jip_sy); return; }
+    float rot[4] = {0, 0, 0, 1};
+    teleport_player_to(best, rot);
+    xlog("jip intro: body falling (%.1f m below its spawn at y %.1f, now y %.1f) - moved to %s (%.1f %.1f %.1f) until the pick is done",
+         g_jip_sy - vp[1], g_jip_sy, vp[1], bn, best[0], best[1], best[2]);
+    g_jip_sy = best[1];
+}
 static void jip_gather_mates(void) {
     g_jp.nt = 0;
     uint32_t me = *(uint32_t *)VMA(0x180138090);
@@ -64952,6 +65638,26 @@ static void jip_load_candidates(void) {
             if (fl > 0.1f && fl == fl) { g_jp.fw[k][0] = fx / fl; g_jp.fw[k][1] = fz / fl; } else { g_jp.fw[k][0] = 0; g_jp.fw[k][1] = 1; }
             g_jp.seen[k] = 0; g_jp.pen[k] = 0; g_jp.near_slot[k] = -1;
         }
+    }
+    {   // Resort's to1-t0-intro-spawn-point-4 lies at y -14.6, ~20 m under the floor its three neighbours stand
+        // on (y 5.4): a joiner put there fell through the void during the black hold. An intro point far below the highest of its set is no
+        // candidate (the authored start points of one team share one floor area).
+        float top = -1e9f;
+        for (int k = 0; k < g_jp.n; k++) if (g_jp.p[k][1] > top) top = g_jp.p[k][1];
+        int w = 0;
+        for (int k = 0; k < g_jp.n; k++) {
+            if (g_jp.n >= 2 && top - g_jp.p[k][1] > JIP_INTRO_DROP_M) {
+                xlog("jip intro: %s at %.1f %.1f %.1f is %.1f m below its set's highest point - not a candidate (under the map)", g_jp.name[k],
+                     g_jp.p[k][0], g_jp.p[k][1], g_jp.p[k][2], top - g_jp.p[k][1]);
+                continue;
+            }
+            if (w != k) {
+                strcpy(g_jp.name[w], g_jp.name[k]); memcpy(g_jp.p[w], g_jp.p[k], 12); memcpy(g_jp.fw[w], g_jp.fw[k], 8);
+                g_jp.seen[w] = 0; g_jp.pen[w] = 0; g_jp.near_slot[w] = -1;
+            }
+            w++;
+        }
+        g_jp.n = w;
     }
     // Mid-match joiners should not join next to enemies: only the 8 intro points were candidates - on a small map (Resort: the two
     // starts 41 m apart) every one of them can have an enemy close by mid-match. The map's respawn spawners (g_spn, the respawn picker's list)
@@ -65378,6 +66084,8 @@ static void feature_match_intro_inner(void) {
         {   // which intro spawn point we stood on (Hospital t0 point inside a wall - find it by position)
             float lb[16]; const float *lp = player_locator(lb);
             if (lp) xlog("intro: spawn position %.2f %.2f %.2f (team %d)", lp[0], lp[1], lp[2], (int)*(uint8_t *)VMA(0x180135388 + 0x1c));
+            g_jip_sy_ok = 0; g_jip_rescues = 0;
+            if (lp && jip) { g_jip_sy = lp[1]; g_jip_sy_ok = 1; }
             if (g_intro_bpos_ok) xlog("intro: black-wait step-back spot was %.2f %.2f %.2f", g_intro_bpos[0], g_intro_bpos[1], g_intro_bpos[2]);
         }
         verified = 0;
@@ -65419,6 +66127,7 @@ static void feature_match_intro_inner(void) {
                 }
             }
         }
+        if (jip && !jp_tp_ok) jip_fall_guard();
         if (jip && !jp_done && now - s0 >= JIP_HOLD_MAX - (LS_BLACK_MS + LS_FADE_MS + 100)) {   // out of time (never verified / rays / teleport too slow): the team's own point
             xlog("jip intro: out of time after %llu ms (stage %d%s) - keeping where we stand", (unsigned long long)(now - s0), g_jp.stage, jp_tp_ok ? ", teleport sent" : "");
             jp_done = 1; jp_wait = 0; hold_end = now + LS_BLACK_MS + LS_FADE_MS + 200; t0 = hold_end - 400;
@@ -65582,20 +66291,21 @@ static int32_t *settings_ptr(int i) {
     case 5: return (int32_t *)&g_bow_arc_pref;    // BOW AIM ARC (our own option, widget row in options-menu-multiplayer)
     case 7: return (int32_t *)&g_mp_ui_off;       // DISABLE MP UI (our own option, widget row selectorDisableMpUi)
     case 8: case 9: case 10: return (int32_t *)&g_mp_hide[i - 8];   // DISABLE RADAR / LIVES COUNTER / SUPPLIES / PARTS (child rows)
+    case 14: return (int32_t *)&g_mp_hide[3];     // DISABLE CHAT (chat)
     case 13: return (int32_t *)&g_p1m_pref;       // PART I MAPS (working row, forced 0 while locked - see p1m_locked)
     case 11: return (int32_t *)&g_region_pref;    // REGION PREFERENCE (mockup row, reserved: always 0 = ANY while MOCK_LOCKED)
     case 12: return (int32_t *)&g_input_pref;     // INPUT PREFERENCE (mockup row, reserved: always 0 = ANY while MOCK_LOCKED)
     default: return (int32_t *)VMA(0x18013822C);  // 60 FPS LOCK = winmm to1-menu-fps-cap (range 0..1, default 1; the page's movss 60.0 at winmm 0x1800633cd)
     }
 }
-#define NSETTINGS 14
+#define NSETTINGS 15
 static int32_t g_settings_last[NSETTINGS];
 static int g_settings_ok;
 static void settings_save(void) {
     FILE *f = fopen(g_settings_path, "w");
     if (!f) return;
     for (int i = 0; i < NSETTINGS; i++) fprintf(f, "%d ", i == 13 ? p1m_store() : *settings_ptr(i));       // PART I MAPS: the kept choice while the row is locked
-    fputs("\n# subtitles names colors reticle radar bow-arc fps-lock mp-ui-off hide-radar hide-lives hide-supplies region-pref input-pref part1-maps (t2r)\n", f);
+    fputs("\n# subtitles names colors reticle radar bow-arc fps-lock mp-ui-off hide-radar hide-lives hide-supplies region-pref input-pref part1-maps chat-off (t2r)\n", f);
     fclose(f);
 }
 static void apply_settings_defaults(void) {
@@ -65603,10 +66313,10 @@ static void apply_settings_defaults(void) {
     uint8_t *exe = (uint8_t *)GetModuleHandleW(NULL);
     static const uint8_t expect[7] = {0x48, 0x8D, 0x05, 0x60, 0x82, 0x0D, 0x07};   // lea rax,[rip+0x70d8260]
     if (memcmp(exe + 0x1c82c59, expect, 7)) { hook_miss(exe + 0x1c82c59, 7, "settings: exe build differs, skipped"); return; }
-    int32_t v[NSETTINGS] = {2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0};
+    int32_t v[NSETTINGS] = {2, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0};
     FILE *f = fopen(g_settings_path, "r");
-    int nf = f ? fscanf(f, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9], &v[10],
-                        &v[11], &v[12], &v[13]) : 0;   // an old 5/6-field file keeps the later defaults (bow arc on, fps lock on)
+    int nf = f ? fscanf(f, "%d %d %d %d %d %d %d %d %d %d %d %d %d %d %d", &v[0], &v[1], &v[2], &v[3], &v[4], &v[5], &v[6], &v[7], &v[8], &v[9], &v[10],
+                        &v[11], &v[12], &v[13], &v[14]) : 0;   // an old 5/6-field file keeps the later defaults (bow arc on, fps lock on)
     int have = nf >= 5;
     if (f) fclose(f);
     if (v[5] != 0) v[5] = 1;
@@ -65616,6 +66326,7 @@ static void apply_settings_defaults(void) {
     for (int i = 8; i < 11; i++) if (v[i] != 0) v[i] = 1;
     for (int i = 11; i < 13; i++) if (v[i] < 0 || v[i] > 2 || MOCK_LOCKED) v[i] = 0;   // region / input preference: 0..2, held at ANY while the rows are a mockup
     if (v[13] != 0) v[13] = 1;
+    if (v[14] != 0) v[14] = 1;
     g_p1m_keep = v[13];                                          // (the row reads 0 until the Part I maps are seen; the kept choice comes back then)
     for (int i = 0; i < NSETTINGS; i++) *settings_ptr(i) = v[i];
     if (!have || nf < NSETTINGS) settings_save();
@@ -65623,7 +66334,7 @@ static void apply_settings_defaults(void) {
     g_settings_ok = 1;
     xlog("settings: %s subtitles %d names %d colors %d reticle %d radar %d bow arc %s", have ? "restored" : "defaults",
          v[0], v[1], v[2], v[3], v[4], v[5] ? "on" : "off");
-    xlog("settings: fps lock %s, DISABLE MP UI %s (radar %d lives %d supplies %d) applied (file)", v[6] ? "on" : "off", v[7] ? "on" : "off", v[8], v[9], v[10]);
+    xlog("settings: fps lock %s, DISABLE MP UI %s (radar %d lives %d supplies %d), DISABLE CHAT %s applied (file)", v[6] ? "on" : "off", v[7] ? "on" : "off", v[8], v[9], v[10], v[14] ? "on" : "off");
 }
 // BOW AIM ARC selector row on OPTIONS > MULTIPLAYER, built exactly like spec's three (reticle / menu fps cap / radar):
 //  - widget (names_widgets.add_options_hint): a Reference to menu/components/selector-default.widget in the page's `contents`
@@ -65652,7 +66363,7 @@ static volatile int32_t *bds_ours(void *ds) {
     uint64_t sid = bds_ds_sid(ds);
     if (sid == fnv64("to1-bow-arc")) return &g_bow_arc_pref;
     if (sid == fnv64("to1-mp-ui-off")) return &g_mp_ui_off;
-    for (int k = 0; k < 3; k++) if (sid == fnv64(MPUI_SID[k])) return &g_mp_hide[k];
+    for (int k = 0; k < 4; k++) if (sid == fnv64(MPUI_SID[k])) return &g_mp_hide[k];
     if (bds_p1(ds)) return &g_p1m_pref;
     int m = bds_mock(ds);
     return m == 1 ? &g_region_pref : m == 2 ? &g_input_pref : NULL;
@@ -65742,6 +66453,8 @@ static void bds_ensure_hook(void) {
     static const char *const CI[3] = {"TO1_MP_RADAR_OFF", "TO1_MP_LIVES_OFF", "TO1_MP_SUPPLIES_OFF"};
     uint64_t rc[3];
     for (int k = 0; k < 3; k++) rc[k] = create_ds(exe + 0x949F7A6, fnv64("Menu2::DataSourceSelector"), fnv64(MPUI_SID[k]), fnv64(CI[k]), 0, 0);
+    uint64_t rch = create_ds(exe + 0x949F7A6, fnv64("Menu2::DataSourceSelector"), fnv64(MPUI_SID[3]), fnv64("TO1_MP_CHAT_OFF"), 0, 0);      // DISABLE CHAT (chat)
+    xlog("settings: DISABLE CHAT data source %s created (%p), value %s", MPUI_SID[3], (void *)rch, g_mp_hide[3] ? "ON" : "OFF");
     // the mockup rows: greyed out by bds_state_hook; the vtable each got is logged (expected exe+0x2f4cb68, the slot wrapped)
     uint64_t rp1 = create_ds(exe + 0x949F7A6, fnv64("Menu2::DataSourceSelector"), fnv64("to1-p1-pref"), fnv64("TO1_P1_MAPS"), 0, 0);
     xlog("settings: PART I MAPS data source to1-p1-pref created (%p), value %s", (void *)rp1, g_p1m_pref ? "ALWAYS" : "DEFAULT");
@@ -65781,14 +66494,14 @@ static void install_bow_options(void) {
 }
 static void feature_settings_persist(void) {
     static const char *const nm[NSETTINGS] = {"subtitles", "names", "colors", "reticle", "radar", "BOW AIM ARC", "60 FPS LOCK", "DISABLE MP UI", "DISABLE RADAR",
-                                              "DISABLE LIVES COUNTER", "DISABLE SUPPLIES / PARTS", "REGION PREFERENCE", "INPUT PREFERENCE", "PART I MAPS"};
+                                              "DISABLE LIVES COUNTER", "DISABLE SUPPLIES / PARTS", "REGION PREFERENCE", "INPUT PREFERENCE", "PART I MAPS", "DISABLE CHAT"};
     if (!g_settings_ok || (g_frame % 60)) return;
     int changed = 0;
     for (int i = 0; i < NSETTINGS; i++)
         if (*settings_ptr(i) != g_settings_last[i]) {
             g_settings_last[i] = *settings_ptr(i); changed = 1;
             if (i == 13 && !p1m_locked()) g_p1m_keep = g_p1m_pref ? 1 : 0;
-            xlog("settings: option row %s -> %d%s", nm[i], g_settings_last[i], i >= 5 && i < 11 ? (g_settings_last[i] ? " (ON)" : " (OFF)") : i == 13 ? (g_settings_last[i] ? " (ALWAYS)" : " (DEFAULT)") : "");
+            xlog("settings: option row %s -> %d%s", nm[i], g_settings_last[i], ((i >= 5 && i < 11) || i == 14) ? (g_settings_last[i] ? " (ON)" : " (OFF)") : i == 13 ? (g_settings_last[i] ? " (ALWAYS)" : " (DEFAULT)") : "");
         }
     if (changed) { settings_save(); xlog("settings: saved the player's change (fps lock %s)", g_settings_last[6] ? "on" : "off"); }
 }
@@ -66346,9 +67059,9 @@ static int hfix_scope(void) {
 static const char *hfix_scope_name(int s) { return s == 1 ? "attacker half" : s == 2 ? "victim half" : s == 3 ? "downed" : s == 5 ? "melee kept in the hand (our dodge / ground strike clip)" : "none"; }
 // v5-fb3 MELEE KEEP (the weapon was sometimes not in the hands during some moves, visibly on the backpack): the clips WE force on the local
 // player outside the pair halves - the combat dodge (player-contextual-dodge-*, animate_) and the downed ground strike (cap-npc-* kick) - carry the
-// engine's holster anim actions, and no gate covered them: a log (clip 14-17-09 13.6 s) 77560 "attach trace ... (held) ap machete_holster" from the
+// engine's holster anim actions, and no gate covered them: a log (clip 13.6 s) 77560 "attach trace ... (held) ap machete_holster" from the
 // Holster finish body (exe+d7b334) 27 frames into player-contextual-dodge-back-horiz-left-d (hfix 0, psync 0), then 77577 the bd91cf Holster request
-// passed; 71462 the same 31 frames into the downed kick cap-npc-m-nw-check-prone-space-exit-idle (clip 14-15-30 11.0 s) - the pipe wrench went onto the
+// passed; 71462 the same 31 frames into the downed kick cap-npc-m-nw-check-prone-space-exit-idle (clip 11.0 s) - the pipe wrench went onto the
 // back and the next dodge counter (77025) swung the 1h blunt clip with an empty fist. While one of those clips runs with a melee item in the hand, the
 // holster anim actions (begin / body / Phase1 / attach events) and the engine's Holster state requests of the local player are refused (scope 5), and the
 // v5-wpn2 0.6 s melee hold follows its end. Pins keep their own deliberate put-away (our instant holster passes). t2r-no-melee-hold.txt = off.
@@ -66543,7 +67256,9 @@ static void comp_owner_check(const char *when) {
 }
 static void cm_hook(void *pm) {
     typedef uint8_t *(*fn_me)(void);
+    g_cm_hook_frame = g_frame;
     czs_kill_drain();            // (before the pass and before the hold-back test: a removal done here holds this pass back too)
+    rgq_drain("at the compaction point", 'Q');   // our own respawn grant, queued by resp_grant_hook (same rule: this pass and the next 2 held back)
     if (g_cm_skip_until && g_frame <= g_cm_skip_until) {         // one of our removals this frame / the last two: see g_cm_skip_until
         static int off = -1;
         if (off < 0) { FILE *f_ = exe_side_open("t2r-no-cm-skip.txt", "r"); off = f_ != NULL; if (f_) fclose(f_); }
@@ -66671,7 +67386,7 @@ static int hfix_melee_hold(void) {
 }
 // v5-fb1 (hammer disarm did not work; log 98780 hammer-modern in hand -> a free (non-duel) blow from slot 1: meleestun STAGGER + the SP
 // hit reaction ellie-1h-hr-chest-front-horizontal-a -> 98808 reaction / stagger over -> 98811 machete_holster bind -> 98812 "held 0" -> 98958 slot 1's lethal
-// swing picks fist-kick-face-kill on an unarmed victim; clip 14-23-14 +2.8 s: the hammer leaves the hand right after the first punch lands): the hold
+// swing picks fist-kick-face-kill on an unarmed victim; clip +2.8 s: the hammer leaves the hand right after the first punch lands): the hold
 // covered only psync pair halves. Our SP hit reaction / melee stagger (melee_hitreact.c, melee_stagger.c) now count as a pair half too.
 static void hfix_hold_tick(void) {          // per frame: the end of our last pair half; the hold's summary once its window closed
     int r = psync_role();
@@ -67587,7 +68302,7 @@ static int pbegin_no_weapon(const uint8_t *handle_src, uint8_t *me, const char *
     if (hfix_log_ok()) xlog("holster fix: weapon anim state -> s_weapon-holster^no-weapon (%s; carry arm layers off, gun stays in hand), frame %llu", why, (unsigned long long)g_frame);
     return 1;
 }
-static int p30_vic_keep(void); static void p30_pbegin_note(void);   // melee_hitreact.c (ps30): we are the armed victim of a duel -hit pair
+static int p30_vic_keep(void); static void p30_pbegin_note(void);   // melee_hitreact.c: we are the armed victim of a duel -hit pair
 static uint64_t pbegin_hook(void *self, uint64_t a1, uint64_t a2, uint64_t a3) {
     typedef uint8_t *(*fn_me)(void);
     if (g_htr_on) htr_pbegin((uint64_t)self, a1, a2, a3, __builtin_return_address(0));
@@ -67924,10 +68639,7 @@ static void crash_ident(const CONTEXT *c) {
             }
     }
 }
-// MeshRayCaster::CastRayJob (exe 0x1415b20c0) asserts - "User pass a NaN start pos" (exe+15b2287: !IsFinite(start); 15b2427: LengthSqr(start) >= 1e10)
-// and the end-position twins. r13 = the MeshRayCastJob (vtable, ..., +0x20 start vec4, +0x30 end vec4 - dumps from six crashes).
-// A start / end that is still the engine's NaN fill (0xffc00000) = the caller never set it (UpdateHandIk's joint chain was not evaluated); a start with
-// huge X / Z and a sane Y = a runaway body position (an own-player set-object-locator jump).
+// MeshRayCaster::CastRayJob (exe 0x1415b20c0) asserts - "
 static void mray_report(const CONTEXT *c) {
     const uint8_t *job = (const uint8_t *)c->R13;
     if (!job || IsBadReadPtr(job, 0x50)) { xlog("  meshray job: r13 %p unreadable", (const void *)job); return; }
@@ -67936,10 +68648,6 @@ static void mray_report(const CONTEXT *c) {
     xlog("  meshray job %p: start %g %g %g %g (bits %08x %08x %08x %08x)  end %g %g %g %g (bits %08x %08x %08x %08x)", (const void *)job,
          f[8], f[9], f[10], f[11], u[8], u[9], u[10], u[11], f[12], f[13], f[14], f[15], u[12], u[13], u[14], u[15]);
 }
-// crash-proof capture (crashdiag.h, re/crash-diag-pt81-1019.md): for every register / first stack slot that looks like a heap object,
-// (1) its attach table - [obj+0x1f0] -> {+4 count, +8 entries} - and which of our puppet slots / registered tables it is (the snapshot-table crash
-// 15f52d7 reads a puppet's table whose entries pointer was 0 with count 0x91), and (2) the natives we issued whose first argument was that value
-// (a handle / object we asked the engine to kill, spawn or toggle: names the stale pointer the relocator / Havok crashes met).
 static void cd_crash_regs(const CONTEXT *c) {
     const uint64_t rv[16] = {c->Rax, c->Rcx, c->Rdx, c->Rbx, c->Rsi, c->Rdi, c->Rbp, c->R8, c->R9, c->R10, c->R11, c->R12, c->R13, c->R14, c->R15, c->Rsp};
     static const char *const rn[16] = {"rax", "rcx", "rdx", "rbx", "rsi", "rdi", "rbp", "r8", "r9", "r10", "r11", "r12", "r13", "r14", "r15", "rsp"};
@@ -67973,17 +68681,11 @@ static void cd_crash_regs(const CONTEXT *c) {
             }
     }
 }
-// Anim IK / constraint solver crash (exe+20fb1b0 in 20fa210-20fc13c, a read past the end of the solver's per-group scratch array):
-// the solver ran on a chain record whose group count [rec+4] read 1 at the crash while the pair loop had j = 3, i.e. the record changed under it. The
-// minidump has no heap, so this prints what the next crash needs. Frame of 20fa210 (entry rsp E; rsp inside = E - 0x8b8): ctx = [rsp+0x80], chain index
-// = [rsp+0x88], ctx+0x240 = array of 0x410-byte chain records (count [ctx+0x1a8]), chain loop [ctx+0x288]..[ctx+0x28c] inclusive, group entries of a
-// record at rec+0x110 (0x30 bytes each, group id byte at +0x24). When the fault is in a callee, the solver's frame is found from its return address on
-// the stack (slot + 8 = the solver's rsp). Read-only, every read through IsBadReadPtr; silent when no solver frame is on the stack.
 static int ik_rd(const void *p, size_t n) { return (uint64_t)p > 0x10000 && (uint64_t)p < 0x7fffffffffffULL && !IsBadReadPtr(p, n); }
 static void ik_report(const CONTEXT *c) {
     const uint8_t *exe = (const uint8_t *)GetModuleHandleW(NULL);
     uint64_t rip = c->Rip - (uint64_t)exe;
-    const uint8_t *frame = NULL;                                   // the solver's rsp
+    const uint8_t *frame = NULL;
     if (rip >= 0x20FA210 && rip < 0x20FC13C) frame = (const uint8_t *)c->Rsp;
     else {
         const uint64_t *sp = (const uint64_t *)c->Rsp;
@@ -68021,7 +68723,6 @@ static void ik_report(const CONTEXT *c) {
                  (unsigned long long)q[2], (unsigned long long)q[3], (unsigned long long)q[4], (unsigned long long)q[5], r[0x110 + 0x30 * k + 0x24]);
         }
     }
-    // whose is it: our known bodies, and a body word / ctx word that points into the other
     typedef void *(*fn_proc_t)(uint64_t);
     const uint8_t *body[1 + T2R_MAX_PEERS]; const char *bn[1 + T2R_MAX_PEERS]; char names[1 + T2R_MAX_PEERS][16];
     body[0] = g_winmm ? (const uint8_t *)((fn_proc_t)VMA(0x18000A200))(SID_PLAYER) : NULL; bn[0] = "own player";
@@ -68048,7 +68749,6 @@ static void ik_report(const CONTEXT *c) {
             if (v && body[bi] && v >= (uint64_t)body[bi] && v < (uint64_t)body[bi] + 0x8000) { xlog("  ik: ctx +%x = %llx inside %s %p +%llx", k * 8, (unsigned long long)v, bn[bi], (const void *)body[bi], (unsigned long long)(v - (uint64_t)body[bi])); found = 1; }
     }
     if (!found) xlog("  ik: no known body points at ctx / its records within 0x8000 of the body (the ctx belongs to another character or a prop)");
-    // the ext's own actions in the last 512 log lines that touch a body (attach patches / registration, armor rig hides, coat copies, respawns)
     LONG end = g_xring_i;
     xlog("  ik: ext actions on bodies in the log ring (oldest first):");
     for (LONG i = end - XRING_N + 1; i <= end; i++) {
@@ -68059,39 +68759,35 @@ static void ik_report(const CONTEXT *c) {
             strstr(l, "heap compaction") || strstr(l, "faction look:") || strstr(l, "respawn puppet") || strstr(l, "stow") || strstr(l, "holster") || strstr(l, "mesh instance"))
             xlog("  ik:   %.200s", l);
     }
-    for (int i = 0; i < CD_PUP_N; i++) {                        // crashdiag.h pup[]: attach-table writes with frame distances
+    for (int i = 0; i < CD_PUP_N; i++) {
         const cd_pup_t *e = &g_cdiag.pup[i];
         if (e->kind == CD_PUP_PATCH || e->kind == CD_PUP_REG) xlog("  ik:   pup ring: frame %llu (%llu before) slot %d kind %u table %llx", (unsigned long long)e->frame, (unsigned long long)(g_frame - e->frame), (int)e->slot, (unsigned)e->kind, (unsigned long long)e->a);
     }
 }
-// The heavy crash report. Called by crashfilter.h only for an exception that is really fatal (top-level filter = no handler took it; stack overflow / engine int3 at
-// first chance): handled first-chance exceptions never get here, so they no longer spend the 4 reports or the one-shot t2r-crash-<pid>-1.bin (re/crash-veh-filter-1019.md).
 static void crash_report(EXCEPTION_POINTERS *ep) {
     static volatile LONG reports;
     DWORD code = ep->ExceptionRecord->ExceptionCode;
-    xlog_flush_now();                           // (the writer thread flushes every 250 ms: get the last lines out before the report)
+    xlog_flush_now();
     LONG report_no = InterlockedIncrement(&reports);
     if (report_no > 4) return;
-    xlog_dump_ring();                           // what ran last, incl. the lines the release log rate-limited away
+    xlog_dump_ring();
     g_xlog_nolimit = 1;
     char where[300];
     mod_off((uint64_t)ep->ExceptionRecord->ExceptionAddress, where, sizeof where);
     xlog("EXCEPTION %08lx at %s (info %llx %llx) thread %lu pid %lu", code, where,
          (unsigned long long)ep->ExceptionRecord->ExceptionInformation[0],
          (unsigned long long)ep->ExceptionRecord->ExceptionInformation[1], GetCurrentThreadId(), (unsigned long)GetCurrentProcessId());
-    if (report_no == 1)         // crashbin.h: the first report of the process leaves t2r-crash-<pid>-1.bin (block + native ring + last log lines); still returns CONTINUE_SEARCH below
+    if (report_no == 1)
         cb_write(code, (uint64_t)ep->ExceptionRecord->ExceptionAddress, (uint64_t)ep->ExceptionRecord->ExceptionInformation[0], (uint64_t)ep->ExceptionRecord->ExceptionInformation[1],
                  GetCurrentThreadId(), g_frame, &g_cdiag, sizeof g_cdiag, g_dcr, sizeof g_dcr, (int32_t)g_dcr_i, &g_xring[0][0], XRING_N, XRING_W, (int32_t)g_xring_i);
-    // Registers + the objects they point at (respawn crash: a null owner in an engine body-attach group,
-    // [group+8] = 0 in fn1e0e250 = r15; the minidump has stacks only, so the group's bytes were lost): the nonvolatile
-    // registers survive the faulting leaf, so r15 / rbx / rdi / rsi / r12-r14 show which object was bad.
     {
         const CONTEXT *c = ep->ContextRecord;
         const struct { const char *n; uint64_t v; } rg[] = {{"rax", c->Rax}, {"rcx", c->Rcx}, {"rbx", c->Rbx}, {"rsi", c->Rsi},
             {"rdi", c->Rdi}, {"rbp", c->Rbp}, {"r12", c->R12}, {"r13", c->R13}, {"r14", c->R14}, {"r15", c->R15}};
         xlog("  hooks live: pistol-point %d armor-rig %d puppet-tables %d female-knife-now %d", g_pist_on, g_armor_rig, g_pa_ovr_ok, (int)g_fem_knife_now);
         czs_crash_report();
-        {   // exe+c2d3f8: [[state instance + 0x178] + 8] = the state's scratch buffer pointer, found overwritten; the minidump has no heap
+        rgq_crash_report();
+        {
             const uint8_t *in = (const uint8_t *)c->Rcx;
             if ((uint64_t)in > 0x10000 && (uint64_t)in < 0x7fffffffffffULL && !IsBadReadPtr(in + 0x170, 16)) {
                 const uint8_t *x = *(const uint8_t *const *)(in + 0x178);
@@ -68113,21 +68809,21 @@ static void crash_report(EXCEPTION_POINTERS *ep) {
                  (unsigned long long)q[0x21], (unsigned long long)q[0x28]);
         }
     }
-    {   // crash triage: the natives we called last, the item controller, the compaction watch, the Havok world
+    {
         const uint8_t *exe_ = (const uint8_t *)GetModuleHandleW(NULL);
         uint64_t roff = (uint64_t)ep->ExceptionRecord->ExceptionAddress - (uint64_t)exe_;
         dcr_dump();
-        cd_report(xlog, cd_name, (uint32_t)GetTickCount64());       // crashdiag.h rings: compaction state, body events, puppet events, Havok world samples
+        cd_report(xlog, cd_name, (uint32_t)GetTickCount64());
         cd_crash_regs(ep->ContextRecord);
-        xlog_flush_now();                                           // (the reports above are the evidence: on disk before the heavier Havok scan)
+        xlog_flush_now();
         xlog("  heap compaction watch: %llu compactions seen, %llu moved the local Player / item controller, the last at frame %llu (now frame %llu)",
              (unsigned long long)g_cm_calls, (unsigned long long)g_cm_moves, (unsigned long long)g_cm_move_frame, (unsigned long long)g_frame);
         if (roff >= 0xBE02E0 && roff < 0xBE0700) ic_report((const uint8_t *)ep->ContextRecord->Rbx, "crash in PlayerItemController::Update");
-        if ((roff >= 0x15F8450 && roff < 0x15F8554) || (roff >= 0x1604360 && roff < 0x1604500)) layer_reloc_report(ep->ContextRecord);   // anim-layer relocate under CompactProcessMemory
-        if (roff >= 0x24DF000 && roff < 0x24E1160) hk_tree_report(ep->ContextRecord);       // UpdateVolatileTree (0x1424df000, its 0x19c8-byte frame)
+        if ((roff >= 0x15F8450 && roff < 0x15F8554) || (roff >= 0x1604360 && roff < 0x1604500)) layer_reloc_report(ep->ContextRecord);
+        if (roff >= 0x24DF000 && roff < 0x24E1160) hk_tree_report(ep->ContextRecord);
         if (roff >= 0x24D0000 && roff < 0x2560000) hk_scan("crash", 1);
-        if (roff >= 0x15B20C0 && roff < 0x15B2A00) mray_report(ep->ContextRecord);          // MeshRayCaster::CastRayJob asserts
-        ik_report(ep->ContextRecord);                                                       // anim IK solver (exe+20fa210): finds its own frame on the stack, silent otherwise
+        if (roff >= 0x15B20C0 && roff < 0x15B2A00) mray_report(ep->ContextRecord);
+        ik_report(ep->ContextRecord);
     }
     uint64_t *sp = (uint64_t *)ep->ContextRecord->Rsp;
     int found = 0;
@@ -68144,17 +68840,11 @@ static void crash_report(EXCEPTION_POINTERS *ep) {
             found++;
         }
     }
-    xlog_flush_now();                           // (the identity scan calls the engine's handle resolver: everything above is on disk before it runs)
+    xlog_flush_now();
     crash_ident(ep->ContextRecord);
     g_xlog_nolimit = 0;
     xlog_flush_now();
 }
-// Crashes after opening a drawer / picking something up (live 169 and 166): the DC script interpreter's
-// call-through-a-frame-slot opcode (exe+14b73fd: rcx = [rsi]; r10 = [rcx]; ... call r10 at exe+14b741a) ran with rsi = a static object
-// (exe+3d5b1f8) whose first qword points at a cell holding -1, so the call jumped to -1 (fault address ffffffffffffffff). Root cause not found
-// yet (the slot's owner is unknown). Recovery: that one call returns 0 (its result slot [rsp+0x88] zeroed) and the script goes on, as a
-// native that found nothing. Only this exact shape is touched (fault rip -1 with the return address exe+14b741d on the stack, or the call
-// instruction itself with r10 not canonical). Logged with the slot words for the root cause. t2r-no-dccall-guard.txt = off (crash as before).
 static volatile LONG g_dccall_fix_n;
 static LONG CALLBACK dccall_veh(EXCEPTION_POINTERS *ep) {
     if (!ep || !ep->ExceptionRecord || !ep->ContextRecord || ep->ExceptionRecord->ExceptionCode != 0xC0000005) return EXCEPTION_CONTINUE_SEARCH;
@@ -68163,9 +68853,9 @@ static LONG CALLBACK dccall_veh(EXCEPTION_POINTERS *ep) {
     CONTEXT *c = ep->ContextRecord;
     uint64_t exe = (uint64_t)GetModuleHandleW(NULL), ret = exe + 0x14b741d, call_at = exe + 0x14b741a;
     int popped = 0;
-    if (c->Rip == call_at && (c->R10 >= 0x800000000000ULL || c->R10 < 0x10000 || IsBadReadPtr((void *)c->R10, 1)))   // the call itself faulted (target -1 / kernel half / unmapped: rip stays on the call)
-        popped = !IsBadReadPtr((void *)c->Rsp, 8) && *(uint64_t *)c->Rsp == ret;      // (a pushed return address is popped; [rsp] never holds it otherwise)
-    else if ((c->Rip == ~0ULL || (c->Rip >> 47) != 0) && !IsBadReadPtr((void *)c->Rsp, 8) && *(uint64_t *)c->Rsp == ret) popped = 1;   // jumped to -1: the return address is on the stack
+    if (c->Rip == call_at && (c->R10 >= 0x800000000000ULL || c->R10 < 0x10000 || IsBadReadPtr((void *)c->R10, 1)))
+        popped = !IsBadReadPtr((void *)c->Rsp, 8) && *(uint64_t *)c->Rsp == ret;
+    else if ((c->Rip == ~0ULL || (c->Rip >> 47) != 0) && !IsBadReadPtr((void *)c->Rsp, 8) && *(uint64_t *)c->Rsp == ret) popped = 1;
     else return EXCEPTION_CONTINUE_SEARCH;
     uint64_t rsp = c->Rsp + (popped ? 8 : 0);
     if (IsBadWritePtr((void *)(rsp + 0x88), 8)) return EXCEPTION_CONTINUE_SEARCH;
@@ -68181,7 +68871,8 @@ static LONG CALLBACK dccall_veh(EXCEPTION_POINTERS *ep) {
     }
     return EXCEPTION_CONTINUE_EXECUTION;
 }
-// first-chance candidate (crashfilter.h cf_veh): one cheap line; the report follows as "EXCEPTION ..." only if the process really dies
+// EXCEPTION ..." only if the process really dies
+static void lh_note(const char *why);
 static void crash_note(EXCEPTION_POINTERS *ep) {
     char where[300];
     mod_off((uint64_t)ep->ExceptionRecord->ExceptionAddress, where, sizeof where);
@@ -68213,6 +68904,7 @@ static void crash_note(EXCEPTION_POINTERS *ep) {
         const uint8_t *ip = (const uint8_t *)ep->ContextRecord->Rip;
         if (!IsBadReadPtr(ip - 24, 48)) { char hx[200]; int q = 0; for (int i = -24; i < 24 && q < 190; i++) q += snprintf(hx + q, sizeof hx - q, "%s%02x", i == 0 ? " [" : i ? "" : "", ip[i]); xlog("first-chance: stub bytes (-24..+24, rip in []):%s", hx); }
     }
+    lh_note("exception");
     xlog_flush_now();
 }
 
@@ -69188,7 +69880,7 @@ static int g_no_jip;
 static volatile LONG g_jip_busy, g_jip_have;   // request in flight / reply waiting (1 ok, 2 none)
 static volatile LONG g_jip_gen, g_jip_rep_gen;  // match generation a request was asked in: a reply from the previous match is dropped (as g_hm_arm_gen)
 static volatile LONG g_jip_late_ans;           // reply to the 'did I join a running match' query (jip_late_query): 0 none yet, 1 no, 2 yes
-#define JIP_REP_MAX (2 + 8 * 0x32 + 1 + 2 + 8 * 2)    // roster + wave byte + in-match team-swap block [0xA7][k][k x (slot, team)] (asked for with flag 0x10)
+#define JIP_REP_MAX (2 + 8 * 0x32 + 1 + 2 + 8 * 2 + 2)    // roster + wave byte + team-swap block [0xA7][k][k x (slot, team)] (asked for with flag 0x10) + [0xA8][note tag] (flag 0x40)
 static uint8_t g_jip_req[80], g_jip_rep[JIP_REP_MAX];   // [token 64][flags][rem f32][dur f32][my team][ally lives][enemy lives] (the last 3: late-join bonus, 0xFF = unknown)
                                                         // [0xAF][u16 idle s][afk flags] (anti-AFK, afk.c afk_req_tail; an older daemon reads up to [75] only)
 static int rq_off(void);                                // requeue.c: t2r-no-requeue.txt
@@ -69225,13 +69917,15 @@ static DWORD WINAPI jip_worker(LPVOID arg) {
     InterlockedExchange(&g_jip_busy, 0);
     return 0;
 }
+static void fr13_note_poke(int tag);                 // friends13.c: a new friends / party note is waiting (the [0xA8] block of the 0xE5 reply)
 static void jip_ask(int flags, float rem, float dur, int myteam, int ally, int enemy) {
     static char tok[65];
     if (!tok[0] && !clan_token(tok)) { tok[0] = 0; return; }
     if (InterlockedCompareExchange(&g_jip_busy, 1, 0)) return;
     memcpy(g_jip_req, tok, 64);
-    g_jip_req[64] = (uint8_t)(flags | 0x10 | (rq_off() ? 0 : 0x20));      // 0x10: we apply the server's in-match team-swap block (team_swap_apply) - the daemon only moves us in the match when it sees it
+    g_jip_req[64] = (uint8_t)(flags | 0x10 | 0x40 | (rq_off() ? 0 : 0x20));      // 0x10: we apply the server's in-match team-swap block (team_swap_apply) - the daemon only moves us in the match when it sees it
                                                   // 0x20: we search again by ourselves after the match (requeue.c) - only then the daemon gives us a requeue ticket
+                                                  // 0x40: we read the [0xA8][note tag] block (a new friends / party note: fetched now, friends13.c fr13_note_poke)
     memcpy(g_jip_req + 65, &rem, 4);
     memcpy(g_jip_req + 69, &dur, 4);
     g_jip_req[73] = (uint8_t)myteam; g_jip_req[74] = (uint8_t)ally; g_jip_req[75] = (uint8_t)enemy;
@@ -69549,6 +70243,16 @@ static void feature_join_in_progress(void) {
                 if (g_jip_rep_n < at + 2 + k * 2) k = (g_jip_rep_n - at - 2) / 2;
                 if (k > 0) team_swap_apply(lo, g_jip_rep + at + 2, k);
             }
+            // [0xA8][u8 note tag] (asked for with flag 0x40, after the team-swap block when there is one): the newest in-game note id of our
+            // token. A change = a friend's message / party invite / friend request is waiting: notice.c fetches its line now and friends13.c asks for
+            // the friends state (the card), instead of the next 6 s notice poll.
+            if (g_jip_rep_n >= at + 2 && g_jip_rep[at] == 0xA7) at += 2 + (g_jip_rep[at + 1] > 8 ? 8 : g_jip_rep[at + 1]) * 2;
+            if (g_jip_rep_n >= at + 2 && g_jip_rep[at] == 0xA8) {
+                static int last_tag = -1;
+                int tag = g_jip_rep[at + 1];
+                if (last_tag >= 0 && tag != last_tag) fr13_note_poke(tag);
+                last_tag = tag;
+            }
         }
         if (own_have && own_e[0] == me) {
             int cnt = lo[0x1a] > 8 ? 8 : lo[0x1a], found = 0;
@@ -69637,6 +70341,11 @@ static void prof_report(void) {
 #include "perf_cost.c"         // perf30b: the second 30 s line - bad-write cache, dc_call cost by native, key / focus polls
 #include "levelcull.c"         // per-map runtime level hides for frame rate (re/perf-1116.md; t2r-no-level-cull.txt = off)
 #include "hwid.c"              // HWID report to the server (bans by hardware id)
+#if __has_include("attest.h")
+#include "attest.h"            // optional module, not in the public tree
+#else
+static void attest_report_tick(void) {}
+#endif
 static int gl_life_has_tac(void);   // gunlimit.c
 #include "skills.c"            // 2013 survival skills
 #include "joelmm.c"           // Joel locomotion for male looks: switches the pose-database sid in the resident motion-matching settings (re/joelanims, t2r-no-joel-mm.txt = off)
@@ -69682,6 +70391,7 @@ static int ev_prompt_over(void) { return nr_prompt_hover() >= 0; }
 #include "achieve_ui.c"         // the in-game ACHIEVEMENTS page over the clan page (to1/clanach, tools/features/achieve_widgets.py)
 #include "customize.c"         // the CUSTOMIZE page: outfit per faction / sex / category (to1/customize, tools/features/customize_widgets.py, re/customize-1117.md)
 #include "pmunlock.c"          // the post-match UNLOCKS stage: the match's new achievements + CUSTOMIZE items (clan_widgets.py group "unlocks")
+#include "chat.c"             // the in-game chat: MATCH / TEAM / PARTY box between the lives and the parts counters, the ESC menu block + P FRIENDS (chat_widgets.py, re/chat-proposal-1123)
 #include "friends13.c"         // the in-game FRIENDS / PARTY panel + the P button under the lobby box (daemon op 0xD8, to1/friends13, tools/features/friends13_widgets.py)
 #include "namerim.c"           // the lead dev's hot pink name outline on the lobby rows + scoreboards (rim widgets rank_badge_widgets.add_name_rims; rkb_tick -> nrim_tick)
 #include "privlobby.c"         // PRIVATE MATCH: the lobby page to1/private13 + settings to1/private13s, op 0xF8 / 0xF9, the match rules (pm_*; tools/private_lobby.py)
@@ -69748,6 +70458,7 @@ static int sg_body_at(const float *p, float (*pos)[3], int n, float r) {
 static uint64_t ps_weapon_now(void) { return g_ps.role && g_ps.kind == PS_MELEE_EXEC && g_ps.weapon != ~0ULL ? g_ps.weapon : 0; }   // (ex_begin: a wooden bat's pipe-class execution)
 #include "deathreact.c"        // directional TLOU2 death clips: a downed player shot dead / a standing player killed by the Military Sniper (tools/re/death_react_tables.py)
 #include "voxchar.c"          // a player body whose head has no voice (KELLIE) gets its faction's voice group
+#include "loadheap.c"         // the level heap in the log: pages in use, overflow pool, peaks (191 LoadingHeap crash)
 #include "vintage.c"           // Vintage Rifle: the Part I hunting rifle gunshot from the Part I pack side file (p1-vintage.pcm), else the hunting rifle event
 #include "dragon2013.c"         // Dragon's Buckshot: incendiary Double Barrel shells - burn ticks, MSG_DRAGON 0xB7, burn fx (after deathreact.c: BD_FX)
 #include "clipfx.c"            // TLOU2 clip part-effect events through the engine's event path (blood of the takedown clips, SP-exact)
@@ -70702,7 +71413,7 @@ static void dev_triggers_tick(void) {
         float dist = 6.0f; sscanf(t, "%f", &dist);
         if (dist < 0.0f || dist > 60.0f) dist = 6.0f;
         float lb[16]; const float *pl = player_locator(lb);
-        if (!pl || !expbow_built() || g_eb_pend.n >= 4) xlog("dev: expbow ignored (no player / expbow not built / queue full)");
+        if (!pl || !arrow_blast_built() || g_eb_pend.n >= 4) xlog("dev: expbow ignored (no player / expbow not built / queue full)");
         else {
             float fx = 2 * (pl[4] * pl[6] + pl[7] * pl[5]), fz = 1 - 2 * (pl[4] * pl[4] + pl[5] * pl[5]), fl = __builtin_sqrtf(fx * fx + fz * fz);
             if (fl < 0.01f) { fx = 0; fz = 1; fl = 1; }
@@ -71165,6 +71876,7 @@ __declspec(dllexport) void t2r_tick(void) {
     g_tick_tid = GetCurrentThreadId();
     g_t60 = GetTickCount64() * 60 / 1000;
     hang_watch_tick();
+    rgq_tick();
     sq_tick();
     nd_tick();
     // attach_census_tick(): OFF (both clients crashed at exe+1cd488c called from t2r-ext.dll - the census reads the attach
@@ -71190,6 +71902,7 @@ __declspec(dllexport) void t2r_tick(void) {
     wpw_tick();
     htr_tick();
     glass_tick();
+    lh_tick();
     if (!g_winmm) {
         // the caller (our cave) lives inside winmm.dll: resolve its module from the return address
         GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
@@ -71475,6 +72188,7 @@ __declspec(dllexport) void t2r_tick(void) {
         install_fse_guard();
         install_wh_epc_hook();           // weapon head watch: a check right before ProcessMgr::ExecuteParentChange (log only)
         install_faction_looks();
+        install_respawn_defer();         // own respawn grant at the compaction point (re/respawn-frame-1123.md)
         install_faction_hud_names();
         install_highlight_hook();
         install_outline_glow();
@@ -71505,6 +72219,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(rsdiag_tick());
     PF(perf_report_tick());
     PF(hwid_report_tick());
+    PF(attest_report_tick());
     PF(gl_tick());
     PF(ac_tick());
     PF(nt_tick());
@@ -71578,7 +72293,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(feature_msg_keep());
     PF(feature_suppressor());
     PF(feature_saves());
-    if (psync_own() && psync_role() == 1 && melee_blade_kills(current_weapon())) g_blade_att_t60 = g_t60 ? g_t60 : 1;   // R-L89A: our blade attacker half runs (award: Execution on the blade finisher kill)
+    if (psync_own() && psync_role() == 1 && melee_blade_kills(current_weapon())) g_blade_att_t60 = g_t60 ? g_t60 : 1;   //: our blade attacker half runs (award: Execution on the blade finisher kill)
     if (g_mm_back && ++g_mm_back > 3) {   // a few frames after the refused FIND MATCH
         g_mm_back = 0;
         // For a party member the pop named the old matchmaking page 9E33B6D92E193B4D, but the search page is
@@ -71646,6 +72361,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(feature_gearup13());                       // the 2013 GEAR UP page (list + edit views), after the flow that opens / closes it
     PF(feature_clan13());                         // the in-game CLAN page (roster / journal / raids)
     PF(feature_customize());                      // the CUSTOMIZE page (customize.c)
+    PF(feature_chat());                           // the in-game chat (chat.c; before the FRIENDS page: P on the ESC menu pushes it)
     PF(feature_friends13());                      // the in-game FRIENDS / PARTY panel (friends13.c)
     PF(achc_tick());                              // the achievement unlock card, top left on the menu pages (achieve_ui.c)
     PF(feature_lbnr());                           // the leaderboard page's frame + own row (lbnr.c)
@@ -71657,6 +72373,7 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(r3_motion_tick());                         // gear up R3 column slide / fade (after every gear up writer)
     PROF(26, feature_match_intro());
     PF(hud_state_tick());                          // the one HUD-visible state every custom HUD element follows (hud_menu_up / hud_hidden)
+    PF(menu_hud_hide_tick());                      // health ring off on UI pages (after hud_state_tick, before the HUD fade-in reads its alpha)
     if (!g_no_hud_fade) PF(feature_hud_fade());
     PF(feature_radar_diag());
     PF(feature_hud_gate_diag());
@@ -71798,7 +72515,6 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(feature_armor_sync());
     PF(feature_faction_looks());
     PF(tac_shot_tick());                           // Tac shot audit (re/tac-headshot.md)
-    PF(menu_hud_hide_tick());
     PF(rayd_tick());                               // dev ray diagnostics (Pause/Break; compiled out in release)
     PF(test_clock2_tick());                      // test server: Supply Raid clock x2 (flag 0x10)
     PF(pv_clock_tick());                         // privlobby.c: private match TEAM LIVES / MATCH TIME
@@ -71819,8 +72535,8 @@ __declspec(dllexport) void t2r_tick(void) {
     PF(clipfx_sidearm_tick());                     // clipfx.c: sidearm draw / put-away foley (SP events) on our player + puppets
     PF(feature_jitter_diag());
     PF(feature_netsmooth());
-    if (match_substate() != 6 || g_lo_state == LO_MATCH) {   // MP menu: the health bar sometimes stayed up
-        // (v1.11 notes); CHANGE LOADOUT mid-match: it drew over the list
+    if (match_substate() != 6 || g_lo_state == LO_MATCH || fr13_page_up()) {   // MP menu: the health bar sometimes stayed up
+        // (v1.11 notes); CHANGE LOADOUT mid-match: it drew over the list; the FRIENDS page over the match
         uint64_t z[2] = {0, 0};
         if (dc_callable(fnv64("hud2-hide-health-ammo/f"))) dc_call(fnv64("hud2-hide-health-ammo/f"), 2, z);
     }

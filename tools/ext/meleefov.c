@@ -1,4 +1,5 @@
-// meleefov.c - the player's field of view survives melee and our cinematic cameras (the camera behavior during melee did not depend on the player's fov, which looked disorienting for a high-FOV player).
+// meleefov.c - the player's field of view survives melee and our cinematic cameras
+// .
 // Engine facts (tlou-ii.exe v1.6.10721, static): the PC option "Field of View" (PCGraphicsSettings_FOVCorrection, 0.75 .. 1.25, clamp at 0x1419c2e19) is copied
 // by 0x141c704dc into the global "FOV Global Scale" float at exe+0x382d7b0 (default 1.0). Camera controls return it times their own fov (vtable getters
 // 0x1407e4540 / 0x141fd9a40: G * [camera+0x1e38]). A fov handed to override-fov is the FINAL value (0x141fd9a40 returns the override [+0x1ff8] unscaled),
@@ -23,7 +24,7 @@ static float mf_read_fov(void) {
     if (fv != ~0ULL) memcpy(&f, &fv, 4);
     return (f > 30.0f && f < 120.0f) ? f : 0.0f;
 }
-// a cinematic camera's fixed fov (hfov at 16:9) for this user: tangent space, same relation as the base to the default
+// a cinematic camera's fixed fov (hfov at 16:9) for this tangent space, same relation as the base to the default
 static float mf_scale(float f) {
     if (!(g_mf_base > 0.0f) || __builtin_fabsf(g_mf_ratio - 1.0f) < 0.002f) return f;
     float r = 2.0f * __builtin_atanf(__builtin_tanf(f * 0.5f * 3.14159265f / 180.0f) * g_mf_ratio) * 180.0f / 3.14159265f;

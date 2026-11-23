@@ -62,7 +62,7 @@ static int me_dis_off(void) {
 // the engine has none. Nothing that started is cancelled. t2r-duel-opener-ps30.txt = off.
 static int mdu_open_cand(uint64_t aname);   // melee_duel.c
 static int mdu_open_veto(uint64_t aname);   // melee_duel.c
-static int mdu_p32_engine_hit(uint64_t aname);   // melee_duel.c (ps32): the engine's own -hit moves of fist blows 5 / 6 (the second one is SP's stun state)
+static int mdu_p32_engine_hit(uint64_t aname);   // melee_duel.c: the engine's own -hit moves of fist blows 5 / 6 (the second one is SP's stun state)
 static int mdu_tl_cand(uint64_t aname);   // melee_duel_parry.c (ps41b turn lock)
 static int mdu_tl_veto(uint64_t aname);   // melee_duel_parry.c
 static uint8_t me_cand_hook(const uint8_t *atk, void *cache, uint64_t b3, void *search, void *common, void *perm, uint32_t *outp, void *aprefs,

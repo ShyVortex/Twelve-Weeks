@@ -91,3 +91,10 @@ a generator that is not published yet; the extension does not build until those 
 | `choose_vox.h` | *private* |
 | `revive_nr.h` | *private* |
 | `sendoff_pcm.h` | *private* |
+| `clanend_data.h` | *private* |
+| `clanend_pcm.h` | *private* |
+| `clanend_seg.h` | *private* |
+| `lb_sting.h` | *private* |
+| `loadseq.h` | *private* |
+| `melee_pose0.h` | *private* |
+| `vox_pick.h` | `tools/features/vox_lines.py` |

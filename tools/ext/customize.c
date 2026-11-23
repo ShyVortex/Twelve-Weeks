@@ -102,12 +102,30 @@ static void cz_story_mask_fallback(cz_profile_t *s, const char *why) {
             s->it[f][x][CZ_MASK] = (uint8_t)g;
         }
 }
+#if __has_include("cz_seal.h")
+#include "cz_seal.h"            // optional module, not in the public tree
+#else
+static void cz_seal_hex(const char *msg, size_t n, const char *tok, char hex[65]) { (void)msg; (void)n; (void)tok; memset(hex, '0', 64); hex[64] = 0; }
+static int cz_seal_check(char *buf, const char **why) { (void)buf; *why = "no seal in this build"; return 1; }
+#endif
 static void cz_load(void) {
     if (g_cz_loaded) return;
     g_cz_loaded = 1;
     char buf[16384] = {0};
     FILE *f = exe_side_open("t2r-customize.txt", "r");
     if (f) { size_t n = fread(buf, 1, sizeof buf - 1, f); buf[n] = 0; fclose(f); }
+    if (f) {
+        const char *why = "";
+        int trust = cz_seal_check(buf, &why);
+#ifdef T2R_RELEASE
+        if (!trust && cz_is_kellie()) { trust = 1; why = "owner account"; }
+        if (!trust) cz_drop_progress(buf);
+#else
+        if (!trust) why = "(dev build: kept)";
+        trust = 1;
+#endif
+        xlog("customize: unlock progress %s (%s)", trust ? "kept" : "DROPPED", why);
+    }
     int ok = cz_parse(&g_cz, f ? buf : NULL);
     if (!ok) {                                   // first visit: each faction starts with the player's current sex choice (t2r-female.txt "always" = female)
         cz_defaults(&g_cz);
@@ -117,12 +135,25 @@ static void cz_load(void) {
          cz_count(1, 0, CZ_TORSO), cz_count(1, 1, CZ_TORSO));
 }
 static void cz_save(void) {
-    char buf[16384];
-    int n = cz_format(&g_cz, buf, sizeof buf);
-    FILE *f = exe_side_open("t2r-customize.txt", "w");
+    char buf[16384 + 80];
+    int n = cz_format(&g_cz, buf, 16384);
+    if (n < 0 || n >= 16384) return;
+    char tok[65] = "", hex[65];
+    cz_seal_hex(buf, (size_t)n, clan_token(tok) ? tok : NULL, hex);
+    n += snprintf(buf + n, 80, "seal %s\n", hex);
+    // whole file to a temp first, then swapped in: a save cut off half way must not leave a file whose seal no longer matches
+    char p[MAX_PATH + 40], t[MAX_PATH + 40];
+    GetModuleFileNameA(NULL, p, MAX_PATH);
+    char *sl = strrchr(p, 92);
+    if (!sl) return;
+    strcpy(sl + 1, "t2r-customize.txt");
+    snprintf(t, sizeof t, "%s.tmp", p);
+    FILE *f = fopen(t, "wb");
     if (!f) { xlog("customize: cannot write t2r-customize.txt"); return; }
-    fwrite(buf, 1, (size_t)n, f);
+    int okw = fwrite(buf, 1, (size_t)n, f) == (size_t)n;
+    okw &= fflush(f) == 0;
     fclose(f);
+    if (!okw || !MoveFileExA(t, p, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) { xlog("customize: save failed (%lu)", GetLastError()); DeleteFileA(t); }
 }
 static int cz_cur_side(void) { int s = clan_side_now(); return s == 1 ? 0 : s == 2 ? 1 : -1; }     // the faction the player plays as (-1: none yet)
 static int cz_sex(void) { return g_cz.sex[CZ.fac] < CZ_NSEX ? g_cz.sex[CZ.fac] : 0; }
@@ -451,10 +482,12 @@ static void cz_scan(void) {
     CZ.hv_tip = ui_mouse_over("anim-group.czTip.tipHit", 1);
 }
 static int g_czc_tip;                             // (customize_challenges.c) 1 = the first-visit tip is up
-// ZOOM IN ON ITEM (a button, R3 on a pad, that depending on the selected category zooms in on it and frames it): Z / pad R3 / a click on the prompt toggles it; customize_stage.c moves the page camera onto the
+// ZOOM IN ON ITEM
+// Z / pad R3 / a click on the prompt toggles it; customize_stage.c moves the page camera onto the
 // part of the front model the shown category is about (and turns the model for BACKPACK), eased - never a cut.
 static int g_cz_zoom;
-// ... and how far (with zoom in enabled the scroll wheel zooms further or less, but never below 50% of the original zoom in, so zoom in cannot be undone by manually zooming out): 1 = the category's framing, CZ_ZOOM_MIN
+// ... and how far
+// 1 = the category's framing, CZ_ZOOM_MIN
 // = half of the way to it (in fov ratio), CZ_ZOOM_MAX = closer. The wheel (cursor off the cards: over them it scrolls the list) and
 // the pad's RIGHT stick up / down change it - the left stick already moves through the cards.
 #define CZ_ZOOM_MIN 0.5f
@@ -572,10 +605,10 @@ static void cz_fill(void) {
     if (ui_w("anim-group.pZmTx")) { ui_text("anim-group.pZmKt", g_pad_mode ? "R3" : "Z"); ui_text("anim-group.pZmTx", loc_tr(g_cz_zoom ? "ZOOM OUT" : "ZOOM IN")); }
     ui_text("anim-group.pSelTx", loc_tr("EQUIP"));
     ui_text("anim-group.pSwTx", loc_tr("SWITCH FACTION"));
-    ui_text("anim-group.pChKt", g_pad_mode ? "X" : "C");
+    ui_text("anim-group.pChKt", g_pad_mode ? "Y" : "C");
     ui_text("anim-group.pChTx", loc_tr("CHALLENGES"));
     ui_text("anim-group.pHint", msg ? CZ.msg : "");                // a refusal / note (the requirement card steps aside for it)
-    // (when the opposite faction is selected a text in the top right explains that it is not the currently selected faction, so it is not seen until sides are switched) - a page built before the widget existed has none
+    // - a page built before the widget existed has none
     if (ui_w("anim-group.facBox")) {             // the note on its dark, framed box, as wide as the text (customize_widgets FAC_*)
         const char *nt = cur >= 0 && cur != fac ? loc_tr("NOT YOUR CURRENT FACTION - WORN ONCE YOU SWITCH SIDES") : "";
         ui_text("anim-group.facBox.facNote", nt);
@@ -705,8 +738,15 @@ static void cz_close(const char *how) {
 //   yaw <deg>        CUSTOMIZE: turn the front model         fov <deg> / cpitch <deg x 10> / cyaw <deg x 10>   page camera zoom + aim (close shots)
 //   cfac <0|1>       CHALLENGES: faction tab                 crow <d>    CHALLENGES: move d rows      ccol <c>   CHALLENGES: column c
 //   cequip           CHALLENGES: equip the focused tile
+//   pad <k>          press a menu command on the engine's virtual pad (padinj, the pad path a real controller takes) for 150 ms:
+//                    0 menu-prev-tab, 1 menu-next-tab, 2 menu-action, 3 menu-select, 4 menu-back, 5 menu-inspect, 6 menu-zoom
+//   probe            learn the pad buttons of menu-inspect / menu-zoom / menu-toggle-player (padinject.c logs each command's entries)
+static int padinj_press(const char *name, int ms);   // padinject.c (included later)
 static void cz_test_tick(uint64_t top) {
 #ifndef T2R_RELEASE
+    static const char *const PADC[] = {"menu-prev-tab", "menu-next-tab", "menu-action", "menu-select", "menu-back", "menu-inspect", "menu-zoom"};
+    static int probing;
+    if (probing) { padinj_raw_down("menu-inspect"); padinj_raw_down("menu-zoom"); padinj_raw_down("menu-toggle-player"); }
     if (g_frame % 30) return;
     FILE *f = exe_side_open("t2r-cz-test.txt", "r");
     if (!f) return;
@@ -717,7 +757,9 @@ static void cz_test_tick(uint64_t top) {
     if (n < 1) return;
     int on_cz = top && top == cz_page_id() && CZ.up, on_ch = top && top == czc_page_id() && CZC.up;
     xlog("customize: test command \"%s %d\" (page %s)", cmd, v, on_ch ? "challenges" : on_cz ? "customize" : "other");
-    if (!strcmp(cmd, "tip")) { if (g_czc_tip) czc_tip_done("test file"); }
+    if (!strcmp(cmd, "pad")) { if (v >= 0 && v < (int)(sizeof PADC / sizeof *PADC)) xlog("customize: test pad press %s -> %s", PADC[v], padinj_press(PADC[v], 150) ? "queued on the pad" : "NOT queued (input bit not learned)"); }
+    else if (!strcmp(cmd, "probe")) probing = 1;
+    else if (!strcmp(cmd, "tip")) { if (g_czc_tip) czc_tip_done("test file"); }
     else if (on_cz && !g_czc_tip && !strcmp(cmd, "cat")) cz_set_cat(v, "test file");
     else if (on_cz && !g_czc_tip && !strcmp(cmd, "fac")) cz_set_fac(v ? 1 : 0, "test file");
     else if (on_cz && !g_czc_tip && !strcmp(cmd, "equip")) { if (v >= 0 && v < cz_rows()) { CZ.foc[CZ.cat] = v; cz_keep_visible(); cz_equip(v, "test file"); } }
@@ -804,19 +846,20 @@ static void feature_customize(void) {
     int back = menu_edge(fnv64("menu-back"), &CZ.h_back);
     int esc_now = game_focused() && (GetAsyncKeyState(VK_ESCAPE) & 0x8000) != 0, esc = esc_now && !CZ.h_esc;
     CZ.h_esc = esc_now;
-    int f_now = game_focused() && (GetAsyncKeyState('F') & 0x8000) != 0, sw = (f_now && !CZ.h_f) || menu_edge(fnv64("menu-action"), &CZ.h_act);
+    int f_now = game_focused() && (GetAsyncKeyState('F') & 0x8000) != 0, sw = (f_now && !CZ.h_f) || menu_edge_pad("menu-action", &CZ.h_act);
     CZ.h_f = f_now;
     int kq = game_focused() && (GetAsyncKeyState('Q') & 0x8000) != 0, ke = game_focused() && (GetAsyncKeyState('E') & 0x8000) != 0;
-    int tab_l = (kq && !CZ.h_q) || menu_edge(fnv64("menu-prev"), &CZ.h_pv), tab_r = (ke && !CZ.h_e) || menu_edge(fnv64("menu-next"), &CZ.h_nx);
+    int tab_l = (kq && !CZ.h_q) || MENU_PREV_TAB(&CZ.h_pv), tab_r = (ke && !CZ.h_e) || MENU_NEXT_TAB(&CZ.h_nx);
     CZ.h_q = kq; CZ.h_e = ke;
     int wn = wheel_notches();
     cz_scan();
     int click = g_click_edge;
-    // CHALLENGES: C on the keyboard, X on the pad (no menu command is free on this page), a click on the prompt
+    // CHALLENGES: C on the keyboard, Y / Triangle (menu-inspect) on the pad, a click on the prompt
     int c_now = game_focused() && (GetAsyncKeyState('C') & 0x8000) != 0, x_now = 0;
-    { WORD pb = 0; BYTE l, r; SHORT lx, ly; x_now = pad_state(&pb, &l, &r, &lx, &ly) && (pb & 0x4000); }
-    int chal = (c_now && !CZ.h_c) || (x_now && !CZ.h_x);
-    CZ.h_c = c_now; CZ.h_x = x_now;
+    // (A: the pad X / Square is menu-action = SWITCH FACTION; CHALLENGES on the pad is menu-inspect, Y / Triangle - pad buttons read as menu_edge_pad)
+    x_now = menu_edge_pad("menu-inspect", &CZ.h_x);
+    int chal = (c_now && !CZ.h_c) || x_now;
+    CZ.h_c = c_now;
     // ZOOM: Z on the keyboard, R3 on the pad (not with L3: that pair is the dev freecam), a click on the prompt
     int z_now = game_focused() && (GetAsyncKeyState('Z') & 0x8000) != 0, r3_now = 0;
     { WORD pb = 0; BYTE l, r; SHORT lx, ly; r3_now = pad_state(&pb, &l, &r, &lx, &ly) && (pb & 0x0080) && !(pb & 0x0040); }
@@ -831,7 +874,7 @@ static void feature_customize(void) {
         if (!back && !esc) { sel = 0; click = 0; chal = 0; wn = 0; up = down = left = right = tab_l = tab_r = sw = 0; }
         if (!back && !esc) goto fade;
     }
-    if (chal || (click && CZ.hv_ch)) { czc_open(chal ? (x_now ? "pad X" : "C") : "CHALLENGES clicked"); return; }
+    if (chal || (click && CZ.hv_ch)) { czc_open(chal ? (x_now ? "pad Y / Triangle" : "C") : "CHALLENGES clicked"); return; }
     {   // the stage light, live: [ darker, ] brighter (held: repeats)
         static uint64_t t_rep;
         const int dn = (GetAsyncKeyState(VK_OEM_4) & 0x8000) != 0, br = (GetAsyncKeyState(VK_OEM_6) & 0x8000) != 0;

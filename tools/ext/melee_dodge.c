@@ -1,4 +1,4 @@
-static int padinj_nofocus_on(void);   // padinject.c (ps47)
+static int padinj_nofocus_on(void);   // padinject.c
 static int mdg47_focus_off(void) { static int off = -1; static uint64_t at; uint64_t n = GetTickCount64(); if (off < 0 || n - at > 2000) { at = n; off = GetFileAttributesA("t2r-dodge-focus-ps47-old.txt") != INVALID_FILE_ATTRIBUTES; } return off; }
 // melee_dodge.c - a melee dodge for the victim of a swing (the small stagger stays, BUT there is a dodge system - only when you are about to get meleed,
 // so it is no movement tech; balanced so you cannot dodge every hit; it uses SP's dodge system; the attacker's hit anim is extended a little for a fair window;
@@ -101,7 +101,7 @@ static int dc_armed_at(uint64_t now);             // dcounter.c: the counter win
 static int dc_swing_start(void);                 // dcounter.c: a dodge that dropped a blow arms the counter window
 static void dc_esc_early_press(void);           // dcounter.c: a dodge press before the escape window burns it
 static int padinj_mel_held(void);   // padinject.c (v5-pinpress): the device's melee-attack bit, block or not
-static int padinj_dodge_held(void);   // padinject.c (ps53): any evade / dodge input bit held on the device (pad or keyboard)
+static int padinj_dodge_held(void);   // padinject.c: any evade / dodge input bit held on the device (pad or keyboard)
 static int padinj_left_stick(float *x, float *y);   // padinject.c: the engine's own left stick of any pad
 static int dc_esc_open(uint64_t now);              // dcounter.c: the countered attacker's (shorter) escape-dodge window
 static void dc_escape(uint64_t now);
@@ -146,7 +146,8 @@ static int mdg_mash_ok(void) { static int v = -1; if (v < 0) v = GetFileAttribut
 #define MSG_DODGE_PRESS 0x99           // peer msg (ours): [u8 1 = immune][u8 dodge dir 0 fwd 1 left 2 right 3 back][u64 contextual dodge clip sid, 0 = none: played at once on the sender's puppet, phase-advanced by the one-way latency] the sender pressed dodge: our blow on him inside its i-frames shows nothing here (old peers ignore it)
 #define MD_LAG_GRACE_MS 30.0f         // a press up to this long after the attacker's contact still dodges (ties go to the dodger)
 #define MD_PRESS_MARGIN_MS 120         // ~1 RTT of slack on the attacker's copy of the dodger's i-frames
-// ps45: dodging was too hard (no prompt, and even after a successful dodge the next blow hit anyway). Measured on ps44: the attacker ruled a press TOO LATE when it ARRIVED < 70 ms before its contact,
+// ps45 (earlier: "not only do i not get the prompt, but its INSANELY hard to dodge, and even when you do, the other
+// player (or bot) usually hits the one after anyways"). Measured on ps44 (rec44a A/B): the attacker ruled a press TOO LATE when it ARRIVED < 70 ms before its contact,
 // while the victim's window (+ the prompt) ran to the contact SHOWN on its screen + 30 ms. The replica reaches its contact when the pair START arrives (one-way after the
 // attacker's contact), so the dodger needed a lead of 70 + 2 x one-way on its own screen (local 90, 40 ms one-way 150, 80 ms one-way 230) and the last 100 + 2 x one-way ms
 // of the advertised window were dead: such a press played the dodge, was ruled TOO LATE, the blow landed, and the ps36 rule then put a 1500 ms cooldown on it - the
@@ -171,14 +172,14 @@ static int md45_prompt_old(void) { static int v = -1; static uint64_t at; return
 // window (the 330 ms wind-up minus md45_vic_lead) is ~250 ms on a local link again (ps45 median ~219, live ~265; with ps46's 280 ms wind-up ~216). Same rule on both screens (the attacker's limit
 // is still MDG46_LEAD_MS - round trip, >= MD45_ATT_FLOOR_MS). Note: SP's latest FAILING press was 67 ms before the contact - presses 54-67 ms before it now dodge.
 // t2r-dodge-lead-ps46-old.txt = 90 (re-read every 2 s). Proof: 'dodge: ps46 press lead ...' on every change + the 'ps45 dodge window' DUEL line (lead45).
-#define MDG46_LEAD_MS 54.0f            // [TUNING ps46] lead on the dodger's screen (ps45: 90)
+#define MDG46_LEAD_MS 54.0f            // [TUNING ps46] lead on the dodger's screen
 static float mdg46_lead_ms(void) { static int v = -1, lg = -1; static uint64_t at; int o = md45_flag("t2r-dodge-lead-ps46-old.txt", &v, &at);
     if (lg != o) { lg = o; xlog("dodge: ps46 press lead %.0f ms on the dodger's screen (%s)", (double)(o ? MD45_LEAD_MS : MDG46_LEAD_MS), o ? "t2r-dodge-lead-ps46-old.txt: ps45's 90" : "[TUNING ps46], ps45 90"); }
     return o ? MD45_LEAD_MS : MDG46_LEAD_MS; }
 static int md45_att_lead(float ow) { if (!(ow >= 0.0f)) ow = 0.0f; if (ow > MD45_OWL_CAP_MS) ow = MD45_OWL_CAP_MS; int r = (int)(mdg46_lead_ms() - 2.0f * ow + 0.5f); return r < MD45_ATT_FLOOR_MS ? MD45_ATT_FLOOR_MS : r; }
 static int md45_vic_lead(float ow) { if (!(ow >= 0.0f)) ow = 0.0f; return md45_att_lead(ow) + (int)(2.0f * ow + 0.5f) + MD45_JITTER_MS; }
-// ps54: reports said the 120 ms window was below human reaction time, that dodges did not work sometimes and that a dodged blow still hit. Measured in the live reports: light-swing windows 120-146 ms (median) at one-way 65 ms; at one-way 123 ms
-// every window sat on the 120 ms floor while the attacker demanded a 276-285 ms lead = the dodge played and the blow landed. ps45 took the whole round
+// ps54 (reports: a dodge played and the blow still landed). Measured in the 178 reports: light-swing windows 120-146 ms (median) at one-way 65 ms; at one-way 123 ms
+// (one report) every window sat on the 120 ms floor while the attacker demanded a 276-285 ms lead = the dodge played and the blow landed. ps45 took the whole round
 // trip out of the DODGER's window. ps54: the window is the same on every link = the wind-up minus MD54_VIC_LEAD_MS (what a zero-latency link got in ps46, ~216 ms
 // for the 280 ms wind-up); the round trip is paid inside the attacker's hit-confirm wait (melee_duel.c verdict: the damage waits for the victim's ACK):
 //  - a press that reaches the attacker before its contact = DODGED there (no TOO LATE limit: the dodger's window closes MD54_VIC_LEAD_MS before the contact showed);
@@ -193,7 +194,7 @@ static int md45_vic_lead(float ow) { if (!(ow >= 0.0f)) ow = 0.0f; return md45_a
 static int md54_off(void) { static int v = -1, lg = -1; static uint64_t at; int o = md45_flag("t2r-dodge-window-ps54-old.txt", &v, &at);
     if (lg != o) { lg = o; xlog("dodge: ps54 window %s (lead %d ms)", o ? "OFF (t2r-dodge-window-ps54-old.txt): ps45 - the round trip comes out of the dodger's window" : "ON - the window closes the lead before the contact shows, on every link; a press that reaches the attacker after its contact is ruled by the dodger at the pair START", MD54_VIC_LEAD_MS); }
     return o; }
-// ps45: every light swing's wind-up lands its contact 330 ms after the press (ps25-ps44: 380). Used by melee_npcwind.c NPCW_CONTACT_MS (the stretch,
+// ps45: every light swing's wind-up lands its contact 330 ms after the press. Used by melee_npcwind.c NPCW_CONTACT_MS (the stretch,
 // and with it the driven clip phase so the swing still reaches its -hit pose AT the contact, the SWING message's contact time = the victim's dodge window), the parry
 // follow-up / initiative lock (melee_duel_parry.c) and the ps45 MISS lock formula (melee_duel.c). t2r-windup-330-ps45-old.txt = 380.
 // ps46: 330 -> 280 ms. A swing whose SP clip reaches its contact later than that keeps SP's own time
@@ -270,7 +271,7 @@ static int mdg_is_dodge_move(uint64_t m) {
 }
 static int mdg_no_whiff_boost(void) { return g_mdg.ext_on || g_mdg.miss_until > GetTickCount64(); }
 // the states in which the dodge (and the miss lock) must not touch the body
-static int mdu_att_hit_pair(void);   // melee_duel.c (ps36): our body is the attacker half of our own duel -hit pair (the follow-through of a landed blow)
+static int mdu_att_hit_pair(void);   // melee_duel.c: our body is the attacker half of our own duel -hit pair (the follow-through of a landed blow)
 static const char *mdg_busy(void) {
     if (match_substate() != 6) return "not in a match";
     if (g_downed || g_down_dying || g_uc4_dying_until || local_hp() <= 0.0f || g_down_at) return "downed / dying";
@@ -365,7 +366,7 @@ static uint64_t mdg_streak_win(uint64_t now) {
 // "Dodge" icon up 450-650 ms = ps45's 150 ms request floor + the engine's 300-430 ms linger). The prompt is requested only while a press would start a dodge that
 // avoids the blow: from the window's open (the window opens when the swing reaches us - nothing earlier is known, so no pre-open cue), never while our own dodge clip
 // still travels (the press is dropped: ps39) or while the -hit pair on us would queue the press past the window's close (mdu_dodge_press), never through the
-// anti-mash lock; the requests end MD_PROMPT_LINGER_MS before the close with a floor of MDG46_PROMPT_MIN_MS (ps45: 150). The window's other gates (cooldown, prone,
+// anti-mash lock; the requests end MD_PROMPT_LINGER_MS before the close with a floor of MDG46_PROMPT_MIN_MS. The window's other gates (cooldown, prone,
 // pinned, our own swing, busy, the miss lock) already close it = withdraw. LIMIT: the engine's InteractableIcon keeps the last label 300-430 ms after the last request
 // and no call of ours ends it sooner (mdg_prompt_withdraw clears only our record + the text fallback), so a ~250 ms window still shows the icon ~100-230 ms past its
 // close. Proof per window: 'dodge: ps46 prompt #N: requests +a..+b ms, window +0..+w ms ...'. t2r-dodge-prompt-ps46-old.txt = ps45's prompt (re-read every 2 s).
@@ -446,7 +447,8 @@ static void mdg_mv_begin(mdg_mv_t *m, const char *tag, int n, const float dirs[2
     }
     m->on = 1;
 }
-// ---- SP duel dodge (they did not work like SP dodges and moved far too far). SP facts (SP sandbox log, 11 player-contextual-dodge-back-* vs a 1h human; the same ellie-1h-dodge-back-combat-* clips we play): the player's travel is
+// ---- SP duel dodge. SP facts (re/sp-sandbox-runs/sea-1026-human-melee-
+// dodge-parry-disarm.log, 11 player-contextual-dodge-back-* vs a 1h human; the same ellie-1h-dodge-back-combat-* clips we play): the player's travel is
 // 0.37-0.60 m at 226-365 ms, 0.93-1.13 m at 700-820 ms, 1.15-1.21 m at ~1.1 s (the move ends at 1156-1170 ms) - about HALF the clips' authored 2.0-2.6 m
 // root motion (the move plays under melee-state-custom-align on the attacker's locator). The attacker FOLLOWS: its combo swing steps 0.8-1.3 m in over the
 // same time, so the spacing stays 1.25-1.45 m (start 0.97-1.68 m). In MP the attacker does not walk in after a dodge, so the travel here is SP's 1.05 m at
@@ -494,9 +496,10 @@ static float mdg_sp_flat_s(const MdgRm *rm) {
     return t;
 }
 // how long a dodge clip is held (ms): SP mode = to its flat part (both screens: the puppet's copy blends out where the dodger's does), else the v4 rule
-// ps46 (the dodger jittered and then glided backwards while stationary; log A [104832] 'puppet slot 0 dodge PATH armed: ... 1.17 m at its flat part 987 ms' -> [104892] 'travel ... 0.80 m at 1000 ms',
+// ps46 ("00:12-00:14 the character jitters,
+// then glides backwards stationary"; A [104832] 'puppet slot 0 dodge PATH armed: ... 1.17 m at its flat part 987 ms' -> [104892] 'travel ... 0.80 m at 1000 ms',
 // B [106765] 'HEAVY dodge ... the clip at x0.80' / [106843] '1.16 m in 1234 ms'; B [107316] PATH 1.17 m at 940 ms -> [107376] 0.81 m at 1000 ms, A [105382] HEAVY):
-// a HEAVY dodge (ps36) plays at x0.80 on the dodger's own body with its path on that slower clock (held th / 0.8), but MSG_DODGE_PRESS did not say so - the
+// a HEAVY dodge plays at x0.80 on the dodger's own body with its path on that slower clock (held th / 0.8), but MSG_DODGE_PRESS did not say so - the
 // puppet on the other screen played the clip at x1.0 and its path on the x1.0 clock, ran ahead of the stream (the k shrink pulled it back = the jitter), let go
 // at th + 60 ms and the spring then carried the body the remaining 0.3-0.4 m onto the stream with the clip already blended out = the stationary glide. The press
 // now carries a heavy bit (buf[0] bit 1; old peers read bit 0 only): the puppet's clip runs at MDG_HEAVY_RATE, its path on the dodger's heavy clock and its hold
@@ -755,7 +758,7 @@ static void mdg_fall_watch(void) {
 // an instant momentum in the animation, so it does not look too jarring in a fight if the enemy presses dodge too early): a press with NO swing about to land,
 // the duel partner in reach, is the HEAVY dodge - the same SP dodge clip at MDG_HEAVY_RATE, its travel eased in over MDG_HEAVY_RAMP_S (no velocity on frame 1),
 // no i-frames (as the whiff dodge), melee / guns locked 550 ms, the full cooldown. Presses during our own wind-up stay ignored. t2r-dodge-heavy-ps35.txt = a
-// press outside a window does nothing (ps35).
+// press outside a window does nothing.
 #define MDG_HEAVY_RATE 0.8f       // [TUNING ps36] clip rate of the heavy dodge
 #define MDG_HEAVY_RAMP_S 0.15f    // [TUNING ps36] the travel's velocity ramps from 0 over this
 static uint64_t g_mdg_heavy_ms;   // the press time of the running heavy dodge (0 = a normal one)
@@ -2087,7 +2090,7 @@ static int g_mdg_whiff;   // the current mdg_start is a free duel dodge with no 
 static int g_mdg_heavy;   // ps36: the current mdg_start is the heavy dodge (see MDG_HEAVY_RATE)
 static struct { uint32_t slot; uint64_t ms; } g_mdg_qpress;   // A dodge press refused by the running -hit pair (mdu_dodge_press 0), fired when the pair lets us go
 static int mdu_dodge_press(uint32_t slot);   // melee_duel.c
-static int mdu_vic_dodge_exit(uint64_t now);   // melee_duel.c (ps23): past the -hit reaction's exit point with a follow-up swing in flight
+static int mdu_vic_dodge_exit(uint64_t now);   // melee_duel.c: past the -hit reaction's exit point with a follow-up swing in flight
 static void mdg_start(uint32_t slot, uint64_t now) {
     if (!mdu_dodge_press(slot)) { g_mdg_qpress.slot = slot; g_mdg_qpress.ms = now; return; }   // The -hit pair on us keeps the body (no follow-up swing to dodge); queued
     // (the press message goes out at the end of this function, once the into-the-blow ruling is known)

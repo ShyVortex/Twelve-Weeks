@@ -381,7 +381,8 @@ PNR_HIDE = ("scrim", "title", "footerLine", "buttonLegend", "cardBlur", "cardBg"
 PNR_MENU = (PNR_X0, 300)                        # the native button list (pause page)
 PNR_MIS = (1480, 400, 1060)                     # pauseMission: x, y, width (local coordinates inside it: section row at y 30)
 PNR_NEWS = (2640, 400, 1060)                    # pauseStatus
-PNR_CLK = (PNR_X1 - 900, 215, 900, 160)         # pauseTimer: right aligned at R1
+PNR_CLK = (PNR_X0, 590, 900, 100)               # pauseTimer: under LEAVE GAME, left aligned
+PNR_CLK_CAP_X = 250                             # MATCH TIME right of the clock (local x)
 PNR_SECROW_Y = 30                               # the section row of pauseMission / pauseStatus (local y)
 
 
@@ -416,8 +417,58 @@ def _pnr_rule_scale(it, x0, x1):
     it["scale.x"] = float(max(2.0, x1 - x0) / nr.RULE_W0)
 
 
-LQ_W, LQ_H = 1500, 520                   # the LEAVE GAME confirm box (add_pause_nr lqBox)
-LQ_RED = 0xFFC0473D
+# the LEAVE GAME confirm box: the launch / kick
+# notice look (notice_widgets.py) - dim, black box with the thin grey frame, a centred title, a rule, the message, two framed buttons (the focused
+# one has the white frame), the prompts under the box. t2r-ext lq_tick shows it, moves the focus and fills lqMsg.
+LQ_W = 1640                              # = notice_widgets.KN_W
+LQ_BTN_W, LQ_BTN_H, LQ_BTN_GAP = 688, 124, 40
+
+
+def lq_layout():
+    """-> box-relative y of the title, rule, message, buttons + the box height (= notice_widgets.kick_layout, a 2-line message)"""
+    y = 84
+    L = {"title": y}
+    y += 110 + 30
+    L["rule"] = y
+    y += 56
+    L["msg"] = y
+    y += 2 * 76 + 64
+    L["btn"] = y
+    y += LQ_BTN_H + 80
+    L["h"] = y
+    return L
+
+
+def add_leave_box(b, a):
+    """lqBox: lqDim, lqPanel(+Fr), lqTitle, lqRule, lqMsg, lqBtn0 (LEAVE MATCH) / lqBtn1 (STAY) with Bg / Fr / Fo / Tx, lqHint (select + back)"""
+    import notice_widgets as nw
+    L = lq_layout()
+    bw, bh = LQ_W, L["h"]
+    bx, by_ = (W - bw) / 2, (H - bh) / 2 - 40
+    lq = b.group("lqBox", a, b.tl(0, 0, W, H), visible=0)["guid"]
+    b.rect("lqDim", lq, b.bleed(), 0xFF000000, 215)     # (darker than the notice's 120: the busy scoreboard page is under it)
+    box = b.group("lqPanelG", lq, b.tl(bx, by_, bw, bh))["guid"]
+    b.rect("lqPanel", box, b.fill(), nw.FILL, 246)
+    b.frame("lqPanelFr", box, b.fill(), 0xFF464646, 255, 2.0)
+    inner = bw - 2 * nw.PAD
+    b.text("lqTitle", box, b.tl(nw.PAD, L["title"], inner, 110), "ARE YOU SURE?", nw.KN_TITLE_PT, nw.WHITE, align=1, tracking=6)
+    b.line("lqRule", box, nw.PAD, L["rule"], bw - nw.PAD, L["rule"], 0xFF3A3A3A, 255, 2.0)
+    b.text("lqMsg", box, b.tl(nw.PAD, L["msg"], inner, 2 * nw.LINE), LQ_MSG_CLAN, nw.KN_MSG_PT, nw.BODY, align=1, multiline=1, valign=0, tracking=3)
+    x0 = (bw - 2 * LQ_BTN_W - LQ_BTN_GAP) / 2
+    for i, label in enumerate(("LEAVE MATCH", "STAY")):
+        g = b.group("lqBtn%d" % i, box, b.tl(x0 + i * (LQ_BTN_W + LQ_BTN_GAP), L["btn"], LQ_BTN_W, LQ_BTN_H))["guid"]
+        b.rect("lqBtn%dBg" % i, g, b.fill(), nw.BTN_FILL, 255)
+        b.frame("lqBtn%dFr" % i, g, b.fill(), nw.FRAME, 255, 2.0)
+        b.frame("lqBtn%dFo" % i, g, b.fill(), nw.FOCUS, 255, 4.0, visible=int(i == 1))     # STAY has the focus when the box comes up
+        b.text("lqBtn%dTx" % i, g, b.fill(), label, nw.BTN_PT, nw.WHITE, align=1, tracking=4)
+    hg = b.group("lqHint", lq, b.tl(bx, by_ + bh + 44, bw, 60))["guid"]
+    b.image("lqHintIc0", hg, b.tl(0, 2, 56, 56), "menu:select", 0xFFFFFFFF)
+    b.text("lqHintTx0", hg, b.tl(76, 0, 500, 60), "SELECT", nw.HINT_PT, nw.DIM, tracking=4)
+    b.image("lqHintIc1", hg, b.tl(420, 2, 56, 56), "menu:back", 0xFFFFFFFF)
+    b.text("lqHintTx1", hg, b.tl(496, 0, 600, 60), "STAY", nw.HINT_PT, nw.DIM, tracking=4)
+
+
+LQ_MSG_CLAN = 'YOU ARE ABOUT TO LEAVE THE MATCH.\nYOUR CLAN <font color="#fd6d51">WILL SUFFER.</font>'     # = t2r-ext lq_fill
 
 
 def add_pause_nr(wdir):
@@ -484,7 +535,7 @@ def add_pause_nr(wdir):
             cx, cy, cw, ch = PNR_CLK
             by["pauseTimer"].update(Builder.tl(cx, cy, cw, ch))
             for nm in ("pzTime", "pzTimeB"):
-                _pnr_place(by[nm], 0, 0, cw, 100, 1, nr.pt(40), nr.WHITE, 3)
+                _pnr_place(by[nm], 0, 0, PNR_CLK_CAP_X - 20, 100, 0, nr.pt(40), nr.WHITE, 3)
             by["pzTimeB"]["visible"] = 0                      # (the twin t2r-ext swaps in when the second changes)
             mx, my, mw = PNR_MIS
             by["pauseMission"].update(Builder.tl(mx, my, mw, 250))
@@ -511,7 +562,7 @@ def add_pause_nr(wdir):
         b.items = []
         nr.header(b, a, "TWELVE WEEKS", "MENU" if pause else "SCOREBOARD")
         if pause:
-            nr.prompt_slots(b, a, 2)
+            nr.prompt_slots(b, a, 3)                           # P FRIENDS / SELECT / BACK (chat.c ch_pause_prompts)
         for k, (nm, col) in enumerate((("sbBlue", PNR_BLUE), ("sbRed", PNR_RED))):         # thin team edge bars by PLACE: our team is the upper block
             top = s0 + k * PNR_D + PNR_SEC
             b.rect(nm, sbg, b.tl(PNR_X0, top, 6, 3 * PNR_P + PNR_RH), col, 230)
@@ -537,19 +588,9 @@ def add_pause_nr(wdir):
             nx, ny, nw = PNR_NEWS
             xa, xb = nr.section(b, by["pauseMission"]["guid"], "pmSec", 0, mw, PNR_SECROW_Y, "MISSION", "")
             xa2, xb2 = nr.section(b, by["pauseStatus"]["guid"], "psSec", 0, nw, PNR_SECROW_Y, "CLAN NEWS", "")
-            b.text("pzCap", by["pauseTimer"]["guid"], nr.lm(0, 104, PNR_CLK[2], 44, right=1), "MATCH TIME", nr.pt(20), nr.GREY, align=2, tracking=3)
-            # LEAVE GAME's ARE YOU SURE box (t2r-ext lq_tick shows it while the leave is held): a dim over the page, a centred tile
-            lq = b.group("lqBox", a, b.tl(0, 0, W, H), visible=0)["guid"]
-            b.rect("lqDim", lq, b.bleed(), nr.BLACK, 170)
-            bx, by_, bw, bh = (W - LQ_W) / 2, (H - LQ_H) / 2, LQ_W, LQ_H
-            b.rect("lqBg", lq, b.tl(bx, by_, bw, bh), nr.TILE, 245)
-            b.rect("lqBar", lq, b.tl(bx, by_, 12, bh), LQ_RED, 255)
-            b.text("lqTitle", lq, nr.lm(bx + 90, by_ + 120, bw - 180, 100), "LEAVE THE MATCH?", nr.pt(36), nr.WHITE, face="Alternate", tracking=8)
-            b.text("lqBody", lq, nr.lm(bx + 92, by_ + 220, bw - 180, 60), "LEAVING NOW MEANS NO SUPPLIES FOR YOUR CLAN TODAY.", nr.pt(20), nr.GREY, tracking=3)
-            for k, (glyph, lab) in enumerate((("menu:select", "LEAVE"), ("menu:back", "STAY"))):
-                y = by_ + 320 + k * 80
-                b.image("lqKey%d" % k, lq, b.tl(bx + 92, y, 60, 60), glyph, nr.WHITE, 255)
-                b.text("lqKey%dTx" % k, lq, nr.lm(bx + 180, y + 2, bw - 280, 56), lab, nr.pt(20), nr.WHITE, tracking=3)
+            b.text("pzCap", by["pauseTimer"]["guid"], nr.lm(PNR_CLK_CAP_X, 28, PNR_CLK[2] - PNR_CLK_CAP_X, 44), "MATCH TIME", nr.pt(20), nr.GREY, tracking=3)
+            # LEAVE GAME's ARE YOU SURE box (restyled like the launch notice; t2r-ext lq_tick shows it while the leave is held)
+            add_leave_box(b, a)
             for it in b.items:
                 if it["name"] == "pmSecRl":
                     _pnr_rule_scale(it, xa, xb)
@@ -564,15 +605,21 @@ def add_pause_nr(wdir):
             it["depth"] = k * 0.01                              # (gui2 draws in list order; the previews sort by depth: backdrop lowest, the new frame / marks above every stock item)
         for k, it in enumerate(b.items):
             it["depth"] = 9.0 + k * 0.001
+        # the LEAVE GAME box and EVERY widget under it (A/B: only its direct children were moved, so the panel's title / message / buttons stayed
+        # before the dim in the draw order and the box showed as a dark screen only)
         lq_ids = {i["guid"] for i in b.items if i["name"] == "lqBox"}
-        for k, it in enumerate(i for i in b.items if i["name"] == "lqBox" or i.get("parent") in lq_ids):
+        while True:
+            more = {i["guid"] for i in b.items if i.get("parent") in lq_ids} - lq_ids
+            if not more:
+                break
+            lq_ids |= more
+        for k, it in enumerate(i for i in b.items if i["guid"] in lq_ids):
             it["depth"] = 30.0 + k * 0.001                     # (the LEAVE GAME box over everything; it is also last in the list)
         for it in back + b.items:
             it.setdefault("animation", {"keyframes": {}})
         at = items.index(anim) + 1                              # gui2 draws in item-list order: the backdrop in front of every stock item, the frame on top
         items[at:at] = back
-        lq_ids = {i["guid"] for i in b.items if i["name"] == "lqBox"}
-        b.items = [i for i in b.items if not (i["name"] == "lqBox" or i.get("parent") in lq_ids)] + [i for i in b.items if i["name"] == "lqBox" or i.get("parent") in lq_ids]
+        b.items = [i for i in b.items if i["guid"] not in lq_ids] + [i for i in b.items if i["guid"] in lq_ids]
         items.extend(b.items)
         json.dump(w, open(path, "w", encoding="utf-8"), indent=4)
         total += len(back) + len(b.items)

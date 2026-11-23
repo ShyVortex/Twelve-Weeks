@@ -1,6 +1,7 @@
 // mv3_fx.c - melee v3 presentation: every sim event (mv3.h MV3_E_*) becomes SP-faithful sound, voice, blood / impact fx and camera feel, on every screen, at the
-// frame it happens, rollback-safe (spec re/melee-v3.md "Presentation"). Included after melee_v2.c, so every helper it reuses is forward-declared below.
-// Audio feedback matters (audio jank was clearly noticeable next to the responsiveness of SP), and everything melee related is client-side, visually and audibly. Every screen runs the same sim, so every screen fires the same cues from its own
+// frame it happens, rollback-safe (spec re/melee-v3.md "Presentation"; agent E). Included after melee_v2.c, so every helper it reuses is forward-declared below.
+//;
+// "everything melee related should be clientside visually and audibly". Every screen runs the same sim, so every screen fires the same cues from its own
 // events: no message, no confirmation round trip (the old punch / blade fx waited for the victim's MSG_HITREACT2, ~340 ms).
 //
 // Event -> cues (offsets from the event's world frame, on the local clock via mv3_net_frame_ms; SP timelines: re/sp-sandbox-runs/sea-1026-human-melee-timeline.txt,

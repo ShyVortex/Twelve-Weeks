@@ -586,6 +586,8 @@ def stage_modfs(salt=0):
                                      (["actor " + UC4_HORSE_PAK, "actor " + UC4_PLAYER_PAK] if UC4_MODE == 1 else []) +
                                      (["actor " + n for n in GUNEXEC_PAKS] if GUNEXEC else []) +
                                      (["actor anim-ellie-horse"] if os.environ.get("T2R_EXEC_RECOIL", "1") != "0" else []) + DB_RELOAD_ADDS)
+    if os.environ.get("T2R_CONST_KIT_DROP", "1") != "0":      # SP character kits out of pat-const (Supermarket geometry table)
+        dc_data_patches.drop_level_actors(os.path.join(STAGE, "pak68.txt"))
     # Full Auto Rifle shot: the MPX5's own sound bank with the Ruger's waves inside (sndbank.py;
     # pointing the gun at the Ruger's sound event broke full-auto fire)
     _prof.lap('weapon bin patches + pak68.txt')
@@ -788,6 +790,17 @@ def stage_modfs(salt=0):
         # 2013 Flamethrower = TLOU2's own `flamethrower` (Abby's), no clone and no data patch: only the build check that the game's defs are what the
         # ext (flame2013.c) assumes; its actor + sound bank are in sp-common (mounted in MP), the level lists them (MP_LEVEL_ADDS)
         dc_data_patches.verify_flame(os.path.join(STAGE, "bin", "dc1"))
+    if dc_data_patches.LAUNCHER_ON:
+        # 2013 Launcher: a clone of the flamethrower (hold, overlays, clips, audio set) on the t2r-launcher model (launcher-model-1117 stages the
+        # pak), its own firearm def firing the explosive arrow (net10 grenade-launcher: 0.3 s, magazine 1), no flame effects; see the LAUNCHER block in
+        # dc_data_patches. upgrades=False: a purchasable has no upgrade rows, and the flamethrower's joints are not on the new model.
+        weapon_clone.clone_weapon(os.path.join(STAGE, "bin", "dc1"), dc_data_patches.LAUNCHER_SRC, dc_data_patches.LAUNCHER, None, None, None,
+                                  dc_data_patches.LAUNCHER_ACTOR, upgrades=False)
+        dc_data_patches.patch_launcher_gameplay(wg)
+        dc_data_patches.patch_launcher_art(wa)
+        dc_data_patches.patch_launcher_reticle(wg)          # the bow's reticle (weapon-gameplay +0x58, weapon-art style id)
+        dc_data_patches.patch_launcher_art_reticle(wa)
+        dc_data_patches.verify_launcher(os.path.join(STAGE, "bin", "dc1"))
     if dc_data_patches.MILSNIPER_ON:
         # 2013 Military Sniper: a clone of the hunting rifle (its bolt-action clips / overlays / scope / sounds) on the Mazur LDR
         # model (tools/models/mazur.py).  upgrades=True: the scope bundle (t2r-ext gives it at spawn) and the default joint list come
@@ -808,9 +821,13 @@ def stage_modfs(salt=0):
     _prof.lap('weapon clones (M14/Enforcer/Tac/Burst/Military Sniper)')
     if dc_data_patches.VINTAGE_BOLT:
         _vbl_prepare()          # (before stage_frontier: its carrier builds of the shared paks take the Vintage copies too)
+    if dc_data_patches.LAUNCHER_RELOAD:
+        _launcher_prepare()     # (after _vbl_prepare, which clears the registry; before stage_frontier, which builds the pak)
     if dc_data_patches.FRONTIER_ON:
         stage_frontier(paths, order, wa, wg, mdata)
     _prof.lap('stage_frontier (carriers, overlay, sound)')
+    if dc_data_patches.LAUNCHER_RELOAD:
+        _launcher_reclaim()     # (before stage_vintage_bolt, which builds every pak left in the registry as a body-only pak)
     if dc_data_patches.VINTAGE_BOLT:
         stage_vintage_bolt(paths, order, wa, mdata)
     else:
@@ -818,6 +835,8 @@ def stage_modfs(salt=0):
         import vintage_bolt
         vintage_bolt.write_ext_header(None)       # (an empty table: a header of an earlier build must not stay in the ext)
         print("vintage bolt: off (T2R_VINTAGE_BOLT=0) - the hunting rifle's rechamber clips at x1")
+    if dc_data_patches.LAUNCHER_RELOAD:         # (after the Vintage's whole if / else: its else writes the Vintage's empty ext header)
+        stage_launcher_reload(paths, order, wa, mdata)
     _prof.lap('stage_vintage_bolt (carriers, overlay)')
     # 2013 El Diablo (purchasable scoped revolver) and Shorty (sawn-off double barrel sidearm):
     # clones of the revolver / Abby's over-under on their own models (tools/models/factions_guns.py)
@@ -978,9 +997,16 @@ def stage_modfs(salt=0):
         import p1_guns
         assert p1_guns.SNUBBY["actor"] == dc_data_patches.SNUBBY_ACTOR, "Snubby actor: p1_guns.SNUBBY and dc_data_patches.SNUBBY_ACTOR differ"
         fg_models += ((dc_data_patches.SNUBBY_ACTOR, lambda o: p1_guns.build(p1_guns.SNUBBY, o, preview=False)),)
+    fg_mods = {}                        # actor -> more modules its pak is built from (cache key)
+    if dc_data_patches.LAUNCHER_ON:     # the 2013 Launcher's model: a kitbash of the Part I flamethrower in a renamed copy of TLOU2's flamethrower.pak
+        sys.path.insert(0, os.path.join(TOOLS, "part1"))
+        import p1_guns
+        assert p1_guns.LAUNCHER["actor"] == dc_data_patches.LAUNCHER_ACTOR, "Launcher actor: p1_guns.LAUNCHER and dc_data_patches.LAUNCHER_ACTOR differ"
+        fg_models += ((dc_data_patches.LAUNCHER_ACTOR, lambda o: p1_guns.build(p1_guns.LAUNCHER, o, preview=False)),)
+        fg_mods[dc_data_patches.LAUNCHER_ACTOR] = ["launcher_kit", "launcher_recipe"]
     for actor, make in fg_models:
         fgo = os.path.join(STAGE, "actor97", actor + ".pak")
-        fg_paks[actor] = _cached_pak("model-" + actor, ["factions_guns", "p1_guns"], fgo, lambda: make(fgo),
+        fg_paks[actor] = _cached_pak("model-" + actor, ["factions_guns", "p1_guns"] + fg_mods.get(actor, []), fgo, lambda: make(fgo),
                                      (_p1_inputs() if factions_guns.p1_guns_enabled() else [_models()]))
         p = "actor97/" + actor + ".pak"
         for lst in (paths, order):
@@ -1694,6 +1720,7 @@ def stage_modfs(salt=0):
     stage_scar_ports(paths, order)
     stage_hats(paths, order)
     stage_kellie(paths, order)
+    stage_halfmask(paths, order)
     stage_hairparts(paths, order)                       # (after stage_hats: it replaces bare-head copies under their own names)
     stage_facefit(paths, order)
     stage_handtint(paths, order)
@@ -2435,6 +2462,33 @@ def stage_kellie(paths, order):
                 l.insert(l.index(anchor) + 1, p)
         tot += len(data)
     print(f"model: KELLIE rows: {len(ci.KELLIE['paks'])} paks ({tot} bytes) from {ci.KELLIE_DIR}")
+
+
+def stage_halfmask(paths, order):
+    """actor97/<pak>.pak of customize_items.HALFMASK (T2R_CZ_HALFMASK_DIR/halfmask_faces.json + its paks, made by
+    devmodel/face/hatfit/halfmask_cloth.py): the per-face half mask cloths, 5 faces a pak. New actors, each checked against the list."""
+    import hashlib
+    import customize_items as ci
+    if not ci.HALFMASK:
+        return
+    sys.path.insert(0, os.path.join(TOOLS, "models"))
+    import pak_validate
+    out97 = os.path.join(STAGE, "actor97")
+    tot = 0
+    for a, want in ci.HALFMASK["paks"].items():
+        data = open(os.path.join(ci.HALFMASK_DIR, a + ".pak"), "rb").read()
+        assert [len(data), hashlib.sha1(data).hexdigest()] == list(want), f"{a}: {ci.HALFMASK_DIR} holds another file than the listed one"
+        lst = dc_data_patches.FEMALE_LEVEL_ADDS if a.startswith("scar-t2r-hff") else dc_data_patches.MP_LEVEL_ADDS
+        assert "actor " + a in lst, f"{a}: staged but not in the level adds"
+        assert not pak_validate.check(data, a, False), f"{a}: pak_validate"
+        open(os.path.join(out97, a + ".pak"), "wb").write(data)
+        p = "actor97/" + a + ".pak"
+        for l in (paths, order):
+            if p not in l:
+                anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in l else "actor97/gui2-widgets.pak"
+                l.insert(l.index(anchor) + 1, p)
+        tot += len(data)
+    print(f"model: per-face half masks: {len(ci.HALFMASK['paks'])} paks ({tot} bytes) from {ci.HALFMASK_DIR}")
 
 
 def stage_crew_winter(paths, order):
@@ -3273,6 +3327,155 @@ def stage_vintage_bolt(paths, order, wa, mdata):
     print(f"vintage bolt: tools/ext/{os.path.basename(vb.EXT_HEADER)} {len(vb.ext_rows(_VBL_NAMES))} level rows (the ext is rebuilt after the data build)")
 
 
+_LCH = {}                                   # the Launcher reload's carrier job (launcher_reload.GUN_KEY, clip, "gun", None)
+
+
+def _launcher_prepare():
+    """Launcher reload, gun layer (tools/part1/launcher_reload.py): bake the clip and, with the Frontier on, register its job for the carrier pak
+    the Frontier builds (the registry stage_frontier appends after its own jobs: the same route the Vintage's copies take; p1_carrier.build cannot
+    run twice on one pak).  The job is the last of that build, so every Frontier / Vintage clip keeps its carrier."""
+    sys.path.insert(0, os.path.join(TOOLS, "part1"))
+    import launcher_reload
+    clip, _rows, _fps = launcher_reload.bake_gun()
+    _LCH["job"] = (launcher_reload.GUN_KEY, clip, "gun", None)
+    if dc_data_patches.FRONTIER_ON:
+        assert dc_data_patches.LAUNCHER_GUN_PAK in dc_data_patches.FRONTIER_CARRIER_PAKS
+        _VBL_EXTRA.setdefault(dc_data_patches.LAUNCHER_GUN_PAK, []).append(_LCH["job"])
+
+
+def _launcher_reclaim():
+    """the gun job stage_frontier's build did not take (Frontier on, but it did not build that pak) leaves the registry: stage_launcher_reload
+    then builds the pak itself.  Left there, stage_vintage_bolt's loop over the registry would build it without gun carriers."""
+    import launcher_reload
+    pak = dc_data_patches.LAUNCHER_GUN_PAK
+    if launcher_reload.GUN_KEY in _VBL_NAMES or pak not in _VBL_EXTRA:
+        return
+    _VBL_EXTRA[pak] = [j for j in _VBL_EXTRA[pak] if j is not _LCH["job"]]
+    if not _VBL_EXTRA[pak]:
+        del _VBL_EXTRA[pak]
+    print(f"launcher reload: the Frontier's build did not take the gun job - own build of {pak}")
+
+
+def _launcher_stage_pak(name, data, paths, order):
+    os.makedirs(os.path.join(STAGE, "actor97"), exist_ok=True)
+    open(os.path.join(STAGE, "actor97", name + ".pak"), "wb").write(data)
+    cp = "actor97/" + name + ".pak"
+    for lst in (paths, order):
+        if cp not in lst:
+            anchor = "actor97/gui2-widgets-pc.pak" if "actor97/gui2-widgets-pc.pak" in lst else "actor97/gui2-widgets.pak"
+            lst.insert(lst.index(anchor) + 1, cp)
+
+
+def stage_launcher_reload(paths, order, wa, mdata):
+    """Launcher reload: the gun clip's carrier (from stage_frontier's build, else an own build of the pak), the player layers' carriers (the baked
+    -part / -add clips of tools/features/data/launcher in LAUNCHER_BODY_PAK, the -part ones with the reload's anim events), the player overlay module
+    gren-launcher (the flamethrower's set, the <stance>-reload-gun / -part / -add entries of the seven stances pointed at the carriers) and the
+    art def's overlay key."""
+    import p1_carrier
+    import p1_overlay
+    import launcher_reload
+    from dcfile import DcFile, fnv as _fnv
+    D = dc_data_patches
+    key, clip = _LCH["job"][0], _LCH["job"][1]
+    name = _VBL_NAMES.get(key)
+    if name is None:                            # nobody built the pak (Frontier off): an own build, the pak is ours alone then
+        left = _VBL_EXTRA.get(D.LAUNCHER_GUN_PAK)
+        assert not left, f"launcher reload: {D.LAUNCHER_GUN_PAK} still has jobs of another step"
+        data, nm = p1_carrier.build([_LCH["job"]], print, pak=D.LAUNCHER_GUN_PAK, use_gun=True, gun_sig=launcher_reload.GUN_SIG)
+        p1_carrier.check(data, {nm[key]: clip})
+        _launcher_stage_pak(D.LAUNCHER_GUN_PAK, data, paths, order)
+        name = nm[key]
+    print(f"launcher reload: gun layer ({len(clip)} bytes) in carrier {name} of {D.LAUNCHER_GUN_PAK}")
+    # the player layers: one -part (with the anim events) and one -add job per stance; equal clips share a carrier (the additive)
+    import launcher_arms
+    clips, evs = launcher_arms.load(), launcher_arms.load_events()
+    jobs, targets = [], {}
+    for st in D.LAUNCHER_RELOAD_STANCES:
+        pk, ak = f"reload-{st}-part", (f"reload-{st}-add" if f"reload-{st}-add" in clips else "reload-add")
+        if pk not in clips or ak not in clips or st not in evs:
+            raise SystemExit(f"launcher reload: no baked {pk} / {ak} / events (python tools/part1/launcher_arms.py bake <PS4 pak>)")
+        jobs += [(f"launcher|part|{st}", clips[pk], "part", evs[st]), (f"launcher|add|{st}", clips[ak], "add", None)]
+    # no carrier on a slot name a player overlay set renames again (the Snubby reload bug): those slots stay the game's
+    renamed = launcher_reload.overlay_renamed(os.path.join(ROOT, "re", "gamebin", "dc1"))
+    skip = sorted(n for n in p1_carrier.anims(p1_carrier.load(p1_carrier.game_pak(D.LAUNCHER_BODY_PAK))) if _fnv(n) in renamed)
+    data, nm = p1_carrier.build(jobs, print, pak=D.LAUNCHER_BODY_PAK, use_gun=False, body_sig=launcher_arms.BODY_SIG, exclude=skip)
+    p1_carrier.check(data, {nm[k]: c for k, c, _kind, _ev in jobs})
+    hit = sorted(n for n in set(nm.values()) | {name} if _fnv(n) in renamed)
+    if hit:
+        raise SystemExit(f"launcher reload: carriers {hit} are names a player overlay set renames")
+    print(f"launcher reload: {len(skip)} overlay-renamed slots of {D.LAUNCHER_BODY_PAK} left alone {skip}")
+    _launcher_stage_pak(D.LAUNCHER_BODY_PAK, data, paths, order)
+    for st in D.LAUNCHER_RELOAD_STANCES:
+        targets[f"flamethrower-{st}-gun"] = name
+        targets[f"flamethrower-{st}-part"] = nm[f"launcher|part|{st}"]
+        targets[f"flamethrower-{st}-add"] = nm[f"launcher|add|{st}"]
+    print(f"launcher reload: player layers of {len(D.LAUNCHER_RELOAD_STANCES)} stances in {len(set(nm.values()))} carriers of {D.LAUNCHER_BODY_PAK} "
+          f"({len(data)} bytes)")
+    # the overlay module
+    dc1 = os.path.join(STAGE, "bin", "dc1")
+    game = os.path.join(ROOT, "re", "gamebin", "dc1", "player-specific-weapon-overlays")
+    host = os.path.join(dc1, "player-specific-weapon-overlays", *D.LAUNCHER_OVERLAY_HOST[0].split("/")) + ".bin"
+    if not os.path.exists(host):
+        host = os.path.join(game, *D.LAUNCHER_OVERLAY_HOST[0].split("/")) + ".bin"
+    rel = f"player-specific-weapon-overlays/{D.LAUNCHER_OVERLAY_KEY}.bin"
+    dst = os.path.join(dc1, *rel.split("/"))
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    renames = launcher_reload.layer_renames(host, D.LAUNCHER_OVERLAY_HOST[1], targets)
+    by_carrier = {}
+    for frm, to in renames.items():
+        by_carrier.setdefault(to, []).append(frm)
+    n, ch, add = p1_overlay.rewrite(os.path.join(game, D.LAUNCHER_OVERLAY_KEY + ".bin"), host, D.LAUNCHER_OVERLAY_HOST[1], renames, dst)
+    nk, _na = p1_overlay.rebuild_map(dst, host, f"*weapon-specific-overlay-{D.LAUNCHER_SRC}*", f"*weapon-specific-overlay-{D.LAUNCHER_OVERLAY_KEY}*", {})
+    if ch != len(renames) or add:
+        raise SystemExit(f"launcher overlay: {ch} entries retargeted, {add} added (want {len(renames)} / 0)")
+    print(f"overlay {rel}: the flamethrower's set ({n} entries: {ch} reload entries -> {len(by_carrier)} carriers (gun {name}); tree entries with module pointers: "
+          f"{len(p1_overlay.rewrite.reused)} use the target's own lambdas, {len(p1_overlay.rewrite.dropped)} left out), compiled map {nk} keys")
+    rd = DcFile(open(dst, "rb").read())
+    sets = p1_overlay.find_sets(rd)
+    if len(sets) != 1:
+        raise SystemExit(f"launcher overlay: {len(sets)} sets in the staged {rel}")
+    got = {}
+    for frm, to, _raw in p1_overlay.entries(rd, sets[0]):
+        got.setdefault(frm, to)                 # (the resolver takes the FIRST entry of a from-name)
+    bad = [f"{k:#018x}" for k, to in renames.items() if got.get(k) != _fnv(to)]
+    if bad:
+        raise SystemExit(f"launcher overlay: {bad} do not resolve to their carriers")
+    dc_modules.set_size(mdata, rel[:-4], os.path.getsize(dst))
+    f = "bin/dc1/" + rel
+    for lst in (paths, order):
+        if f not in lst:
+            lst.insert(lst.index("bin/dc1/weapon-gameplay.bin") + 1, f)
+    _launcher_art(wa, D.LAUNCHER_OVERLAY_KEY)
+
+
+def _launcher_art(wa, key):
+    """weapon-art.bin: the Launcher's art def +0x180 / +0x188 (pointers to the player overlay key string) -> `key` (as _vbl_art does for the Vintage)"""
+    from dcfile import DcFile, fnv as _fnv
+    from weapon_clone import find_symbol, hash_get
+    D = dc_data_patches
+    d = DcFile(open(wa, "rb").read())
+    ho = find_symbol(d, "*weapon-art-defs-hash*")
+    a, src = hash_get(d, ho, _fnv(D.LAUNCHER)), hash_get(d, ho, _fnv(D.LAUNCHER_SRC))
+    if not a or a == src:
+        raise SystemExit("Launcher art def is missing or the flamethrower's own (clone_weapon must run first)")
+    s = key.encode() + b"\0"
+    at = bytes(d.data).find(b"\0" + s)
+    off = at + 1 if at >= 0 else d.append(s)
+    for o in (0x180, 0x188):
+        d.set_ptr(a + o, off)
+    open(wa, "wb").write(d.save())
+    rd = DcFile(open(wa, "rb").read())
+    a = hash_get(rd, find_symbol(rd, "*weapon-art-defs-hash*"), _fnv(D.LAUNCHER))
+    src = hash_get(rd, find_symbol(rd, "*weapon-art-defs-hash*"), _fnv(D.LAUNCHER_SRC))
+    for o in (0x180, 0x188):
+        q = rd.q(a + o)
+        if not rd.is_ptr(a + o) or bytes(rd.data[q:q + len(s)]) != s:
+            raise SystemExit(f"Launcher art def +{o:#x} does not read back as {key}")
+        if rd.q(src + o) == q:
+            raise SystemExit(f"the flamethrower's art def +{o:#x} now reads {key} too (the Launcher's def shares it)")
+    print(f"launcher: art def overlay key -> {key}")
+
+
 def _vbl_art(wa, key):
     """weapon-art.bin: the Vintage's art def +0x180 / +0x188 (pointers to the player overlay key string) -> `key` (an existing NUL-terminated string
     of the file, else one appended)"""
@@ -3337,7 +3540,7 @@ def stage_p1_anims(paths, order, wa, mdata, wg):
     import p1_sound
     os.makedirs(os.path.join(STAGE, "soundbank4"), exist_ok=True)
     banks = [p1_sound.build(gun) for gun in ("shorty", "diablo")]
-    if snubby:      # the Snubby's mixed pistol-style shot in the Seraphite revolver bank (tools/part1/snubby_sound.py, user pick 'B4')
+    if snubby:      # the Snubby's mixed pistol-style shot in the Seraphite revolver bank (tools/part1/snubby_sound.py, pick 'B4')
         import snubby_sound
         banks.append(snubby_sound.build())
     for name, data in banks:
@@ -3630,6 +3833,11 @@ def build(a, salt):
             import p1_side_map
             out = p1_side_map.add(out, side_info["size2"] if side_info else 1, side_info["build_id"] if side_info else bytes(16))
             p1_side_map.check(out)
+        if os.environ.get("T2R_LEVEL_HEAP", "1") != "0":     # main level heap +512 MB at winmm's entry, total memory grows, PSO heap untouched, only inside tlou-ii.exe (level_heap2.py; live 195); 0 = off
+            import level_heap2
+            out = level_heap2.add(out)
+            _lh_mv, _lh_rb, _lh_ep = level_heap2.check(out)
+            print(f"level heap: .t2rlh v{level_heap2.VERSION}, main level heap +{_lh_mv >> 20} MB, render buffer +{_lh_rb >> 20} MB (tlou-ii.exe guard), original entry {_lh_ep:#x}")
         ips, ports = patch_winmm.current_target(out)
         if len(ips) != 1 or len(ports) != 1:
             raise SystemExit(f"unexpected bytes at patch sites: {ips} {ports} (not a T2R winmm.dll?)")
@@ -3667,6 +3875,40 @@ def build(a, salt):
     if _P1_VIRT:
         p1_side.write_virt_outputs(p1_side.out_dir(ROOT), _P1_VIRT["entries"], _P1_VIRT["kept"], side)
         print(f"p1 side: deliver {a.out} + {p1_side.out_dir(ROOT)}/part1.dat + manifest.txt (launcher: <game dir>/t2r-maps/part1/); self-test: re/part1/side-selftest.md")
+        if PACK_FILE and os.environ.get("T2R_P1_RECIPE_OUT", "1") != "0":
+            # the importer's recipe (re/launcher/part1-dlc.md 10): numbers + paths only, no Part I bytes. The launcher downloads it for
+            # this build id and p1conv rebuilds part1.dat from the player's own installs (tools/part1/p1_part1dat.py).
+            write_p1_recipe(pack_file_path(a.out), os.path.join(p1_side.out_dir(ROOT), "part1.dat"),
+                            os.path.join(p1_side.out_dir(ROOT), "part1-recipe.json"))
+
+
+def write_p1_recipe(data_path, side_path, out_path):
+    """the build's Part I tail inventory (p1_tail_inventory.inventory) + the Part I maps it holds -> out_path (part1-recipe.json)"""
+    import json
+    import types
+    sys.path.insert(0, os.path.join(TOOLS, "part1"))
+    import p1_tail_inventory
+    tmp = out_path + ".part"
+    p1_tail_inventory.inventory(types.SimpleNamespace(data=data_path, side=side_path, out=tmp, no_hash=False, relz4=0))
+    rc = json.load(open(tmp))
+    rc["maps"] = p1_recipe_maps({f["path"] for f in rc["files"]})
+    rc["recipe_version"] = 1
+    with open(tmp, "w", newline="\n") as f:
+        json.dump(rc, f, indent=1)
+    os.replace(tmp, out_path)
+    print(f"p1 recipe: {out_path}: {len(rc['files'])} files, {len(rc['chunks'])} chunks, maps {rc['maps']}, part1.dat sha256 {rc['sha256'][:16]}")
+
+
+def p1_recipe_maps(paths):
+    """the Part I map keys (tools/maps/sp_maps.json, part1.levels) whose every base level pak is in the tail"""
+    import json
+    spec = json.load(open(os.path.join(TOOLS, "maps", "sp_maps.json"), encoding="utf-8"))
+    out = []
+    for m in (spec["maps"] if isinstance(spec, dict) else spec):
+        lv = (m.get("part1") or {}).get("levels") or []
+        if lv and all(f"pak68/{x}.pak" in paths for x in lv):
+            out.append(m["key"])
+    return sorted(out)
 
 
 if __name__ == "__main__":
