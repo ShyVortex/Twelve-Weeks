@@ -1818,9 +1818,12 @@ static void fr_button_tick(uint64_t now) {
     if (badge > 0) { snprintf(a, sizeof a, "%d", badge > 9 ? 9 : badge); ui_text("anim-group.friendsBtn.frBadge", a); }
     gu_fade("anim-group.friendsBtn.frFill", hov);
     if (badge != N13.last_badge) { N13.last_badge = badge; xlog("friendsui: button badge %d", badge); }
-    int kp = game_focused() && (GetAsyncKeyState('P') & 0x8000) != 0, edge = kp && !g_fr_held_p;
+    // No P / RB while the menu chat types (chat.c g_ch_ed). The held state still follows the key, so a P held when the typing
+    // closes does not open the page either.
+    int kp = game_focused() && (GetAsyncKeyState('P') & 0x8000) != 0, edge = kp && !g_fr_held_p && !g_ch_ed.on;
     g_fr_held_p = kp;
     int pad = MENU_NEXT_TAB(&g_fr_h_nx);        // RB on the pad; never on the first look (a button held on arrival)
+    if (g_ch_ed.on) pad = 0;
     if (game_focused() && (GetAsyncKeyState('E') & 0x8000)) pad = 0;       // (menu-next-tab is E on the keyboard: on the MP menu only P opens the page from the keyboard)
     if (!armed) { armed = 1; pad = 0; edge = 0; }
     int clk = g_click_edge && hov;

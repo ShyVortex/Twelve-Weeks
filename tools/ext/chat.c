@@ -493,8 +493,10 @@ static void chtw_tick(chtw_t *t) {
     chtw_show(t);
     if (strcmp(t->want, t->wr)) chtw_write(t);       // a newer string came meanwhile
 }
-static void chw_set_hud(uint64_t w, const char *t) { ((void (*)(uint64_t, const char *))VMA(0x18000DE90))(w, t); }
-static void chw_set_menu(uint64_t w, const char *t) { ((fn_settext_t)VMA(0x180064450))(w, t); }
+// An EMPTY string written to a gui2 text leaves the old text on screen, so the widget pak's preview lines were never cleared:
+// every blank write is one space instead.
+static void chw_set_hud(uint64_t w, const char *t) { ((void (*)(uint64_t, const char *))VMA(0x18000DE90))(w, t && t[0] ? t : " "); }
+static void chw_set_menu(uint64_t w, const char *t) { ((fn_settext_t)VMA(0x180064450))(w, t && t[0] ? t : " "); }
 // ---- the HUD leaves
 static struct {
     uint64_t page, w[CW_N]; int miss; uint64_t retry; char txt[CW_N][CH_BUF + 96]; int vis[CW_N]; int aq; unsigned gen; int mode;

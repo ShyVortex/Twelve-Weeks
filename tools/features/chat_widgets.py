@@ -79,8 +79,17 @@ def tabs_pack(names, r, pts):
     return out, r
 
 
+# The shipped widgets carry NO sample lines: a box chat.c has not cleared would show them in matches.
+# The sample lines are only for widget previews: T2R_CHAT_PREVIEW=1.
+PREVIEW = os.environ.get("T2R_CHAT_PREVIEW") == "1"
+
+
+def _pv(s):
+    return s if PREVIEW else " "
+
+
 def _hud_line(who, col, text):
-    return '<font color="#%06X">%s:</font> %s' % (col & 0xFFFFFF, who, text)
+    return _pv('<font color="#%06X">%s:</font> %s' % (col & 0xFFFFFF, who, text))
 
 
 def add_chat_hud(wdir, main=None):
@@ -118,7 +127,7 @@ def add_chat_hud(wdir, main=None):
     for k in range(3):
         b.rect("chFu%d" % k, g, b.tl(16, HB_FLD_Y + HB_FLD_H - 3, HB_W - 32, 3), TAB_COL[k], 255, visible=int(k == 1))
     for tw in ("", "B"):
-        b.text("chFtx" + tw, g, nr.lm(36, HB_FLD_Y, HB_W - 260, HB_FLD_H), "" if tw else "need ammo, who has a box|", HB_LINE_PT, 0xFFE8E8E8, tracking=1,
+        b.text("chFtx" + tw, g, nr.lm(36, HB_FLD_Y, HB_W - 260, HB_FLD_H), "" if tw else _pv("need ammo, who has a box|"), HB_LINE_PT, 0xFFE8E8E8, tracking=1,
                **({"visible": 0} if tw else {}))
     b.text("chFch", g, nr.lm(HB_W - 216, HB_FLD_Y, 180, HB_FLD_H, right=1), '<font color="#48A8D8">TEAM</font>', HB_SMALL_PT, nr.GREY, align=2, tracking=3)
     k_ = '<font color="#E8E8E8">%s</font>'
