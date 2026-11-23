@@ -120,6 +120,7 @@ DISABLE MP UI => WYŁĄCZ INTERFEJS MP
 DISABLE RADAR => WYŁĄCZ RADAR
 DISABLE LIVES COUNTER => WYŁĄCZ LICZNIK ŻYĆ
 DISABLE SUPPLIES / PARTS => WYŁĄCZ ZAOPATRZENIE / CZĘŚCI
+DISABLE CHAT => WYŁĄCZ CZAT
 REGION PREFERENCE => PREFEROWANY REGION
 INPUT PREFERENCE => PREFEROWANE STEROWANIE
 ANY => WSZYSTKIE
@@ -192,3 +193,6 @@ Last One Standing => Ostatni na placu boju
 Only 8 Reinforcements Left => Zostało tylko 8 posiłków
 Sudden Death => Nagła śmierć
 Late Join Bonus => Premia za późne dołączenie
+## Interrogation lockbox stage toasts
+WARNING: The enemy has our lockbox partially open! => UWAGA: Wróg częściowo otworzył naszą skrytkę!
+WARNING: The enemy has almost opened our lockbox! Get back and defend it! => UWAGA: Wróg prawie otworzył naszą skrytkę! Wracaj i jej broń!

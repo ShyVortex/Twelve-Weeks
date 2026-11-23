@@ -240,3 +240,4 @@ TIERS => POZIOMY
 REACHED => OSIĄGNIĘTY
 SURVIVORS JOIN => DOŁĄCZA DO KLANU
 SURVIVOR JOINS => DOŁĄCZA DO KLANU
+Choose a mission first. The event's three matches count for your clan only with a mission running. => Najpierw wybierz misję. Trzy mecze wydarzenia liczą się dla twojego klanu tylko z trwającą misją.
