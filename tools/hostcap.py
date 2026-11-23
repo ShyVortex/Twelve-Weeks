@@ -8,7 +8,7 @@ The tx numbers are what the reporter's own game really sent (only large while it
 host's relay (a client's view of the host's upload).  An old ext sends nothing: the player stays 'unknown' (neutral). An old daemon
 ignores the extra bytes.
 
-T2R_HOST_CAP: 0 off (nothing recorded, no log), 1 record + log only, 2 the pick / re-pick use it (live, DEFAULT: match 82599fb6,
+T2R_HOST_CAP: 0 off (nothing recorded, no log), 1 record + log only, 2 the pick / re-pick use it (live, DEFAULT since: match 82599fb6,
 a ~1 Mbit host lagged the lobby to 800-970 ms and was never replaced).
 The history lives in the daemon's sqlite db (table host_cap, one row per token): it outlives matches and daemon restarts. Schema v2
 adds lag_mid (the match the latest lag record belongs to), so 'lagged in THIS match' survives a daemon restart and a restart no longer
@@ -34,8 +34,8 @@ MIN_PLAYERS = 3                                                # 2 players: no r
 SCHEMA = 2                                                     # host_cap columns: v1 + lag_mid (v2)
 
 
-NEED_KB_PER_PAIR = _envi("T2R_HOST_CAP_KB_PER_PAIR", 46)       # Live logs: the star relay sends every player's state to every other client, so the load grows with (n-1)^2
-                                                               # (measured on one host: 5 players 700-800 KB/s, 8 players 1940-2470 KB/s = ~46-50 KB/s per (n-1)^2)
+NEED_KB_PER_PAIR = _envi("T2R_HOST_CAP_KB_PER_PAIR", 46)       # live logs: the star relay sends every player's state to every other client, so the load grows with (n-1)^2
+                                                               # (host: 5 players 700-800 KB/s, 8 players 1940-2470 KB/s = ~46-50 KB/s per (n-1)^2)
 
 
 def need_kb(n_players):
@@ -195,7 +195,7 @@ class HostCap:
     # ---- decision
     def verdict(self, token, n_players):
         """(rank, text): 0 proven enough, 1 unknown / unproven (neutral), 2 lagged as host (recent record whose ceiling is below the need, or no ceiling,
-        and never proven enough for this lobby size). A lag record contradicted by proven capacity (live db: hosts that carried 1.5-3 MB/s at
+ and never proven enough for this lobby size). A lag record contradicted by proven capacity (live db: hosts that carried 1.5-3 MB/s at
         8 players with a 'ceiling' of ~230 KB/s - the loss came from a client's own line) is neutral, not rank 2."""
         r = self.get(token)
         need = need_kb(n_players)

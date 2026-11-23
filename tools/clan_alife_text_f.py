@@ -1,4 +1,4 @@
-"""A-Life text pools, part F: widens the pools that a clan run uses most, so a template can be used ONCE per run (tools/clan_alife.py
+"""A-Life text pools, part F (creativity pass): widens the pools that a clan run uses most, so a template can be used ONCE per run (tools/clan_alife.py
 WINDOW_DAYS) without the pools running dry. Row format: see clan_alife_text_a.py. One rule for every line here: a concrete thing seen, said or done - a
 detail the reader has not met before - and no reusable tail ("Nobody mentions it again.", "The work is ...", "{A} says ...; {B} says ...")."""
 

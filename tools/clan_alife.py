@@ -1,5 +1,5 @@
 """Clan A-Life: an offline, server-side simulation of each player's clan that narrates and enriches the authoritative 2013 clan numbers.
-Design + rules: re/clan-alife-1019.md.   Switch: tools/clan_alife.txt (next to daemon.py; default ON, 'off' / '0' turns it off) or env T2R_CLAN_ALIFE=1/0.
+Design + rules: re/clan-alife-1019.md. Switch: tools/clan_alife.txt (next to daemon.py; default ON since, 'off' / '0' turns it off) or env T2R_CLAN_ALIFE=1/0.
 
 What it is.  tools/clan.py decides how many survivors are healthy / hungry / sick and how many die or join; tools/clan_story.py names them and writes
 a diary line or two per clan day.  This module adds the life AROUND those numbers, per player, persistent in the DB (table clan_alife):
@@ -18,7 +18,7 @@ update server view and the admin site show them unchanged; the Polish form is re
 (2) menu ticker lines (menu_lines of clan_story mixes TICKER_SHARE of them in): single sentences about CURRENT facts of the simulated life.
 Text: tools/clan_alife_text_[a-f].py (EN + PL side by side: weather opener + core, lexicon in clan_alife_lex.py).
 Anti-repeat: per player, in the DB state: every template id has [last day, count]; a template (core or weather opener) is used ONCE per clan
-run: when its pool is spent the event writes nothing (no repeated sentence anywhere in the clan text).  No stock codas: a row is
+run: when its pool is spent the event writes nothing (no repeated sentence anywhere in the clan text). No stock codas: a row is
 [weather opener] + core, the opener only on a day the weather turned.  Determinism: everything is a pure function of (token id, run, day, state): restarts change nothing.
 """
 import json
@@ -40,8 +40,8 @@ import clan_alife_text_b as TB                               # noqa: E402
 import clan_alife_text_c as TC                               # noqa: E402
 import clan_alife_text_d as TD                               # noqa: E402
 import clan_alife_text_e as TE                               # noqa: E402
-import clan_alife_text_f as TF                               # noqa: E402
-import clan_alife_text_g as TG                               # noqa: E402  (camp incidents: re/clan-events-1117.md)
+import clan_alife_text_f as TF                               # noqa: E402 (creativity pass)
+import clan_alife_text_g as TG                               # noqa: E402 (camp incidents: re/clan-events-1117.md)
 
 STATE_V = 1
 WINDOW_DAYS = 999                   # once per run (a run is at most 85 days): a spent pool writes nothing

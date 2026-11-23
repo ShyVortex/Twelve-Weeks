@@ -152,6 +152,49 @@ def region_of(loc):
     return best[1] if best else None
 
 
+MM_REGIONS = ("EU", "NA-east", "NA-west")   # 'other' lumps South America + Asia + Oceania together: never a "same region" for matchmaking
+
+
+def region_first(tokens, region_fn, members_fn=None, waited_fn=None, max_wait=None):
+    """Matchmaking order with same-region priority: the queue-ordered `tokens`, players of the lead region first, queue order
+    kept inside each group (stable). Lead region = the known region (EU / NA-east / NA-west) with the most searchers; a tie goes to the region
+    of the earliest searcher. A party counts as the region of its first member that has one (members_fn(t) -> the party's tokens). A player
+    that has waited max_wait s or more keeps its queue place whatever its region (waited_fn(t) -> seconds), so nobody waits forever.
+    Returns (ordered list, lead region); lead None = no known region, list unchanged."""
+    tokens = list(tokens)
+    reg = {}
+    for t in tokens:
+        if t in reg:
+            continue
+        group = list(members_fn(t)) if members_fn else [t]
+        if t not in group:
+            group = [t] + group
+        r = None
+        for m in group:
+            mr = region_fn(m)
+            if mr in MM_REGIONS:
+                r = mr
+                break
+        for m in group:
+            reg[m] = r
+    cnt = {}
+    for t in tokens:
+        if reg[t]:
+            cnt[reg[t]] = cnt.get(reg[t], 0) + 1
+    if not cnt:
+        return tokens, None
+    top = max(cnt.values())
+    lead = next(reg[t] for t in tokens if reg[t] and cnt[reg[t]] == top)
+
+    def first(t):
+        if reg[t] == lead:
+            return 0
+        if waited_fn is not None and max_wait is not None and waited_fn(t) >= max_wait:
+            return 0
+        return 1
+    return sorted(tokens, key=first), lead
+
+
 def parse_pins(text):
     """'76561198000000042:EU,1234:NA-east' -> {steamid: region}"""
     out = {}
@@ -172,6 +215,63 @@ PINS = parse_pins(os.environ.get("T2R_HOST_REGION_PIN", ""))     # steamid -> re
 
 
 REGION_GUARD_MS = _envi("T2R_REGION_GUARD_MS", 60)   # the region rule may cost the lobby at most this many ms of worst-case ping (0 = no guard)
+
+
+def ping_fit(players, pair, limit, units_fn=None, host_ok=None):
+    """Ping gate for a match being formed .
+    Match 72784a06 formed two South American players with one in Poland at 254 ms to the host; she was removed 60 s into the match.
+    Every player of a match plays through the host, so a lobby fits when ONE host candidate has every other player at or under `limit` ms.
+    players: the formation's pick (queue order). pair(a, b) -> ms or None (unknown = not judged, kept). units_fn(t) -> the tokens that join
+    together with t (a party: dropped whole). host_ok(t) -> may t host (no-host list).
+    Returns (kept, dropped, host, info): the host candidate that keeps the most players (tie: lower worst ping to the kept players, then
+    queue order) and the players it keeps (queue order). No pair ping known, or limit <= 0 = everybody kept, host None.
+    A far player (see below) is dropped even by a host whose ping to it is unknown, and a far host keeps nobody it has no ping to."""
+    players = list(players)
+    if limit <= 0 or len(players) < 2:
+        return players, [], None, "off" if limit <= 0 else "one player"
+    unit = {}
+    for t in players:
+        if t in unit:
+            continue
+        g = [m for m in (units_fn(t) if units_fn else [t]) if m in players]
+        if t not in g:
+            g = [t] + g
+        for m in g:
+            unit[m] = tuple(g)
+    if not any(pair(a, b) is not None for i, a in enumerate(players) for b in players[i + 1:]):
+        return players, [], None, "no pings known"
+    # Far players: every known ping to the others is over the limit (and at least half of them, min 2, are known). An unknown ping is not
+    # a pass for them: a Southeast Asia player at 381-414 ms to all four South Americans whose pings were known was matched because two
+    # players who had just queued had no ping to him yet, so one of them "kept everybody"; he was removed 60 s in, every match.
+    far = set()
+    for t in players:
+        others = [o for o in players if o not in unit[t]]
+        known = [ms for ms in (pair(t, o) for o in others) if ms is not None]
+        if others and len(known) >= max(2, (len(others) + 1) // 2) and min(known) > limit:
+            far.update(unit[t])
+    best = None
+    for h in players:
+        if host_ok is not None and not host_ok(h):
+            continue
+        bad = set(far) - set(unit[h])
+        for t in players:
+            if t == h:
+                continue
+            ms = pair(h, t)
+            if (ms is not None and ms > limit) or (ms is None and h in far and t not in unit[h]):
+                bad.update(unit[t])
+        if h in bad:                              # a member of the host's own party is over the limit to it: not a host for this lobby
+            continue
+        kept = [t for t in players if t not in bad]
+        known = [pair(h, t) for t in kept if t != h and pair(h, t) is not None]
+        key = (-len(kept), max(known) if known else 0, players.index(h))
+        if best is None or key < best[0]:
+            best = (key, h, kept)
+    if best is None:
+        return players, [], None, "no host candidate"
+    _, h, kept = best
+    dropped = [t for t in players if t not in kept]
+    return kept, dropped, h, "host %s keeps %d of %d" % (str(h)[:6], len(kept), len(players))
 
 
 def region_pool(players, region, steamid, pair, pins=None, everyone=None):

@@ -61,10 +61,18 @@ def load_registry(path=None):
 # Same rule as the packs: a match's pool / vote only offers an SP map when EVERY player reported it; an old client that
 # never reports gets base maps only.
 #   0xC8 [64B token][u32 LE mask]        bit k = map-list index SP_BASE + k is in this client's DLL (scan of the to1-levels subnodes)
-#   reply 0xC9 "on=1 sp=<mask hex>"      (the mask the server stored; on=0 = gating off on this server)
+#   reply 0xC9 "on=1 sp=<mask hex> p1=<0|1>"   (the mask the server stored; on=0 = gating off on this server; p1 = this player's Part I
+#                                             preference as the server counts it)
+# PART I MAPS preference (OPTIONS > MULTIPLAYER): the 0xC8 request may carry ONE trailing flags byte after the mask,
+#   0xC8 [64B token][u32 LE mask][u8 flags]   bit 0 = ALWAYS (this player wants Part I maps in every vote and only queues with other
+#                                             ALWAYS players); 0 / absent = DEFAULT (the behaviour before the option existed)
+# An old daemon ignores the extra byte; an old client never sends it (= DEFAULT). The flag only counts while the same report's mask holds at
+# least one Part I map (a player without the maps cannot be "always"), so the daemon never groups a non-owner into an ALWAYS match.
 SP_OP_REPORT = 0xC8
 SP_OP_REPLY = 0xC9
 SP_BASE = 8               # first map-list index of an SP-section map (daemon SP_MAPS order; t2r-ext MF_MAPS[8..])
+P1_FLAG_ALWAYS = 1        # 0xC8 flags byte, bit 0
+P1_MARK = "-p1-"          # a Part I map's level name contains this (to1-p1-bookstore)
 SP_MAX = 32               # mask bits (index 24 Plaza = bit 16; the wire field is a u32)
 
 
@@ -83,20 +91,57 @@ def parse_sp_report(pl):
     return token, struct.unpack_from("<I", pl, 64)[0] & ((1 << SP_MAX) - 1)
 
 
+
+def parse_sp_flags(pl):
+    """The optional flags byte after the 0xC8 mask (0 when absent: old clients)."""
+    return pl[68] if len(pl) > 68 else 0
+
+
+def group_p1(ready, is_always, is_owner):
+    """Split the matchable tokens `ready` (oldest first) for PART I MAPS = ALWAYS ("always should put you into lobbies not with
+    people who have always, but people who have part 1 maps installed"): an ALWAYS player plays only with players who OWN the Part I maps
+    (any preference); everyone else as before. Two candidate groups: the owners (ALWAYS + DEFAULT owners) and everyone but the ALWAYS players.
+    Same pick rule as the per-mode queues: the oldest searcher's group first if it has >= 2 players, then the other, else the oldest's.
+    Returns (ready filtered, True = the owners group with an ALWAYS player in it). No ALWAYS player waiting = unchanged."""
+    al = [t for t in ready if is_always(t)]
+    if not al:
+        return ready, False
+    own = [t for t in ready if t in al or is_owner(t)]
+    rest = [t for t in ready if t not in al]
+    order = [(own, True), (rest, False)] if ready[0] in al else [(rest, False), (own, True)]
+    for grp, kind in order:
+        if len(grp) >= 2:
+            return grp, kind and any(t in al for t in grp)
+    return order[0][0], order[0][1]
+
+
 class SpSupport:
     def __init__(self, sp_levels=(), clock=time.time):
         self.levels = {lvl: k for k, lvl in enumerate(sp_levels)}      # level -> bit (map-list order from SP_BASE)
+        self.p1_bits = sum(1 << k for lvl, k in self.levels.items() if P1_MARK in lvl)    # the Part I maps' mask bits
         self.have = {}                                                  # token -> (mask, time of the report)
+        self.flags = {}                                                 # token -> flags byte of its last report
         self.clock = clock
         self.lock = threading.Lock()
 
     def is_sp(self, level):
         return level in self.levels
 
-    def report(self, token, mask):
+    def report(self, token, mask, flags=0):
         with self.lock:
             self.have[token] = (mask & ((1 << SP_MAX) - 1), self.clock())
+            self.flags[token] = flags & 0xff
         return mask
+
+    def p1_always(self, token):
+        """PART I MAPS = ALWAYS: reported, fresh, and the same report's mask holds a Part I map (ownership)."""
+        with self.lock:
+            fl = self.flags.get(token, 0)
+        return bool(fl & P1_FLAG_ALWAYS) and bool(self.mask_of(token) & self.p1_bits)
+
+    def p1_owner(self, token):
+        """This player reported (fresh) at least one Part I map installed."""
+        return bool(self.mask_of(token) & self.p1_bits)
 
     def mask_of(self, token):
         with self.lock:
@@ -111,7 +156,7 @@ class SpSupport:
         return bool(players) and all((self.mask_of(t) >> k) & 1 for t in players)
 
     def reply_text(self, token):
-        return "on=1 sp=%x" % self.mask_of(token)
+        return "on=1 sp=%x p1=%d" % (self.mask_of(token), 1 if self.p1_always(token) else 0)
 
 
 class Packs:

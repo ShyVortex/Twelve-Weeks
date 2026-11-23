@@ -5,7 +5,7 @@ Reverse-engineered from winmm.dll (see project memory). Central coordinator:
 auth, presence/online-count, loadout persistence, leaderboard, matchmaking.
 Gameplay itself is P2P (Steam/Spacewar) — the daemon only coordinates.
 
-Listens TCP+UDP on :7001 (redirect the client's hardcoded server address here).
+Listens TCP+UDP on :7001 (redirect the client's hardcoded 168.119.115.162 here).
 
 PROTOCOL  (framing both dirs: [u16 len LE][u8 opcode][payload], len=len(op+payload))
   TCP client 0x0f  = login (71B: [1c][64B token][01 00 07]) OR profile (346B:
@@ -35,7 +35,7 @@ PROTOCOL  (framing both dirs: [u16 len LE][u8 opcode][payload], len=len(op+paylo
      0xE2 may end with [u8 n] n x [u8 label id][u16 count]: the match's award counts = mission progress
         extended labels (clan saga): 21 times downed, 22 deaths, 23 best kill streak, 24 weapon class with the most downs (1 bow 2 revolver 3 shorty 4 hunting
         5 semi 6 burst 7 pistol 8 crossbow 9 melee 10 bomb 11 molotov); sent only when > 0; n <= 16 read
-     0xE2 label 33 = supply BOTTLES picked up this match (Interrogation lockbox-phase death drops; clan supplies = bottles + trunc(parts * 0.02)) -> clan.apply_match(bottles=)
+ 0xE2 label 33 = supply BOTTLES picked up this match (Interrogation lockbox-phase death drops; clan supplies = bottles + trunc(parts * 0.02)) -> clan.apply_match(bottles=)
      reply 0xE9 = clan.meta_text() (ASCII "k=v k=v ...")
   IN-GAME CLAN PAGE: 0xB6 [64B token][u8 language][u8 section 1 roster / 2 journal / 3 raids / 4 status / 5 match stats of the raid whose day is in the u16 slot][opt u32 seen journal id][opt u16 seen raid day] -> reply 0xB7 text (tools/clan_ingame.py)
   RANK BADGE: 0xBF [64B token] -> reply 0xBF "n=<k> HHHHHHHH:rank:weeks ..." (tools/rankbadge.py: the rank of every recently seen player keyed by a hash of the shown name; the map vote state 0xEB also carries pk<i> / pw<i> per roster row)
@@ -72,13 +72,14 @@ PROTOCOL  (framing both dirs: [u16 len LE][u8 opcode][payload], len=len(op+paylo
      0xD6 my last 3 matches' players -> 0xD7 (layouts at the ANTI-CHEAT block above clan_report). Never bans: tools/reports/review.py writes bans.txt.
   FRIENDS + PARTIES (tools/social.py): 0xD8 [64B token][u8 ver=1][u8 lang][u8 sub][UTF-8 arg] from the launcher's FRIENDS page -> 0xD9 JSON state (friends with presence,
      pending requests, party with leader, party invites). A party queues as one unit (MatchMaker.try_form), in game its events ride the notice poll (kind p).
+  PART I MAPS preference: the 0xC8 request below may end with ONE flags byte (bit 0 = ALWAYS), see tools/map_packs.py; reply 0xC9 adds " p1=<0|1>".
   SP-SECTION MAPS (always on; T2R_SP_GATE=0 turns the gating off): 0xC8 [64B token][u32 LE mask] = which SP maps (bit k = list
      index 8 + k) the client's DLL contains; reply 0xC9 "on=1 sp=<mask hex>". A match's pool / vote offers an SP map only when
      every player reported it (old clients that never report: base maps only).
 """
 import json, math, select, socket, threading, time, os, sqlite3, struct, secrets, collections, zlib, sys, re, contextlib
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-# CLOCK JUMPS (soak audit): every timeout / TTL in this process (presence, queue, reaper, host migration, notices, rate limiters) reads time.time().
+# CLOCK JUMPS (soak audit): every timeout / TTL in this process (presence, queue, reaper, host migration, notices, rate limiters) reads time.time.
 # An NTP step or a manual clock change of +5 min made every player look offline for a moment (all running matches were reaped as "every player
 # offline", the queue emptied); -1 h froze them for an hour. `time` below is the standard module with ONE change: time() = the wall clock at
 # daemon start + the monotonic seconds since, i.e. a wall-clock-looking value that never jumps. (Stored timestamps - DB last_seen, clan feed - stay
@@ -129,7 +130,7 @@ except Exception as _ex:                      # noqa: BLE001
     clan_reset = None
 import hostcap                                # host upload capacity history (tools/hostcap.py, T2R_HOST_CAP, re/host-capacity-1019.md)
 import modeq  # per-mode queues (tools/modeq.py, op 0xBC / 0xBD)
-import requeue                                # The queue stays after a match (tools/requeue.py)
+import requeue                                # the queue stays after a match (tools/requeue.py)
 import interrogation                          # Interrogation game mode (tools/interrogation.py, T2R_MODE)
 import gunlimit                               # per-team gun limits (tools/gunlimit.py): 1 Tactical Shotgun per team
 import social                                 # friends + parties (tools/social.py, op 0xD8/0xD9; re: header of social.py)
@@ -149,20 +150,20 @@ KEEPALIVE_TTL = 15.0                   # seconds since last UDP ping = still onl
 # The patched winmm net layer is statically sized for 4 player slots (peer table 0x180167cc0 x4, net players
 # ctx+0x1c0+slot*0xa70 x4 right below ctx+0x2b80, per-slot anim state x4): a 5th slot overwrites the engine's own
 # state. Until those tables are relocated the server never forms a match bigger than the engine holds
-# (raising the matchmaking size alone ran 4v4 - default 8; T2R_ENGINE_SLOTS=4 caps it again).
+# (spec ran 4v4 by raising the matchmaking size only - default 8; T2R_ENGINE_SLOTS=4 caps it again).
 ENGINE_SLOTS = int(os.environ.get("T2R_ENGINE_SLOTS", "8"))
 MATCH_SIZE = min(int(os.environ.get("T2R_MATCH_SIZE", "8")), ENGINE_SLOTS)   # max players per match: up to a 4v4 once the engine holds 8
 MIN_PLAYERS = int(os.environ.get("T2R_MIN_PLAYERS", str(min(2, MATCH_SIZE))))
 FILL_WAIT = float(os.environ.get("T2R_FILL_WAIT", "15"))   # s without a new arrival before the wanted match size steps down by one player
-# JOIN IN PROGRESS (re/join-in-progress.md; ON by default (helps crashed players get back in); T2R_JIP=0 turns it off): a searching player is put into an already RUNNING match that
+# JOIN IN PROGRESS (re/join-in-progress.md; ON by default since (helps crashed players get back in); T2R_JIP=0 turns it off): a searching player is put into an already RUNNING match that
 # is not full (fewer players than MATCH_SIZE) instead of waiting for a new one. Needs the matching t2r-ext (it reports the match
 # clock over op 0xE3 and adds the joiner to the roster of the players already in the match).
 JIP = os.environ.get("T2R_JIP", "1") == "1"
-# WAVE RESPAWN (default ON, T2R_WAVE_RESPAWN=0 = off): every client's respawn countdown ends at the next wave of the shared match clock
+# WAVE RESPAWN (default ON since, T2R_WAVE_RESPAWN=0 = off): every client's respawn countdown ends at the next wave of the shared match clock
 # (5-15 s wait, 2013 Supply_Raid.wiki). The setting rides on the 0xE5 reply (jip_roster_op) as one trailing byte, so clients that poll in a match
 # follow it; a client that never gets it (old server / no poll) runs the default (on).
 WAVE_RESPAWN = os.environ.get("T2R_WAVE_RESPAWN", "1") != "0"
-JIP_MIN_AGE = float(os.environ.get("T2R_JIP_MIN_AGE", "15"))   # A joiner is not put into a match before it is this many seconds past its GAME-START (the 0xF2 re-push + roster merge + a Hello landed in the host's first seconds, while the peers' links are still settling; host 'des' lost its only enemy 5 s later)
+JIP_MIN_AGE = float(os.environ.get("T2R_JIP_MIN_AGE", "15"))   #: a joiner is not put into a match before it is this many seconds past its GAME-START (the 0xF2 re-push + roster merge + a Hello landed in the host's first seconds, while the peers' links are still settling; host 'des' lost its only enemy 5 s later)
 JIP_MIN_AGE_REMNANT = float(os.environ.get("T2R_JIP_MIN_AGE_REMNANT", "120"))   # a match with one player left is not joined until this long after its countdown (load-timeout remnants collapse)
 JIP_MIN_LEFT = float(os.environ.get("T2R_JIP_MIN_LEFT", "90"))    # a match with less than this many seconds on its clock is not joinable
 LIVES_START = 20     # Supply Raid: reinforcements per team at the start (2013 wiki); the late-join multiplier's progress is measured against it
@@ -173,7 +174,7 @@ JIP_REUSE_S = float(os.environ.get("T2R_JIP_REUSE_S", "10"))      # a slot whose
 JIP_PREFER_LEFT = float(os.environ.get("T2R_JIP_PREFER_LEFT", "180"))  # a running match with at least this many s left is preferred to forming a new small match from the searchers
 JIP_ACK_STALE = float(os.environ.get("T2R_JIP_ACK_STALE", "12"))     # a player whose last roster poll is older than this when the joiner is put in is not waited for
 SECOND_MATCH_MIN = int(os.environ.get("T2R_SECOND_MATCH_MIN", "6"))  # searchers needed to start a match while another one is forming / running (they queue otherwise)
-# Live (Overpass): a Linux client whose Steam helper was not running (the Linux bypass of the Steam-only gate let it
+# Live 23:11 (match 0c6a99b0, Overpass): a Linux client whose Steam helper was not running (the Linux bypass of the Steam-only gate let it
 # queue) formed a 2-player match, so the match ran over the server relay. Join in progress then filled it to 8 with players who all had a helper:
 # the whole lobby played through the relay at 375-1000 ms (psync peer rtt; direct 85-170 ms), melee pairs started late or not at all.
 # A server-relay match takes join-in-progress players WITH a Steam helper only while it has fewer than RELAY_MATCH_MAX active players; past that
@@ -189,16 +190,27 @@ def has_helper(tok):
 REQUEUE = os.environ.get("T2R_REQUEUE", "1") != "0"
 # 120 s: measured over 312 finished matches in reports-1109..1111 (ext logs, 60 fps frame stamps): end banner -> supply counter closed took
 # p50 48 s, p75 76 s, p90 209 s (the screens wait for a press, no auto close). 120 s covers ~85 % of players; the slower ones are not waited for.
-REQUEUE_WAIT_MAX = float(os.environ.get("T2R_REQUEUE_WAIT_MAX", "120"))
+# (persistent lobby, approved defaults): 90 s cap - the ones still on the screens then keep their seat and join the next match in progress
+REQUEUE_WAIT_MAX = float(os.environ.get("T2R_REQUEUE_WAIT_MAX", "90"))
 REQUEUE_TICKET_S = float(os.environ.get("T2R_REQUEUE_TICKET_S", "300"))  # (p95 of the same measure: 258 s) after this the ext no longer searches by itself
 REQUEUE_OFFLINE_S = float(os.environ.get("T2R_REQUEUE_OFFLINE_S", "30"))  # a ticket holder silent this long is gone (keepalive ~3 s, ext notice poll ~6 s; guess: 5 missed polls)
 REQUEUE_CAP_S = 60.0     # a flag-0x20 clock report this recent at the match end = the ext searches by itself (reports come every 2-3 s in a match)
 RQ_CAP = {}              # token -> time of its last 0xE3 report with flag 0x20
+# PERSISTENT LOBBY ("have the lobby not disband after a match ends, seamless, wait for people to get out of the match summary, kinda make it
+# work like cod lobbies"; tools/requeue.py ready_groups / formed / next_of). T2R_LOBBY_KEEP=0 = the old requeue (wait, then the queue re-picks freely).
+#   - the group of a finished match forms its next match TOGETHER and first (the queue backfills the open seats) once everybody is back, or LOBBY_RELEASE_S
+#     after its first member searched again, or REQUEUE_WAIT_MAX after the end - never earlier than LOBBY_MIN_GAP_S after the end (_free runs at 9 s: the
+#     per-roster dictionaries of the finished match are gone by then, so a same-roster rematch never shares them);
+#   - members still on the post-match screens keep their seats (the backfill and other joiners leave room) and join the new match in progress;
+#   - lone searchers wait for a lobby that is waiting and has room for them (they fill its open seats) instead of forming their own match.
+LOBBY_KEEP = os.environ.get("T2R_LOBBY_KEEP", "1") != "0"
+LOBBY_RELEASE_S = float(os.environ.get("T2R_LOBBY_RELEASE_S", "30"))
+LOBBY_MIN_GAP_S = float(os.environ.get("T2R_LOBBY_MIN_GAP_S", "10"))
 # ANTI-AFK (ext afk.c): the ext counts the seconds without any input (keys, mouse, any pad) while alive in a running match and reports them on
 # every 0xE3 clock report; at AFK_KICK_S the player is removed through the kick path (counts as leaving early, no requeue). 0 = off. The ext warns at 60 s.
-AFK_KICK_S = float(os.environ.get("T2R_AFK_KICK_S", "90"))      # warning ~60 s, removal ~90 s
+AFK_KICK_S = float(os.environ.get("T2R_AFK_KICK_S", "90"))      # brief: warning ~60 s, removal ~90 s
 AFK_KICKED = set()       # (token, mid) removed for inactivity (once per match)
-# Ping limit: a player whose Steam ping to the match host stays
+# ping limit: a player whose Steam ping to the match host stays
 # above PING_KICK_MS for PING_KICK_S is removed through the kick path (the ext shows the must-close kick box with the numbers). Not counted as leaving early
 # (no clan penalty), no requeue ticket, join in progress keeps it out of that match. Never the host itself, never while most players are high to the host
 # (then the host's link is the problem: host migration's business), not in the first PING_GRACE_S of a match, only fresh measurements (PING_FRESH_S).
@@ -209,10 +221,44 @@ PING_GRACE_S = 45.0
 PING_FRESH_S = 90.0
 PING_HIGH = {}           # (token, mid) -> time its ping to the host was first seen above the limit (cleared when it drops below)
 PING_KICKED = set()      # (token, mid) removed for ping (once per match)
+# packet loss limit (a player at 140-165 ms to the host passed the ping limit but lost 44 % of his
+# position packets on the way to everyone else: he teleported for the whole lobby, re/reports-1123): every ext adds the loss it saw per other
+# player to its 30 s performance report (op 0xCA trailer 3: msg-7 packets received / lost per peer name). A player whose MEDIAN loss across
+# LOSS_MIN_OBS or more observers stays at or above LOSS_KICK_PCT for LOSS_KICK_S is removed through the kick path (no penalty, keep_out), and
+# his new searches are refused for LOSS_HOLD_S. Never while half or more of the judged players are lossy (the host's link / relay is the
+# problem then), not in the first PING_GRACE_S, only observers that received LOSS_MIN_PKTS in the last LOSS_WINDOW_S.
+# Numbers from the reports (59 reports, 271 players): typical median 0.0 %, p90 0.6 %; the teleporting player 44.5 %.
+# T2R_LOSS_KICK_PCT=0 = off. T2R_LOSS_GATE=1 = log only (no removal, no hold).
+LOSS_KICK_PCT = float(os.environ.get("T2R_LOSS_KICK_PCT", "20"))
+LOSS_KICK_S = float(os.environ.get("T2R_LOSS_KICK_S", "60"))
+LOSS_GATE = int(os.environ.get("T2R_LOSS_GATE", "2"))
+LOSS_HOLD_S = float(os.environ.get("T2R_LOSS_HOLD_S", "600"))
+LOSS_MIN_OBS = 2
+LOSS_MIN_PKTS = 300       # msg 7 runs at 30-60/s per peer: one 30 s report window holds ~900-1800
+LOSS_WINDOW_S = 75.0      # two 30 s reports
+LOSS = {}                 # (mid, observer, subject) -> deque of (time, received, lost)
+LOSS_HIGH = {}            # (token, mid) -> time its median loss was first seen at or above the limit
+LOSS_KICKED = set()       # (token, mid) removed for loss (once per match)
+LOSS_HOLD = {}            # steam id (or token when unknown) -> (time removed, loss %)
+LOSS_FLAGS = {}           # (mid, token) -> (its msg-7 sends are paced, its host upload budget is on) from its last report
+# same-region matchmaking: with more searchers than one match holds,
+# the searchers of the lead region (most searchers; tie = the earliest one's) go first, queue order kept inside each group; a joiner prefers a
+# running match whose host is in its own region. Regions = EU / NA-east / NA-west from the Steam ping location ('other' never counts as same).
+# A searcher waiting MM_REGION_WAIT_S or more keeps its queue place. T2R_MM_REGION=0 = off.
+MM_REGION_ON = os.environ.get("T2R_MM_REGION", "1") != "0"
+MM_REGION_WAIT_S = float(os.environ.get("T2R_MM_REGION_WAIT_S", "90"))
+# ping gate (match 72784a06
+# formed a Polish player with two South Americans at 254 ms to the host, then let three more join at 238-280 ms; all four were ping-removed after 60 s):
+#  - formation: searchers are only matched together when one host candidate has all of them at or under PING_KICK_MS (hostmig.ping_fit);
+#    the others stay in the queue;
+#  - host pick: a host candidate with nobody over PING_KICK_MS wins over one that would get somebody removed;
+#  - join in progress: a joiner over PING_KICK_MS to the host never joins, also when most players are high to the host (jip_ping_block).
+# Unknown pings are not judged. T2R_MM_PING_GATE=0 = off (all three).
+MM_PING_GATE = os.environ.get("T2R_MM_PING_GATE", "1") != "0"
 QUEUE_HOLD_MAX = float(os.environ.get("T2R_QUEUE_HOLD_MAX", "75"))  # s the oldest searcher may sit in the second-match queue hold; then the searchers start their own match (0 = hold forever)
 PARTY_HOLD_S = float(os.environ.get("T2R_PARTY_HOLD_S", "120"))   # s a ready party short of players holds the solos back from a tiny match of their own (0 = off)
 MAX_WAIT = float(os.environ.get("T2R_MAX_WAIT", "150"))              # s the oldest searcher may wait for a fuller lobby: then the match forms with everybody searching (JIP fills it later)
-# T2R_FILL_RULE=classic (default: the rule above, unchanged) | fast (replayed on 377 real searches: 30-55 % fewer
+# re/queue-fill-1019.md: T2R_FILL_RULE=classic (default: the rule above, unchanged) | fast (replayed on 377 real searches: 30-55 % fewer
 # give-ups, median wait 69 s -> 24 s). fast = step-down every FAST_STEP s, oldest searcher waits at most FAST_MAX_WAIT s, and when NOBODY ELSE is online
 # who could still arrive (online - searching - in a match <= 0) the lobby forms after FAST_ALONE s without an arrival. A file `fill_rule.txt`
 # (one word) next to daemon.py overrides the env (re-read every 5 s, no restart). T2R_FILL_WAIT / T2R_MAX_WAIT keep driving `classic`.
@@ -237,7 +283,8 @@ def fill_rule():
 JIP_ACK_MAX = float(os.environ.get("T2R_JIP_ACK_MAX", "25"))      # GAME-START of a joiner waits this long (max) for the others' roster refresh
 # A player becomes matchable only this long after (re)entering the queue: a match start that
 # lands while the client is still switching to its searching page (right after backing out of
-# a found match / being sent back to searching) dropped it to the title screen (a found match booted to the boat main menu after backing out; live log: leave -> re-search ->
+# a found match / being sent back to searching) dropped it to the title screen (
+# "find match boots to the boat main menu after backing out"; live log: leave -> re-search ->
 # START-MATCH within 1 s). matchmaker_loop forms the match a moment later.
 QUEUE_SETTLE = float(os.environ.get("T2R_QUEUE_SETTLE", "3"))
 # A queued player is matchable only while its last matchmaking poll (searching-page heartbeat, 0x05 ~3 s / 0x15 ~1.5 s)
@@ -264,7 +311,7 @@ def clean_str(s, n=64):
     if isinstance(s, bytes):
         s = s.decode("utf-8", "replace")
     return str(s).translate(_CTRL).strip()[:n]
-# Per-category rate limit (soak test): a line printed per packet / per poll (TCP recv hex dumps of non-poll frames, GAMEPLAY / UDP / RELAY lines of a
+# Per-category rate limit (soak): a line printed per packet / per poll (TCP recv hex dumps of non-poll frames, GAMEPLAY / UDP / RELAY lines of a
 # source-port spray, HANDLER ERR of a fuzzer) used to fill the 8 MB log in minutes and rotate away the match a tester reports. The category is the first
 # argument ("TCP", "UDP", "RELAY-DATA", ...; EVT lines: "EVT <kind>"). Each category may burst LOG_BURST lines, then LOG_PER_S lines per second; the
 # rest is counted and summarised in ONE "LOG-SUPPRESSED" line per category and second window (STATUS lines are never limited).
@@ -328,7 +375,7 @@ def _flusher():
             continue
         try:
             while _q:
-                with open(LOG_PATH, "a", encoding="utf-8", errors="replace") as f:     # (a non-cp1252 player name raised UnicodeEncodeError, not OSError - the flusher thread died and the log stopped for good)
+                with open(LOG_PATH, "a", encoding="utf-8", errors="replace") as f:     # (PT60 a non-cp1252 player name raised UnicodeEncodeError, not OSError - the flusher thread died and the log stopped for good)
                     while _q:
                         line = _q.popleft() + "\n"
                         f.write(line); size += len(line.encode("utf-8", "replace"))
@@ -374,7 +421,7 @@ def _search_entries(mode=None):
     q = MM.queued()
     if mode is not None and not modeq.forced():    # per-mode queues: a searcher only sees the players of its own mode
         q = [t for t in q if modeq.ModeQ.compat(_search_mode(t), mode)]
-    key = (mode, tuple(q), _name_gen[0], len(PARTIES.of), tuple(sorted(PARTIES.leaders.items())))
+    key = (mode, tuple(q), _name_ver[0], len(PARTIES.of), tuple(sorted(PARTIES.leaders.items())))
     now = time.monotonic()
     c = _SF_CACHE
     if c["key"] == key and now - c["t"] < SF_CACHE_S:
@@ -410,12 +457,27 @@ def party_lobby_names(tok):
 def lobby_list_frame(names):
     return msg(0x17, bytes([len(names)]) + b"".join(bytes([len(n)]) + n for n in names) + bytes(1))
 
+def lobby_marks(tok):
+    """ the token's lobby group: (members searching again, members still on the post-match
+    screens) or None (no open ticket / T2R_LOBBY_KEEP=0 / T2R_REQUEUE=0). searching_frame marks the rows ' (lobby)' / ' (summary)'; t2r-ext cuts the
+    suffix off and draws READY / IN SUMMARY in the row's status slot."""
+    if not (REQUEUE and LOBBY_KEEP and tok):
+        return None
+    try:
+        with MM.lock:
+            qd = list(MM.queue)
+        now = time.time()
+        return MM.rq.members(tok, qd, lambda t: silence(t, now), MM.in_match, now)
+    except Exception as ex:                                # noqa: BLE001 - the rows never break the search
+        log("LOBBY rows failed", repr(ex))
+        return None
+
 def searching_frame(self_tok=None):
     """Searching state for the client: 0x03 (state 3, also clears the lobby name list) then
     0x17 [u8 n][n x (u8 len, name)] = the players queued right now. The matchmaking screen
     shows its own name in row 0 (the 0x10 auth name) and then the list, skipping only an entry
     that strcmp-equals its own name (winmm FUN_180065760). The team label (" [T1]") broke that
-    match, so the searcher saw itself twice ("Alpha" + "Alpha [T1]"): the
+ match, so the searcher saw itself twice ("Alpha" + "Alpha [T1]"): the
     recipient's own entry is left out here (by token, and by its own shown name), and every
     token / name is listed once (re/mm-boot.md)."""
     ents = _search_entries(_search_mode(self_tok) if self_tok else None)
@@ -426,15 +488,22 @@ def searching_frame(self_tok=None):
         m1 = b"[T1]" in mine
         ents = [(t, b, lab.replace(b"[T1]", b"[X]").replace(b"[T2]", b"[Y]").replace(b"[X]", b"[T1]" if m1 else b"[T2]").replace(b"[Y]", b"[T2]" if m1 else b"[T1]")) for t, b, lab in ents]
     own = (get_name(self_tok) or "").encode("utf-8", "ignore")[:31] if self_tok else None
+    lm = lobby_marks(self_tok)                     # the lobby group's rows: READY (searching again) / IN SUMMARY (still on the post-match screens)
+    lm_back = set(lm[0]) if lm else set()
     names, seen_tok, seen_nm = [], set(), set()
     for t, base, lab in ents:
         if t == self_tok or (own and base[:31] == own) or t in seen_tok:
             continue
-        n = base[:24] + lab
+        n = base[:24] + lab + ((b" (lobby)" if t in lm_back else b" (new)") if lm else b"")      # (NEW: a searcher from the queue, the backfill)
         if n in seen_nm:
             continue
         seen_tok.add(t); seen_nm.add(n)
         names.append(n)
+    for t in (lm[1] if lm else []):
+        if t != self_tok and t not in seen_tok:
+            n = (get_name(t) or "PLAYER").encode("utf-8", "ignore")[:24] + b" (summary)"
+            if n not in seen_nm:
+                seen_tok.add(t); seen_nm.add(n); names.append(n)
     if self_tok and PARTIES.pid(self_tok):         # party mates that are not searching yet are listed too (waiting for FIND MATCH)
         qs = {t for t, _, _ in ents}
         for t in PARTIES.members(self_tok):
@@ -442,7 +511,7 @@ def searching_frame(self_tok=None):
                 n = (get_name(t) or "PLAYER").encode("utf-8", "ignore")[:24] + (b" (party lead - not searching)" if PARTIES.is_leader(t) else b" (party - not searching)")
                 if n not in seen_nm:
                     seen_nm.add(n); names.append(n)
-        # no header row - the FRIENDS strip under the list shows PARTY n/4
+        # ("one of the rows says PARTY 2/4?? like as if thats a player"): no header row - the FRIENDS strip under the list shows PARTY n/4
     # YOUR OWN TEAM is always on top, the enemy below (row 0 is us, then our team mates, then the enemy, then the not-searching party mates): a stable sort on the
     # relative marker, so the client's blue rows (our team) come first and its red rows (the enemy) last - whatever the order of the queue
     names.sort(key=lambda n: 0 if b" [T1]" in n else 1 if b" [T2]" in n else 2)
@@ -454,8 +523,42 @@ def lp(s):  # length-prefixed byte string
     return bytes([len(s)]) + s
 
 # ---------------------------------------------------------------- storage
-_dblock = threading.Lock()
-_schema_ok = {}      # DB path -> (inode, size>0) the base schema was verified for (soak test: every call re-ran 3 CREATE TABLE + PRAGMA table_info; get_name opened 3 connections)
+class RequestAbandoned(BaseException):
+    """Raised by `with _dblock` when the request this thread serves passed its deadline (the client gave up on it: t2r_rpc waits <= 5 s).
+    A BaseException on purpose: the handlers' own `except Exception` (feed_latest, rank_of_token ...) would otherwise turn it into an
+    empty reply and CACHE that. tcp_conn catches it and closes the connection."""
+
+_req = threading.local()             # .deadline = monotonic time after which this thread's request is no longer worth serving (0 = none)
+ABANDONED = [0]                      # requests dropped at a _dblock wait (STATUS line)
+
+class _DeadlineLock:
+    """threading.Lock that a request thread with a deadline (tcp_conn, short read polls) waits on only until that deadline.
+ overload: 417 threads of clients that had long given up (CLOSE-WAIT) still queued on _dblock, ran their request, then failed at send;
+    the clients' retries kept the queue full until the 512 connection cap refused everyone."""
+    def __init__(self):
+        self._l = threading.Lock()
+    def acquire(self, blocking=True, timeout=-1):
+        return self._l.acquire(blocking, timeout)
+    def release(self):
+        self._l.release()
+    def locked(self):
+        return self._l.locked()
+    def __enter__(self):
+        dl = getattr(_req, "deadline", 0.0)
+        if not dl:
+            self._l.acquire()
+            return self
+        left = dl - time.monotonic()
+        if left <= 0 or not self._l.acquire(timeout=left):
+            ABANDONED[0] += 1
+            raise RequestAbandoned()
+        return self
+    def __exit__(self, *exc):
+        self._l.release()
+        return False
+
+_dblock = _DeadlineLock()
+_schema_ok = {}      # DB path -> (inode, size>0) the base schema was verified for (soak: every call re-ran 3 CREATE TABLE + PRAGMA table_info; get_name opened 3 connections)
 def _db_ident(path):
     try:
         st = os.stat(path)
@@ -481,7 +584,7 @@ def db():
     if "parts_total" not in cols:      # team balance: parts earned per finished match = the skill signal (kills are not recorded)
         c.execute("ALTER TABLE players ADD COLUMN parts_total INTEGER DEFAULT 0")
         c.execute("ALTER TABLE players ADD COLUMN parts_n INTEGER DEFAULT 0")
-    if "draws" not in cols:            # a draw was counted as a loss: losses were matches - wins, so a draw (0x12 winner 2) was a loss
+    if "draws" not in cols:            #: losses were matches - wins, so a draw (0x12 winner 2) was a loss
         c.execute("ALTER TABLE players ADD COLUMN draws INTEGER DEFAULT 0")
     # hot lookups that were full scans: token_steamid / ban checks / name_taken read players by steamid, hwid checks read hwids by token / steamid
     c.execute("CREATE INDEX IF NOT EXISTS players_steamid ON players(steamid)")
@@ -506,27 +609,116 @@ def dbc():
     finally:
         c.close()
 
+# Lock-free reads (overload): the hot lookups (shown name, Steam id, known token, rank) are single SELECTs. They used to wait for the
+# global _dblock behind every writer, the backup and the other readers, and opened a new connection each time. sqlite itself keeps a reader
+# consistent (rollback journal: a SELECT sees the last commit; it only waits out a writer's commit, in the busy handler). So they run on a
+# small pool of read-only connections without _dblock. T2R_DB_RO_READS=0 = the old locked path.
+DB_RO_READS = os.environ.get("T2R_DB_RO_READS", "1") != "0"
+_ro_pool = []                        # idle read-only connections (check_same_thread=False: one thread at a time uses each)
+_ro_pool_lock = threading.Lock()
+RO_POOL_MAX = 8
+RO_READS = [0, 0]                    # [lock-free reads, fallbacks to the locked path]
+
+def _ro_get():
+    """-> (connection, file identity). A pooled connection opened on another file (t2r.db replaced: db_guard restore, a test) is closed and
+    never reused: on Linux it would go on reading the old, unlinked file."""
+    ident = _db_ident(DB_PATH)
+    if ident is None or not ident[1]:
+        raise sqlite3.OperationalError("no database file yet")
+    while True:
+        with _ro_pool_lock:
+            e = _ro_pool.pop() if _ro_pool else None
+        if e is None:
+            break
+        if e[1] == ident:
+            return e
+        e[0].close()
+    path = os.path.abspath(DB_PATH).replace("\\", "/")
+    return sqlite3.connect("file:%s?mode=ro" % path, uri=True, timeout=10, check_same_thread=False), ident
+
+def _ro_put(e):
+    with _ro_pool_lock:
+        if len(_ro_pool) < RO_POOL_MAX:
+            _ro_pool.append(e)
+            return
+    e[0].close()
+
+def ro_close_all():
+    """Close the idle read-only connections (before t2r.db is replaced: Windows cannot rename an open file)."""
+    with _ro_pool_lock:
+        idle = list(_ro_pool)
+        del _ro_pool[:]
+    for c, _i in idle:
+        try: c.close()
+        except sqlite3.Error: pass
+
+def db_read(fn):
+    """fn(connection) -> value, for a pure read (SELECTs only). Runs on a pooled read-only connection without _dblock; any sqlite error there
+    (no DB file yet, a table not created yet, a write by mistake) falls back to the old `with _dblock, dbc()` path, so a read never fails
+    where it used to work."""
+    if DB_RO_READS:
+        e = None
+        try:
+            e = _ro_get()
+            v = fn(e[0])
+            RO_READS[0] += 1
+            _ro_put(e)
+            return v
+        except sqlite3.Error:
+            if e is not None:
+                try: e[0].close()
+                except sqlite3.Error: pass
+            RO_READS[1] += 1
+    with _dblock, dbc() as c:
+        return fn(c)
+
 # Shown-name / Steam-id cache: get_name() is called for every queued player on every searching poll (searching_frame: N searchers x N polls
 # per 1.5 s) and cost 3 DB connections + ~8 statements each. Entries live NAME_CACHE_S seconds and are dropped at once by every writer
 # (set_name / set_steam / the in-game rename) through name_dirty().
 NAME_CACHE_S = float(os.environ.get("T2R_NAME_CACHE_S", "3"))
-_name_cache = {}      # token -> (expires monotonic, generation, value)
+_name_cache = {}      # token -> (expires monotonic, generation, value, names key)
 _steam_cache = {}
-_name_gen = [0]
-def name_dirty():
-    _name_gen[0] += 1
+_name_gen = [0]       # global generation: name_dirty() with no token drops every entry
+_name_ver = [0]       # bumped by every name_dirty() (keys of caches built from many names, e.g. _search_entries)
+_tok_gen = {}         # token -> its own generation: name_dirty(token) drops only that player's entries
+# overload: name_dirty used to drop the WHOLE cache, and set_steam runs on every Steam helper registration, so each login made every
+# online player's next name lookup go to the DB at once (thousands of _dblock waits). Now a writer drops only the tokens it changed.
+def _gen_of(token):
+    return (_name_gen[0], _tok_gen.get(token, 0))
+def name_dirty(token=None, key=None):
+    """Drop cached names. token: that player's entries only. key: also every token whose custom name lives under this names key ("s:<steamid>"
+    or a token id) - a rename under a Steam key changes the shown name of every install of that account. Neither: everything (old behaviour)."""
+    _name_ver[0] += 1
+    if token is None and key is None:
+        _name_gen[0] += 1
+        return
+    toks = set()
+    if token:
+        toks.add(token)
+    if key:
+        for t, e in list(_name_cache.items()):
+            if e[3] == key or names.token_id(t) == key:
+                toks.add(t)
+    if len(_tok_gen) > 8192:                       # bounded: start over with a global drop
+        _tok_gen.clear()
+        _name_gen[0] += 1
+        return
+    for t in toks:
+        _tok_gen[t] = _tok_gen.get(t, 0) + 1
 def _cache_get(cache, token):
     e = cache.get(token)
-    if e is not None and e[1] == _name_gen[0] and time.monotonic() < e[0]:
+    if e is not None and e[1] == _gen_of(token) and time.monotonic() < e[0]:
         return True, e[2]
     return False, None
-def _cache_put(cache, token, value):
+def _cache_put(cache, token, value, gen=None, key=None):
+    """gen = _gen_of(token) taken BEFORE the DB read: a writer that commits after that makes the entry invalid, so a reader can never cache a
+    value it read before a rename / Steam registration."""
     if len(cache) > 4096:
         cache.clear()
-    cache[token] = (time.monotonic() + NAME_CACHE_S, _name_gen[0], value)
+    cache[token] = (time.monotonic() + NAME_CACHE_S, _gen_of(token) if gen is None else gen, value, key)
 
 # Power-loss safety: sqlite commits are journaled + fsynced, but a power cut can still leave the file zeroed / truncated by the
-# filesystem (git refs were zeroed the same way once). So: a verified rolling backup (sqlite backup API -> temp file ->
+# filesystem (git refs were zeroed the same way). So: a verified rolling backup (sqlite backup API -> temp file ->
 # fsync -> atomic replace, written only if the copy passes integrity_check, so a damaged db never overwrites a good backup),
 # and a start-up check that restores it when t2r.db is empty or corrupt. (Clans, names, loadouts, stats all live in t2r.db.)
 BAK_PATH = DB_PATH + ".bak"
@@ -550,6 +742,7 @@ def db_guard():
     if _db_ok(DB_PATH):
         return "ok"
     if _db_ok(BAK_PATH):
+        ro_close_all()
         bad = DB_PATH + ".corrupt-%d" % int(time.time())
         os.replace(DB_PATH, bad)
         import shutil
@@ -564,9 +757,12 @@ def db_backup():
     """Rolling backup of t2r.db (write temp + fsync + atomic rename). True when a new verified backup is in place."""
     tmp = BAK_PATH + ".tmp"
     try:
-        with _dblock:                            # check + copy under the DB lock: no writer commits in the middle of the integrity check or the page copy
-            if not _db_ok(DB_PATH):              # never copy a damaged / emptied db over the good backup
-                return False
+        # the integrity check of the LIVE file used to run here, under _dblock (seconds on fra1 with a 66 MB DB, every 5 min: every
+        # request waited). The copy is checked instead (below, outside the lock): the backup API copies the pages as they are, so a damaged
+        # source gives a damaged copy and the good backup is kept just the same. Only the page copy holds the lock (no commit in the middle).
+        if os.path.getsize(DB_PATH) == 0:        # never copy an emptied db over the good backup
+            return False
+        with _dblock:
             src = sqlite3.connect(DB_PATH, timeout=10)
             try:
                 dst = sqlite3.connect(tmp)
@@ -628,21 +824,21 @@ def save_loadout(token, blob):
                   (token, blob, time.time()))
 
 def set_name(token, name):
-    name_dirty()
+    name_dirty(token)
     with _dblock, dbc() as c:
         c.execute("INSERT INTO players(token,name,last_seen) VALUES(?,?,?) "
                   "ON CONFLICT(token) DO UPDATE SET name=excluded.name,last_seen=excluded.last_seen",
                   (token, name, time.time()))
-    name_dirty()                                   # (again after the commit: a reader between the first call and the write cached the old value)
+    name_dirty(token)                              # (again after the commit: a reader between the first call and the write cached the old value)
 
 def set_steam(token, steamid, name):
-    name_dirty()
+    name_dirty(token)
     with _dblock, dbc() as c:
         c.execute("INSERT INTO players(token,name,steamid,last_seen) VALUES(?,?,?,?) "
                   "ON CONFLICT(token) DO UPDATE SET name=excluded.name,"
                   "steamid=excluded.steamid,last_seen=excluded.last_seen",
                   (token, name, steamid, time.time()))
-    name_dirty()
+    name_dirty(token)                              # (only this token's players row changed: its name / Steam id / names key)
 
 NAME_TAG = b"T2N:"
 
@@ -674,10 +870,10 @@ def token_steamid(token):
     hit, v = _cache_get(_steam_cache, token)
     if hit:
         return v
-    with _dblock, dbc() as c:
-        r = c.execute("SELECT steamid FROM players WHERE token=?", (token,)).fetchone()
+    gen = _gen_of(token)
+    r = db_read(lambda c: c.execute("SELECT steamid FROM players WHERE token=?", (token,)).fetchone())
     v = int(r[0]) if r and r[0] else 0
-    _cache_put(_steam_cache, token, v)
+    _cache_put(_steam_cache, token, v, gen)
     return v
 
 # Bans: one entry per line in bans.txt next to the database (outlives the PT folders): a Steam id (7656...), a
@@ -686,7 +882,7 @@ def token_steamid(token):
 BAN_PATH = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "bans.txt")
 BAN_MSG = b"You are banned from the server."          # English form; the live path sends ban_note(token) (the token's language)
 def ban_note(token):
-    # A per-ban reason ("# ... reason: <text>" on the bans.txt line) is shown after the banned note
+    # a per-ban reason ("# ... reason: <text>" on the bans.txt line) is shown after the banned note
     if not token:
         return BAN_MSG
     base = srv_note("banned", token)
@@ -753,7 +949,7 @@ def _bans_load():
     log("BANS loaded", len(ids), "steam id(s),", len(nms), "name(s),", len(hw), "hwid(s),", len(tk), "token(s) from", BAN_PATH)
 
 # --------------------------------------------------- HWID bans
-# The client (t2r-ext hwid.c: MachineGuid, SMBIOS UUID, a fixed disk serial) reports on its own short
+# The client (t2r-ext hwid.c; spec's loader/hwid.cpp sources: MachineGuid, SMBIOS UUID, a fixed disk serial) reports on its own short
 # connection:  client -> server  0xB2 [64B token][u8 ver=1][u8 mask b0 guid b1 smbios b2 disk][12 B per set bit]   reply 0xB3 "ok=1"
 # Each 12 B component is kept as 24 hex chars in the hwids table with the token / Steam id / name it came with. A ban entry (Steam
 # id, name, hwid) bans every hardware id ever seen with that account, and a banned hardware id bans every account that ever
@@ -762,7 +958,7 @@ def _bans_load():
 OP_HWID, OP_HWID_REPLY = 0xB2, 0xB3
 HWID_HEX = 24
 
-# One shared component used to ban every account that reported it, but cloned Windows images share MachineGuid,
+# PT60 pre-mortem: one shared component used to ban every account that reported it, but cloned Windows images share MachineGuid,
 # OEM boards ship placeholder SMBIOS UUIDs / disk serials ("To Be Filled By O.E.M.", "0000...", "Default string"), and some SSD batches
 # share a serial string. Now (a) known placeholder values (hashed exactly as the client does: sha256("T2R-HWID1" + tag + data)[:12]) are
 # ignored on both sides of the comparison, (b) an account that is banned only through ANOTHER account's hardware needs >= HWID_MIN_MATCH
@@ -881,7 +1077,7 @@ def is_banned(token, name=None):
 
 def name_key(token):
     """Key of a player's custom name: the Steam account when known ("s:<steamid>": the name follows the player to every install / new
-    token; token ids are NOT unique - a shipped token was shared by 5 players), else the token id."""
+ token; token ids are NOT unique - a shipped token was shared by 5 players), else the token id."""
     sid = token_steamid(token)
     return ("s:%d" % sid) if sid else names.token_id(token)
 
@@ -890,11 +1086,20 @@ def custom_name(token):
     if not token or len(token) != 64:
         return "", ""
     key = name_key(token)
-    with _dblock, dbc() as c:
+    def rd(c):
         cn, ct = names.load(c, key)
         if not cn and key.startswith("s:"):           # a name saved before the Steam keying: the token id's
             cn, ct = names.load(c, names.token_id(token))
         return cn, ct
+    return db_read(rd)
+
+def safe_name(nm):
+    """A shown name never carries '<' / '>'. winmm's text routines read '<' as a markup tag start (<color=> / <scale>): a Steam name
+ with angle brackets crashed every client that drew it (nametag, kill feed: exe+123bb4d frame allocator full,, 8 crashes in
+    one evening). Clients copy names from the daemon (0x10 own name, lobby / match roster), so it is cleaned here."""
+    if not nm or ("<" not in nm and ">" not in nm):
+        return nm
+    return nm.replace("<", "").replace(">", "").strip() or "PLAYER"
 
 def get_name(token):
     """Shown name: custom name (with [TAG]) > Steam name (bridge/DB) > T2N setup name."""
@@ -903,8 +1108,9 @@ def get_name(token):
     hit, v = _cache_get(_name_cache, token)
     if hit:
         return v
-    v = _get_name(token)
-    _cache_put(_name_cache, token, v)
+    gen = _gen_of(token)                           # (before the read: see _cache_put)
+    v = safe_name(_get_name(token))
+    _cache_put(_name_cache, token, v, gen, name_key(token) if len(token) == 64 else None)
     return v
 
 def _get_name(token):
@@ -914,9 +1120,8 @@ def _get_name(token):
     tn = token_name(token)
     if tn:
         return tn
-    with _dblock, dbc() as c:
-        r = c.execute("SELECT name FROM players WHERE token=?", (token,)).fetchone()
-        return r[0] if r and r[0] else None
+    r = db_read(lambda c: c.execute("SELECT name FROM players WHERE token=?", (token,)).fetchone())
+    return r[0] if r and r[0] else None
 
 def get_loadout(token):
     with _dblock, dbc() as c:
@@ -971,7 +1176,8 @@ def add_matches(tokens):
 # Leavers (record_result skip) are not rated. An account without a rating is seeded from its record so far: the rating its win rate implies
 # against the average player (the pool's win rate = 1000; losses include abandoned matches, so the pool wins < 50 %), with the win rate pulled
 # toward the pool's by ELO_PRIOR matches (11 matches at 64 % is not proof).
-# Shown rating (leaderboards, website) = Elo - ELO_UNSURE / sqrt(matches + 1): a rating from few matches is unsure, so it ranks lower until the matches back it up (11 matches -58, 100 matches -20).
+# Shown rating (leaderboards, website) = Elo - ELO_UNSURE / sqrt(matches + 1): "L played 11 matches, match count should be looked
+# at too" - a rating from few matches is unsure, so it ranks lower until the matches back it up (11 matches -58, 100 matches -20).
 ELO_BASE, ELO_K_NEW, ELO_K, ELO_NEW_N = 1000.0, 40.0, 24.0, 20
 ELO_PRIOR, ELO_UNSURE = 40.0, 200.0
 _elo_pool = {"t": 0.0, "p": 0.4}
@@ -1117,7 +1323,7 @@ def elo_of_tokens(tokens, records=None):
 
 def record_result(players, winner, skip=(), mid=None):
     """Winning team from op 0x12 (2 = a draw); players[i] is on team_of(i). Losses = matches - wins - draws.
-    `skip` = tokens that left the match before its end: they get no win / draw (the whole list, leavers and
+ `skip` = tokens that left the match before its end: they get no win / draw (pre-mortem: the whole list, leavers and
     host-migration placeholders included, was credited - a player who quit in minute 2 of a won match got the win, and the skill
     rating that balances the teams reads wins)."""
     if mid and PRIV.is_private_mid(mid):
@@ -1151,12 +1357,12 @@ CLAN_PENDING = {}    # token -> (mid, parts, flags)
 CLAN_CREDITED = set()  # (token, mid) whose clan day was resolved: a match gives a player ONE day, even when it left early and came back into it through join in progress (fuzz seed 98: left-early day + normal day for one match)
 CLAN_QUITTERS = set()  # (token, mid): the host that left a match we then ended for the others (abort award): its own day stays 'left early'
 CLAN_GRACE = float(os.environ.get("T2R_CLAN_GRACE", "20"))
-# Players got penalties for the other person leaving / crashing (the host left, migration waited, the other player -
+# (the host left, migration waited, the other player -
 # who could not see anyone - quit and got a left-early day: 1 died, 5 hungry, 2 sick). A player who leaves a running match within
 # CLAN_EXCUSE_S after someone ELSE left / crashed it, or while its host is lost and migration has not taken over, is excused:
 # no left-early day (parts earned still count, a deficit is forgiven; nothing earned = no day at all).
 CLAN_EXCUSE_S = float(os.environ.get("T2R_CLAN_EXCUSE_S", "90"))
-# ONE rule - a left-early clan day only for a deliberate leave. The daemon-side reason of every
+# ("we need to improve forgiving timeouts/crashes"): ONE rule - a left-early clan day only for a deliberate leave. The daemon-side reason of every
 # departure is known in leave_running_match (the op that took the player out): the client's own leave op (0x02 from the pause menu / "searching again")
 # is deliberate, everything the network, a crash, a load timeout or the server did (session lost, timed out, never loaded, admin kick) is not. Even a
 # deliberate leave is excused in the first CLAN_START_GRACE_S s of the match (nobody reached the host / bad start) and in the last CLAN_END_GRACE_S s of
@@ -1166,14 +1372,19 @@ HOSTMIG_NOCAND_S = float(os.environ.get("T2R_HOSTMIG_NOCAND_S", "45"))   # host 
 CLAN_START_GRACE_S = float(os.environ.get("T2R_CLAN_START_GRACE", "45"))
 CLAN_END_GRACE_S = float(os.environ.get("T2R_CLAN_END_GRACE", "30"))
 CLAN_REJOIN_MAX_S = float(os.environ.get("T2R_CLAN_REJOIN_MAX", "900"))
-# The test server has no clan penalties: T2R_CLAN_NO_PENALTY=1 excuses every leave (no left-early day).
+# T2R_CLAN_NO_PENALTY=1 excuses every leave (no left-early day).
 CLAN_NO_PENALTY = os.environ.get("T2R_CLAN_NO_PENALTY", "0") not in ("", "0")
-CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again")     # (kicks suffer no penalties: an AFK removal no longer counts as leaving early)
+CLAN_DELIBERATE_WHY = ("left (0x02)", "searching again")     #
 CLAN_EXCUSE_WHY = {}   # (token, mid) -> why the departure was excused (the log line of clan_finalize)
-# Kicks carry no penalty: (token, mid) removed by an admin kick or the ping limit. Its clan day for that match never books a
+# (token, mid) removed by an admin kick or the ping limit. Its clan day for that match never books a
 # deficit: 0 parts = no day at all, parts > 0 = the parts count and the deficit is forgiven - even when the match ended normally afterwards (an admin kick
 # of the last opponent ends it with an abort award, CLAN_ENDED, and the kicked player's 0-part report used to book a full starving day).
 CLAN_KICKED = {}       # (token, mid) -> why (log text)
+# (match 87ab7bc6: both others left in the first 30 s, the abort award
+# ended the match for the one player left, whose 0-part report booked a normal day: not counted, but 2 died, 48 hungry, 19 sick). A player the match was
+# ended FOR by abort_award (everyone else left / the host left with no migration / host lost with no successor) is booked like a kicked player:
+# 0 parts = no day at all, parts > 0 = the parts count and the deficit is forgiven. The host that quit on purpose keeps its left-early day (CLAN_QUITTERS).
+CLAN_ABORTED = {}      # (token, mid) -> why the match was ended for it (log text)
 CLAN_LEFT_AT = {}      # (token, mid) -> time of its departure from the running match (a 'back in the match' needs a departure first)
 CLAN_REJOINED = {}     # (token, mid) -> time the first deferral happened: the player is back in the match, its first report waits for the next one
 CLAN_LAST_DEPART = {}  # mid -> (time, token) of the latest departure from the running match
@@ -1183,7 +1394,7 @@ CLAN_LINK_EXCUSE_MAX, CLAN_LINK_EXCUSE_WINDOW = 2, 86400.0
 _clanlock = threading.Lock()
 
 def clan_key(c, token):
-    """Key of a player's clan: the Steam account when known ("s:<steamid>"), else the install token id. Clan progress used to reset
+    """Key of a player's clan: the Steam account when known ("s:<steamid>"), else the install token id. clan progress reset
     with every update - the token id is per install and every playtest is a fresh client folder (a new token), so each update made a new
     clan row. First use of the Steam key adopts the account's furthest-along clan among its old tokens (alive first, then day, then
     most recently played), boosters included."""
@@ -1459,9 +1670,9 @@ def clan_finalize(token):
     mid, parts, flags, counts = p
     mvt = CLAN_MOVED.get((token, mid))
     if mvt and not (flags & 2):
-        # A team move is no leave. The report of the first half waits while the player is back in
+        # ("doesnt delete their progress"): a team move is no leave. The report of the first half waits while the player is back in
         # the match (or its move is still open); the report at the end adds to it. Never re-entered: booked as an excused day (no penalty).
-        # The match END used to skip this hold (an admin moved 3 players, the host quit 5 s later), so the movers got a normal 0-supply day
+        # (3 players were moved, the host quit 5 s later): the match END used to skip this hold, so the movers got a normal 0-supply day
         # (hungry + sick). A mover is excused whether the match ended or not; the hold itself only while the match still runs.
         back_in = MM.in_match(token) and MM.mid_of(token) == mid
         if mid not in CLAN_ENDED and (back_in or time.time() - mvt < 200):
@@ -1494,6 +1705,11 @@ def clan_finalize(token):
     # the server saw the host's 0x12, or the client's own game ended the match (flags bit 1, winmm's
     # match end ran there): a normal day. Otherwise the player left early.
     left = (mid not in CLAN_ENDED and not (flags & 2)) or (token, mid) in CLAN_QUITTERS
+    if not left and not (flags & 2) and (token, mid) in CLAN_EXCUSED and CLAN_LEFT_AT.get((token, mid), 1e18) <= CLAN_ENDED.get(mid, 0) + 2:
+        # FKZB: an excused leave (host lost) was itself the last departure, so the abort award ended the match in the same second and
+        # CLAN_ENDED was set before this report resolved -> a normal 0-supply day (21 hungry, 9 sick). A player who left at or before the end
+        # (and whose own game never ran the match end) left; its excuse applies below.
+        left = True
     if left and (flags & 4) and (token, mid) not in CLAN_QUITTERS and (token, mid) not in CLAN_EXCUSED:
         # (the flag is the client's own word - pulling the cable sets it too: at most CLAN_LINK_EXCUSE_MAX per day and token, after that it is a normal early leave)
         _now = time.time()
@@ -1504,13 +1720,13 @@ def clan_finalize(token):
             flags &= ~4
     if left and (flags & 4) and (token, mid) not in CLAN_QUITTERS and (token, mid) not in CLAN_EXCUSED:
         CLAN_LINK_EXCUSES.setdefault(token, []).append(time.time())
-        # The player's own link died (flag bit 2 of the 0xE2 report: the ext saw
+        # ("booted for no reason, clan said left match early"): the player's own link died (flag bit 2 of the 0xE2 report: the ext saw
         # its inbound path dead for seconds / the host quiet until the session closed) - the game then showed "Connection to host lost" and sent
         # the leave itself, which the server cannot tell from a back-out. A dropped link is no leave: same excuse as a host that was lost.
         CLAN_EXCUSED.add((token, mid))
         log("CLAN excuse", tag(token), "mid", mid, "its own link was lost (report flag 4) - no left-early penalty")
     if left and (token, mid) not in CLAN_QUITTERS and time.time() - RESTORED_T.get(mid, -1e9) < RESTORE_EXCUSE_S:
-        # A daemon restart closed every session socket; the clients (that do not re-attach) left the match and reported flags 0 -> six
+        # (PT92 live): a daemon restart closed every session socket; the clients (that do not re-attach) left the match and reported flags 0 -> six
         # clans booked a left-early day with zero supplies. A report that arrives within RESTORE_EXCUSE_S of a restored match's re-adoption is ambiguous
         # (restart or deliberate leave): excused - the parts count, the deficit is forgiven, no penalty.
         CLAN_EXCUSED.add((token, mid))
@@ -1528,6 +1744,12 @@ def clan_finalize(token):
             return
         left, forgive_excused = False, True
         log("CLAN day", tag(token), "mid", mid, "kicked (%s) - parts count, deficit forgiven" % CLAN_KICKED[(token, mid)])
+    if (token, mid) in CLAN_ABORTED and (token, mid) not in CLAN_QUITTERS and (token, mid) not in CLAN_KICKED:
+        if int(parts) <= 0:
+            log("CLAN day", tag(token), "mid", mid, "match ended for it (%s) - nothing earned, no day, no penalty" % CLAN_ABORTED[(token, mid)])
+            return
+        left, forgive_excused = False, True
+        log("CLAN day", tag(token), "mid", mid, "match ended for it (%s) - parts count, deficit forgiven" % CLAN_ABORTED[(token, mid)])
     if left and (token, mid) in CLAN_EXCUSED and (token, mid) not in CLAN_QUITTERS:
         if int(parts) <= 0:
             log("CLAN day", tag(token), "mid", mid, "excused (%s) - nothing earned, no day, no penalty" % CLAN_EXCUSE_WHY.get((token, mid), "left after another player left / crashed"))
@@ -1548,7 +1770,7 @@ def clan_finalize(token):
     book_career_stats(token, counts)                              # website career totals (booked once per match)
     late, mult0 = 0, 1.0
     if rebook:
-        # The player left this match, joined it again and played on. The report of the second stint REPLACES the first
+        # ("No word from the camp"): the player left this match, joined it again and played on. The report of the second stint REPLACES the first
         # booking (leave + rejoin must not farm days): the rows the first booking changed are put back and the whole match (both stints summed) books once.
         st1 = prev["stint"]
         counts2, merged = dict(counts or {}), {int(k): v for k, v in st1["counts"].items()}
@@ -1582,7 +1804,7 @@ def clan_finalize(token):
     CLAN_CREDITED.add((token, mid))
     try:                                                          # the per-match player stats of the clan page's RAIDS tab (F / Triangle-Y): this player's own award counts
         import clan_ingame
-        nm = get_name(token) or token_name(token) or "?"            # (outside _dblock: get_name takes it - a deadlock, the clan server went silent)
+        nm = get_name(token) or token_name(token) or "?"            # (outside _dblock: get_name takes it - deadlock, the clan server went silent)
         with _dblock, dbc() as c:
             clan_ingame.stats_report(c, mid, token, nm, CLAN_TEAM.get(mid, {}).get(token, -1), counts, left)
             clan_ingame.stats_parts(c, mid, token, parts)
@@ -1809,7 +2031,7 @@ def clan_report(token, parts, flags, counts=None):
                 threading.Thread(target=supervised(clan_scheduler, "clan-scheduler"), daemon=True).start()
     return clan_state(token)
 
-# Match end WITHOUT the host's op 0x12: a host whose link is down at the end (in-match link hold) or that crashed
+# Match end WITHOUT the host's op 0x12 (re/match-end-fallback-1019.md): a host whose link is down at the end (in-match link hold) or that crashed
 # at the end never sends the result, so CLAN_ENDED / MM.end / INT.end / GL.end never ran. Every client's op 0xE2 carries flags bit 1 = "my own game ran
 # the match end" - when all players still in the match said so, the daemon closes the match itself (match_end_via_reports, called by the reaper and by a
 # timer after the first such report). The reports carry no winner: no win / draw is booked (winner unknown); matches were counted at GAME-START.
@@ -1887,8 +2109,8 @@ PRIV_LAST_MID = {}   # token -> mid of its last private match: its clan report i
 
 def clan_match_started(players, mid):
     try:
-        # A join-in-progress start passes [joiner] alone - map_index([joiner]) has no MATCH_MAP entry, so it ROTATED a fresh map, logged it
-        # ("MAP to1-capitol-shops ['<token>']" in a Hospital match) and wrote that wrong name over the whole match's clan map. The match's own list is the key.
+        # a join-in-progress start passes [joiner] alone - map_index([joiner]) has no MATCH_MAP entry, so it ROTATED a fresh map, logged it
+        # ("MAP to1-capitol-shops ['lav']" in a Hospital match) and wrote that wrong name over the whole match's clan map. The match's own list is the key.
         CLAN_MAP[mid] = MAPS[map_index(MM.players_of_mid(mid) or list(players))][0]
         if len(CLAN_MAP) > 400:
             CLAN_MAP.pop(next(iter(CLAN_MAP)))
@@ -2001,9 +2223,11 @@ def feed_latest(token, limit=FEED_LINES, lang="en"):
         log("CLAN feed failed", ex)
         return []
 
+_FEED_CACHE = {}                   # (token, lang, slot) -> (time.monotonic(), reply bytes): feed_op, 20 s
+
 def feed_op(pl):
     """Op 0xB4 [64B token][u8 language] -> reply 0xB5 "n=<k>\\n<id>|<text>\\n..." (<= 6 lines (FEED_LINES), text <= 150 bytes of UTF-8, no '|' / newline inside;
-    the whole reply must stay under the client's 1024 byte buffer). The optional language byte (the game's TEXT language, sent by t2r-ext)
+ the whole reply must stay under the client's 1024 byte buffer). The optional language byte (the game's TEXT language, sent by t2r-ext)
     is 0 = English (also what a client that sends none gets), 1 = Polish; an unknown value is English. A message written before the language-neutral
     storage has no Polish form and comes back in English."""
     if len(pl) < 64:
@@ -2015,10 +2239,20 @@ def feed_op(pl):
     lang = clan_story.PLN.norm_lang(pl[64:65]) if (clan_story and len(pl) > 64) else "en"
     if len(pl) > 64:
         note_lang(token, pl[64:65])
+    # (hotfix: the reply is a pure function of clan, 60 s time slot and language (clan_story.menu_lines); building it was 38 % of the
+    #  daemon's CPU on fra1 with 20 players, so friends / clan replies missed the clients' 3.5 s timeout. Cached per token + language + slot, 20 s.)
+    ck = (token, lang, clan_story.slot_of() if clan_story else 0)
+    hit = _FEED_CACHE.get(ck)
+    if hit and time.monotonic() - hit[0] < 20.0:
+        return hit[1]
+    if len(_FEED_CACHE) > 4000:
+        _FEED_CACHE.clear()
     for mid, text in feed_latest(token, lang=lang)[:FEED_LINES]:
         t = str(text).replace("\n", " ").replace("|", "/").encode("utf-8")[:150].decode("utf-8", "ignore")
         lines.append("%s|%s" % (str(mid).replace("|", "").replace("\n", "")[:23], t))
-    return msg(0xB5, ("n=%d\n" % len(lines) + "\n".join(lines)).encode("utf-8"))
+    rep = msg(0xB5, ("n=%d\n" % len(lines) + "\n".join(lines)).encode("utf-8"))
+    _FEED_CACHE[ck] = (time.monotonic(), rep)
+    return rep
 
 _RANK_TOK = {}        # token -> (time.monotonic(), symbol, weeks): the rank of a player behind a token, 60 s
 
@@ -2031,8 +2265,7 @@ def rank_of_token(token):
     rk = wk = 0
     try:
         import clan_ingame
-        with _dblock, dbc() as c:
-            rk, wk = clan_ingame.player_rank(c, token)
+        rk, wk = db_read(lambda c: clan_ingame.player_rank(c, token))
     except Exception as ex:          # noqa: BLE001 - the rank is decoration
         log("RANK failed", repr(ex))
     if len(_RANK_TOK) > 2000:
@@ -2062,6 +2295,7 @@ def rank_table_op(pl):
     if not all(ch in "0123456789abcdefABCDEF" for ch in token):
         return None
     import rankbadge
+    rankbadge.TABLE_TTL = 30.0           # (hotfix: 3 s re-ran a name + rank lookup per listed player every 3 s, 17 % of the daemon's CPU)
 
     def fetch():
         with _dblock, dbc() as c:
@@ -2082,7 +2316,7 @@ def clan13_op(pl):
     section = pl[65]
     seen_id = int.from_bytes(pl[66:70], "little") if len(pl) >= 70 else 0
     seen_day = int.from_bytes(pl[70:72], "little") if len(pl) >= 72 else 0
-    big = len(pl) >= 73 and pl[72] & 1               # Newer clients read 64 KB; older ones a 24 KB buffer (a bigger reply is dropped whole = blank JOURNAL tab)
+    big = len(pl) >= 73 and pl[72] & 1               # PT92+ clients read 64 KB; older ones a 24 KB buffer (a bigger reply is dropped whole = blank JOURNAL tab)
     try:
         import clan_ingame
         with _dblock, dbc() as c:
@@ -2121,7 +2355,7 @@ def names_op(op, pl):
             return msg(0xD1, names.state_text("", "", "bad request").encode())
         with _dblock, dbc() as c:
             n2, t2, err = names.save(c, tid, nm, tg, taken=lambda n: name_taken(c, tid, n))
-        name_dirty()                                  # the shown-name cache must not keep the old name
+        name_dirty(token, key=tid)                    # the shown-name cache must not keep the old name (every token under this names key)
         if not err:
             log("NAME set", tag(token), "->", names.display(n2, t2) if n2 else "(cleared)")
             PRES.touch(token, get_name(token) or "PLAYER")
@@ -2154,7 +2388,7 @@ def clan_op(op, pl):
     txt = clan.state_text(st)
     # the asker's own role (tools/roles.py) for its own rank badge colour / nametag; k=v, before the name tails. EVERY 0xE1 reply carries it: the ext's
     # clan_parse rebuilds the whole state from each reply (a missing key = 0), so the choose-side reply (0xE4) without it dropped the lead dev's pink badge and
-    # rim for the rest of the session (everyone picked a side after the release reset).
+    # rim for the rest of the session (live 186: everyone picked a side after the release reset).
     if op in (0xE0, 0xE2, 0xE4):
         try:
             with _dblock, dbc() as c:
@@ -2250,7 +2484,7 @@ class Presence:
         return len(old)
     def touch(self, token, name):
         with self.lock:
-            self.players.setdefault(token, {})["name"] = name
+            self.players.setdefault(token, {})["name"] = safe_name(name)
             self.players[token]["last"] = time.time()
     def touch_known(self, token):
         """Refresh `last` of a player that is already present (never creates an entry: the token comes from an unauthenticated poll)."""
@@ -2452,6 +2686,10 @@ class Bridges:
     def register(self, token, conn, steamid, port=0, ip=None, name=None):
         with self.lock:
             self.by_token[token] = {"conn": conn, "steamid": steamid, "port": port, "ip": ip, "name": name}
+    def tokens_for_ip(self, ip):
+        """Tokens of every helper connected from this IP (for the optional install check)."""
+        with self.lock:
+            return [t for t, b in self.by_token.items() if b.get("ip") == ip]
     def name_for_ip(self, ip):
         """Steam name of the only helper connected from this IP, else None (none, or
         several players behind one address -> ambiguous)."""
@@ -2492,9 +2730,22 @@ def adopt_bridge_name(token, ip):
         return
     NAMELESS_BY_IP[ip] = token
     nm = BRIDGES.name_for_ip(ip)
-    if nm and get_name(token) != nm:
+    if nm and get_name(token) != safe_name(nm):
         set_name(token, nm)
         log("NAME-FROM-BRIDGE", ip, tag(token), "->", nm)
+
+def no_helper_note(token, ip):
+    """(note key, helper name) for a search refused for want of a Steam helper.
+    A nameless login token while a named Steam helper is connected from the same IP: the game and the helper did not log
+    in with the same token. winmm sends a hash substitute when its game-data check flags the install (changed base
+ archives, extra .psarc, other mods), so "open Steam" was the wrong advice."""
+    helper = None if token_name(token) else BRIDGES.name_for_ip(ip)
+    return ("files_changed", helper) if helper else ("steam_off", None)
+
+# --------------------------------------------------- install check (optional module, not part of this tree)
+def install_refusal(token, ip, wait_s=0.0):
+    """None = this login / search goes on; else (reason for the log, op 0x11 note bytes). No install check in this tree: always None."""
+    return None
 
 # --------------------------------------------------- held matchmaking sessions
 class Sessions:
@@ -2516,7 +2767,7 @@ class Sessions:
 
 SESSIONS = Sessions()
 
-# ---- session socket lost in a running match (seen in a live test): a NAT / router dropped a player's menu+match TCP socket 8.5 min into a match.
+# ---- session socket lost in a running match (PT89 live test): a NAT / router dropped a player's menu+match TCP socket 8.5 min into a match.
 # The match itself runs over Steam P2P and was fine, but winmm leaves a running match when its session socket dies. The ext now re-opens the
 # socket and logs in again (login 0x0f + hello 0x0e, same token); the daemon recognises that as a RE-ATTACH of a player whose match is running:
 # the socket is registered as the player's session again (match id / team untouched: the match record never left), no match-start is re-sent.
@@ -2592,7 +2843,7 @@ def _read_server_version():
 SERVER_VERSION = _read_server_version()
 REQUIRE_VERSION = os.environ.get("T2R_REQUIRE_VERSION", "0") == "1"
 CLIENT_VERSIONS = {}      # token -> version string the launcher reported
-# A server restart lost every running game's version (the game reports it once at launch, op 0xB0) and refused them all
+# a server restart lost every running game's version (the game reports it once at launch, op 0xB0) and refused them all
 # with "did not report its version". The table is kept next to the database and loaded at start (a game that updated re-reports).
 VERSIONS_PATH = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "client_versions.json")
 try:
@@ -2601,7 +2852,7 @@ try:
 except Exception:
     pass
 
-# Linux players (on the full build they got STEAM NOT CONNECTED): t2r-linux.py has no Steam helper (t2r-steam.exe needs
+# Linux players ("asdf" on the full build got STEAM NOT CONNECTED): t2r-linux.py has no Steam helper (t2r-steam.exe needs
 # Windows), so the Steam-only gate refused them. Its version report ends with the byte 'L' after the token; those tokens may queue
 # without a helper and their matches run over the server relay (LINUX.txt). Kept next to the database like the versions.
 LINUX_PATH = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "linux_clients.json")
@@ -2713,6 +2964,13 @@ SRV_TEXT = {
     "banned": ("You are banned from the server.", "Masz zakaz wstępu na serwer."),
     "steam_off": ("Steam is not connected: open Steam, then start the game with Play.bat",
                   "Steam nie jest połączony: uruchom Steam, a potem grę przez Play.bat"),
+    # the game's login token is winmm's substitute (its game-data check flagged the install), so it never matches the Steam helper
+    "files_changed": ("Your game files do not match Steam: verify the game files in Steam and remove other mods, then press PLAY in the launcher.",
+                      "Twoje pliki gry nie zgadzają się ze Steamem: zweryfikuj pliki gry w Steamie i usuń inne mody, a potem naciśnij GRAJ w launcherze."),
+    "files_edited": ("Your Twelve Weeks files are not the official build ({f}). Open the launcher, press Verify / Repair in Settings > Files, then PLAY.",
+                     "Twoje pliki Twelve Weeks nie są oficjalną wersją ({f}). Otwórz launcher, naciśnij Verify / Repair w Settings > Files, a potem PLAY."),
+    "files_unchecked": ("Twelve Weeks could not check your game files (old or changed t2r-ext.dll). Press PLAY in the launcher to update.",
+                        "Twelve Weeks nie mógł sprawdzić twoich plików gry (stary lub zmieniony t2r-ext.dll). Naciśnij PLAY w launcherze, żeby zaktualizować."),
     "kicked": ("You got kicked from the match.", "Wyrzucono cię z meczu."),
     "kicked_why": ('You got kicked from the match. Reason: "{r}"', 'Wyrzucono cię z meczu. Powód: "{r}"'),
     # anti-AFK (the English text starts like the kick text: the ext shows it as the server toast on the menu, msg_is_kick)
@@ -2720,7 +2978,11 @@ SRV_TEXT = {
     # ping limit (the ext's kick box reads the three numbers: ping, seconds, limit)
     "ping_kicked": ("You got kicked from the match: your ping to the host was {ms} ms for over {s} seconds (limit {lim} ms).",
                     "Wyrzucono cię z meczu: twój ping do hosta wynosił {ms} ms przez ponad {s} s (limit {lim} ms)."),
-    # The admin team move - the client recognises this text (ext msg_is_move: "TEAMS:" prefix) and searches again by itself, straight back in on the other team
+    "loss_kicked": ("You got kicked from the match: your connection lost {pct}% of its packets for over {s} seconds (limit {lim}%). Use a cable, close downloads and try again in {m} min.",
+                    "Wyrzucono cię z meczu: twoje połączenie gubiło {pct}% pakietów przez ponad {s} s (limit {lim}%). Użyj kabla, zamknij pobieranie i spróbuj ponownie za {m} min."),
+    "loss_hold": ("Your connection lost {pct}% of its packets in your last match. You can search again in {m} min.",
+                  "Twoje połączenie gubiło {pct}% pakietów w ostatnim meczu. Możesz szukać ponownie za {m} min."),
+    # the admin team move - the client recognises this text (ext msg_is_move: "TEAMS:" prefix) and searches again by itself, straight back in on the other team
     "moved": ("TEAMS: you were moved to the other team - rejoining the match", "DRUŻYNY: przeniesiono cię do drugiej drużyny - wracasz do meczu"),
     "warn": ("Warning from the Twelve Weeks team: {t}", "Ostrzeżenie od zespołu Twelve Weeks: {t}"),
     "restart_in": ("Server restarting in {m} min. Finish your match - your progress is saved.",
@@ -2750,7 +3012,7 @@ def srv_note(key, token, **kw):
 UPDATE_REFUSAL_NOTE = srv_text("update_refusal")       # English form (kept for callers / tests); the live path renders per token: srv_text("update_refusal", lang_of(tok))
 
 def version_mismatch_text(client_ver, linux=False, lang="en"):
-    # (the note must not say "Play.bat": Linux has not got it)
+    # (asdf's Linux client sat on build 73817f49 after the host moved to 5f499ac9; the note said "Play.bat", which Linux has not got)
     return srv_text("ver_mismatch_linux" if linux else "ver_mismatch", lang, a=client_ver, b=SERVER_VERSION)
 
 def version_problem(token):
@@ -2770,7 +3032,7 @@ def version_refusal(token):
         return None
     try:
         # only a match still loading counts: a search from a match that already started drops that match (the stale-match rule in the
-        # MATCHMAKE handler), so it is a NEW search and refused (e.g. a build 88 client queued on a build 89 host that way)
+        # MATCHMAKE handler), so it is a NEW search and refused (iIVANL_90 on build 88 queued on the build 89 host that way)
         if MM.in_match(token) and not (token in LOADED or MM.match_age(token) > 120):
             return None
     except Exception:
@@ -2821,7 +3083,7 @@ def version_op(pl, addr=None):
 # "to1-levels" (0x69e1bd6853680065, test-tasks.bin). s3 MUST be the level name.
 # Record strings: s1 = map name label, s2 = map image (UI texture path, same style as
 # the .rdata HUD paths), s3 = level name.
-MAPS = [  # (display name - Title Case (user), image key, level name under to1-levels)
+MAPS = [  # (display name - Title Case, image key, level name under to1-levels)
     ("Forest", "forest", "to1-forest"),
     ("Gas Station", "gas-station", "to1-gas-station"),
     ("School", "school", "to1-school"),
@@ -2850,23 +3112,23 @@ SP_MAPS = [  # (display name, image key, level name, key in sp_maps.json)
     ("Bookstore (Part I)", "p1-bookstore", "to1-p1-bookstore", "p1-bookstore"),   # 17: TLOU Part I levels (tools/part1/p1_levelset.py)
     ("Hillside", "wilds-houses", "to1-wilds-houses", "wilds-houses"),   # 18: Ellie's infected wilds, the hillside before the Rattlers' snare trap
     ("Capitol Hill Shops", "capitol-shops", "to1-capitol-shops", "capitol-shops"),   # 19: Capitol Hill Olive St: donut shop + market + bank, upper floors (re/maps/capitol-shops.md)
-    ("Convention Center", "into-the-city", "to1-into-the-city", "into-the-city"),   # 20: Seattle Day 3, the L-shaped street after the Theatre (re/maps/into-the-city.md)
-    ("Overpass", "overpass", "to1-overpass", "overpass"),   # 21: Abby's Seattle Day 3 highway overpass (Scar Island), the No Return Overpass defense art (re/maps/overpass.md)
-    ("Chase", "chase", "to1-chase", "chase"),   # 22: Abby's Seattle Day 3 sniper fight, the indoor part after the parking garage (footbridge, cruise terminal, restaurant; re/maps/chase.md)
-    ("Supermarket", "jackson-market", "to1-jackson-market", "jackson-market"),   # 23: Jackson patrol supermarket + lot + courtyard, the winter map (re/maps/jackson-market.md)
-    ("Plaza (Part I)", "p1-plaza", "to1-p1-plaza", "p1-plaza"),   # 24: TLOU Part I Financial District plaza (re/part1/plaza.md); DLC like the Bookstore
+    ("Convention Center", "into-the-city", "to1-into-the-city", "into-the-city"),   # 20: Seattle Day 3, the L-shaped street after the Theatre (re/maps/into-the-city.md); in the pool since PT54
+    ("Overpass", "overpass", "to1-overpass", "overpass"),   # 21: Abby's Seattle Day 3 highway overpass (Scar Island), the No Return Overpass defense art (re/maps/overpass.md);
+    ("Chase", "chase", "to1-chase", "chase"),   # 22: Abby's Seattle Day 3 sniper fight, the indoor part after the parking garage (footbridge, cruise terminal, restaurant; re/maps/chase.md); queue
+    ("Supermarket", "jackson-market", "to1-jackson-market", "jackson-market"),   # 23: Jackson patrol supermarket + lot + courtyard, the winter map (re/maps/jackson-market.md);
+    ("Plaza (Part I)", "p1-plaza", "to1-p1-plaza", "p1-plaza"),   # 24: TLOU Part I Financial District plaza (re/part1/plaza.md);, DLC like the Bookstore
 ]
 def _sp_retired():
     """Keys that are NOT part of an "all" build = sp_maps.json "build": false (one source of truth with the build; the release host
-    ships only daemon.py without tools/maps, so the fallback is the fixed list: Hardware, Motel, Hillcrest and TV Station retired)."""
+ ships only daemon.py without tools/maps, so the fallback is the list as of: Hardware, Motel, Hillcrest and TV Station retired)."""
     try:
         import json
         spec = json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "maps", "sp_maps.json"), encoding="utf-8"))["maps"]
         return {m["key"] for m in spec if not m.get("build")}
     except (OSError, ValueError, KeyError):
-        return {"hardware", "motel", "hillcrest-stores", "tv-station", "lodge"}   # p1-bookstore ships (was retired in this fallback)
+        return {"hardware", "motel", "hillcrest-stores", "tv-station", "lodge"}   # live 170: p1-bookstore ships (was retired in this fallback)
 # Largest team size (players per team) each map is offered for - ONE table for the pool and the vote. A match of n
-# players per team gets the maps with MAX_TEAM >= n only. The stock maps are set here; the SP-section maps come from sp_maps.json
+# players per team gets the maps with MAX_TEAM >= n only. Base maps are set here; the SP-section maps come from sp_maps.json
 # ("max_team", default 4) with the fallback below when the release host ships daemon.py without tools/maps.
 BASE_MAX_TEAM = {
     "to1-gas-station": 2,        # works, but 4v4 is chaos
@@ -2931,7 +3193,7 @@ RESPAWNS = {"to1-forest": 16, "to1-gas-station": 11, "to1-school": 11, "to1-ship
 
 
 def _sp_respawn_counts():
-    """SP-section maps whose pak carries generated respawns (tools/maps/respawn_fill.py): the count = the hand-placed respawns
+    """ SP-section maps whose pak carries generated respawns (tools/maps/respawn_fill.py): the count = the respawns
     (data/<key>-spawns.json) + the generated ones (data/<key>-respawns-gen.json), the order the pak build writes them. Without the data
     folder (a deployed daemon) the table above stays."""
     d = os.path.join(os.path.dirname(os.path.abspath(__file__)), "maps", "data")
@@ -2956,6 +3218,53 @@ PACKS = map_packs.Packs(map_packs.load_registry() if map_packs.enabled() else []
 SPSUP = map_packs.SpSupport([m[2] for m in SP_MAPS])      # which SP-section maps each client's DLL has (0xC8)
 log("SPMAPS", "gating", "ON (a map is offered only when every player reported it, 0xC8)" if map_packs.sp_gating()
     else "OFF (T2R_SP_GATE=0: enabled SP maps are offered without any report)", "| enabled:", sorted(sp_maps_on()) or "none")
+
+
+# PART I MAPS preference (OPTIONS > MULTIPLAYER, 0xC8 flags byte): ALWAYS players queue only with players who own the Part I maps (any
+# preference), and a match with an ALWAYS player always has a Part I map among its vote options. DEFAULT = the behaviour before the option
+# (a Part I map is in the vote pool when every player of the match owns it). T2R_P1_PREF=0 turns
+# the whole rule off on a server; it is also off while no Part I map is in this server's pool (nothing to be "always" about).
+MATCH_P1 = {}                 # match id -> True when it was formed as an owners match with an ALWAYS player
+
+
+def p1_pref_on():
+    if os.environ.get("T2R_P1_PREF", "1") == "0" or not map_packs.sp_gating():
+        return False
+    want = [x.strip() for x in os.environ.get("T2R_MAP_POOL", "").split(",") if x.strip()]
+    on = sp_maps_on() | set(want)
+    return any(map_packs.P1_MARK in lvl and lvl in on for _n, _i, lvl, _k in SP_MAPS)
+
+
+def p1_always(token, leader=None):
+    """Is this searcher (its party leader when it has one) counted as PART I MAPS = ALWAYS?"""
+    try:
+        return p1_pref_on() and SPSUP.p1_always(leader or token)
+    except Exception:                                              # noqa: BLE001 - never breaks the queue
+        return False
+
+
+def p1_owner(token, leader=None):
+    """Owns the Part I maps (its own report), or searches with an ALWAYS party leader (the party stays together)."""
+    try:
+        return p1_pref_on() and (SPSUP.p1_owner(token) or p1_always(token, leader))
+    except Exception:                                              # noqa: BLE001 - never breaks the queue
+        return False
+
+
+def p1_fits(token, mid, leader=None):
+    """May `token` join the running match `mid`? An owners match with an ALWAYS player takes owners only; another match takes everyone
+    but ALWAYS players (unknown match = yes)."""
+    if not p1_pref_on() or mid not in MATCH_P1:
+        return True
+    return p1_owner(token, leader) if MATCH_P1[mid] else not p1_always(token, leader)
+
+
+def p1_match(players):
+    """True when one of these players is ALWAYS (the vote then offers a Part I map, when the pool has one every player owns)."""
+    ps = [p for p in players if not (isinstance(p, str) and p.startswith("f0" * 30))]
+    return bool(ps) and p1_pref_on() and any(SPSUP.p1_always(p) for p in ps)
+
+
 if PACKS.maps():
     for _m in SP_MAPS:
         if len(MAPS) >= map_packs.PACK_BASE:
@@ -2993,7 +3302,7 @@ def _interrogation_players(players):
 def map_pool(players=(), support=None):
     """Levels in play: T2R_MAP_POOL="to1-forest,to1-school,..." (default: all MAPS). Pack maps only when every
     one of `players` has the pack (none without players)."""
-    # A player could not rejoin a running Overpass match ("map to1-overpass not in the pool for 5 players / this joiner"): a host-migration
+    # PT60 a host-migration
     # placeholder token (hostmig.placeholder, a slot whose player came back elsewhere) has no SP-map / pack report, so every SP / pack map failed
     # the "every player has it" tests - placeholders are not players
     ph = ("f0" * 30)
@@ -3003,7 +3312,7 @@ def map_pool(players=(), support=None):
     sup = players if support is None else [p for p in support if not (isinstance(p, str) and p.startswith(ph))]
     want = [x.strip() for x in os.environ.get("T2R_MAP_POOL", "").split(",") if x.strip()]
     # default: every map not in BROKEN_MAPS (Seraphite Camp's old crash, exe+0x13d5671 in the
-    # vegetation grid query, is guarded in the ext - see re/crash-sites.md)
+    # vegetation grid query, is guarded in the ext since - see re/crash-sites.md)
     # SP-section maps only when this server's T2R_SP_MAPS enables them (or T2R_MAP_POOL names them)
     sp_off = {m[2] for m in SP_MAPS} - sp_maps_on()
     # maps taken out of the vote / rotation (T2R_MAP_EXCLUDE="to1-school,to1-gas-station"; T2R_MAP_POOL still wins when set)
@@ -3018,7 +3327,7 @@ def map_pool(players=(), support=None):
     if not idx:
         idx = [i for i, m in enumerate(MAPS) if m[2] not in sp_off and not PACKS.is_pack_map(m[2]) and not SPSUP.is_sp(m[2])]
     dropped = sorted(m[2] for m in MAPS if m[2] in big and m[2] not in sp_off)
-    # an Interrogation match only gets maps that have lockbox spots (tools/interrogation_lockboxes.py); none left = unfiltered (start() then falls back to Supply Raid)
+    # an Interrogation match only gets maps that have lockbox spots (tools/interrogation_lockboxes.py); none left = unfiltered (start then falls back to Supply Raid)
     if _interrogation_players(players):
         lb = INT.lockboxes
         keep = [i for i in idx if i in lb] if lb else idx
@@ -3060,7 +3369,7 @@ def map_index(players=()):
 # n = code):  5..1 STARTING MATCH IN n  ->  MAP VOTE (160 + n, VOTE_SECS..1)  ->  CHOOSE LOADOUT
 # (100 + n)  ->  ONE-USE BOOSTER (130 + n)  ->  [LOADING (200 + n), T2R_LOADING_SECS > 0 only]  ->  1
 # (the ext's match horn holds the level start ~5 s here)  ->  0 = level start.
-# The old CHOOSE LOADOUT window (T2R_COUNTDOWN, 10 s) is split in half - 5 s loadout + 5 s
+# the old CHOOSE LOADOUT window (T2R_COUNTDOWN, 10 s) is split in half - 5 s loadout + 5 s
 # booster pick - so the flow after the vote takes the same time as before (flow_stage_secs).
 # T2R_MATCH_FLOW=1 = the loadout / booster / loading stages without the vote (fallback if the vote misbehaves).
 # The vote offers VOTE_OPTIONS maps of the pool; the ext polls 0xEA and sends 0xEC. The 0x04 match record
@@ -3101,35 +3410,35 @@ def flow_extra_secs():
     return bo + ld + 1
 
 # a 2-in-1 chance per option slot against each other map of the pool: the ported maps are favoured a bit (Train Station;
-# later also Hillside, Capitol Hill Shops, Convention Center)
+# - Hillside, Capitol Hill Shops, Convention Center)
 VOTE_WEIGHT = {"to1-train-station": 2, "to1-wilds-houses": 2, "to1-capitol-shops": 2, "to1-into-the-city": 2, "to1-overpass": 2, "to1-chase": 2, "to1-jackson-market": 2, "to1-p1-plaza": 2}
 
 
-VOTE_RECENT = []       # map idx of the last votes' winners (newest last) - used so the vote does not keep offering the same few maps
+VOTE_RECENT = []       # map idx of the last votes' winners (newest last) -
 VOTE_SHOWN = {}        # map idx -> how many of the last votes offered it (decays: each vote halves the rest)
 
 
 def vote_options(n=VOTE_OPTIONS, players=()):
-    """n distinct maps of the pool. The vote kept offering the same few maps - Train Station took the guaranteed "ported map" slot every
-    time (the only favoured map in the pool then) and nothing tracked what was played, so a 6-8 map pool showed the same three. Now: the last
+    """n distinct maps of the pool. the vote kept offering the same few maps - Train Station took the guaranteed "ported map" slot every
+    time (the only favoured map in the PT82-84 pool) and nothing tracked what was played, so a 6-8 map pool showed the same three. Now: the last
     winners stay out while the pool has enough other maps, the favoured slot goes to a favoured map only if it did not just win, and every pick's
     tickets fall with how often the map was offered lately (VOTE_SHOWN), so the whole pool comes round."""
     pool = map_pool(players)
     if os.environ.get("T2R_VOTE_ALL", "") == "1":
-        # test server (players pick the map they want to test on): the whole pool, in pool order
+        # test server: the whole pool, in pool order
         # (the ext pages its 3 tiles over the list, MF_GRID = 20 cells)
         return list(pool)[:20]
     recent = VOTE_RECENT[-max(1, min(3, len(pool) - n)):] if len(pool) > n else []
     cand = [i for i in pool if i not in recent] if len(pool) - len(set(recent) & set(pool)) >= n else list(pool)
     out = []
-    # One slot always offers this map while it is in the pool (T2R_VOTE_ALWAYS=<map name>[,<map>...], e.g. to1-jackson-market; empty = off)
+    # one slot always offers this map while it is in the pool (T2R_VOTE_ALWAYS=<map name>[,<map>...], e.g. to1-jackson-market; empty = off)
     for nm in [x for x in os.environ.get("T2R_VOTE_ALWAYS", "").split(",") if x]:
         hit = [i for i in pool if MAPS[i][2] == nm and i not in out]
         if hit and len(out) < n:
             out.append(hit[0])
             if hit[0] in cand:
                 cand.remove(hit[0])
-    # One slot goes to a favoured (ported) map when the pool has one (not the last winner)
+    # (PT54: a vote of Hospital / School / Gas Station): one slot goes to a favoured (ported) map when the pool has one (not the last winner)
     fav = [i for i in cand if VOTE_WEIGHT.get(MAPS[i][2], 1) > 1 and VOTE_SHOWN.get(i, 0) < 1.5]
     if fav and n > 0:
         pick = fav[secrets.randbelow(len(fav))]
@@ -3141,8 +3450,13 @@ def vote_options(n=VOTE_OPTIONS, players=()):
         pick = tickets[secrets.randbelow(len(tickets))]
         out.append(pick)
         cand.remove(pick)
+    # PART I MAPS = ALWAYS (every player of the match): at least one option is a Part I map of the pool
+    if out and p1_match(players):
+        p1 = [i for i in pool if map_packs.P1_MARK in MAPS[i][2]]
+        if p1 and not any(i in p1 for i in out):
+            out[-1] = p1[secrets.randbelow(len(p1))]
     if os.environ.get("T2R_VOTE_ALWAYS"):
-        pass   # The always-offered maps keep the FIRST slots in T2R_VOTE_ALWAYS order (Bookstore first, prominently); was a random slot
+        pass   # the always-offered maps keep the FIRST slots in T2R_VOTE_ALWAYS order (Bookstore first, prominently); was a random slot
     for k in list(VOTE_SHOWN):
         VOTE_SHOWN[k] *= 0.5
     for i in out:
@@ -3209,6 +3523,7 @@ def vote_state_text(token):
             nm = "".join(ch if ch.isalnum() or ch in "-." else "_" for ch in (get_name(p) or "PLAYER %d" % (k + 1)))[:20]
             t.append("p%d=%s" % (k, nm))
             t.append("pv%d=%d" % (k, 1 if p in v["votes"] else 0))
+            t.append("po%d=%d" % (k, v["votes"].get(p, -1)))      # the roster row names the map this player voted for (older clients ignore it)
             rkw = rank_of_token(p)                   # the rank badge of the roster row (exact: the name above is cut / sanitised)
             t.append("pk%d=%d" % (k, rkw[0]))
             t.append("pw%d=%d" % (k, rkw[1]))
@@ -3237,8 +3552,10 @@ def sp_support_op(pl):
     token, mask = r
     if not map_packs.sp_gating():
         return msg(map_packs.SP_OP_REPLY, b"on=0")
-    SPSUP.report(token, mask)
-    log("SPMAPS", tag(token), "%04x" % mask, [m[2] for k, m in enumerate(SP_MAPS) if (mask >> k) & 1])
+    flags = map_packs.parse_sp_flags(pl)
+    SPSUP.report(token, mask, flags)
+    log("SPMAPS", tag(token), "%04x" % mask, [m[2] for k, m in enumerate(SP_MAPS) if (mask >> k) & 1],
+        "| PART I MAPS: %s" % ("ALWAYS" if SPSUP.p1_always(token) else "DEFAULT"))
     return msg(map_packs.SP_OP_REPLY, SPSUP.reply_text(token).encode())
 
 def map_packs_op(pl):
@@ -3338,7 +3655,7 @@ def build_player_record(slot=0, sid=0, map_idx=0, roster=(), relay=None, team_fn
     if relay:                                                      # Steam P2P: the local helper
         ip, port = relay[0].encode(), relay[1]
     else:
-        ip = os.environ.get("T2R_PUB_IP", "127.0.0.1").encode()   # gameplay relay IP
+        ip = os.environ.get("T2R_PUB_IP", "209.25.141.16").encode()   # gameplay relay IP
         port = int(os.environ.get("T2R_PUB_UDP_PORT", "15389"))       # gameplay relay port
     p[0:len(ip)] = ip
     struct.pack_into("<H", p, 0x10, port)
@@ -3376,7 +3693,7 @@ def match_start_frame(tok, players=None):
     The 0x0c countdown (countdown()) follows. (0x16 = online count, 0x14 = leaderboard.)"""
     players = players or [tok]
     slot = players.index(tok) if tok in players else 0
-    # a host-migration placeholder (hostmig.placeholder, f0f0...) holds a
+    # ("after it found a match one of the players was PLAYER 6"): a host-migration placeholder (hostmig.placeholder, f0f0...) holds a
     # slot nobody plays - it is not a roster entry (the joiner's lobby / scoreboard showed it as 'PLAYER n')
     roster = [(i, get_name(t) or f"PLAYER {i + 1}") for i, t in enumerate(players) if not (isinstance(t, str) and t.startswith("f0" * 30))]
     relay = ("127.0.0.1", BRIDGES.port(tok)) if MATCH_P2P.get(frozenset(players)) else None
@@ -3428,11 +3745,17 @@ def start_match(players):
     """Push the match-start to every player's held session conn (best-effort; the
     reliable delivery is on the live keepalive conn in handle_batch)."""
     TIMING[frozenset(players)] = {"start": time.time(), "marks": {}, "loaded": {}}
-    # Ready flags are NOT reset per round any more - a party that just
+    # rework: ready flags are NOT reset per round any more - a party that just
     # played stays ready, so the leader's next FIND MATCH takes everyone along (the per-round reset made every member press READY UP again after each match,
     # and the leader's press was refused until then). A member opts out with UNREADY or by backing out of the party's search.
     pings = {"%s<>%s" % (tag(a), tag(b)): pair_ping(a, b) for i, a in enumerate(players) for b in players[i + 1:]
              if pair_ping(a, b) is not None}
+    try:
+        PING_FORMED[MM.mid_of(players[0])] = {frozenset((a, b)): _pair_raw(a, b) for i, a in enumerate(players) for b in players[i + 1:] if _pair_raw(a, b) is not None}
+        while len(PING_FORMED) > 256:
+            PING_FORMED.pop(next(iter(PING_FORMED)))
+    except Exception as e:                                   # noqa: BLE001 - a record for the kick learning never breaks the start
+        log("PING-FORMED ERR", repr(e))
     evt("match-formed", MM.mid_of(players[0]), "players", [tag(t) for t in players], "host", tag(players[0]),
         "net", "steam-p2p" if MATCH_P2P.get(frozenset(players)) else "server-relay", "ping-ms", pings or "unknown",
         "client-versions", {tag(t): CLIENT_VERSIONS.get(t, "?") for t in players})
@@ -3547,7 +3870,7 @@ PING_LOC = {}    # token -> ping location string (the last ACCEPTED one: forward
 PING_AT = {}     # (from token, to token) -> time of the last report (REPICK-CHECK logs the age: are in-match RTTs fresh?)
 LOC_FWD = {}     # token -> time its location was last forwarded (an unchanged location is re-forwarded every 60 s: in-match RTT refresh)
 PING = {}        # (from token, to token) -> deque of the last ms reports (pair_ping = median)
-# A player on a VPN: the location jumped NA -> EU -> NA-west with every data centre at ~1500 ms; each spiked sample was
+# (a player on a VPN): his location jumped NA -> EU -> NA-west with every data centre at ~1500 ms; each spiked sample was
 # taken at face value (region flip for the host pick, the spiked location forwarded to every helper, one report = the pair ping).
 # Now: a location whose best data centre is far above the player's usual (> 2x and > +80 ms) is a spike and ignored; 3 spikes in a
 # row (~90 s) = the connection really changed (VPN switch) and it is accepted. The region changes only after 2 samples agree; a
@@ -3556,6 +3879,14 @@ LOC_HIST = {}    # token -> deque of best-ms of accepted locations
 LOC_SPIKES = {}  # token -> consecutive spiked samples
 REGION = {}      # token -> stable region
 REGION_CAND = {} # token -> (region, count) waiting to confirm a change
+
+def mm_region(token):
+    """Matchmaking region of a token: the stable region, else the decode of its last ping location; None = unknown."""
+    try:
+        import hostmig as _hm
+        return REGION.get(token) or _hm.region_of(PING_LOC.get(token))
+    except Exception:                                          # noqa: BLE001
+        return None
 
 LOC_MAX = 900                                              # the helper reads < 1100 B; a real Steam location string is a few hundred
 LOC_OK = __import__("re").compile(r"^[A-Za-z0-9=+,:/_. -]+$")
@@ -3647,9 +3978,97 @@ def _ping_med(d):
     v = sorted(d)
     return v[len(v) // 2]
 
-def pair_ping(a, b):
+# ping fixes (41 high-ping removals in one night, re/reports-1123):
+#  - PING_MATCH_MS: the formation gate, the host pick and join in progress judge at this lower limit; the removal stays at PING_KICK_MS / PING_KICK_S
+#    (players matched at 188 ms jittered to 192 and were removed). T2R_PING_MATCH_MS=190 = the old behaviour, 0 = the kick limit.
+#  - PING_WAIT_S: a lobby with an unknown pair ping waits this long (per searcher, from the first pass it was ready with one) for the pings; after
+#    that the players whose ping to the chosen host is still unknown stay in the queue. T2R_PING_WAIT_S=0 = off (unknown = not judged).
+#  - PING_MEMORY_S: a player removed for ping at M ms to host H remembers (M, H) for this long; the gates read max(estimate, M) for the pair.
+#    0 = off. PING_CORR_S: a player removed twice within it with a measured ping 40+ ms over the estimate the match was formed with gets the
+#    median excess added to his estimated pair pings for this long. 0 = off. In memory only.
+#  - the search note: a searcher the ping gate left out for PING_NOTE_AFTER_S gets one "no players within N ms" line per PING_NOTE_EVERY_S.
+PING_MATCH_MS = int(os.environ.get("T2R_PING_MATCH_MS", "175"))
+PING_WAIT_S = float(os.environ.get("T2R_PING_WAIT_S", "10"))
+PING_MEMORY_S = float(os.environ.get("T2R_PING_MEMORY_S", "21600"))
+PING_CORR_S = float(os.environ.get("T2R_PING_CORR_S", "43200"))
+PING_CORR_EXCESS_MS = 40
+PING_CORR_KICKS = 2
+PING_NOTE_AFTER_S = 60.0
+PING_NOTE_EVERY_S = 120.0
+MEASURED_PAIR = {}       # (a, b) -> (measured ms, time): both orders, set when the ping removal took a player off a host
+PING_EXCESS = {}         # token -> [(measured - formation estimate, time)] of its removals
+PING_CORR = {}           # token -> (ms added to its estimated pair pings, until)
+PING_FORMED = {}         # mid -> {frozenset((a, b)): the raw estimate at formation}
+PING_WAIT_SINCE = {}     # token -> first time it was ready in a lobby with an unknown pair ping
+PING_NOTE_AT = {}        # token -> time of the last "no players within the limit" note
+
+def ping_match_ms():
+    """The limit the formation gate, the host pick and join in progress judge at (PING_MATCH_MS, else the kick limit)."""
+    return PING_MATCH_MS if 0 < PING_MATCH_MS else PING_KICK_MS
+
+def _pair_raw(a, b):
     v = [x for x in (_ping_med(PING.get((a, b))), _ping_med(PING.get((b, a)))) if x is not None]
     return max(v) if v else None
+
+def _corr_of(t, now):
+    c = PING_CORR.get(t)
+    if not c:
+        return 0
+    if c[1] <= now:
+        PING_CORR.pop(t, None)
+        return 0
+    return c[0]
+
+def _measured_of(a, b, now):
+    m = MEASURED_PAIR.get((a, b))
+    if not m:
+        return None
+    if now - m[1] > PING_MEMORY_S:
+        MEASURED_PAIR.pop((a, b), None); MEASURED_PAIR.pop((b, a), None)
+        return None
+    return m[0]
+
+def pair_ping(a, b, raw=False, now=None):
+    """The ping the gates judge for a pair: the Steam estimate (median of the last reports, worse direction) + the per-player correction of a player
+    the estimate under-called twice (PING_CORR), at least the ping measured when the pair was last removed for ping (MEASURED_PAIR). raw=True: the
+    estimate alone (the in-match removal timer reads it, as the removal is about the real ping)."""
+    est = _pair_raw(a, b)
+    if raw or (not MEASURED_PAIR and not PING_CORR):
+        return est
+    now = time.time() if now is None else now
+    if est is not None:
+        est += max(_corr_of(a, now), _corr_of(b, now))
+    if PING_MEMORY_S > 0:
+        m = _measured_of(a, b, now)
+        if m is not None and (est is None or m > est):
+            est = m
+    return est
+
+def ping_kick_learn(mid, p, host, ms, now=None):
+    """The ping removal took `p` off `host` at a measured `ms`: remember the pair and, when the match was formed with an estimate 40+ ms under
+    that, the player's excess (two within PING_CORR_S = a correction on all his estimated pairs)."""
+    now = time.time() if now is None else now
+    if PING_MEMORY_S > 0:
+        MEASURED_PAIR[(p, host)] = MEASURED_PAIR[(host, p)] = (ms, now)
+        if len(MEASURED_PAIR) > 2000:
+            for k in [k for k, v in MEASURED_PAIR.items() if now - v[1] > PING_MEMORY_S] or list(MEASURED_PAIR)[:500]:
+                MEASURED_PAIR.pop(k, None)
+        log("ping-learn:", tag(p), "<>", tag(host), "measured", ms, "ms - the gates judge this pair at least that for", int(PING_MEMORY_S), "s")
+    if PING_CORR_S > 0:
+        est = (PING_FORMED.get(mid) or {}).get(frozenset((p, host)))
+        if est is not None and ms - est > PING_CORR_EXCESS_MS:
+            ex = PING_EXCESS.setdefault(p, [])
+            ex[:] = [e for e in ex if now - e[1] <= PING_CORR_S] + [(ms - est, now)]
+            if len(ex) >= PING_CORR_KICKS:
+                v = sorted(e[0] for e in ex)
+                med = v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2.0
+                PING_CORR[p] = (int(med), now + PING_CORR_S)
+                log("ping-learn:", tag(p), "estimate under-called %d removals (excess %s ms) - +%d ms on his estimated pings for %d s" % (len(ex), v, int(med), int(PING_CORR_S)))
+            else:
+                log("ping-learn:", tag(p), "measured %d ms, formation estimate %d ms (excess %d ms) - noted (%d of %d for a correction)" % (ms, est, ms - est, len(ex), PING_CORR_KICKS))
+        if len(PING_EXCESS) > 2000:
+            for k in [k for k, v in PING_EXCESS.items() if not v or now - v[-1][1] > PING_CORR_S]:
+                PING_EXCESS.pop(k, None)
 
 PERF = hostmig.PerfScores(now=time.time)   # token -> latest performance report (op 0xCA)
 
@@ -3670,6 +4089,10 @@ def perf_op(pl):
             oneway_note(token, hostcap.parse_oneway(pl))
         except Exception as e:                       # observation only, never breaks the report
             log("ONEWAY ERR", repr(e))
+    try:
+        loss_note(token, parse_loss(pl))
+    except Exception as e:                           # the loss record must never break the performance report
+        log("LOSS ERR", repr(e))
     if rep["n250"] or rep["vram"]:
         log("PERF", tag(token), "stalls>=250ms", rep["n250"], ">=1s", rep["n1000"], "worst", rep["worst"], "ms avg frame", rep["avg_ms"], "ms",
             "vram-over" if rep["vram"] else "", "-> host penalty", hostmig.perf_penalty(rep), "ms")
@@ -3697,7 +4120,7 @@ def oneway_note(token, ow):
 def perf_penalty(token):
     return PERF.penalty(token, BRIDGES.steamid(token) or 0)
 
-# Host upload capacity (T2R_HOST_CAP 0 off / 1 record + log only / 2 live in the start pick + re-pick (default)): tools/hostcap.py, re/host-capacity-1019.md
+# Host upload capacity (T2R_HOST_CAP 0 off / 1 record + log only / 2 live in the start pick + re-pick (default since)): tools/hostcap.py, re/host-capacity-1019.md
 HOSTCAP = hostcap.HostCap(lambda: db(), now=time.time, log=log)
 
 def hostcap_note(token, cap):
@@ -3790,8 +4213,8 @@ def best_host_order(players):
         out = first_allowed(pl)
         if hostcap.MODE < 2 or len(out) < 2:
             return out
-        # 2 players = one link, the ping cannot choose between them - but a third player often joins in progress
-        # seconds later (often queued the second the match formed). Online players in no match whose pings to both are known count as
+        # (match 01660bc0): 2 players = one link, the ping cannot choose between them - but a third player often joins in progress
+        # seconds later (Sylvanas queued the second the match formed). Online players in no match whose pings to both are known count as
         # likely joiners: the host is scored on the pings to them too (worst, then total) before capacity decides as below.
         if len(out) == 2 and pair_ping(out[0], out[1]) is not None:
             try:
@@ -3830,6 +4253,13 @@ def best_host_order(players):
             return cap_first(players)
     pool, rinfo = host_pool(players)
     log("HOST-PICK", "region:", rinfo)
+    if MM_PING_GATE and PING_KICK_MS > 0:          # (MM_PING_GATE) the ping limit beats the region rule and capacity: never a host that gets a player removed when another would not
+        fit = [h for h in host_allowed(players) if max(pair_ping(h, o) for o in players if o != h) <= ping_match_ms()]
+        if fit:
+            fpool = [h for h in pool if h in fit] or fit
+            if fpool != pool:
+                log("HOST-PICK", "ping limit %d ms: candidates" % ping_match_ms(), [tag(h) for h in fpool], "instead of", [tag(h) for h in pool])
+                pool = fpool
     for h in pool:
         pings = [pair_ping(h, o) for o in players if o != h]
         pen = perf_penalty(h)
@@ -3895,7 +4325,7 @@ def push_peers(players):
             log("PUSH-PEER ERR", tag(tok), e)
             failed.append(tag(tok))
     if failed:
-        # a helper whose link died between the check above and the push never gets its slot table - the match went on as
+        # pre-mortem: a helper whose link died between the check above and the push never gets its slot table - the match went on as
         # 'Steam P2P', that player's game pointed at a helper that knows nobody and sat on 'host silent' for ever. The start record is built
         # after this (start_match), so the whole match can still use the server relay.
         MATCH_P2P[key] = False
@@ -3906,7 +4336,7 @@ PARTY_GAP_S = float(os.environ.get("T2R_PARTY_GAP", "15"))   # the leader's own 
 def party_lead_searching(m):
     """Party rule: a READY mate always goes with its leader's search. The leader counts as searching while it is
     queued, in a match, or out of the queue for under PARTY_GAP_S - the client cancels and re-queues its search about every 40 s, and a mate whose
-    follow-the-leader FIND MATCH fell into that gap was refused (its page stayed up as a fake search, the party never queued)."""
+ follow-the-leader FIND MATCH fell into that gap was refused (8a6a4014, its page stayed up as a fake search, the party never queued)."""
     if m in MM.queue or MM.in_match(m):
         return True
     left = MM.left.get(m)
@@ -3942,7 +4372,9 @@ class MatchMaker:
         self.started_t = {}    # match_id -> time of that GAME-START
         self.last_arrival = 0.0
         self._hold_since = 0.0 # try_form: when it first held a formation for players still settling (bounded)
-        self.rq = requeue.Requeue(REQUEUE_WAIT_MAX, REQUEUE_TICKET_S, REQUEUE_OFFLINE_S, now=time.time)   # Tickets of the players of finished matches
+        self.rq = requeue.Requeue(REQUEUE_WAIT_MAX, REQUEUE_TICKET_S, REQUEUE_OFFLINE_S, now=time.time,   # tickets of the players of finished matches
+                                  release_s=LOBBY_RELEASE_S if LOBBY_KEEP else 0.0, min_gap=LOBBY_MIN_GAP_S if LOBBY_KEEP else 0.0)
+        self._rq_go = []       # (persistent lobby) the released groups of the current try_form pass: [(mid, searching, still on the screens)]
         self._rq_logged = 0.0
         # join in progress (T2R_JIP=1, re/join-in-progress.md)
         self.departed_vol = set()  # tokens that left their running match on purpose (clean op 0x02): not pulled back into it
@@ -4009,7 +4441,7 @@ class MatchMaker:
             # dropped to the menu (A re-queued and was matched with a B that was not searching = empty match).
             ready = sorted((t for t in self.queue if self.settle.get(t, 0) <= now and now - self.seen.get(t, 0) <= QUEUE_FRESH),
                            key=self.queue.get)
-            ready = self._rq_filter(ready, now)                      # The players of a finished match wait for each other
+            ready = self._rq_filter(ready, now, form=True)           # the players of a finished match wait for each other
             # private matches (tools/private_lobby.py): lobby members never form or join a public match; a launching lobby forms
             # its own match from its members as soon as they all search (or LAUNCH_WAIT_S after START with the ones that do)
             try:
@@ -4031,10 +4463,27 @@ class MatchMaker:
                 ready, grp_mode = MODEQ.group(ready, PARTIES.leader)
             except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
                 log("MODEQ group failed", repr(ex))
+            # PART I MAPS preference: an ALWAYS player's match forms from Part I owners only (a party searches with its leader's pick)
+            grp_p1 = False
+            try:
+                if p1_pref_on() and ready:
+                    ready, grp_p1 = map_packs.group_p1(ready, lambda t: p1_always(t, PARTIES.leader(t)), lambda t: p1_owner(t, PARTIES.leader(t)))
+            except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
+                log("P1 group failed", repr(ex))
             if not ready:
                 self._log_party_hold(held, now)
                 return None, None
-            # first wait for a full 4v4 (MATCH_SIZE); every FILL_WAIT s without a new arrival the wanted size steps
+            # PERSISTENT LOBBY (LOBBY_KEEP): a released group (tools/requeue.py ready_groups) forms first and together, at once, with the
+            # queue backfilling its open seats; its members still on the post-match screens keep their seats (lob_keep) and join in progress
+            lob, lob_keep, lob_mid = [], 0, None
+            if LOBBY_KEEP:
+                rset = set(ready)
+                for _gm, _srch, _post in self._rq_go:
+                    _have = [t for t in ready if t in set(_srch)]
+                    if len(_have) >= MIN_PLAYERS and all(t in rset for t in _srch):
+                        lob, lob_keep, lob_mid = _have, len(_post), _gm
+                        break
+            # (PT): first wait for a full 4v4 (MATCH_SIZE); every FILL_WAIT s without a new arrival the wanted size steps
             # down by one player (4v4 -> 3v4 -> 3v3 -> ... -> MIN_PLAYERS). Odd counts play uneven (3v4); the map pool then only offers
             # maps whose max_team fits the bigger team (team_size / max_team_table).
             quiet = now - self.last_arrival
@@ -4042,10 +4491,13 @@ class MatchMaker:
             if fill_rule() == "fast":
                 want, _why = self.fast_want(ready, online, quiet, now)
             elif MAX_WAIT > 0 and ready and now - self.queue.get(ready[0], now) >= MAX_WAIT:
-                want = MIN_PLAYERS           # arrivals trickled in, each reset the quiet timer - the first searcher waited 4.4 min
-            if JIP and self.matches and len(ready) < MATCH_SIZE:
-                # a running match with room and enough time left beats a new small match (once a 2-player match formed while a 6-player one
-                # ran): the players it can take stay out of the new match, jip_pass puts them in
+                want = MIN_PLAYERS           # PT55 00:54-00:58: arrivals trickled in, each reset the quiet timer - the first searcher waited 4.4 min
+            _want0 = want
+            if lob:
+                want = MIN_PLAYERS           # (lobby) the lobby goes now: it waited for its players already
+            if JIP and self.matches and len(ready) < MATCH_SIZE and not lob:
+                # a running match with room and enough time left beats a new small match (PT55 02:13 formed a 2-player match while a 6-player one
+                # ran; users): the players it can take stay out of the new match, jip_pass puts them in
                 rs = set(ready)
                 keep = []
                 for t in ready:
@@ -4055,30 +4507,34 @@ class MatchMaker:
                 ready = keep
                 if not ready:
                     return None, None
-            # (a live 7-player match ran beside a separate 2-player one): while a match is forming or running, searchers it cannot
+            # (live: a 7-player match and a separate 2-player one): while a match is forming or running, searchers it cannot
             # take now QUEUE for it (jip_pass puts them in when a slot frees, or the next lobby forms when it ends) instead of starting their own
             # small match; a second match forms only when the searchers alone fill SECOND_MATCH_MIN slots. 0 = old behaviour.
-            # (two reports, with 2 and with 5 searchers): the hold had no end - 5 searchers waited 6 min (02:31:16-02:37:41) for a full match
+            # (2 searchers, 5 searchers): the hold had no end - 5 searchers waited 6 min (02:31:16-02:37:41) for a full match
             # that could not take them. Searchers held longer than QUEUE_HOLD_MAX s (the oldest one, MIN_PLAYERS present) form their own match.
             _held_long = bool(ready) and len(ready) >= MIN_PLAYERS and QUEUE_HOLD_MAX > 0 and now - min(self.queue.get(t, now) for t in ready) >= QUEUE_HOLD_MAX
-            if SECOND_MATCH_MIN > 0 and len(ready) < SECOND_MATCH_MIN:
+            if SECOND_MATCH_MIN > 0 and len(ready) < SECOND_MATCH_MIN and not lob:
                 def _live(mid, pl):
                     if mid in self.ended or all(t in self.departed.get(mid, ()) for t in pl):
                         return False
                     ck = self.clock.get(mid)
                     if mid not in self.started:                       # forming: lobby / countdown / loading
+                        # (MM_PING_GATE) searchers that are all over the ping limit to its host (slot 0, best_host_order) can never join it: no hold,
+                        # else the ones the gate kept out of it would wait here until it started (up to 3 min) instead of forming their own match
+                        if MM_PING_GATE and pl and all(jip_ping_block(t, mid, pl[0], pl, set(self.joining), now) is not None for t in ready):
+                            return False
                         return now - self.formed.get(mid, now) < 180
-                    # 4 searchers held for 2-player 4e2fc74b; at its GAME-START it had no clock report yet, the hold dropped and
+                    # live: 4 searchers held for 2-player 4e2fc74b; at its GAME-START it had no clock report yet, the hold dropped and
                     # the 4 formed their own match the same second. A match that just started (no clock yet, formed < 300 s ago) still holds.
                     if not ck and now - self.formed.get(mid, 0) < 300:
                         pass                                          # (the map-fit check below still applies)
                     elif not (bool(ck) and now - ck[3] <= JIP_CLOCK_TTL and not ck[2]):    # running with a fresh clock (a stale record never blocks)
                         return False
-                    # 3-4 searchers held for a running School match whose map can never take one more player (max team) -
+                    # live: 3-4 searchers held for a running School match whose map can never take one more player (max team) -
                     # a deadlock until it ended. A running match only holds the queue when its map fits one more of them.
-                    # a player searched INTERROGATION, the only running match was another mode - held for it with no way in.
+                    # live: a player searched INTERROGATION, the only running match was another mode - held for it with no way in.
                     # A running match only holds the queue when at least one searcher may join it (its mode, an admin team-move ticket for another match).
-                    if mid in self.started and not any(MODEQ.fits(t, mid, PARTIES.leader(t)) and (self.move_team.get(t) or (mid,))[0] == mid for t in ready):
+                    if mid in self.started and not any(MODEQ.fits(t, mid, PARTIES.leader(t)) and p1_fits(t, mid, PARTIES.leader(t)) and (self.move_team.get(t) or (mid,))[0] == mid for t in ready):
                         return False
                     cm = MATCH_MAP.get(frozenset(pl))
                     act = [t for t in pl if t not in self.departed.get(mid, ())]
@@ -4101,8 +4557,8 @@ class MatchMaker:
                     if len(g) > len(grp):
                         grp = g
                 live = [mid for mid, pl in self.matches.items() if _live(mid, pl)]
-                # QUEUE_HOLD_MAX could run out while a 4-player match was still LOADING (room for 8, formed
-                # 60 s before); the 3 searchers then formed their own 3-player match 24 s before that match started, where join in progress would have put them.
+                # live: QUEUE_HOLD_MAX ran out while 4-player ffc36d28 was still LOADING (room for 8, formed
+                # 60 s before); the 3 formed their own 3-player match 24 s before ffc36d28 started, where join in progress would have put them.
                 # Past QUEUE_HOLD_MAX the hold stays only for a match that is still forming (lobby / countdown / loading, < 180 s by _live) and has
                 # room for the biggest searching party: it starts soon and jip_pass then takes them. A running match no longer holds them then.
                 if _held_long:
@@ -4114,7 +4570,7 @@ class MatchMaker:
                         log("QUEUE-HOLD", [tag(t) for t in ready], "wait for match(es)", live,
                             "(a second match needs %d searchers, have %d)" % (SECOND_MATCH_MIN, len(ready)))
                     return None, None
-            # a player who backed out of a countdown (or queued 1-3 s ago) is in the queue but still inside
+            # pre-mortem (PT79 07:31:37): a player who backed out of a countdown (or queued 1-3 s ago) is in the queue but still inside
             # its QUEUE_SETTLE window, so the match formed WITHOUT him (3 players, host 304 ms away) and he joined it 1 s after GAME-START as a
             # late joiner: the whole lobby starts a player short and the roster / 0xF2 table is rebuilt in the first seconds. Hold the formation
             # for the few seconds those players need to become matchable (at most QUEUE_SETTLE + 2 s since the first hold, never when the lobby
@@ -4127,8 +4583,70 @@ class MatchMaker:
                     return None, None
             else:
                 self._hold_since = 0.0
-            players = social.pick_units(ready, PARTIES, MATCH_SIZE) if len(ready) >= want else []     # whole parties only, 2p - 1 players for a party of p
-            # (party of 4 + two solos): the solos formed a 1v1 and the ready party (needs 2p - 1 = 7 players) was left behind with no
+            # PART I MAPS priority: more searchers than one match holds -> the Part I owners are
+            # taken first (queue order kept inside each group), so the maps can be in the vote (every player of the match must own them)
+            try:
+                if p1_pref_on() and len(ready) > MATCH_SIZE:
+                    pri = sorted(ready, key=lambda t: 0 if p1_owner(t, PARTIES.leader(t)) else 1)
+                    if pri != ready:
+                        log("P1 priority: Part I owners first", sum(1 for t in ready if p1_owner(t, PARTIES.leader(t))), "of", len(ready), "searchers")
+                        ready = pri
+            except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
+                log("P1 priority failed", repr(ex))
+            # SAME-REGION priority (after the Part I sort so region comes first and Part I second): see MM_REGION_ON
+            try:
+                if MM_REGION_ON and len(ready) > MATCH_SIZE:
+                    pri, lead = hostmig.region_first(ready, mm_region, members_fn=PARTIES.members,
+                                                     waited_fn=lambda t: now - self.queue.get(t, now), max_wait=MM_REGION_WAIT_S)
+                    if lead and pri != ready:
+                        log("REGION priority: %s searchers first" % lead, sum(1 for t in ready if mm_region(t) == lead), "of", len(ready), "searchers",
+                            "(" + ", ".join("%s=%s" % (tag(t), mm_region(t)) for t in ready) + ")")
+                        ready = pri
+            except Exception as ex:                                   # noqa: BLE001 - never breaks the queue
+                log("REGION priority failed", repr(ex))
+            if lob:                                                   # (lobby) its members first: the ping gate keeps them when it can
+                ready = lob + [t for t in ready if t not in lob]
+            # PING GATE (see MM_PING_GATE): only searchers within the ping limit of one common host are matched together; the rest
+            # stay in the queue for a lobby they fit (a later pass, a join in progress)
+            if MM_PING_GATE and PING_KICK_MS > 0 and len(ready) >= 2:
+                try:
+                    _lim = ping_match_ms()
+                    _pg = lambda a, b: _ping_gate(a, b, now)
+                    kept, dropped, gh, ginfo = hostmig.ping_fit(ready, _pg, _lim, units_fn=PARTIES.members, host_ok=lambda t: not no_host(t))
+                    ping_left_out_note(dropped, now)
+                    # unknown pair pings: wait PING_WAIT_S for them, then leave out the players whose ping to the host is still unknown
+                    hold, unk = ping_wait_judge(kept, gh, _pg, now, PARTIES.members, host_ok=lambda t: not no_host(t))
+                    if hold and len(kept) >= max(2, want):
+                        if now - getattr(self, '_pwait_logged', 0.0) >= 20.0:
+                            self._pwait_logged = now
+                            log("PING-WAIT", "pair pings unknown among", [tag(t) for t in kept], "- holding the formation up to %d s for them" % PING_WAIT_S)
+                        return None, None
+                    if unk:
+                        if now - getattr(self, '_pwait_out_logged', 0.0) >= 20.0:
+                            self._pwait_out_logged = now
+                            log("PING-GATE", "ping to the host still unknown after %d s - left in the queue:" % PING_WAIT_S, [tag(t) for t in unk], "| kept", [tag(t) for t in kept if t not in unk])
+                        kept, _d2, gh, ginfo = hostmig.ping_fit([t for t in kept if t not in unk], _pg, _lim, units_fn=PARTIES.members, host_ok=lambda t: not no_host(t))
+                        dropped = list(dropped) + _d2
+                    if dropped:
+                        if now - getattr(self, '_pgate_logged', 0.0) >= 20.0:
+                            self._pgate_logged = now
+                            log("PING-GATE", ginfo, "- not matched with them (over %d ms to that host):" % _lim,
+                                ", ".join("%s %s ms" % (tag(t), _ping_gate(gh, t, now)) for t in dropped), "| kept", [tag(t) for t in kept])
+                    if dropped or unk:
+                        ready = kept
+                except Exception as ex:                               # noqa: BLE001 - never breaks the queue
+                    log("PING-GATE failed", repr(ex))
+            if lob:                                                   # (lobby) its members first, the queue backfills; seats kept for the slow ones
+                lob = [t for t in lob if t in ready]                  # (a member the ping gate left out is not forced back in)
+                if len(lob) < MIN_PLAYERS:
+                    lob, lob_keep, want = [], 0, _want0
+                else:
+                    ready = lob + [t for t in ready if t not in lob]
+            _size = max(MIN_PLAYERS, MATCH_SIZE - lob_keep) if lob else MATCH_SIZE
+            players = social.pick_units(ready, PARTIES, _size) if len(ready) >= want else []     # whole parties only, 2p - 1 players for a party of p
+            if lob and players and not all(t in players for t in lob):
+                log("LOBBY:", lob_mid, "could not keep every member together (parties / size) - formed as picked:", [tag(t) for t in players])
+            # live (party of 4 + two solos): the solos formed a 1v1 and the ready party (needs 2p - 1 = 7 players) was left behind with no
             # word why. A ready party that is short of players holds the solos back for PARTY_HOLD_S s (from its oldest member's queue time) so
             # that the arrivals can fill it; it and its members get a note saying how many players are missing
             short = {}
@@ -4142,7 +4660,7 @@ class MatchMaker:
                     for _m in PARTIES.members(_u[0]):
                         try: SOCIAL.note(_m, "pneed", str(_miss))
                         except Exception: pass                       # noqa: BLE001 - a note never breaks the queue
-            if short and players and PARTY_HOLD_S > 0:
+            if short and players and PARTY_HOLD_S > 0 and not lob:
                 age = max(now - min(self.queue.get(t, now) for u, _ in short.values() for t in u), 0.0)
                 if age < PARTY_HOLD_S:
                     if now - getattr(self, '_phold_logged', 0.0) >= 20.0:
@@ -4157,14 +4675,25 @@ class MatchMaker:
                 mid = secrets.token_hex(4)
                 self.qtime[mid] = {t: self.queue[t] for t in players}
                 for t in players: del self.queue[t]
+                try:
+                    _gs = self.rq.formed(mid, players) if REQUEUE else set()   # (lobby) the slow members of these groups join this match
+                except Exception as ex:                               # noqa: BLE001
+                    _gs = set(); log("LOBBY: formed ERR", repr(ex))
                 for t in players: self.rq.drop(t)
                 self.matches[mid] = players
                 self.formed[mid] = time.time()
                 self._hold_since = 0.0
+                if lob or _gs:
+                    log("LOBBY: next match", mid, "of the lobby of match(es)", sorted(_gs), "members", [tag(t) for t in lob],
+                        "| backfill", [tag(t) for t in players if t not in lob], "| seats kept for", lob_keep, "still on the post-match screens")
                 MODEQ.formed(mid, grp_mode)
-                log("MATCH formed", mid, [tag(p) for p in players], grp_mode or "")
+                if p1_pref_on():
+                    MATCH_P1[mid] = grp_p1
+                    while len(MATCH_P1) > 256:
+                        MATCH_P1.pop(next(iter(MATCH_P1)))
+                log("MATCH formed", mid, [tag(p) for p in players], grp_mode or "", "(PART I MAPS: ALWAYS)" if grp_p1 else "")
                 return mid, players
-            # a lone searcher sat 5.5 min in the queue and the log said nothing about WHY no match formed.
+            # ('cant load into a match'): a lone searcher sat 5.5 min in the queue and the log said nothing about WHY no match formed.
             # Every 20 s while somebody waits: who is ready, the size wanted now and when it steps down, who is still settling / not polling.
             if now - getattr(self, '_wait_logged', 0.0) >= 20.0:
                 self._wait_logged = now
@@ -4201,17 +4730,27 @@ class MatchMaker:
         PRIV.bound(lb, mid, players)
         log("MATCH formed (private)", mid, lb.code, [tag(p) for p in players], mname)
         return mid, players
-    def _rq_filter(self, ready, now):
-        """(lock held) `ready` without the searchers whose finished match still has players on its post-match screens (tools/requeue.py)."""
+    def _rq_filter(self, ready, now, form=False):
+        """(lock held) `ready` without the searchers whose finished match still has players on its post-match screens (tools/requeue.py).
+        form=True (try_form only, never jip_ready): also the persistent lobby holds (LOBBY_KEEP) - lone searchers that fill a waiting lobby, and
+        the slow members of a lobby whose next match is in its countdown (they join it in progress, jip_pass) - and self._rq_go is filled."""
+        self._rq_go = []
         if not REQUEUE:
             return ready
         try:
             held, waiting, gone = self.rq.held(list(self.queue), lambda t: silence(t, now), self._in_match, now)
+            if form and LOBBY_KEEP:
+                self._rq_go = self.rq.ready_groups(list(self.queue), lambda t: silence(t, now), self._in_match, now)
         except Exception as ex:                                       # noqa: BLE001 - the requeue never breaks the queue
             log("requeue: ERR", repr(ex))
             return ready
         for t, why in gone:
             log("requeue:", tag(t), "ticket ended:", why)
+        if form and LOBBY_KEEP:
+            try:
+                held = set(held) | self._lobby_holds(ready, held, waiting, now)
+            except Exception as ex:                                   # noqa: BLE001 - the lobby never breaks the queue
+                log("LOBBY: hold ERR", repr(ex))
         if not held:
             return ready
         if now - self._rq_logged >= 20.0:
@@ -4219,6 +4758,28 @@ class MatchMaker:
             log("requeue: HOLD", [tag(t) for t in ready if t in held], "wait for the post-match screens of", {m: [tag(t) for t in w] for m, w in waiting.items()},
                 "(at most %.0f s after the match end)" % REQUEUE_WAIT_MAX)
         return [t for t in ready if t not in held]
+    def _lobby_holds(self, ready, held, waiting, now):
+        """(lock held) Persistent lobby holds for try_form (see LOBBY_KEEP). Returns the extra tokens to hold."""
+        extra = set()
+        tick = set(self.rq.tokens())
+        # the slow members of a lobby that formed its next match: they join it in progress (jip_pass), they never form another match meanwhile
+        for t in ready:
+            nm = self.rq.next_of(t) if t in tick else None
+            if nm and nm in self.matches and nm not in self.ended and nm not in self.started:
+                extra.add(t)
+        # lone searchers (no ticket) wait for a waiting lobby that has room for all of them: they fill its open seats when it goes
+        others = [t for t in ready if t not in held and t not in tick and t not in extra]
+        if others and waiting:
+            for gmid, post in waiting.items():
+                size = len(post) + sum(1 for t in held if self.rq.mid_of(t) == gmid)
+                if size + len(others) <= MATCH_SIZE:
+                    extra.update(others)
+                    if now - getattr(self, '_lobby_fill_logged', 0.0) >= 20.0:
+                        self._lobby_fill_logged = now
+                        log("LOBBY: hold", [tag(t) for t in others], "to fill the open seats of the lobby of match", gmid,
+                            "(%d members, still on the post-match screens: %s)" % (size, [tag(t) for t in post]))
+                    break
+        return extra
     def rq_open(self, mid, now=None):
         """(lock held) The match `mid` ended: tickets for the players still in it whose ext searches by itself (RQ_CAP). A party member gets one only
         when its leader is in it too (the leader's search takes the members along). Returns (tickets, players left without one)."""
@@ -4360,7 +4921,7 @@ class MatchMaker:
         return None, []
     def _mid_locked(self, token):
         """The token's CURRENT match (lock held): newest first, never one it departed (timed out / crashed out while the others play on),
-        a live one before a finished one. The old lookups took the first match listing the token - a player timed out of
+ a live one before a finished one. PT 48: the old lookups took the first match listing the token - a player timed out of
         a running match and matched again was resolved to the OLD match (its countdown long over: late start, 'loaded' into the old
         match's world with its old players while the new opponent waited on another map)."""
         for skip_ended in (True, False):
@@ -4411,7 +4972,7 @@ class MatchMaker:
             if since is not None:
                 self.left[token] = (time.time(), since)
                 self.settle.pop(token, None)
-            if self.rq.drop(token):
+            if self.rq.drop_search(token):              # (not the 0x02 session close right after MATCH-END - that keeps the 'post' ticket)
                 log("requeue:", tag(token), "ticket dropped (left the search)")
             return since is not None
     def leave(self, token):
@@ -4477,7 +5038,7 @@ class MatchMaker:
             pl = self.matches.get(mid, [])
             dep = self.departed.get(mid, ())
             seen = self.polled.get(mid, {})
-            others = [p for p in pl if p != token and p not in dep and p not in self.joining]     # (another joiner in flight cannot poll yet: a match once waited 5 s for it)
+            others = [p for p in pl if p != token and p not in dep and p not in self.joining]     # (another joiner in flight cannot poll yet: PT55 02:42 waited 5 s for it)
             return all(seen.get(p, 0) >= t0 or (seen.get(p, 0) and t0 - seen[p] > JIP_ACK_STALE) for p in others)   # (a player that stopped polling long ago never acks)
     def jip_done(self, token):
         """The joiner's GAME-START went out: it is a normal player of the match from now on. Returns (mid, t0) or None."""
@@ -4501,7 +5062,7 @@ class MatchMaker:
         """The match / slot `token` would be put into, without changing anything (caller holds the lock): (score, mid, slot) or None.
         `need` = how many players of the token's party join together (room for all of them on one team is required for the first one);
         `only_mid` restricts the choice to one match (the next party member follows the first), `team` = the team (slot parity) the first member
-        got: the follower takes a slot of that team whatever the balance (a follower once landed on the other team). See jip_join for the rules."""
+ got: the follower takes a slot of that team whatever the balance (Truth followed alph onto the other team). See jip_join for the rules."""
         now = time.time()
         min_left = JIP_MIN_LEFT if min_left is None else min_left
         mates = self._jip_mates(token)
@@ -4513,6 +5074,8 @@ class MatchMaker:
                 continue
             if token not in pl and not MODEQ.fits(token, mid, PARTIES.leader(token)):
                 why_not.append("%s: another game mode" % mid); continue
+            if token not in pl and not p1_fits(token, mid, PARTIES.leader(token)):
+                why_not.append("%s: other PART I MAPS preference" % mid); continue
             if token not in pl and not PRIV.jip_ok(token, mid):
                 why_not.append("%s: private match / private lobby" % mid); continue
             dep = self.departed.get(mid, ())
@@ -4520,13 +5083,13 @@ class MatchMaker:
             age = now - self.started_t.get(mid, 0)
             if token not in pl and JIP_MIN_AGE > 0 and mid in self.started_t and age < JIP_MIN_AGE:
                 why_not.append("%s: only %.0f s past GAME-START (< %.0f s)" % (mid, age, JIP_MIN_AGE)); continue
-            # it crashed / left this match and searches again: back into its own slot. A freeze that dropped the game
+            # it crashed / left this match and searches again: back into its own slot. PT54: a freeze that dropped the game
             # to the menu sent a CLEAN leave (0x02) and the player was never let back in ("left on purpose" rule) - whoever queues
             # again while their match runs goes back to it
             mv = self.move_team.get(token)
             if mv and (mv[2] < now or mv[0] not in self.matches or mv[0] in self.ended):
-                # The move's match is gone (ended / removed): the ticket only meant "back into that match", it must not keep the player
-                # out of every other match for its 15 minutes (two players were held in QUEUE-HOLD for a running match they could never join)
+                # the move's match is gone (ended / removed): the ticket only meant "back into that match", it must not keep the player
+                # out of every other match for its 15 minutes (two players held in QUEUE-HOLD for a running match they could never join)
                 self.move_team.pop(token, None); mv = None
             if mv and mv[0] != mid:
                 continue                                       # moved by the admin: only back into that match
@@ -4538,7 +5101,7 @@ class MatchMaker:
             if hmi and (hmi["pending"] or hmi["given_up"]):
                 why_not.append("%s: host migration in progress" % mid); continue
             if hmi and hmi.get("alone"):
-                # the host moved to the only player left, whose ext ended the match alone ('Everyone else left the match');
+                # fd7cb037: the host moved to the only player left, whose ext ended the match alone ('Everyone else left the match');
                 # a joiner (coming back to its slot) loaded into the ended match and sat on its scoreboard
                 why_not.append("%s: host moved to the last player left (the match ended on its side)" % mid); continue
             # after a host migration the host is another slot: the joiner's Hello goes there (its ext learns the host from the
@@ -4558,22 +5121,27 @@ class MatchMaker:
             if not back or (token, mid) in PING_KICKED:
                 pms = jip_ping_block(token, mid, pl[hslot], active, set(self.joining), now)
                 if pms is not None:
-                    why_not.append("%s: %d ms to the host, over the %d ms ping limit (it would be removed)" % (mid, pms, PING_KICK_MS)); continue
+                    why_not.append("%s: %d ms to the host, over the %d ms ping limit (it would be removed)" % (mid, pms, ping_match_ms() if MM_PING_GATE else PING_KICK_MS)); continue
             ck = self.clock.get(mid)
             if not ck or now - ck[3] > JIP_CLOCK_TTL:
-                # (say how stale - a build had 'no fresh clock report' for minutes in running 6-player matches; the digits are ignored by the log dedupe)
+                # (say how stale - PT79 had 'no fresh clock report' for minutes in running 6-player matches; the digits are ignored by the log dedupe)
                 why_not.append("%s: no fresh clock report (%s; the players' ext stopped reporting or is an old build)" % (
                     mid, "never reported" if not ck else "newest %.0f s old" % (now - ck[3]))); continue
             left = ck[0] - (now - ck[3])
             if ck[2] or ck[1] <= 0 or left < min_left:
                 why_not.append("%s: %.0f s left / ended=%s" % (mid, left, ck[2])); continue
-            # Late joins are refused in overtime / sudden death = a team is out of lives (its last players fight
+            # ("prevent people from joining in late when its overtime"): overtime / sudden death = a team is out of lives (its last players fight
             # with no respawns). The held overtime clock (OT_FLOOR 30 s < JIP_MIN_LEFT) kept joiners out only while that clock report was fresh; the lives
             # report decides on its own now. Not in Interrogation (no lives there). A player back into its own slot is held too (a free respawn otherwise).
             lv = self.lives.get(mid)
             if mid not in INT.matches and lv and now - lv[2] <= 3 * JIP_CLOCK_TTL and min(lv[0], lv[1]) <= 0:
                 why_not.append("%s: overtime (team lives %d / %d)" % (mid, lv[0], lv[1])); continue
-            if len(active) + (1 if back else need) > MATCH_SIZE:         # (fuzz: a leaver coming back counts as one more player - its slot is departed, so it is not in `active`; the match was full already: 7 v MATCH_SIZE 6)
+            if not back and LOBBY_KEEP and REQUEUE:
+                # (persistent lobby) seats kept for the lobby members still on their post-match screens: only they take them
+                _kept = [k for k in self.rq.kept(mid) if k != token and k not in pl]
+                if _kept and len(active) + need + len(_kept) > MATCH_SIZE:
+                    why_not.append("%s: %d seat(s) kept for its lobby members still on the post-match screens" % (mid, len(_kept))); continue
+            if len(active) + (1 if back else need) > MATCH_SIZE:         # (fuzz seed 2: a leaver coming back counts as one more player - its slot is departed, so it is not in `active`; the match was full already: 7 v MATCH_SIZE 6)
                 continue                                           # full (for this many players)
             key = frozenset(pl)
             if (RELAY_MATCH_MAX > 0 and not back and MATCH_P2P.get(key) is False and has_helper(token)
@@ -4591,7 +5159,7 @@ class MatchMaker:
             for i, t in enumerate(pl):
                 if t not in dep: cnt[team_in(mid, i, t)] += 1      # (an admin in-match swap counts on its new team)
             if back and not mates:
-                # A player came back into its old slot (team 0) while team 0 already had 2 and team 1 had 1 = a 3 v 1.
+                # live: a player came back into its old slot (team 0) while team 0 already had 2 and team 1 had 1 = a 3 v 1.
                 # A returning player counts like any joiner: when its old team is the bigger one it takes the smaller team (a free / new slot
                 # of that parity); its old slot is left behind as gone (jip_join)
                 own = team_in(mid, pl.index(token), token)
@@ -4611,7 +5179,7 @@ class MatchMaker:
                     why_not.append("%s: left < %.0f s ago" % (mid, JIP_REUSE_S)); continue
                 if cur_map not in map_pool(active + [token], support=[token]):
                     why_not.append("%s: map %s not in the pool for this joiner" % (mid, MAPS[cur_map][2])); continue
-                score = (MATCH_SIZE + 3, ck[0])                  # its own match before any other
+                score = (3, 0, 0, ck[0])                          # its own match before any other
                 if best is None or score > best[0]:
                     best = (score, mid, pl.index(token))
                 continue
@@ -4634,7 +5202,7 @@ class MatchMaker:
                 if cnt[a] + need - cnt[1 - a] <= lim:
                     want, forced = a, True
             if want is None and not mv and need == 1:
-                # A player with a 'together' and an 'apart' rule was put on the wrong team: admin rules decide the team
+                # live: a player (together with one player, apart from another) was put on that player's team 0: admin rules decide the team
                 # of a joiner too (together > apart > balance); a rule that cannot be met (no slot / > 2 imbalance) falls back to the balance
                 try:
                     teams_of = {t: team_in(mid, i, t) for i, t in enumerate(pl) if t not in dep}
@@ -4656,7 +5224,7 @@ class MatchMaker:
                 lv = self.lives.get(mid)
                 if lv and now - lv[2] < 30 and lv[0] != lv[1]:
                     lose = 0 if lv[0] < lv[1] else 1
-                    # (the rule picked a team with no free slot for a lone joiner - the join failed every second, nobody could
+                    # (live: the rule picked a team with no free slot for a lone joiner - the join failed every second, nobody could
                     # join; a slot must exist on that team: a free (departed) index of its parity, or the next index when it has that parity)
                     has_slot = any(i % 2 == lose for i in free) or (len(pl) < ENGINE_SLOTS and (len(pl) % 2 == lose or need > 1))
                     # (2 v 2 at 19 v 20 lives sent a joiner to 3 v 2, a leaver then made it 3 v 1. Only a team that is
@@ -4674,7 +5242,7 @@ class MatchMaker:
                     if cnt[want] + need - cnt[1 - want] > max(1, need):
                         why_not.append("%s: a party of %d would unbalance the teams (%d v %d)" % (mid, need, cnt[0], cnt[1])); continue
             reuse = [i for i in free if want is None or i % 2 == want]
-            if forced or TEAM_SWAP.get(mid):   # (a hole below a higher index is filled with a gone placeholder: after an in-match swap the next index can have the wrong parity for the smaller team)
+            if forced or TEAM_SWAP.get(mid):   # (a hole below a higher index is filled with a gone placeholder; after an in-match swap the next index can have the wrong parity for the smaller team)
                 new_idx = [i for i in range(len(pl), ENGINE_SLOTS) if want is None or i % 2 == want]
             else:        # a lone joiner only appends the next index
                 new_idx = [len(pl)] if len(pl) < ENGINE_SLOTS and (want is None or len(pl) % 2 == want) else []
@@ -4693,7 +5261,16 @@ class MatchMaker:
             if cur_map not in map_pool(new_active, support=[token]):
                 why_not.append("%s: map %s not in the pool for %d players / this joiner" % (mid, MAPS[cur_map][2], len(new_active))); continue
             # the old host: its own match first; a party mate: the friends' match; others: fullest, then most time left
-            score = (MATCH_SIZE + 3 if rejoin_host else MATCH_SIZE + 2 if (anchor and forced) else len(active), ck[0])
+            # (same region: among the others a match whose host is in the joiner's region comes first, then fullest, then most time left)
+            tier = 3 if rejoin_host else 2 if (anchor and forced) else 1
+            same = 0
+            if tier == 1 and MM_REGION_ON:
+                try:
+                    jr = mm_region(token)
+                    same = 1 if jr in hostmig.MM_REGIONS and jr == mm_region(pl[hslot]) else 0
+                except Exception:                              # noqa: BLE001
+                    same = 0
+            score = (tier, same, len(active) if tier == 1 else 0, ck[0])
             if best is None or score > best[0]:
                 best = (score, mid, slot)
         return best
@@ -4707,7 +5284,7 @@ class MatchMaker:
     def jip_join(self, token, why_not=None, need=1, only_mid=None, team=None):
         """Put the searching `token` into a running match that has room. Returns (mid, slot, players, old_key) or None
         (why_not: a list that receives the reasons). Rules, all of them must hold:
-          - the match is launched + GAME-START went out, its result is not in (Interrogation matches too T2R_JIP_INT=0 = not)
+ - the match is launched + GAME-START went out, its result is not in (Interrogation matches too since, T2R_JIP_INT=0 = not)
           - its host is present (after a host migration the joiner's ext follows the server's 0xE7 reply to the new host; a migration still
             pending / given up refuses; the crashed old host returns as a client in a free slot, never slot 0), and Steam P2P / relay mode fits the joiner
           - its clock was reported fresh (<= JIP_CLOCK_TTL s ago) with >= JIP_MIN_LEFT s left and not ended
@@ -4847,7 +5424,7 @@ def token_by_name(name):
     return None
 
 def player_skill(tokens):
-    """Team balance (no team of 4 pros and 4 noobs): a rating per token from the account's history (every install of one
+    """Team balance: a rating per token from the account's history (every install of one
     Steam account adds up): smoothed win rate (prior 50 % over 6 matches) and parts per finished match (prior 1000 over 4 matches),
     both scaled to ~0..1 and averaged. New players sit in the middle."""
     out = {}
@@ -4869,7 +5446,7 @@ def player_skill(tokens):
 TOP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "top_players.txt")
 _top_cache = {"mt": None, "keys": frozenset()}
 def top_players(tokens):
-    """Top players should not be in a team together. The rating
+    """. The rating
     (win rate + parts) under-rates players who carry a team, so top_players.txt next to this file names them by hand: one shown
     name (any case) or Steam id per line, # comments. Read again whenever the file changes. Returns the set of tokens that are top."""
     try:
@@ -4931,7 +5508,7 @@ def team_rules():
     return _rules_cache["rules"]
 def rule_match(text, tokens, key=None):
     """The tokens named in a rule line's text. Quotes are ignored; a name matches as whole words (case-insensitive), the longest
-    names first and each stretch of text only once, so "alice smith" does not also match a player called "alice". Steam ids match too."""
+    names first and each stretch of text only once, so "john smith" does not also match a player called "a player". Steam ids match too."""
     import re
     norm = " " + " ".join(re.sub(r"[\"'`,;]", " ", text).lower().split()) + " "
     if key is None:
@@ -5002,7 +5579,7 @@ def split_teams(players, party_of=None, skill=None, top=None, groups_rules=None)
     groups.sort(key=len, reverse=True)           # stable: big parties first, then queue order
     teams = ([], [])
     if skill and n <= 12:
-        # every split of the lobby is scored (n <= 12: at most 924) -
+        # ("we need that manual switching players from teams ASAP"): every split of the lobby is scored (n <= 12: at most 924) -
         # admin rules first (team_rules.txt / top_players.txt: "apart" = fewest pairs of the group on one team, "together" = not split),
         # then parties kept whole, then the closest skill sums (top players count +0.5). Ties: the first split in queue order.
         import itertools
@@ -5072,9 +5649,9 @@ def order_slots(team0, team1, host=None):
     """Slot order for the 0x04 records: team_of(slot) = slot % 2, so team0 takes even slots and
     team1 odd ones; the host (slot 0) is moved to the front of its team (that team becomes
     team 0). Returns the player list."""
-    # 3 v 2: the slot parity makes team 0 the one with the extra player in an odd lobby (5 players = slots 0, 2, 4 v
+    # (live:, 3 v 2): the slot parity makes team 0 the one with the extra player in an odd lobby (5 players = slots 0, 2, 4 v
     # 1, 3). A host from the SMALLER team was swapped into team 0, so the interleave put the bigger team's last player on slot 4 = the
-    # host's team (A, B, C v D, E became A, B v D, E, C). With uneven teams the
+    # host's team: a player, B, C v D, E became a player, B v D, E, C. With uneven teams the
     # host must come from the bigger one (team_order picks it so); a host from the smaller one is not moved to the front (logged).
     if host in team1 and len(team1) >= len(team0):
         team0, team1 = team1, team0
@@ -5110,13 +5687,86 @@ def team_order(players):
     host = bo[0] if bo else None
     if len(players) >= 3 and len(t0) != len(t1):     # uneven: the host comes from the bigger team (order_slots: slot parity)
         big = t0 if len(t0) > len(t1) else t1
+        small = t1 if big is t0 else t0
         if not (bo and bo[0] in big):
-            host = host_from_team(big, players)
+            sw = None
+            if HOST_SWAP and MM_PING_GATE and PING_KICK_MS > 0 and bo:
+                try:
+                    sw = host_swap_pick(bo[0], big, small, players, sk, top, rg, party_of)
+                except Exception as e:                   # noqa: BLE001 - never breaks the formation: the old host rule follows
+                    log("HOST-PICK swap ERR", repr(e)); sw = None
+            if sw:
+                big2, small2 = sw
+                t0, t1 = big2, small2
+                host = bo[0]
+            else:
+                host = host_from_team(big, players)
     if len(players) >= 3 and (host not in t0 and host not in t1):
         host = None
     if len(players) < 3:
         host = best_host_order(players)[0] if players else None      # (no_host.txt: the other one hosts)
     return order_slots(t0, t1, host)
+
+HOST_SWAP = os.environ.get("T2R_HOST_SWAP", "1") != "0"
+HOST_SWAP_SKILL = float(os.environ.get("T2R_HOST_SWAP_SKILL", "0.35"))    # the most the two swapped players' skills may differ
+
+def _worst_ping(h, players):
+    ps = [pair_ping(h, o) for o in players if o != h]
+    return None if (not ps or None in ps) else max(ps)
+
+def host_swap_pick(host, big, small, players, sk, top, rg, party_of):
+    """Uneven teams, the ping-picked `host` sits on the SMALLER team (the engine needs the host on the bigger one, order_slots) and no player of
+    the bigger team is within the match ping limit of everybody: host_from_team would take the best of them anyway and he would get somebody
+    removed (match 5346a92f: host 189 ms worst on the smaller team, the bigger team's pick 228 ms, a player removed). Swap the host with the bigger
+    team's player closest in skill instead: parties stay whole (no swap of a party member), no 'together' group is split that was whole, no 'apart'
+    group gets a pair more on one team, the two skills differ by at most HOST_SWAP_SKILL. Returns (new bigger team, new smaller team) with the
+    queue order kept, or None (no swap needed / possible: the caller falls back to host_from_team)."""
+    lim = ping_match_ms()
+    hw = _worst_ping(host, players)
+    if host not in small or hw is None or hw > lim:
+        return None
+    for c in host_allowed(list(big)):
+        w = _worst_ping(c, players)
+        if w is not None and w <= lim:
+            return None                                      # a bigger-team host within the limit exists: host_from_team takes him
+    w = {x: ((sk or {}).get(x, 0.5) + (0.5 if x in (top or ()) else 0.0)) for x in players}
+    def pid_mates(x, team):
+        pid = party_of.get(x)
+        return pid is not None and any(party_of.get(y) == pid for y in team if y != x)
+    def cost(b, s):
+        tog = apart = 0
+        for kind, g in rg or []:
+            k = sum(1 for x in g if x in b)
+            if kind == "together" and 0 < k < len(g):
+                tog += 1
+            elif kind == "apart":
+                apart += k * (k - 1) // 2 + (len(g) - k) * (len(g) - k - 1) // 2
+        return tog, apart
+    if pid_mates(host, small):
+        log("HOST-PICK", tag(host), "is on the smaller team with party mates - no swap")
+        return None
+    base = cost(big, small)
+    best = None
+    for c in big:
+        if c == host or pid_mates(c, big):
+            continue
+        gap = abs(w[c] - w[host])
+        if sk and gap > HOST_SWAP_SKILL:
+            continue
+        nb = [host if x == c else x for x in big]
+        ns = [c if x == host else x for x in small]
+        k = cost(nb, ns)
+        if k[0] > base[0] or k[1] > base[1]:
+            continue
+        if best is None or gap < best[0] - 1e-9:
+            best = (gap, c, nb, ns)
+    if not best:
+        log("HOST-PICK", tag(host), "(worst %d ms) is on the smaller team and nobody on the bigger one is within %d ms - no valid swap (parties / rules / skill), old rule" % (hw, lim))
+        return None
+    gap, c, nb, ns = best
+    log("HOST-PICK", tag(host), "(worst %d ms, within %d) is on the smaller team and nobody on the bigger one is within the limit (best %s ms) - swapped with %s (skill %.2f v %.2f); teams now %.2f v %.2f"
+        % (hw, lim, ",".join(str(_worst_ping(x, players)) for x in big), tag(c), w[host], w[c], sum(w[x] for x in nb), sum(w[x] for x in ns)))
+    return nb, ns
 
 def host_from_team(big, players):
     """The host of an uneven match when the overall pick is on the smaller team: the bigger team's player whose pings to EVERY player of the
@@ -5133,6 +5783,11 @@ def host_from_team(big, players):
         keyed.append((c, hostmig.host_key(pings, perf_penalty(c))))
     if not keyed:
         return None
+    if MM_PING_GATE and PING_KICK_MS > 0:          # (MM_PING_GATE) same rule as best_host_order: a host that gets nobody removed for ping wins
+        fit = [kc for kc in keyed if max(pair_ping(kc[0], o) for o in players if o != kc[0]) <= ping_match_ms()]
+        if fit and len(fit) < len(keyed):
+            log("HOST-PICK", "bigger team: ping limit %d ms leaves" % ping_match_ms(), [tag(kc[0]) for kc in fit])
+            keyed = fit
     best = min(keyed, key=lambda c: c[1])[0]
     if hostcap.MODE >= 2:
         try:
@@ -5198,7 +5853,8 @@ def team_swap_now(mid, slot, tok, want, why):
     evt("admin-move-team" if why == "admin" else "auto-balance", tag(tok), mid, "team %d -> %d in match (slot %d%s)" % (cur, want, slot, ", host" if slot == 0 else ""))
     return n
 
-# Auto balance (2v1s, 3v2s and 4v3s stay untouched): every AUTO_BALANCE_S per running match, a difference of 2 or more players is evened out by in-match
+# Auto balance ("a rule that runs every 1.5 minutes in live matches, if theres a unbalance like 3v1 it should always balance it out.
+# 2v1s, 3v2s, and 4v3s stay untouched"): every AUTO_BALANCE_S per running match, a difference of 2 or more players is evened out by in-match
 # team swaps (team_swap_now: same slot, same life, new side) until it is at most 1. A difference of 1 is never touched. Who moves: only a player
 # whose ext applies the swap (TS_CAP; an older ext is never kicked for balance), never the host, never a player whose party mate is on the
 # bigger team, not one already moved this match if anyone else can go; of those the newest arrival (highest slot = joined last; TUNING: no
@@ -5275,10 +5931,10 @@ def auto_balance_tick():
             log("TEAMS auto-balance: match %s now %d v %d" % (mid, n[0], n[1]))
 
 def admin_move_team(pid):
-    """Admin live team switch (an admin can split players in a live match). IN THE MATCH when the
+    """Admin live team switch. IN THE MATCH when the
     player's t2r-ext applies it (see below: same slot, same life, new team on every screen; the host too). Fallback for an older ext: the player leaves its match
     (back to the menu, like a kick) and its next FIND MATCH puts it back into the same match on the OTHER team (join in progress, a free
-    slot of that team's parity; the old slot stays as a gone placeholder). Valid for 15 minutes (3 minutes expired before the player searched again and it went back to its old team)."""
+ slot of that team's parity; the old slot stays as a gone placeholder). Valid for 15 minutes (live: 3 minutes expired before the player searched again and it went back to its old team)."""
     pid = str(pid or "").lower()
     if not (4 <= len(pid) <= 64) or any(ch not in "0123456789abcdef" for ch in pid):
         return {"ok": False, "error": "bad pid"}
@@ -5291,7 +5947,7 @@ def admin_move_team(pid):
     now = time.time()
     cur = team_in(mid, slot, tok)
     want = 1 - cur
-    # IN-MATCH swap (a kick-based move of 3 of 4 players sent them all to the menu and left the host alone) when the mover's ext applies it
+    # (3 of 4 players were moved, all 3 went to the menu, the host was left alone and quit): IN-MATCH swap when the mover's ext applies it
     # (its 0xE3 polls carry flag 0x10, every 2-3 s in a match): the player stays in the match - same slot, same P2P peer, same life - and only
     # its team changes on every screen (0xE5 roster + team-swap block, jip_roster_op). No leave, so no clan day is cut and the host is never
     # left alone. The host can be moved this way too. An older ext (no flag 0x10 within TS_CAP_S) falls back to the kick + rejoin below.
@@ -5304,7 +5960,7 @@ def admin_move_team(pid):
                 "note": "stays in the match on the other team (applied within ~3 s)"}
     if slot == 0:
         return {"ok": False, "error": "%s hosts this match and its game is too old to switch teams in the match (no t2r-ext team swap seen in the last %d s) - a host cannot be kicked to rejoin" % (get_name(tok) or "PLAYER", TS_CAP_S)}
-    # The ticket and the clan hold go in BEFORE the kick - the kick's leave path (abort award, clan excuse) must already see a team move
+    # the ticket and the clan hold go in BEFORE the kick - the kick's leave path (abort award, clan excuse) must already see a team move
     with MM.lock:
         MM.move_team[tok] = (mid, want, time.time() + 900)
     CLAN_MOVED[(tok, mid)] = time.time()
@@ -5331,6 +5987,30 @@ def teams_preview():
 
 PARTIES = social.Parties(max_size=max(1, MATCH_SIZE // 2), lookup=lambda name: token_by_name(name))    # a party must fit one team (tools/social.py)
 
+_tid_sid_cache = {}                       # install id -> (time, Steam id or 0)
+TID_SID_TTL = 30.0
+
+def install_steamid(token):
+    """Steam id of a token the daemon has not linked yet, from the other tokens of its install. The launcher writes a new token when the
+    player changes name (T2N + the new name + the same install id), and its FRIENDS poll can arrive before the game links that token: the
+ friends page then showed the empty "t:" install account, and requests sent from it put the player on friends' lists twice.
+    Only when every linked token of that install id has the same Steam id: install ids are not unique (a shipped token was shared by
+ 5 players), and an id seen with 2+ Steam accounts never resolves."""
+    tid = names.token_id(token)
+    if len(tid) != 24:
+        return 0
+    now = time.time()
+    hit = _tid_sid_cache.get(tid)
+    if hit and now - hit[0] < TID_SID_TTL:
+        return hit[1]
+    rows = db_read(lambda c: c.execute("SELECT DISTINCT steamid FROM players WHERE substr(lower(token),41,24)=? AND steamid>0 LIMIT 2",
+                                       (tid,)).fetchall())
+    sid = int(rows[0][0]) if len(rows) == 1 else 0
+    if len(_tid_sid_cache) > 5000:
+        _tid_sid_cache.clear()
+    _tid_sid_cache[tid] = (now, sid)
+    return sid
+
 class _SocialHost:
     """What tools/social.py needs from the daemon."""
     now = staticmethod(time.time)
@@ -5338,7 +6018,7 @@ class _SocialHost:
     db = staticmethod(dbc)               # (no _dblock: steamid / name below take it, and it is not re-entrant; social commits every write at once)
     @staticmethod
     def steamid(token):
-        return token_steamid(token) or BRIDGES.steamid(token) or 0
+        return token_steamid(token) or BRIDGES.steamid(token) or install_steamid(token) or 0
     @staticmethod
     def name(token):
         return get_name(token)
@@ -5367,6 +6047,7 @@ class _SocialHost:
             return None
 
 SOCIAL = social.Social(_SocialHost, PARTIES)
+SOCIAL.lobby_of = lambda tok: MM.rq.mid_of(tok) if (REQUEUE and LOBBY_KEEP and tok) else None      # the LOBBY chat channel: the requeue group = the last match id
 
 def party_op(pl):
     """Op 0xDA -> reply frame (0xDB)."""
@@ -5392,7 +6073,7 @@ def social_op(pl, addr=None):
     if not is_token(token) or pl[64] != 1:
         return None
     lang, sub = pl[65], pl[66]
-    arg = pl[67:67 + 200].decode("utf-8", "ignore")
+    arg = pl[67:67 + 420].decode("utf-8", "ignore")      # 420: 200 characters of in-game chat (Polish letters are 2 bytes) + a short prefix
     if sub in social.WRITE_SUBS and not new_identity_ok(token, addr):
         log("NEWID", addr, "op 0xD8 refused: too many new identities from this address")
         return msg(social.OP_REPLY, social.reply_json({"ok": 0, "err": "rate"}))
@@ -5440,7 +6121,7 @@ def clan_rejoin_after_booking(token, mid):
         except Exception:                                            # noqa: BLE001
             pass
         return
-    # The player left this match (day booked 20 s later), joined it again and played on. Its second report was
+    # ("No word from the camp"): the player left this match (day booked 20 s later), joined it again and played on. Its second report was
     # answered "re-sent for an already booked match" and clan.apply_match refused the same mid: the post-match page waited 45 s for a day that never came.
     # The way back in opens a second stint: the done mark, the credit and the leave verdicts of the first one are void.
     CLAN_DONE.pop(token, None)
@@ -5459,7 +6140,7 @@ def clan_rejoin_after_booking(token, mid):
 
 def jip_start(token, mid, slot, players):
     """The searching `token` was put into the running match `mid` at `slot` (MM.jip_join): tell everything and start its client."""
-    # Join in progress and a back-out at the moment a match is found: jip_pass picks the match under the matchmaker
+    # ("join in progress is problematic when you back out at the moment a match is found"): jip_pass picks the match under the matchmaker
     # lock but starts it here, outside it. A back-out (op 0x02 -> leave_running_match -> MM.depart) that lands in between has already removed the
     # joiner from MM.joining: START-MATCH then went to a client that had left (it loaded a level of a match the server had dropped it from), and
     # HM.add_player put a ghost in the host-migration table that nothing ever marked gone. Check first, and again after the sends.
@@ -5528,10 +6209,20 @@ def jip_pass():
             continue
         mates = [m for m in PARTIES.members(token) if m != token and m in ready and m not in done] if PARTIES.pid(token) else []
         why = []
-        res = MM.jip_join(token, why, need=1 + len(mates))
+        res = None
+        nm = MM.rq.next_of(token) if (LOBBY_KEEP and REQUEUE) else None
+        if nm and nm in MM.matches and nm not in MM.ended:
+            # (persistent lobby) back from the post-match screens: into the match its lobby formed meanwhile (its seat was kept)
+            res = MM.jip_join(token, why, need=1 + len(mates), only_mid=nm)
+            if res:
+                log("LOBBY:", tag(token), "back from the post-match screens - joins its lobby's match", nm)
+            elif nm not in MM.started:
+                continue                                       # its countdown: join once GAME-START went out
+        if not res:
+            res = MM.jip_join(token, why, need=1 + len(mates))
         if not res:
             w = "; ".join(why)
-            wk = "".join(ch for ch in w if not ch.isdigit())          # (the seconds left change every second: log a reason once, not 1 line/s - a past build logged 160)
+            wk = "".join(ch for ch in w if not ch.isdigit())          # (the seconds left change every second: log a reason once, not 1 line/s - PT55 had 160)
             if w and _JIP_LAST_WHY.get(token) != wk:
                 _JIP_LAST_WHY[token] = wk
                 log("jip:", tag(token), "no running match to join:", w)
@@ -5557,7 +6248,7 @@ JIP_REPUSH_MAX = int(os.environ.get("T2R_JIP_REPUSH_MAX", "8"))
 
 def jip_unreachable(token, now=None):
     """A join-in-progress player's ext reports the host silent (op 0xE6 flag) shortly after its GAME-START: its Steam punch to the host did
-    not land (the rejoined player stared at 'host silent' for 4.5 min while the others played fine, and only a manual
+    not land (PT55 01:29:59-01:34:21: the rejoined player stared at 'host silent' for 4.5 min while the others played fine, and only a manual
     leave + search fixed it). Re-send the full slot table (0xF2) to every active helper of the match: the helpers restart their 'peer seen'
     flags = a new punch packet to every peer. Every JIP_REPUSH_S s, at most JIP_REPUSH_MAX times per join. Returns True when it re-pushed."""
     now = time.time() if now is None else now
@@ -5633,7 +6324,7 @@ def jip_roster_op(pl):
     n = 0
     for i, tok in enumerate(players[:8]):
         if (tok in gone and tok != t) or (isinstance(tok, str) and tok.startswith("f0" * 30)):
-            continue        # (a host-migration placeholder is nobody) a timed-out / left player stayed in the roster - team figures 2v3 while the scoreboard said 2v2
+            continue        # (a host-migration placeholder is nobody, 'PLAYER 6') PT54: a timed-out / left player stayed in the roster - team figures 2v3 while the scoreboard said 2v2
         n += 1
         e = bytearray(0x32)
         e[0] = i
@@ -5646,7 +6337,7 @@ def jip_roster_op(pl):
     back = bool(late and jb and jb[0] == mid and time.time() - jb[1] < 600)   # bit 2: back into the match it left - the ext gives back the kit it had
     tail = b""
     if flags & 0x10 and mid is not None:
-        # In-match team swap: [0xA7][k][k x (slot, team)] after the wave byte, ONLY for an ext that asked with flag 0x10 (an older ext's
+        # in-match team swap: [0xA7][k][k x (slot, team)] after the wave byte, ONLY for an ext that asked with flag 0x10 (an older ext's
         # reply buffer is exactly 8 roster entries + 1 byte: a longer reply would be dropped whole). Lists every slot whose token the admin
         # swapped this match (its current team, also when moved back). The roster entries above already carry the new team for every client
         # (older exts apply other slots' teams from them too); the block is what makes the MOVER apply its own team (an ext never takes its own
@@ -5684,12 +6375,12 @@ def matchmaker_loop():
 
 MM = MatchMaker()
 
-# Host migration (ON by default, T2R_HOST_MIGRATION=0 = off): see tools/hostmig.py and re/host-migration.md
+# Host migration (ON by default since, T2R_HOST_MIGRATION=0 = off): see tools/hostmig.py and re/host-migration.md
 HM = hostmig.HostMigration(enabled=os.environ.get("T2R_HOST_MIGRATION", "1") == "1", log=log, now=time.time,
                            ping=lambda a, b: pair_ping(a, b), perf=lambda t: perf_penalty(t), pool=lambda ts: host_pool(ts),
                            link_alive=lambda t: SESSIONS.conn(t) is not None)     # a host still connected is not replaced on a short hitch
 
-# Planned host re-pick (T2R_HOST_REPICK: 0 off, 1 check + log only (default), 2 live handover): see hostmig.HostRepick
+# Planned host re-pick (T2R_HOST_REPICK: 0 off, 1 check + log only (default), 2 live handover;): see hostmig.HostRepick
 REPICK = hostmig.HostRepick(log=log, now=time.time)
 
 def hostcap_repick_log(mid, players, alive, hslot, scores, act, what):
@@ -5952,7 +6643,7 @@ def shutdown_cancel():
     return had
 
 def reset_running_sessions():
-    """A graceful FIN on the session socket of a player in a RUNNING match makes winmm leave the match ("Left the session"),
+    """ (PT92 live restart): a graceful FIN on the session socket of a player in a RUNNING match makes winmm leave the match ("Left the session"),
     only a Winsock error (WSAECONNRESET) starts the ext's session re-attach. Close those sockets with an RST (SO_LINGER 1/0) so the clients re-attach
     to the restarted daemon (READOPT + session_reattach) and keep playing. Returns the number of sockets reset."""
     n = 0
@@ -5975,7 +6666,7 @@ def reset_running_sessions():
     return n
 
 def boot_all_sessions():
-    """The admin update boot. A graceful FIN on every session socket makes winmm leave the match
+    """ the admin update boot. A graceful FIN on every session socket makes winmm leave the match
     ("Left the session", back to the menu), unlike the restart path (reset_running_sessions: RST = re-attach, the match goes on)."""
     n = 0
     with SESSIONS.lock:
@@ -6137,8 +6828,11 @@ def requeue_status_text(token):
     with MM.lock:
         qd = list(MM.queue)
     now = time.time()
-    tk, w = MM.rq.status(token, qd, lambda t: silence(t, now), MM.in_match, now)
-    return " rq=1 rqw=%d" % w if tk else ""
+    lb = MM.rq.lobby(token, qd, lambda t: silence(t, now), MM.in_match, now)
+    if lb is None:
+        return ""
+    # (persistent lobby) rqs = s until the next match forms anyway (0 = not held), rqb = members back, rqp = members still on the screens
+    return " rq=1 rqw=%d rqs=%d rqb=%d rqp=%d" % (lb["wait"], lb["left"], lb["back"], lb["post"])
 
 def modeq_op(pl):
     """Op 0xBC [token][sub][mode] -> reply frame (0xBD): sub 1 stores the pick for the player's next search, both answer the searching counts."""
@@ -6156,7 +6850,7 @@ def modeq_op(pl):
     with MM.lock:
         fresh = [t for t in MM.queue if time.time() - MM.seen.get(t, 0) <= QUEUE_FRESH]
     q = MODEQ.counts(fresh, PARTIES.leader)
-    # Each mode's number also counts the players in a
+    # ("find match mode choosing doesnt account numbers for people in matches"): each mode's number also counts the players in a
     # running match of that mode (started, not ended, not departed; a match without a recorded mode is Supply Raid). T2R_MODEQ_PLAYING=0 = searchers only.
     playing = 0
     if os.environ.get("T2R_MODEQ_PLAYING", "1") != "0":
@@ -6167,7 +6861,7 @@ def modeq_op(pl):
             mm = MODEQ.match_mode(mid) or modeq.MODES[0]
             k = modeq.MODES.index(mm) if mm in modeq.MODES else 0
             q[k] += len(pl); playing += len(pl)
-    # The match's own mode as soon as the match is assigned
+    # the match's own mode as soon as the match is assigned
     # (mm=<row index>), so the loading / vote screens of a QUICK MATCH never guess. Only a live match of this token (never a finished one).
     mm = ""
     try:
@@ -6184,7 +6878,7 @@ def modeq_op(pl):
         log("MODEQ mm ERR", repr(ex))
     rqs = ""
     try:
-        rqs = requeue_status_text(token)                         # The client's auto search + WAITING FOR PLAYERS... (ext requeue.c)
+        rqs = requeue_status_text(token)                         # the client's auto search + WAITING FOR PLAYERS... (ext requeue.c)
     except Exception as ex:                                       # noqa: BLE001
         log("requeue: status ERR", repr(ex))
     return msg(modeq.OP_REPLY, (modeq.ModeQ.reply(q, MODEQ.get(token, PARTIES.leader(token)), modeq.forced(), len(fresh) + playing) + mm + rqs).encode())
@@ -6196,7 +6890,31 @@ def interrogation_op(pl):
         return None
     token, sub, seq, args = req
     readopt_claim(token)            # a poll right after a daemon restart must find the restored record (it answered on=0 and the HUD fell back to Supply Raid)
+    int_rebind(token)
     return msg(interrogation.OP_REPLY, INT.event(token, sub, seq, args).encode())
+
+def int_rebind(token):
+    """ INT.by_token kept pointing at the player's PREVIOUS match when the new one has no Interrogation record (a Supply Raid
+    match, or a join in progress into one): a player who crashed out of a running Interrogation match on Supermarket and joined a Resort match
+    got the old match's state (map 23, its lockbox spots ~700 m off the map, its intel). The token's current match decides: its Interrogation
+    record when it has one, else none (on=0). A token in no match keeps its record (an ended match shows its win to late clients)."""
+    try:
+        cur = MM.mid_of(token)
+        if cur is None:
+            return
+        with INT.lock:
+            had = INT.by_token.get(token)
+            if had is None or had == cur:
+                if had is None and cur in INT.matches:
+                    INT.by_token[token] = cur
+                return
+            if cur in INT.matches:
+                INT.by_token[token] = cur
+            else:
+                INT.by_token.pop(token, None)
+        log("INTERROGATION rebind", tag(token), "from match", had, "to", cur if cur in INT.matches else "none (its match %s has no record)" % cur)
+    except Exception as ex:                                       # noqa: BLE001 - the HUD state never breaks the request
+        log("INTERROGATION rebind ERR", repr(ex))
 
 ABORT_AWARDED = set()   # mids whose abort award ran
 
@@ -6210,7 +6928,7 @@ def abort_award(mid, others, host, why):
         return False
     with MM.lock:
         joining = {t for t, (m, _) in MM.joining.items() if m == mid}
-    others = [p for p in (others or []) if p not in joining]      # a join-in-progress player that has not started yet is not 'left over'
+    others = [p for p in (others or []) if p not in joining]      # a join-in-progress player that has not started yet is not 'left over' (PT73 12:00)
     if not others:
         return False
     with MM.lock:
@@ -6219,6 +6937,11 @@ def abort_award(mid, others, host, why):
     ABORT_AWARDED.add(mid)
     if host and clan_why_deliberate(why) and clan_leave_excuse(host, mid, why) is None:      # a deliberate host quit stays 'left early' (a crash / timeout / start- or end-grace leave does not)
         CLAN_QUITTERS.add((host, mid))
+    for p in others:                                              # the players it was ended for are never penalised for it (CLAN_ABORTED)
+        CLAN_ABORTED[(p, mid)] = why
+    if len(CLAN_ABORTED) > 2000:
+        for _k in list(CLAN_ABORTED)[:500]:
+            CLAN_ABORTED.pop(_k, None)
     clan_match_ended(others, mid)
     MM.end(mid)
     INT.end(mid, 0xFF)
@@ -6286,7 +7009,7 @@ def leave_running_match(token, why):
         if _why_ex is None and ((lastd and lastd[1] != token and time.time() - lastd[0] <= CLAN_EXCUSE_S) or host_lost):
             _why_ex = ("host lost (migration pending)" if host_lost else "%.0f s after %s left" % (time.time() - lastd[0], tag(lastd[1])))
         if _why_ex is None and migrating:
-            # the host hitched, the others moved on without it, its ext heard 'replaced as host - leaving the match' and sent the
+            # 07a228ac: the host hitched, the others moved on without it, its ext heard 'replaced as host - leaving the match' and sent the
             # 0x02 itself: that leave was the server's decision, not the player's
             _rep = HM.replaced_age(token)
             if _rep is not None and _rep <= hostmig.REPLACED_EXCUSE_S:
@@ -6308,14 +7031,14 @@ def leave_running_match(token, why):
             dep = set(MM.departed.get(mid, ()))
         abort_award(mid, [p for p in others if p != token and p not in dep], token, "host left (" + why + "), no migration")
     elif mid and others:
-        # (everyone else dropped out - server / host crash, disconnects - and the one player left got "YOU LEFT EARLY - NO
+        # (playtest: everyone else dropped out - server / host crash, disconnects - and the one player left got "YOU LEFT EARLY - NO
         # SUPPLIES" when they finally quit the empty match.) One player left in a running match = the match is over for them: the normal-day
         # award, as if it ended now. The ones who dropped keep their own 'left early' day.
         with MM.lock:
             dep = set(MM.departed.get(mid, ()))
         rest = [p for p in others if p != token and p not in dep]
-        # Players the admin is moving to
-        # the other team are coming back into this match - they do not make it "everyone else left" (otherwise the host, left alone, got a short day)
+        # (3 players were rebalanced, the host was left alone, the match ended and the host got a short day): players the admin is moving to
+        # the other team are coming back into this match - they do not make it "everyone else left"
         moving = [t for t in dep | {token} if (MM.move_team.get(t) or (None,))[0] == mid]
         if len(rest) == 1 and not moving:
             abort_award(mid, rest, None, "everyone else left (" + why + ")")
@@ -6347,7 +7070,7 @@ def build_server_lists():
     map rec=[l1][name][l2][image][l3][level][flag] (see MAPS); udp rec=[iplen][ip][u16 port]."""
     # PUBLIC endpoint the client's game-server check (UDP) must reach.
     # env-overridable: T2R_PUB_IP / T2R_PUB_UDP_PORT.
-    gip = os.environ.get("T2R_PUB_IP", "127.0.0.1").encode()   # playit TCP+UDP tunnel IP
+    gip = os.environ.get("T2R_PUB_IP", "209.25.141.16").encode()   # playit TCP+UDP tunnel IP
     uport = int(os.environ.get("T2R_PUB_UDP_PORT", "15389"))       # playit UDP port
     browser = bytes([len(MAPS)]) + b"".join(
         lp(name.encode()) + lp(os.environ.get("T2R_MAPIMG", "streaming/menus/to1/map-pvp-{img}.png").format(img=img).encode()) + lp(lvl.encode()) + bytes([RESPAWNS.get(lvl, 0)])
@@ -6359,13 +7082,13 @@ def auth_reply(name="PLAYER", extra=b""):
     # PROVEN sequence (reaches MP menu): 0x10 name + 0x08 both-lists + 0x0d done.
     # Do NOT drop the 0x0d — its absence regressed auth previously. `extra` frames go
     # before the 0x0d so a session socket still parses them.
-    name_field = name.encode()[:31].ljust(32, b"\x00")
+    name_field = (safe_name(name) or "PLAYER").encode()[:31].ljust(32, b"\x00")
     return (msg(0x10, name_field) + msg(0x08, build_server_lists()) + extra
             + msg(0x0d, b"\x01"))
 
 def auth_reply_open(name="PLAYER", extra=b""):
     """auth_reply() without the trailing 0x0d: for the held MP-menu socket (see handle_batch)."""
-    name_field = name.encode()[:31].ljust(32, b"\x00")
+    name_field = (safe_name(name) or "PLAYER").encode()[:31].ljust(32, b"\x00")
     return msg(0x10, name_field) + msg(0x08, build_server_lists()) + extra
 
 def lobby_snapshot():
@@ -6426,6 +7149,11 @@ PARTIAL_FRAME_S = float(os.environ.get("T2R_PARTIAL_FRAME_S", "30"))  # an incom
 FLOOD_WINDOW_S = 10.0
 FLOOD_MAX_RECVS = int(os.environ.get("T2R_FLOOD_MAX_RECVS", "3000"))  # reads per FLOOD_WINDOW_S on one connection (real clients: < 30)
 FIRST_FRAME_S = float(os.environ.get("T2R_FIRST_FRAME_S", "15"))    # a new connection that has not sent one complete frame by then is closed (slowloris)
+# overload: short read polls (main menu feed, rank table, clan / clan13 page, names read, meta) whose client gave up are dropped at
+# the next _dblock wait instead of being served to a closed socket. The ext's t2r_rpc waits at most 5 s for a reply (outage.h callers),
+# so POLL_DEADLINE_S after the frame arrived nobody reads the answer. Session and Steam helper connections never get a deadline. 0 = off.
+POLL_DEADLINE_S = float(os.environ.get("T2R_POLL_DEADLINE_S", "6"))
+POLL_DEADLINE_OPS = frozenset((0xB4, 0xBF, 0xE0, 0xB6, 0xD0, 0xE8))
 _tcp_live = [0]
 _tcp_live_lock = threading.Lock()
 _tcp_per_ip = collections.Counter()
@@ -6462,8 +7190,7 @@ def is_token(t):
     return isinstance(t, str) and len(t) == 64 and all(ch in HEX64 for ch in t)
 def token_known(t):
     try:
-        with _dblock, dbc() as c:
-            return c.execute("SELECT 1 FROM players WHERE token=?", (t,)).fetchone() is not None
+        return db_read(lambda c: c.execute("SELECT 1 FROM players WHERE token=?", (t,)).fetchone()) is not None
     except Exception:
         return False
 def new_identity_ok(token, addr):
@@ -6569,18 +7296,26 @@ def tcp_conn(conn, addr):
                     handle_batch(conn, addr, st, batch)
                     break
             if batch:
+                if POLL_DEADLINE_S > 0 and ops and ops <= POLL_DEADLINE_OPS and not st["session"] and not st["is_bridge"]:
+                    _req.deadline = mono + POLL_DEADLINE_S
                 try:
                     handle_batch(conn, addr, st, batch)
+                except RequestAbandoned:
+                    close_why = "request abandoned (client timed out waiting for the DB)"
+                    break
                 except (ConnectionError, socket.timeout, TimeoutError):
                     raise
                 except Exception as e:
                     # a handler bug must not close the socket: for a searching client that is
                     # session state 5 = winmm quits to the title (re/mm-boot.md)
                     log("TCP", addr, "HANDLER ERR (conn kept)", repr(e))
+                finally:
+                    _req.deadline = 0.0           # (per batch: a later write on the same connection never inherits it)
     except Exception as e:
         close_why = "error %r" % (e,)
         log("TCP", addr, "ERR", e)
     finally:
+        _req.deadline = 0.0
         if st["token"] and st["session"]:
             q = conn.queued() if isinstance(conn, OutConn) else 0
             log("SESSION conn closed", tag(st["token"]), "after %.0f s:" % (time.monotonic() - t_conn), close_why, "| searching" if st["token"] in MM.queue else "", "| in match" if MM.in_match(st["token"]) else "", "| %d B unsent" % q)
@@ -6600,7 +7335,7 @@ def tcp_conn(conn, addr):
 def handle_leave(addr, st):
     """Op 0x02 (client leave/cancel). Runs BEFORE the other ops of its batch: it used to be the last
     branch of an elif chain, so a 0x02 sharing a segment with a 0x05 keepalive / 0x15 poll / 0x01
-    re-queue was swallowed and the other player still went into the match alone."""
+ re-queue was swallowed and the other player still went into the match alone."""
     if st["token"]:
         others = MM.cancel(st["token"])
         if others is not None:
@@ -6698,7 +7433,7 @@ def handle_match_end(addr, st, batch):
                 clan_match_ended(players, MM.mid_of(st["token"]))
                 loaded_clear_match(MM.mid_of(st["token"]), players)
                 # free the match for requeue only after the scoreboard: dropping it at once
-                # made the clients quit to the menu right away (v1.11 notes; the base build
+                # made the clients quit to the menu right away (v1.11 notes; spec's build
                 # held the scoreboard ~8 s, winmm's own hold is 10 s)
                 mid_end = MM.mid_of(st["token"])
                 if mid_end: MM.end(mid_end)
@@ -6716,9 +7451,9 @@ def handle_match_end(addr, st, batch):
 
 def loaded_clear_match(mid, players):
     """Forget the LOADED mark of a finished / dropped match's players - but NOT of a player who already plays in ANOTHER live match.
-    A player had left match 83dc3bf8 (departed, but still listed in its player list) and was in 9435e28a; the host's result of
-    83dc3bf8 cleared LOADED of every listed player, that player included -> 9435e28a looked 'not everybody loaded' for good and the join-in-progress
-    GAME-START (0x0a) of two players never went out: both sat on the loading screen in sub-state 5 for ever."""
+ once: a player had left match 83dc3bf8 (departed, but still listed in its player list) and was in 9435e28a; the host's result of
+    83dc3bf8 cleared LOADED of every listed player, a player included -> 9435e28a looked 'not everybody loaded' for good and the join-in-progress
+    GAME-START (0x0a) of a player and a player never went out: both sat on the loading screen in sub-state 5 for ever."""
     for p in players or []:
         cur = MM.mid_of(p)
         if cur is None or cur == mid:
@@ -6730,7 +7465,7 @@ _JIP_WAIT_LOG = {}
 
 def jip_requeue_if_empty(mid):
     """J3: every established player of a running match left while a joiner was still loading: a joiner must not be started alone into an
-    empty world (it once sat alone for 30 s). Returns the joiners sent back to searching (they re-queue and may join another match)."""
+    empty world (PT79 d07f3e21: it sat alone for 30 s). Returns the joiners sent back to searching (they re-queue and may join another match)."""
     with MM.lock:
         pl = list(MM.matches.get(mid) or ())
         dep = set(MM.departed.get(mid, ()))
@@ -6754,7 +7489,7 @@ def jip_requeue_if_empty(mid):
 PRESTART_HOSTLOST_REQUEUE = os.environ.get("T2R_PRESTART_HOSTLOST_REQUEUE", "1") != "0"
 
 def prestart_host_lost(mid, players, survivors):
-    """The host (slot 0) crashed during the level load (session socket reset, removed 'session lost, never came back') and the
+    """ 32804413: the host (slot 0) crashed during the level load (session socket reset, removed 'session lost, never came back') and the
     survivors got their GAME-START anyway. They had never been welcomed by the host, so winmm could not reach it and the ext's host migration
     (armed only in the running match, and only for a welcomed client) never helped: "Could not reach host (timed out)" for everyone 30 s later.
     A match whose host is gone before it started has nobody to start it: it is called off and the survivors go back to SEARCHING at their old
@@ -7275,20 +8010,34 @@ def handle_batch(conn, addr, st, batch):
                 BRIDGES.steamid(realtok) and BRIDGES.port(realtok) and BRIDGES.conn(realtok)):
             # Steam-only matches (no server relay): a player whose Steam helper isn't
             # registered is not queued; the client (ext) shows why
-            log("MATCHMAKE", addr, "refused (no Steam helper)", tag(realtok))
+            key, helper = no_helper_note(realtok, addr[0])
+            log("MATCHMAKE", addr, "refused (no Steam helper)", tag(realtok),
+                f"- helper {helper!r} on this IP: game files changed (substitute token)" if helper else "")
             MM.rq.drop(realtok)                            # (a refused search ends a requeue ticket - its group does not wait for it)
-            conn.sendall(msg(0x11, srv_note("steam_off", realtok)))
+            conn.sendall(msg(0x11, srv_note(key, realtok)))
             return
         if is_banned(realtok, st.get("name")):
             log("MATCHMAKE", addr, "refused (banned)", tag(realtok))
             MM.rq.drop(realtok)
             conn.sendall(msg(0x11, ban_note(realtok)) + msg(0x0d, b"\x02"))   # note, then 0x0d [2]: winmm quits to the title (boat menu)
             return
+        ir = install_refusal(realtok, addr[0] if addr else None)
+        if ir:
+            log("MATCHMAKE", addr, "refused (install)", tag(realtok), ir[0])
+            MM.rq.drop(realtok)
+            conn.sendall(msg(0x11, ir[1]) + msg(0x0d, b"\x02"))
+            return
         vp = version_refusal(realtok)
         if vp:
             log("MATCHMAKE", addr, "refused (version)", tag(realtok), CLIENT_VERSIONS.get(realtok), "!=", SERVER_VERSION)
             MM.rq.drop(realtok)
             conn.sendall(msg(0x11, vp.encode("utf-8", "replace")[:0xf0]))
+            return
+        lh = None if MM.in_match(realtok) else loss_hold_note(realtok)
+        if lh:
+            log("MATCHMAKE", addr, "refused (packet loss hold)", tag(realtok))
+            MM.rq.drop(realtok)
+            conn.sendall(msg(0x11, lh))
             return
         SESSIONS.register(realtok, conn)                   # hold conn for match-start push
         PRES.touch(realtok, get_name(realtok) or st["name"])
@@ -7312,7 +8061,7 @@ def handle_batch(conn, addr, st, batch):
             else:
                 log("MATCHMAKE", addr, "already in match; holding")
         elif PARTIES.pid(realtok) and SOCIAL.search_gate(realtok, party_lead_searching):
-            # party rule: a member does not search - their FIND MATCH press is READY UP / UNREADY (the client sends the ready op itself)
+            # party rule: a member does not search - his FIND MATCH press is READY UP / UNREADY (the client sends the ready op itself)
             # and the leader's search takes the ready members along; the leader waits until every mate is ready. Not queued; the client pops the search page.
             log("MATCHMAKE", addr, "party FIND MATCH not queued (member = ready toggle while the leader is not searching / leader = a mate is not ready)", tag(realtok))
         else:
@@ -7330,12 +8079,20 @@ def handle_batch(conn, addr, st, batch):
     elif 0x0f in ops:                                     # BOOT handshake
         if not st["authed"] and st["token"] and len(st["token"]) == 64 and is_banned(st["token"], st["name"]):
             # FACTIONS II pressed on the boat menu: the client opens the session and logs in. Refuse right here: the note (op 0x11,
-            # shown by the MP-menu page tick) + 0x0d with payload 2 = the base client's MM_REJECT variant that sets winmm's flag 0x180167979, which
+            # shown by the MP-menu page tick) + 0x0d with payload 2 = spec's MM_REJECT variant that sets winmm's flag 0x180167979, which
             # the same page tick turns into FUN_180065480 = quit to the title (boat menu). Nothing is queued / announced / counted online.
             log("BOOT", addr, "refused (banned)", tag(st["token"]), "steam", BRIDGES.steamid(st["token"]) or token_steamid(st["token"]))
             conn.sendall(msg(0x11, ban_note(st["token"])) + msg(0x0d, b"\x02"))
             st["closed_sent"] = True
             return
+        if not st["authed"] and st["token"] and len(st["token"]) == 64:
+            # an edited install: refused the same way, before anything is announced / counted online
+            ir = install_refusal(st["token"], addr[0] if addr else None)
+            if ir:
+                log("BOOT", addr, "refused (install)", tag(st["token"]), ir[0])
+                conn.sendall(msg(0x11, ir[1]) + msg(0x0d, b"\x02"))
+                st["closed_sent"] = True
+                return
         if not st["authed"] and 0x0e in ops and session_reattach(conn, addr, st):
             return
         if not st["authed"]:
@@ -7346,13 +8103,13 @@ def handle_batch(conn, addr, st, batch):
                 extra = (msg(0x16, struct.pack("<I", max(1, PRES.count())))
                          + msg(0x14, leaderboard_table()))
             if 0x0e in ops and not ANNOUNCE_CLOSE:
-                # MP-menu announce (the base client's MM_HELLO): keep this socket OPEN, no 0x0d. winmm's
+                # MP-menu announce (spec's MM_HELLO): keep this socket OPEN, no 0x0d. winmm's
                 # FIND MATCH reuses a connected session socket (FUN_180057110, state 2: it just
                 # appends op 0x01). The old trailing 0x0d closed it ~0.3 s after every announce
                 # (~every 3 s); a press inside that window got the 0x0d AFTER entering the
                 # searching state -> state 5 -> the page quit to the TITLE screen and the
                 # queue dropped it 20 s later ("FIND MATCH sometimes boots back to main menu",
-                # test logs: 12 of 13 queue drops). Held, the client keeps state 2,
+                # playtest33/37 logs: 12 of 13 queue drops). Held, the client keeps state 2,
                 # heartbeats 0x05 + polls 0x15/0x13 on it, and the press arrives here.
                 conn.sendall(auth_reply_open(shown, extra))   # 0x10+0x08+extra, NO 0x0d
                 st["menu"] = True
@@ -7382,7 +8139,7 @@ def handle_batch(conn, addr, st, batch):
             # (row 0 of the lobby list, nameplates) like the old 3 s re-announce did. Also while the player sits in the
             # matchmaking queue (the queued player's own row 0 kept the old name until the next game start); the
             # sent_name dedupe means one 0x10 per rename, never in a running match
-            shown = get_name(tok2) or st["name"]
+            shown = safe_name(get_name(tok2) or st["name"])
             if shown != st.get("sent_name"):
                 conn.sendall(msg(0x10, shown.encode()[:31].ljust(32, b"\x00")))
                 st["sent_name"] = shown
@@ -7884,8 +8641,8 @@ def reap_matches(now=None):
                 SESS_LOST.pop(p, None)
             elif (lost and launched and SESSIONS.conn(p) is None
                   and now - lost[0] > (LOAD_SESSION_GRACE_S if (p not in LOADED and mid not in MM.started) else SESSION_GRACE_S)):
-                # (a player whose session socket is gone while the level is still loading has crashed / quit: the others waited 82 s
-                # for it. Not loaded and not started yet = LOAD_SESSION_GRACE_S instead of SESSION_GRACE_S, then the others start.)
+                # (PT92: a player whose session socket is gone while the level is still loading has crashed / quit: the others waited 82 s
+                # for Gmontague835. Not loaded and not started yet = LOAD_SESSION_GRACE_S instead of SESSION_GRACE_S, then the others start.)
                 # the session socket was lost in the running match and the player never re-attached: they left it (winmm's own reaction to a
                 # dead socket), the others play on like after a timeout
                 SESS_LOST.pop(p, None)
@@ -7960,7 +8717,7 @@ def reap_matches(now=None):
             continue
         if late_start and (soft or age > countdown_seconds() + LOAD_TIMEOUT):
             if missing and len(still) - len(missing) == 1 and mid not in MM.timed_out:
-                # The host never loaded, the one loaded player got a GAME-START alone, "Could not reach host", sat in an
+                #: the host never loaded, the one loaded player got a GAME-START alone, "Could not reach host", sat in an
                 # empty level and left. One player is no match: call it off, everyone back to the menu with a reason, free to search again.
                 MM.drop(mid)
                 HM.end(mid)
@@ -8038,8 +8795,8 @@ def live_export(now=None):
         for mid, pl in MM.matches.items():
             if mid in MM.ended or mid not in MM.started:
                 continue
-            # Joiners still in MM.joining used to be written as DEPARTED - a JIP player who joined < 30 s before a restart
-            # was dropped from the re-adopted match ("jip: roster slot 4 '<name>' not in the server's roster - removed"). They are saved as
+            # (551de4ee, host113): joiners still in MM.joining used to be written as DEPARTED - a JIP player who joined < 30 s before a restart
+            # was dropped from the re-adopted match ("jip: roster slot 4 'a player' not in the server's roster - removed"). They are saved as
             # joiners (seconds since the join + whether they had loaded); _readopt_apply puts them back into MM.joining and finishes the join.
             dep = set(MM.departed.get(mid, ()))
             jn = {t: max(0.0, now - t0) for t, (m, t0) in MM.joining.items() if m == mid and t not in dep}
@@ -8051,6 +8808,10 @@ def live_export(now=None):
                          "clock": list(ck) if ck else None, "lives": list(lv) if lv else None,
                          "late_bonus": {t: list(MM.late_bonus[t]) for t in pl if t in MM.late_bonus and MM.late_bonus[t][0] == mid},
                          "late_mult": {t: list(MM.late_mult[t]) for t in pl if t in MM.late_mult and MM.late_mult[t][0] == mid},
+                         # the in-match team swaps (auto balance / admin). Without them a restart put every swapped player
+                         # back on its slot-parity team in every roster reply, while the mover's own ext kept its new team: one-sided
+                         # friendly fire, wrong nametags.
+                         "team_swap": dict(TEAM_SWAP.get(mid) or {}),
                          "saved": now})
     for r in recs:
         key = frozenset(r["players"])
@@ -8186,6 +8947,9 @@ def _readopt_apply(mid, r, claimant, now):
         for t, a in joining.items(): MM.joining[t] = (mid, now - a)      # a join in progress that the restart interrupted: finished below / by the reaper
         for t, v in (r.get("late_bonus") or {}).items(): MM.late_bonus[t] = (v[0], v[1])
         for t, v in (r.get("late_mult") or {}).items(): MM.late_mult[t] = (v[0], v[1])
+        sw = {t: int(v) for t, v in (r.get("team_swap") or {}).items() if t in pl and int(v) in (0, 1)}
+        if sw:
+            TEAM_SWAP[mid] = sw                       # the in-match team swaps survive the restart (roster replies + the 0xA7 block)
     key = frozenset(pl)
     if r.get("map") is not None: MATCH_MAP[key] = r["map"]
     if r.get("p2p") is not None: MATCH_P2P[key] = r["p2p"]
@@ -8207,7 +8971,7 @@ def _readopt_apply(mid, r, claimant, now):
             if t not in joining or t in joining_loaded:   # (a joiner still on its loading screen reports its load itself)
                 LOADED.add(t); LOADED_T[t] = now
             if SESSIONS.conn(t) is None:
-                # After a daemon restart the clients' session sockets were closed by the restart. Their ext re-attaches (login +
+                # (PT92 live, daemon restart at 21:37:45): the clients' session sockets were closed by the restart. Their ext re-attaches (login +
                 # hello, session_reattach) only for a socket the daemon knows was lost: mark every restored player as one, so the re-attach is recognised
                 # and not handled as a menu announce, and the reaper's session grace applies to a player that never returns.
                 SESS_LOST[t] = (now, mid)
@@ -8271,7 +9035,7 @@ def net_report(now=None, every=60.0):
             "silent-s", {tag(p): int(silence(p, now)) for p in act if silence(p, now) > 10} or "none")
 
 # ---------------------------------------------------------------- status
-# Read-only live snapshot for tools/update_server and tools/admin_site (written every 10 s by status_loop, atomic replace). Default: next to
+# Read-only live snapshot for tools/update_server and tools/admin_site (written every 10 s by status_loop, atomic replace). Default since: next to
 # the database (t2r-status.json); T2R_STATUS_FILE=<path> moves it, T2R_STATUS_FILE=0 turns it off. No tokens in it (players are keyed by a hash).
 _sf = os.environ.get("T2R_STATUS_FILE")
 STATUS_FILE = "" if _sf in ("0", "off") else (_sf or os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "t2r-status.json"))
@@ -8298,6 +9062,20 @@ def roster_public(snap):
     except Exception as e:
         log("ROSTER-ERR", repr(e))
     return out[:ROSTER_MAX]
+
+def _snap_match_mode(mid):
+    """Mode key of a match for the snapshot (game_mode): the mode its lobby was formed in; the forced T2R_MODE; else the default mode (Supply Raid),
+    the same fallback modeq_op uses for its per-mode counts. Read by the Discord bot's live player-count channels."""
+    try:
+        m = MODEQ.match_mode(mid)
+    except Exception:                              # noqa: BLE001 - the snapshot never breaks on the mode lookup
+        m = None
+    return m or os.environ.get("T2R_MODE", "").strip().lower() or modeq.MODES[0]
+
+def _snap_search_mode(tok):
+    """Mode key a searcher waits in (search_mode), "any" for QUICK MATCH."""
+    m = _search_mode(tok)
+    return "any" if m == modeq.ANY else modeq.MODES[m] if 0 <= m < len(modeq.MODES) else modeq.MODES[0]
 
 def live_snapshot():
     """Who is online / queued / in which match, for the admin site. Cheap (no db writes), never raises (returns {} on any problem)."""
@@ -8340,7 +9118,7 @@ def live_snapshot():
                               "ping_ms": ping})
             out_m.append({"id": mid, "state": "ended" if mid in ended else "running" if mid in started else "loading",
                           "age_s": round(now - formed.get(mid, now)), "map": {"level": lvl[2], "name": lvl[0]} if lvl else None,
-                          "mode": os.environ.get("T2R_MODE", ""), "net": "steam-p2p" if MATCH_P2P.get(key) else "server-relay",
+                          "mode": os.environ.get("T2R_MODE", ""), "game_mode": _snap_match_mode(mid), "net": "steam-p2p" if MATCH_P2P.get(key) else "server-relay",
                           "players": plist, "clock": {"left": ck[0], "duration": ck[1], "ended": ck[2], "age_s": round(now - ck[3])} if ck else None,
                           "lives": {"team0": lv[0], "team1": lv[1], "age_s": round(now - lv[2])} if lv else None})
         out_p = []
@@ -8349,7 +9127,8 @@ def live_snapshot():
             out_p.append({"name": nm(t), "pid": pid(t), "steamid": BRIDGES.steamid(t) or 0, "state": "match" if mid else "queue" if t in queue else "menu",
                           "match": mid, "idle_s": round(now - p.get("last", now), 1), "queued_s": round(now - queue[t]) if t in queue else None, "queued": t in queue,
                           "version": CLIENT_VERSIONS.get(t, ""), "platform": "linux" if t in LINUX_CLIENTS else "windows",
-                          "steam_helper": BRIDGES.conn(t) is not None, "party": _party_size(t)})
+                          "steam_helper": BRIDGES.conn(t) is not None, "party": _party_size(t),
+                          "search_mode": _snap_search_mode(t) if t in queue else None})
         return {"started": STARTED_AT, "mode": os.environ.get("T2R_MODE", ""), "match_size": MATCH_SIZE, "min_players": MIN_PLAYERS,
                 "players": out_p, "queue": [{"name": nm(t), "waited_s": round(now - q)} for t, q in queue.items()], "matches": out_m}
     except Exception as e:
@@ -8489,7 +9268,7 @@ def status_loop():
             if os.path.exists(DB_PATH) and db_backup():
                 log("DB backup ok")
         try:    # an exception here used to end the thread for good (and with it host migration's tick and the db backup)
-            log("STATUS", f"online={PRES.count()} queue={len(MM.queue)} matches={len(MM.matches)} polls={NOISY_COUNT[0]} tcp={_tcp_live[0]}")
+            log("STATUS", f"online={PRES.count()} queue={len(MM.queue)} matches={len(MM.matches)} polls={NOISY_COUNT[0]} tcp={_tcp_live[0]} roreads={RO_READS[0]}/{RO_READS[1]} abandoned={ABANDONED[0]}")
             NOISY_COUNT[0] = 0
             reap_matches()
             ac_tick()
@@ -8500,6 +9279,8 @@ def status_loop():
             net_report()
             try: ping_check()                                    # ping limit (never breaks the status tick)
             except Exception as e: log("PING-CHECK ERR", repr(e))
+            try: loss_check()                                    # packet loss limit (never breaks the status tick)
+            except Exception as e: log("LOSS-CHECK ERR", repr(e))
             if UDP is not None and UDP.pk_in:
                 log("UDP-HEALTH", UDP.health_line())
             if UDP is not None and UDP.counters:
@@ -8646,7 +9427,7 @@ def kick_token(tok, why, ktxt, kind="admin-kick", reason="", keep_out=False, no_
 
 def afk_report(token, idle_s, flags=0):
     """Op 0xE3 trailer (ext afk.c): `idle_s` seconds without any input while alive in the running match (0xFFFF = unknown / the ext's AFK is off).
-    At AFK_KICK_S the player is removed with the kick path: back to the menu with the AFK text, out of the match like a quit (no win; no clan
+ At AFK_KICK_S the player is removed with the kick path: back to the menu with the AFK text, out of the match like a quit (no win; no clan
     deficit, CLAN_KICKED - kicks carry no penalty), no requeue ticket. Once per (token, match). Returns True when it removed the player."""
     if AFK_KICK_S <= 0 or idle_s == 0xFFFF or idle_s < AFK_KICK_S:
         return False
@@ -8669,7 +9450,100 @@ def afk_report(token, idle_s, flags=0):
 def _ping_fresh(a, b, now):
     """pair_ping(a, b) when one of the two directions was measured in the last PING_FRESH_S, else None (a stale median says nothing about now)."""
     at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
-    return pair_ping(a, b) if now - at <= PING_FRESH_S else None
+    return pair_ping(a, b, raw=True) if now - at <= PING_FRESH_S else None
+
+#: the ping gates (match formation, join in progress) read the fresh ping only. Searchers are not connected to each other, so
+# their pair pings go stale within 90 s and an unknown ping passes: a player at 287 ms to the host was matched (EVT ping-ms had the 287), and a
+# joiner refused at 262 ms one second earlier joined when the same ping turned stale; both were removed 60 s in. The gates fall back to the
+# last measured ping up to PING_GATE_AGE_S old (two homes' route changes slowly). ping_check (the in-match removal timer) stays on fresh pings.
+PING_GATE_AGE_S = float(os.environ.get("T2R_PING_GATE_AGE_S", "3600"))
+
+def ping_wait_judge(players, host, pair, now, units_fn=None, helper=None, wait_s=None, host_ok=None):
+    """Formation with unknown pair pings (match f160b685: 'HOST-PICK ping unknown, keeping queue order', the gate passed, two players at 281 / 210 ms
+    to the host were removed once the pings arrived). Only players with a live Steam helper can have a ping; a pair of them with no ping is unknown.
+    Returns (hold, leave_out): hold = some player in an unknown pair has waited less than PING_WAIT_S (since its first pass with one, kept in
+    PING_WAIT_SINCE) - the caller waits; after that leave_out = the fewest players (whole parties) whose ping to the host is still unknown: the
+    host is whichever player (`host` = the gate's pick wins a tie, host_ok = may host) has the fewest unknown pings; everybody with an unknown pair
+    when no player can host. PING_WAIT_S 0 = off."""
+    wait_s = PING_WAIT_S if wait_s is None else wait_s
+    helper = helper or has_helper
+    players = list(players)
+    inv = set()
+    if wait_s > 0 and len(players) >= 2:
+        hp = [t for t in players if helper(t)]
+        for i, a in enumerate(hp):
+            for b in hp[i + 1:]:
+                if pair(a, b) is None:
+                    inv.add(a); inv.add(b)
+    for t in players:
+        if t not in inv:
+            PING_WAIT_SINCE.pop(t, None)
+    if not inv:
+        return False, set()
+    for t in inv:
+        PING_WAIT_SINCE.setdefault(t, now)
+    if len(PING_WAIT_SINCE) > 500:
+        for k in [k for k, v in PING_WAIT_SINCE.items() if now - v > 3600]:
+            PING_WAIT_SINCE.pop(k, None)
+    if any(now - PING_WAIT_SINCE[t] < wait_s for t in inv):
+        return True, set()
+    def left_out(h):
+        o = {t for t in inv if t != h and (h is None or pair(h, t) is None)}
+        for t in list(o):
+            o.update(m for m in (units_fn(t) if units_fn else ()) if m in players and m != h)
+        return o
+    best = None
+    for i, h in enumerate([host] + players if host is not None else players):    # the gate's own host first: it wins a tie
+        if h is None or (host_ok is not None and not host_ok(h)):
+            continue
+        o = left_out(h)
+        if best is None or len(o) < len(best):
+            best = o
+    return False, (best if best is not None else left_out(host))
+
+PING_OUT = {}            # token -> [first, last] pass the ping gate left it out for being over the limit to the lobby's host
+
+def ping_left_out_note(dropped, now, note=None):
+    """A searcher the ping gate keeps leaving out (every pass for PING_NOTE_AFTER_S s) hears 'no players within N ms right now - still searching',
+    at most once per PING_NOTE_EVERY_S s (SOCIAL note kind 'pingfar', the notice poll shows it). Returns the tokens noted."""
+    note = note or (lambda t, n: SOCIAL.note(t, "pingfar", str(n)))
+    cur = set(dropped)
+    for t in [t for t in PING_OUT if t not in cur]:
+        PING_OUT.pop(t, None)
+    sent = []
+    for t in cur:
+        rec = PING_OUT.get(t)
+        if rec is None or now - rec[1] > 30.0:
+            rec = PING_OUT[t] = [now, now]
+        rec[1] = now
+        if now - rec[0] >= PING_NOTE_AFTER_S and now - PING_NOTE_AT.get(t, -1e9) >= PING_NOTE_EVERY_S:
+            PING_NOTE_AT[t] = now
+            try:
+                note(t, PING_KICK_MS)
+                sent.append(t)
+                log("PING-GATE", tag(t), "left out for %d s: search note sent (no players within %d ms)" % (now - rec[0], PING_KICK_MS))
+            except Exception as e:                       # noqa: BLE001 - a note never breaks the queue
+                log("PING-GATE note ERR", repr(e))
+    if len(PING_NOTE_AT) > 500:
+        for k in [k for k, v in PING_NOTE_AT.items() if now - v > 3600]:
+            PING_NOTE_AT.pop(k, None)
+    return sent
+
+def _ping_gate(a, b, now):
+    """The ping the gates judge: the fresh pair ping, else the last measured one when it is at most PING_GATE_AGE_S old, else None."""
+    ms = _ping_fresh(a, b, now)
+    if ms is None:
+        at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
+        ms = pair_ping(a, b, raw=True) if at and now - at <= PING_GATE_AGE_S else None
+    if not MEASURED_PAIR and not PING_CORR:
+        return ms
+    if ms is not None:                                    # the per-player correction on the estimate
+        ms += max(_corr_of(a, now), _corr_of(b, now))
+    if PING_MEMORY_S > 0:                                 # what the last removal of this pair measured
+        m = _measured_of(a, b, now)
+        if m is not None and (ms is None or m > ms):
+            ms = m
+    return ms
 
 def jip_ping_block(token, mid, host, active, joining, now):
     """Join in progress: the joiner's fresh ping to the host when ping_check would remove it for that ping, else None (unknown ping, under the
@@ -8678,9 +9552,13 @@ def jip_ping_block(token, mid, host, active, joining, now):
     Called with MM.lock held (reads only)."""
     if PING_KICK_MS <= 0 or PRIV.rule(mid, "ping") == 0 or token == host:
         return None
-    ms = _ping_fresh(token, host, now)
-    if ms is None or ms <= PING_KICK_MS:
+    ms = _ping_gate(token, host, now)
+    if ms is None or ms <= (ping_match_ms() if MM_PING_GATE else PING_KICK_MS):
         return None
+    if MM_PING_GATE:
+        # match 72784a06: one player already in at 254 ms made 'most players high' true with the joiner's own ping counted, so three joiners
+        # at 238-280 ms got in and were removed once she left. A joiner over the limit never joins (the exception below is for players already in).
+        return ms
     known = [ms] + [v for v in (_ping_fresh(p, host, now) for p in active if p not in (host, token) and p not in joining) if v is not None]
     high = [v for v in known if v > PING_KICK_MS]
     if len(known) >= 2 and len(high) * 2 > len(known):
@@ -8723,6 +9601,11 @@ def ping_check(now=None):
                 continue
             key = (p, mid)
             live.add(key)
+            if pings.get(p) is None and MM_PING_GATE:
+                # match 06930992 (a 255 ms player never removed): the pair ping went stale (> PING_FRESH_S) between Steam estimates about once
+                # a minute and the unknown value counted as 'back under', so the 60 s timer restarted every ~70 s. Unknown keeps the timer as it is;
+                # the removal still needs a fresh reading over the limit.
+                continue
             if p not in high:
                 if PING_HIGH.pop(key, None) is not None:
                     log("ping:", tag(p), "back under %d ms to the host in match %s (%s ms)" % (PING_KICK_MS, mid, pings.get(p)))
@@ -8736,6 +9619,10 @@ def ping_check(now=None):
             if len(PING_KICKED) > 2000:
                 PING_KICKED.clear()
             ms, secs = int(pings[p]), int(now - t0)
+            try:
+                ping_kick_learn(mid, p, host, ms, now)
+            except Exception as e:                           # noqa: BLE001 - the memory never blocks the removal
+                log("ping-learn ERR", repr(e))
             log("ping:", tag(p), "%d ms to the host for %d s in match %s - removed from the match (not counted as leaving early)" % (ms, secs, mid))
             did = kick_token(p, "removed: high ping (%d ms to the host for %d s)" % (ms, secs),
                              srv_text("ping_kicked", lang_of(p), ms=ms, s=secs, lim=PING_KICK_MS), "ping-kick",
@@ -8745,6 +9632,161 @@ def ping_check(now=None):
     for k in [k for k in PING_HIGH if k not in live]:            # finished matches / departed players
         PING_HIGH.pop(k, None)
     return out
+
+def parse_loss(pl):
+    """Trailer 3 of an op 0xCA payload (flags bit2; after trailer 1 and, with flags bit1, trailer 2):
+    [u8 ver=1][u8 flags: bit0 the reporter's own msg-7 sends are paced (t2r-m7-lod.txt), bit1 its host upload budget is on (t2r-host-bw.txt)][u8 n]
+    n x ([u8 slot][u32 LE FNV-1a of the peer's roster name, up to 24 B][u16 LE msg-7 received][u16 LE msg-7 lost]) = what the reporter
+    received from each other player since its last report (9 B per peer: clan_send caps the payload). -> {"paced", "hbw", "peers": [(slot,
+    name hash, received, lost)]} or None."""
+    if len(pl) < 72 + 7 or not (pl[71] & 4) or pl[72] != 1:
+        return None
+    off = 79 + (7 if pl[71] & 2 else 0)
+    if len(pl) < off + 3 or pl[off] != 1:
+        return None
+    fl, n = pl[off + 1], pl[off + 2]
+    if n > 32 or len(pl) < off + 3 + n * 9:
+        return None
+    out = []
+    for i in range(n):
+        e = pl[off + 3 + i * 9: off + 3 + (i + 1) * 9]
+        out.append((e[0], int.from_bytes(e[1:5], "little"), int.from_bytes(e[5:7], "little"), int.from_bytes(e[7:9], "little")))
+    return {"paced": bool(fl & 1), "hbw": bool(fl & 2), "peers": out}
+
+def _roster_key(nm):
+    """FNV-1a 32 of a name as the ext reads it back from its peer record: the roster's latin1 bytes (build_player_record), the first 24, up to a NUL."""
+    if isinstance(nm, str):
+        nm = nm.encode("latin1", "ignore")
+    h = 2166136261
+    for c in bytes(nm[:24]).split(b"\0", 1)[0]:
+        h = ((h ^ c) * 16777619) & 0xFFFFFFFF
+    return h
+
+def loss_note(token, rep, now=None):
+    """Book one reporter's per-peer loss in its live match. A name that is not exactly one other player of that match is skipped."""
+    if not rep or LOSS_KICK_PCT <= 0:
+        return
+    now = time.time() if now is None else now
+    mid, act = MM.active_of(token)
+    if not mid:
+        return
+    LOSS_FLAGS[(mid, token)] = (rep["paced"], rep["hbw"])
+    by = {}
+    for p in act:
+        if p != token:
+            by.setdefault(_roster_key(get_name(p) or ""), []).append(p)
+    for slot, h, rx, lost in rep["peers"]:
+        subj = by.get(h)
+        if not subj or len(subj) != 1 or rx + lost <= 0:
+            continue
+        LOSS.setdefault((mid, token, subj[0]), collections.deque(maxlen=4)).append((now, rx, lost))
+    if len(LOSS) > 4000:                             # bounded: oldest keys out (finished matches are swept by loss_check)
+        for k in list(LOSS)[:1000]:
+            LOSS.pop(k, None)
+
+def loss_of(mid, subj, now):
+    """{observer: loss %} of one player in one match over the last LOSS_WINDOW_S, observers with LOSS_MIN_PKTS or more only."""
+    out = {}
+    for (m, obs, s), d in list(LOSS.items()):
+        if m != mid or s != subj:
+            continue
+        rx = sum(r for t, r, l in d if now - t <= LOSS_WINDOW_S)
+        lo = sum(l for t, r, l in d if now - t <= LOSS_WINDOW_S)
+        if rx + lo >= LOSS_MIN_PKTS:
+            out[obs] = 100.0 * lo / (rx + lo)
+    return out
+
+def loss_check(now=None):
+    """Every status tick (10 s): the packet loss limit (LOSS_KICK_PCT / LOSS_KICK_S, see the table above). Returns the tokens removed."""
+    now = time.time() if now is None else now
+    out = []
+    if LOSS_KICK_PCT <= 0:
+        return out
+    live, mids = set(), set()
+    for mid, players, formed, launched, ended, _, dep in MM.snapshot():
+        if not launched or ended:
+            continue
+        mids.add(mid)
+        if now - formed < PING_GRACE_S:
+            continue
+        act = [p for p in players if p not in dep]
+        if len(act) < LOSS_MIN_OBS + 1 or PRIV.rule(mid, "ping") == 0:     # a private match with PING LIMIT off has no loss limit either
+            continue
+        with MM.lock:
+            m_started = mid in MM.started
+            joining = set(MM.joining)
+        if not m_started:
+            continue
+        if any(LOSS_FLAGS.get((mid, p), (0, 0))[1] for p in act):   # a host upload budget drops relayed msg 7 on purpose: seq gaps are not loss
+            continue
+        med = {}
+        for p in act:
+            if p in joining or LOSS_FLAGS.get((mid, p), (0, 0))[0]:   # its own sends to far peers are paced: gaps by design
+                continue
+            obs = {o: v for o, v in loss_of(mid, p, now).items() if o in act and o != p}
+            if len(obs) >= LOSS_MIN_OBS:
+                v = sorted(obs.values())
+                med[p] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2.0, len(v))
+        high = [p for p, (v, n) in med.items() if v >= LOSS_KICK_PCT]
+        if len(med) >= 2 and len(high) * 2 >= len(med):          # half or more are lossy: the host / relay link is the problem, nobody is removed
+            for p in act:
+                LOSS_HIGH.pop((p, mid), None)
+            continue
+        for p in act:
+            key = (p, mid)
+            live.add(key)
+            if p not in med:                                      # unknown keeps the timer as it is (as the ping limit)
+                continue
+            pct, nobs = med[p]
+            if p not in high:
+                if LOSS_HIGH.pop(key, None) is not None:
+                    log("loss:", tag(p), "back under %.0f%% in match %s (%.1f%%, %d observers)" % (LOSS_KICK_PCT, mid, pct, nobs))
+                continue
+            t0 = LOSS_HIGH.setdefault(key, now)
+            if t0 == now:
+                log("loss:", tag(p), "median packet loss %.1f%% seen by %d players in match %s - at or over the %.0f%% limit, removed after %d s of it%s"
+                    % (pct, nobs, mid, LOSS_KICK_PCT, LOSS_KICK_S, "" if LOSS_GATE >= 2 else " (LOG ONLY)"))
+            if now - t0 < LOSS_KICK_S or key in LOSS_KICKED:
+                continue
+            LOSS_KICKED.add(key)
+            if len(LOSS_KICKED) > 2000:
+                LOSS_KICKED.clear()
+            secs, ipct = int(now - t0), int(round(pct))
+            if LOSS_GATE < 2:
+                log("loss:", tag(p), "%.1f%% loss for %d s in match %s - would be removed (T2R_LOSS_GATE=%d: log only)" % (pct, secs, mid, LOSS_GATE))
+                continue
+            LOSS_HOLD[BRIDGES.steamid(p) or p] = (now, ipct)
+            if len(LOSS_HOLD) > 5000:
+                LOSS_HOLD.clear()
+            log("loss:", tag(p), "%.1f%% packet loss (%d observers) for %d s in match %s - removed from the match (not counted as leaving early), searches held %d s"
+                % (pct, nobs, secs, mid, LOSS_HOLD_S))
+            did = kick_token(p, "removed: packet loss (%d%% for %d s)" % (ipct, secs),
+                             srv_text("loss_kicked", lang_of(p), pct=ipct, s=secs, lim=int(LOSS_KICK_PCT), m=max(1, int(LOSS_HOLD_S // 60))), "loss-kick",
+                             "%d%% packet loss for %d s (limit %d%%)" % (ipct, secs, int(LOSS_KICK_PCT)), keep_out=True, no_penalty=True)
+            log("loss:", tag(p), "removal done:", ", ".join(did) or "nothing")
+            out.append(p)
+    for k in [k for k in LOSS_HIGH if k not in live]:
+        LOSS_HIGH.pop(k, None)
+    for k in [k for k in LOSS if k[0] not in mids]:               # finished matches
+        LOSS.pop(k, None)
+    for k in [k for k in LOSS_FLAGS if k[0] not in mids]:
+        LOSS_FLAGS.pop(k, None)
+    return out
+
+def loss_hold_note(token, now=None):
+    """The note a new search is refused with while the player's loss hold runs (LOSS_HOLD_S after a loss removal), else None."""
+    if LOSS_GATE < 2 or LOSS_HOLD_S <= 0 or not LOSS_HOLD:
+        return None
+    now = time.time() if now is None else now
+    k = BRIDGES.steamid(token) or token
+    h = LOSS_HOLD.get(k)
+    if not h:
+        return None
+    left = LOSS_HOLD_S - (now - h[0])
+    if left <= 0:
+        LOSS_HOLD.pop(k, None)
+        return None
+    return srv_note("loss_hold", token, pct=h[1], m=max(1, int((left + 59) // 60)))
 
 def admin_kick(pid, reason="", move=False):
     """Clear a player's stuck server-side state so it can matchmake again: queue, match membership (a not yet launched match is called off and the
@@ -8899,7 +9941,7 @@ def admin_server():
                 log("ADMIN-ERR", repr(e))
                 try: self._send(400, {"ok": False, "error": "bad request"})
                 except Exception: pass
-    # Symptom "Notices need the daemon admin listener: Forbidden": an older daemon (test, port 7101) still held 127.0.0.1:7011 with its own
+    # ("Notices need the daemon admin listener: Forbidden"): an older daemon (test, port 7101) still held 127.0.0.1:7011 with its own
     # secret; HTTPServer's SO_REUSEADDR let the live daemon bind the same port on Windows and the admin site's requests reached the old one.
     # Exclusive bind: a taken port fails here and is logged ("ADMIN server not started").
     class XServer(ThreadingHTTPServer):
@@ -8923,7 +9965,7 @@ def admin_start():
 
 def merge_dbs(paths):
     """python daemon.py --merge-db a.db b.db ...: build DB_PATH (must not exist yet) from several playtest databases (a new
-    test folder started a fresh t2r.db and the clans of the last one were gone). Newest file is the base; from the others: a clan is kept
+    PT folder started a fresh t2r.db and the clans of the last PT were gone). Newest file is the base; from the others: a clan is kept
     when it is further along (weeks_total, day) or as far and newer; players keep the row with more matches; names / boosters union."""
     import shutil
     paths = [p for p in paths if os.path.exists(p)]

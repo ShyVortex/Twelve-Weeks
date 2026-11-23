@@ -63,6 +63,13 @@ def _child(jobfile):
         pickle.dump(res, f)
 
 
+def _child_cmd(jobfile):
+    """the child's command line; frozen (the Part I importer p1conv.exe, tools/part1/p1conv.spec) the exe runs the job itself: `p1conv parjob <file>`"""
+    if getattr(sys, "frozen", False):
+        return [sys.executable, "parjob", jobfile]
+    return [sys.executable, "-u", os.path.abspath(__file__), "--child", jobfile]
+
+
 _adm = threading.Condition()
 _running = [0]
 
@@ -115,7 +122,7 @@ def run(jobs, workers=None, log=print, child_env=None, force_child=False):
         with slots:
             _admit()
             try:
-                p = subprocess.run([sys.executable, "-u", os.path.abspath(__file__), "--child", jf], capture_output=True,
+                p = subprocess.run(_child_cmd(jf), capture_output=True,
                                    env=dict(os.environ, **child_env) if child_env else None)
             finally:
                 _release()
@@ -138,7 +145,7 @@ def run(jobs, workers=None, log=print, child_env=None, force_child=False):
             jf = os.path.join(tmp, f"job{i}.pkl")
             if os.path.exists(jf + ".res"):
                 os.remove(jf + ".res")
-            p = subprocess.run([sys.executable, "-u", os.path.abspath(__file__), "--child", jf], capture_output=True, env=dict(os.environ, **child_env) if child_env else None)
+            p = subprocess.run(_child_cmd(jf), capture_output=True, env=dict(os.environ, **child_env) if child_env else None)
             outputs[i] = (p.stdout + p.stderr).decode(errors="replace")
             try:
                 with open(jf + ".res", "rb") as f:

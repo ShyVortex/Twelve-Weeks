@@ -1,4 +1,4 @@
-"""Private matches (re/private-lobby-1117.md): a lobby with an owner, a join code, per-match rule overrides, a chosen map or a
+"""Private matches (spec, re/private-lobby-1117.md): a lobby with an owner, a join code, per-match rule overrides, a chosen map or a
 private map pool, and NO clan / stats effects. Pure logic, no sockets; tools/daemon.py wires it (op 0xF8 -> 0xF9) into the matchmaker, the map
 choice, the clan / stats / anti-AFK paths and the in-match rule reply the ext polls.
 

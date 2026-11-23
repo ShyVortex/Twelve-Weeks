@@ -54,7 +54,7 @@ IDLE_MULT = 2.0                   # the post-match handler sets 2.0 for a player
 EVENT_LEN = 3                     # *clan-vars* +0x48: an event's mission runs three matches (days start .. start + 2)
 ATTACK_EARLY = (-0.6, -0.4, -0.2, -0.1)       # *firefly-story-events* / *hunter-story-events* entries 0, 1: tier 0 / 1 / 2 / 3 casualties
 ATTACK = (-1.0, -0.6, -0.4, -0.2)             # entries 2 .. 6
-# missions.md (and the wiki table) say 5 / 7 / 10 %; the game data (*clan-events*) decodes tier 2 as 7.5 %. The doc wins: 7 %.
+# missions.md (and the wiki table he sent) say 5 / 7 / 10 %; the game data (*clan-events*) decodes tier 2 as 7.5 %. The doc wins: 7 %.
 GROWTH = (0.0, 0.05, 0.07, 0.10)              # *clan-events* entries 1 .. 7 (all "new members" type)
 ATTACK_PARTS_BONUS = 0.10                     # missions.md: "during this event [the attack] the player gains 10% more Parts" (ext award_hook, "Attack Bonus")
 # start day of every event: the story attacks are fixed (entry +0x48); a random growth event starts once the event is over, the 2 quiet
@@ -340,10 +340,15 @@ def _event_step(c, cr, meta, r, counts, left_early):
     whose third match this was is settled by the mission's tier; a practice mission (no event) just runs its three matches."""
     day = c["day"]                                   # the day just played
     m = meta.get("m")
+    s = event_window(day)
+    if not m and s >= 0:
+        # An event is running but no mission was chosen (the CHOOSE MISSION page was closed): the event's own training is set for
+        # this match, so its progress counts and the event is never settled at tier 0 just because the picker was skipped.
+        m = meta["m"] = {"id": auto_event_mission(meta), "left": s + EVENT_LEN - day, "prog": 0, "ev": s, "sz": cr.size, "auto": 1}
+        meta.pop("pool", None)
     if m:
         m["prog"] += max(0, int(counts.get(m["id"], 0)))
         m["left"] = max(0, m.get("left", EVENT_LEN) - 1)
-    s = event_window(day)
     if m:
         r.update(mi=m["id"], mp=m["prog"], mt=0, ms=0, mb=0, mboosters=[], mz=m.get("sz", 0))
     if s >= 0 and day == s + EVENT_LEN - 1:          # the event's last match: settle it
@@ -447,6 +452,21 @@ def mission_goals(mid, repeats=0, size=0):
     g = MISSIONS[mid][2]
     r = max(0, int(repeats))
     return tuple(g[min(r + t, len(g) - 1)] for t in range(3))
+
+
+AUTO_EVENT_MISSION = 1             # Down Enemies: its label (downed enemies) is sent for every match
+
+
+def auto_event_mission(meta):
+    """The mission set for an event when the player chose none: Down Enemies, or (when it is greyed out after five completions)
+    the first other mission that is not greyed out and is not a weapon-execution one."""
+    rep = meta.get("rep", {}) or {}
+    if rep.get(str(AUTO_EVENT_MISSION), 0) < MISSION_REPEAT_MAX:
+        return AUTO_EVENT_MISSION
+    for i, v in MISSIONS.items():
+        if v[3] and i not in EXEC_POOL and rep.get(str(i), 0) < MISSION_REPEAT_MAX:
+            return i
+    return AUTO_EVENT_MISSION
 
 
 def attack_goals(size=0):
@@ -584,7 +604,7 @@ def apply_match(c, tid, mid, parts, left_early=False, counts=None, mult=1.0, for
     meta = meta_of(new)
     try:                                                    # supplies per category (tools/clan_supply.py): the same engine numbers, split; the stock persists in meta["sup"]
         stock, r["sup"] = clan_supply.book((meta.get("sup") or {}).get("stock"), r["supplies"], r["needed"], clan["healthy"] + clan["hungry"] + clan["sick"],
-                                           r["parts"], counts, bool(r.get("left")))
+                                           r["parts"], counts, bool(r.get("left")), bool(forgive))
         meta["sup"] = {"stock": stock}
     except Exception:                                       # noqa: BLE001 - a presentation split never breaks the day
         r.pop("sup", None)
@@ -608,7 +628,7 @@ def apply_match(c, tid, mid, parts, left_early=False, counts=None, mult=1.0, for
 
 
 # ------------------------------------------------------------------ re-booking one match (leave + join in progress back into it)
-# A player that leaves a running match and joins it again reports twice for the same match id. Its day must count ONCE, with the
+# a player that leaves a running match and joins it again reports twice for the same match id. Its day must count ONCE, with the
 # final result (the stints summed): the rows the first booking changed are kept here, keyed by the match id (persisted: a daemon restart between
 # the stints still works), and put back before the final report is booked. The next different match id replaces the snapshot.
 SNAP_SCHEMA = "CREATE TABLE IF NOT EXISTS clan_snap(token_id TEXT PRIMARY KEY, mid TEXT, data TEXT, updated REAL)"
@@ -773,7 +793,7 @@ def meta_text(c, tid, pick=0, active=0):
 
 def match_tag(mid):
     """Small positive int that changes with every resolved match (0 = none yet): the client tells a NEW result from the previous one with it.
-    A day that does not count (idle / late-join multiplier) leaves the day number unchanged, so `lday` alone cannot."""
+ A day that does not count (idle / late-join multiplier) leaves the day number unchanged, so `lday` alone cannot."""
     if not mid:
         return 0
     return (zlib.crc32(str(mid).encode("utf-8", "ignore")) & 0x3fffffff) | 1

@@ -1,5 +1,5 @@
-"""Player rank table for the rank badge in front of every player name (ranks show in front of the names in the Lobby and on
-every screen, consistently).
+"""Player rank table for the rank badge in front of every player name ("the ranks don't show in front of the names in the Lobby, and on
+every screen, not just in main menu - it should be consistent").
 
 Op 0xBF [64B token] -> reply 0xBF text "n=<count> <HHHHHHHH:r:w> ..." : one entry per known player, keyed by a hash of the player's SHOWN name
 (norm(): ASCII letters / digits only, lower case - the same on both sides, so "[TAG] Name", the vote page's "_TAG__Name" and a name cut by the
@@ -32,7 +32,7 @@ def key(name):
 def wire(rows):
     """rows = [(shown name, symbol, weeks[, role])] -> the reply text (first row wins for a duplicate key; unknown ranks (0, 0) are still listed so a
     low rank draws as rank 0 / 0 weeks, the same as the player's own page).
-    An entry with a role (tools/roles.py: 1 OG, 2 admin, 3 dev, 4 lead dev) carries it as a 4th field "HHHHHHHH:r:w:role" (the badge colour,
+ an entry with a role (tools/roles.py: 1 OG, 2 admin, 3 dev, 4 lead dev) carries it as a 4th field "HHHHHHHH:r:w:role" (the badge colour,
     the lead's nametag outline). An older ext reads the first three fields and skips the rest of the word, so the field is safe to add."""
     seen, out = set(), []
     for row in rows:

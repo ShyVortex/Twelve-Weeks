@@ -1,7 +1,7 @@
 """Which head a clan member gets: role- and age-aware choice from the head pool (tools/clan_portrait_pool.py, every usable TLOU2 head).
   kid -> kids (and teens), elder -> elders, medic -> doctors / nurses (WLF) or civilians (Seraphites have no doctor look), cook -> kitchen staff, guard -> soldiers,
   scout -> soldiers / Firefly / Duster, scavenger -> civilians / refugees / Rattler-types, mechanic -> gym / civilians / Rattlers, gardener -> civilians (elders welcome),
-  radio -> civilians / soldiers.  Faction-locked: a WLF clan wears WLF heads only, a Seraphite clan Seraphite heads only; the neutral rows of the pool
+ radio -> civilians / soldiers. Faction-locked: a WLF clan wears WLF heads only, a Seraphite clan Seraphite heads only; the neutral rows of the pool
   (Jackson, Rattlers, prisoners, Firefly, Duster: faction N) are never picked.
 Switch: T2R_PORTRAIT_POOL=0 (or tools/clan_portrait_pool.txt = 0) goes back to the old name-hash model 0..3 of clan_chronicle.PORTRAIT_MODELS. Pure data + hash, no I/O besides the switch.
 A pick is stable for a name (same name -> same head)."""
@@ -124,8 +124,8 @@ def faction_of(model):
 def pick(name, role, sex, fk, used=()):
     """The model id (pool row id) for a member, or None when the pool has no head for them (the caller uses the old hash).
     used = heads the earlier members already wear: the name's own pick stands unless it is in `used`; then another head of the role that nobody wears (still by the name's hash),
-    then a head of the broad civilian pool nobody wears; only when the whole pool for that sex is taken the first pick is repeated (clan members repeated looks).
-    Faction lock with no face churn: the pick the old rule gives is kept when it is of the clan's own faction, so only the members who wore a neutral head
+ then a head of the broad civilian pool nobody wears; only when the whole pool for that sex is taken the first pick is repeated (clan members repeated looks).
+ Faction lock with no face churn: the pick the old rule gives is kept when it is of the clan's own faction, so only the members who wore a neutral head
     (Jackson / Rattler / prisoner / Firefly) move, to a head of their clan's faction; nothing is stored, the save keeps name, role and state as they are."""
     old = _pick(name, role, sex, fk, used, _legacy)
     if old is not None and faction_of(old) == fk:

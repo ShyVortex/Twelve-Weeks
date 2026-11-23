@@ -30,7 +30,7 @@ def _days_ago_pl(n):
 
 def tail(kind, role, name, a, b, lang):
     """The call-back sentence. role: 'ill' | 'mourn'; a = onset day / death day; b = the row's day. Relative ("for 4 days"), never an absolute clan day: the journal
-    shows the day of the WEEK, so "since day 31" next to a "DAY 4" card read as a different calendar."""
+ shows the day of the WEEK, so "since day 31" next to a "DAY 4" card read as a different calendar."""
     n = int(b) - int(a)
     if n <= 0:
         return ""

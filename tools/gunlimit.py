@@ -1,4 +1,4 @@
-"""Per-team gun limits (e.g. a Tactical Shotgun limit of 1 per team to prevent a tac shotgun meta) - daemon side.
+"""Per-team gun limits - daemon side.
 
 The daemon is the single arbiter: every player reports the limited guns of the loadout it intends to spawn with (op 0xDE), the
 daemon grants a gun only while fewer than `max` teammates hold it. Two teammates picking in the same instant reach the daemon

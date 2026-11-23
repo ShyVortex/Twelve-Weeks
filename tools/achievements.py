@@ -65,7 +65,7 @@ def _all_se(cnt, m):
 
 
 # ---- the table ----------------------------------------------------------------------------------------------------------------------
-# Goals from live data (a snapshot of 1218 player-matches): per match ~10 downs, ~5 executions, ~2 headshots, 0.6 revives;
+# Goals from live data (snapshot, 1218 player-matches): per match ~10 downs, ~5 executions, ~2 headshots, 0.6 revives;
 # matches per player p50 7 / p75 29 / p90 67. Lifetime goals take a regular (p75-p90) player tens of matches; one-match feats need a
 # top-few-percent match. A per-action goal = 15+ matches of a player who goes for it (a revolver main executes up to
 # ~10 a match, so 150). Ids keep their first goal (stored unlocks and art are keyed by id).
@@ -172,7 +172,7 @@ assert len(BY_ID) == len(ACH), "duplicate achievement id"
 for _x in ACH:
     assert _x["live"] is None or _x["test"]({_x["live"][0]: _x["live"][1]}) and not _x["test"]({_x["live"][0]: _x["live"][1] - 1}), _x["id"]
 
-# ---- live unlocks (an achievement shows as unlocked the moment it is unlocked, not at the end of the match) ---------
+# ---- live unlocks ---------
 # The ext knows the table (progress / goal per achievement, op 0xAA) and this match's counters, so it sees the moment a goal is crossed; it then
 # sends op 0xAB (the counters so far) and the daemon books them (book_live) and answers with the table: the unlock card shows in the match.
 # The daemon still decides every unlock. Live: the plain lifetime counters of the ext's labels, JACK OF ALL BLADES and the one-match counts

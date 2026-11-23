@@ -1,5 +1,5 @@
-"""Friends + parties (a friends and party system: pending requests, friends, online / offline, and parties that have a
-leader and queue together as a team). Pure logic over an injected host, no sockets; tools/daemon.py wires it (op 0xD8 -> 0xD9) and the
+"""Friends + parties ("a friends and party system, real ui with pending requests, friends, online offline, and parties should have a
+leader and should queue together as a team"). Pure logic over an injected host, no sockets; tools/daemon.py wires it (op 0xD8 -> 0xD9) and the
 launcher's FRIENDS page / the notice poll of t2r-ext read it.
 
 Accounts: a player is "s:<steamid>" when the daemon knows the Steam account of the token, else "t:<hash of the install id>" (never a raw token or
@@ -17,8 +17,16 @@ it to the next member. The matchmaker keeps a party on one team and holds it unt
 Wire (t2r-launcher, its own short TCP connection):
   launcher -> daemon  0xD8 [64B token][u8 ver=1][u8 lang 0 en / 1 pl][u8 sub][UTF-8 argument]
   daemon -> launcher  0xD9 UTF-8 JSON  {"ok":1|0,"err":"<code>","v":1,"me":..,"friends":[..],"in":[..],"out":[..],"party":{..}|null,"pinv":[..],"found":[..]}
+In-game chat (the game's own sub calls, same op):
+  S_PSAY 15  arg = text of a party chat line     -> state + "pchat" (last 20 lines); err noparty | bad | rate
+  S_PCHAT 16 arg = "<last id seen>" (poll, 2 s)  -> {"ok","err","pchat":{"lines":[{"id","name","t","me","age"}],"last":id}} only (no database, no state)
+ S_LSAY 18 arg = text of a LOBBY line (the players of the last match's lobby, SOCIAL.lobby_of) -> {"ok","err","pchat","lk"}; err nolobby | bad | rate
+  S_LCHAT 19 arg = "<last id seen>" (poll, 2 s, MP menu / FIND MATCH) -> {"ok","err","pchat","lk"} (lk = the lobby's key: another number = a new lobby)
+  S_MLOG 17  arg = "<m|t>\n<text>" (match / team line, the report log copy; the line itself travels peer to peer) -> {"ok","err"} only
+  _state also carries "recent": the newest 10 private conversations [{"id","name","t","me","age","unread"}], newest first.
 In game the same events reach the player as notice-poll lines (kind p, op 0xBA/0xBB: notes_for).
 """
+import collections
 import hashlib
 import json
 import re
@@ -28,10 +36,12 @@ import threading
 import time
 
 OP_REQ, OP_REPLY = 0xD8, 0xD9
-S_STATE, S_SEARCH, S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY = range(1, 13)
+S_STATE, S_SEARCH, S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY, S_MSG, S_CHAT, S_PSAY, S_PCHAT, S_MLOG, S_LSAY, S_LCHAT = range(1, 20)
 SUB_NAMES = {S_STATE: "state", S_SEARCH: "search", S_ADD: "add", S_ACCEPT: "accept", S_REMOVE: "remove", S_INVITE: "invite", S_JOIN: "join",
-             S_DECLINE: "decline", S_LEAVE: "leave", S_KICK: "kick", S_PROMOTE: "promote", S_READY: "ready"}
-WRITE_SUBS = frozenset((S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY))
+             S_DECLINE: "decline", S_LEAVE: "leave", S_KICK: "kick", S_PROMOTE: "promote", S_READY: "ready", S_MSG: "msg", S_CHAT: "chat",
+             S_PSAY: "psay", S_PCHAT: "pchat", S_MLOG: "mlog", S_LSAY: "lsay", S_LCHAT: "lchat"}
+LCHAT_IDLE_S = 900.0           # a lobby's lines are dropped this long after its newest one
+WRITE_SUBS = frozenset((S_ADD, S_ACCEPT, S_REMOVE, S_INVITE, S_JOIN, S_DECLINE, S_LEAVE, S_KICK, S_PROMOTE, S_READY, S_MSG, S_PSAY))
 PRESENCE_TTL = 60.0            # a launcher / game seen this recently is online
 SEEN_WRITE_S = 30.0            # last-seen rows are rewritten at most this often per account
 INVITE_TTL = 300.0
@@ -43,6 +53,21 @@ NOTE_KEEP_S = 30.0             # a note waits this long for the 6 s notice poll
 SEARCH_MAX = 8
 PARTY_GRACE = 45.0             # a party member that was in neither the game nor the launcher for this long leaves its party
 RANK = {"match": 0, "search": 1, "menu": 2, "launcher": 3, "off": 4}
+# private messages between FRIENDS only (S_MSG arg "<friend id>\n<text>", S_CHAT arg "<friend id>" -> reply "chat"): stored in social_msgs, the newest
+# MSG_KEEP per pair, none older than MSG_AGE_S; removing a friend deletes the pair's messages. The daemon passes at most 420 bytes of argument
+# (200 characters, Polish letters are 2 bytes in UTF-8, plus a short prefix).
+# Party chat (S_PSAY / S_PCHAT, memory only) and the match / team report log (S_MLOG) use the same cleaning and length.
+MSG_LEN = 200                  # characters of one message
+PCHAT_KEEP = 50                # lines kept per party
+PCHAT_SHOW = 20                # lines one S_PCHAT reply carries
+MLOG_KEEP = 200                # match / team lines kept in memory for the admin view
+RECENT_MAX = 10                # conversations in the state's "recent" list
+MSG_PER_MIN = 20               # messages one account may send per minute (on top of OPS_PER_MIN)
+MSG_KEEP = 100
+MSG_AGE_S = 30 * 86400
+CHAT_SHOW = 60                 # messages one S_CHAT reply carries
+CHAT_BYTES = 24000             # ... and at most this much text (the 0xD9 frame length is a u16)
+_CTRL = re.compile("[\x00-\x1f\x7f-\x9f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]")
 
 # in-game lines (kind p of the notice poll), English / Polish: {n} = a player name
 NOTES = {
@@ -59,11 +84,21 @@ NOTES = {
     "kicked": ("{n}", "{n}"),            # admin kick: the whole line (with the optional reason) is the subject
     "pwait": ("PARTY: waiting for {n} to search.", "GRUPA: czekamy, aż {n} zacznie szukać."),
     "pneed": ("PARTY: waiting for opponents - {n} more player(s) needed so that both teams are even.", "GRUPA: czekamy na przeciwników - brakuje graczy: {n}, aby drużyny były równe."),
+    "pingfar": ("No players within {n} ms right now - still searching.", "Obecnie brak graczy z pingiem do {n} ms - szukam dalej."),
+    "msg": ("MESSAGE FROM {n}: {t}", "WIADOMOŚĆ OD {n}: {t}"),   # a friend's private message: subject = "<name>\x1f<text>" (in-game form, see ingame_text)
 }
+MSG_NOTE_LEN = 90              # characters of a message shown in the game's toast (2 lines of the nametag font)
+_GAME_QUOTES = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"', "–": "-", "—": "-", "…": "..."})
 
 
-# the same two lines for a game that has the in-game FRIENDS panel (t2r-ext sends flag byte 1 in the notice poll; invite notifications show when outside
-# of the party menu): the panel opens with P
+def ingame_text(s, n=MSG_NOTE_LEN):
+    """A message as the game's nametag font can draw it: Latin letters only (Polish etc. stay; emoji and other scripts are dropped), cut to n characters."""
+    s = " ".join("".join(ch for ch in (s or "").translate(_GAME_QUOTES) if ord(ch) < 0x250 and ch not in "|").split())
+    return s if len(s) <= n else s[:n - 3].rstrip() + "..."
+
+
+# the same two lines for a game that has the in-game FRIENDS panel (t2r-ext sends flag byte 1 in the notice poll; "notifications abt invites show when ur outside
+# of the party menu"): the panel opens with P
 NOTES_INGAME = {
     "freq": ("{n} sent you a friend request. Press P to open FRIENDS.", "{n} wysyła ci zaproszenie do znajomych. Wciśnij P, aby otworzyć ZNAJOMYCH."),
     "pinv": ("PARTY: {n} invited you to a party. Press P to open FRIENDS and join.", "GRUPA: {n} zaprasza cię do grupy. Wciśnij P, aby otworzyć ZNAJOMYCH i dołączyć."),
@@ -194,7 +229,7 @@ class Parties:
                     self._ev(t, "pjoin", invitee)
             self.of[invitee] = pid
             self.inv.pop(invitee, None)
-            self.ready.add(invitee)                    # a member joins READY (the leader's FIND MATCH takes it along; UNREADY opts out)
+            self.ready.add(invitee)                    # rework: a member joins READY (the leader's FIND MATCH takes it along; UNREADY opts out)
             return pid, None
 
     def decline_token(self, invitee, inviter):
@@ -420,6 +455,14 @@ class Social:
         self.seq = NOTE_BASE
         self.seen_w = {}               # account -> time of its last last-seen row write
         self.rate = {}                 # account -> [times of write ops]
+        self.mrate = {}                # account -> [times of sent messages]
+        self.lrate = {}                # account -> [times of match / team log lines]
+        self.pchat = {}                # party id -> [party chat lines] (memory only, like the parties)
+        self.lchat = {}                # lobby key -> [LOBBY chat lines] (memory only)
+        self.lobby_of = None           # set by the daemon: token -> its lobby's key (the requeue group = the last match id) or None
+        self.pseq = 0                  # last party chat line id (global, increasing)
+        self.mlog = collections.deque(maxlen=MLOG_KEEP)    # (ts, chan, account, name, text) of the newest match / team lines
+        self._mgc_at = 0.0
         self.qnote = {}                # party id -> time of the last "leader searches" note
         self._om = (0.0, {}, set())
         self._tick_at = 0.0
@@ -481,6 +524,9 @@ class Social:
         c.execute("CREATE TABLE IF NOT EXISTS social_friends(a TEXT, b TEXT, state INT, since REAL, PRIMARY KEY(a, b))")
         c.execute("CREATE INDEX IF NOT EXISTS social_friends_b ON social_friends(b)")
         c.execute("CREATE TABLE IF NOT EXISTS social_seen(acct TEXT PRIMARY KEY, name TEXT, last REAL)")
+        c.execute("CREATE TABLE IF NOT EXISTS social_msgs(id INTEGER PRIMARY KEY AUTOINCREMENT, a TEXT, b TEXT, ts REAL, body TEXT, rd INT DEFAULT 0)")
+        c.execute("CREATE INDEX IF NOT EXISTS social_msgs_to ON social_msgs(b, rd)")
+        c.execute("CREATE INDEX IF NOT EXISTS social_msgs_pair ON social_msgs(a, b, id)")
 
     def _adopt(self, c, token, key):
         """The token's Steam id became known: the rows of its old install account move to the Steam account (only when there are some)."""
@@ -567,6 +613,11 @@ class Social:
         for t in out:
             self.gone.pop(t, None)
         self._drain()
+        with self.p.lock:
+            live = set(self.p.of.values())
+        with self.lock:                # party chat of parties that are gone
+            for pid in [k for k in self.pchat if k not in live]:
+                del self.pchat[pid]
         return n
 
     # --- notes (in-game lines)
@@ -576,8 +627,19 @@ class Social:
         with self.nlock:
             self.seq += 1
             lst = self.notes.setdefault(token, [])
+            if kind == "msg":           # a friend sending several messages fast: only the newest waits for the poll (no backlog of toasts)
+                who = (subject_name or "").partition("\x1f")[0]
+                lst[:] = [x for x in lst if not (x[1] == "msg" and x[2].partition("\x1f")[0] == who)]
             lst.append((self.seq, kind, subject_name or "", self.h.now() + NOTE_KEEP_S))
             del lst[:-6]
+
+    def note_tag(self, token):
+        """The newest live in-game note id of this token (0 = none). The in-match clock poll (daemon op 0xE3 flag 0x40) carries it, so the ext
+        fetches a new note at once instead of at its next notice poll."""
+        now = self.h.now()
+        with self.nlock:
+            ids = [x[0] for x in self.notes.get(token, ()) if x[3] > now]
+        return max(ids) if ids else 0
 
     def note_acct(self, key, kind, subject_name=""):
         m, _ = self.online_map()
@@ -596,7 +658,8 @@ class Social:
         out = []
         for nid, kind, who, _ in lst[-2:]:
             txt = (NOTES_INGAME.get(kind) if ingame else None) or NOTES[kind]
-            txt = txt[1 if lang == 1 else 0].replace("{n}", who)
+            who, _, body = who.partition("\x1f")
+            txt = txt[1 if lang == 1 else 0].replace("{n}", who).replace("{t}", body)
             out.append((nid, "p", 8, txt))
         return out
 
@@ -640,7 +703,7 @@ class Social:
             return False
         lead = self.p.leader(token)
         if token == lead:
-            return False      # the leader is never held - its search waits for the members (daemon PARTY-WAIT), ready ones follow by themselves
+            return False      # rework: the leader is never held - its search waits for the members (daemon PARTY-WAIT), ready ones follow by themselves
         return not (lead and queued(lead))
 
     def party_rows(self, token):
@@ -651,17 +714,22 @@ class Social:
         return [(m, self.h.name(m) or "PLAYER", m == lead) for m in self.p.members(token) if m != token]
 
     # --- ops
-    def _limited(self, key):
+    def _limited(self, key, table=None, per_min=OPS_PER_MIN):
+        table = self.rate if table is None else table
         now = self.h.now()
-        l = [t for t in self.rate.get(key, ()) if now - t < 60.0]
+        l = [t for t in table.get(key, ()) if now - t < 60.0]
         l.append(now)
-        self.rate[key] = l
-        if len(self.rate) > 2000:
-            self.rate = {k: v for k, v in self.rate.items() if v and now - v[-1] < 60.0}
-        return len(l) > OPS_PER_MIN
+        table[key] = l
+        if len(table) > 2000:
+            fresh = {k: v for k, v in table.items() if v and now - v[-1] < 60.0}
+            table.clear()
+            table.update(fresh)
+        return len(l) > per_min
 
     def handle(self, token, lang, sub, arg=""):
         """One launcher request -> the reply dict (always a fresh state plus ok / err)."""
+        if sub in (S_PCHAT, S_MLOG, S_LSAY, S_LCHAT):       # polled every 2 s in matches: no database, no state (LOBBY lines: memory only too)
+            return self._quick(token, sub, arg)
         res = {"ok": 1, "err": ""}
         try:
             with self.h.db() as c:
@@ -691,6 +759,21 @@ class Social:
                     self.p.leave(token)
                 elif sub == S_READY:
                     err = self.p.set_ready(token, arg.strip() != "0")
+                elif sub == S_MSG:
+                    key, _, text = (arg or "").partition("\n")
+                    err = self._msg(c, me, key.strip(), text, self.h.name(token) or token_name_fallback(token))
+                    if not err:
+                        res["chat"] = self._chat(c, me, key.strip())
+                elif sub == S_PSAY:
+                    err = self._psay(token, me, arg)
+                    if not err:
+                        res["pchat"] = self._pchat_view(token, me, 0)
+                elif sub == S_CHAT:
+                    key = (arg or "").strip()
+                    if self._rel(c, me, key) != "friend":
+                        err = "notfriend"
+                    else:
+                        res["chat"] = self._chat(c, me, key)
                 elif sub != S_STATE:
                     err = "bad"
                 self._drain()
@@ -701,6 +784,98 @@ class Social:
             self.h.log("SOCIAL db error", repr(ex))
             res = {"ok": 0, "err": "db"}
         return res
+
+    # --- party chat + match / team log (memory only)
+    @staticmethod
+    def _clean(text):
+        return " ".join(_CTRL.sub(" ", text or "").split())[:MSG_LEN]
+
+    def _psay(self, token, me, text):
+        pid = self.p.pid(token)
+        if not pid:
+            return "noparty"
+        body = self._clean(text)
+        if not body:
+            return "bad"
+        if self._limited(me, self.mrate, MSG_PER_MIN):
+            return "rate"
+        name = self.h.name(token) or token_name_fallback(token)
+        with self.lock:
+            self.pseq += 1
+            lst = self.pchat.setdefault(pid, [])
+            lst.append({"id": self.pseq, "from": me, "name": name, "t": body, "ts": self.h.now()})
+            del lst[:-PCHAT_KEEP]
+        return None
+
+    def _pchat_view(self, token, me, since):
+        """{"lines": newest-after-`since` lines (at most PCHAT_SHOW, oldest first), "last": highest id of the party's lines}; no party = nothing."""
+        pid = self.p.pid(token)
+        if not pid:
+            return {"lines": [], "last": since}
+        now = self.h.now()
+        with self.lock:
+            lst = list(self.pchat.get(pid, ()))
+        lines = [x for x in lst if x["id"] > since][-PCHAT_SHOW:]
+        return {"lines": [{"id": x["id"], "name": x["name"], "t": x["t"], "me": x["from"] == me, "age": max(0, int(now - x["ts"]))} for x in lines],
+                "last": lst[-1]["id"] if lst else since}
+
+    def _lobby_chat(self, token, me, sub, arg):
+        """S_LSAY / S_LCHAT: the LOBBY channel of the token's lobby (lobby_of); the reply has the party chat's shape + "lk"."""
+        try:
+            key = self.lobby_of(token) if self.lobby_of else None
+        except Exception:                  # noqa: BLE001 - the chat never breaks on the lookup
+            key = None
+        since = 0
+        if sub == S_LCHAT:
+            s = (arg or "").strip()
+            since = int(s) if s.isdigit() and len(s) < 15 else 0
+        if not key:
+            return {"ok": 0 if sub == S_LSAY else 1, "err": "nolobby" if sub == S_LSAY else "", "pchat": {"lines": [], "last": since}, "lk": 0}
+        lk = int(hashlib.sha1(str(key).encode()).hexdigest()[:7], 16) or 1
+        now = self.h.now()
+        if sub == S_LSAY:
+            body = self._clean(arg or "")
+            if not body:
+                return {"ok": 0, "err": "bad", "lk": lk}
+            if self._limited(me, self.mrate, MSG_PER_MIN):
+                return {"ok": 0, "err": "rate", "lk": lk}
+            name = self.h.name(token) or token_name_fallback(token)
+            with self.lock:
+                self.pseq += 1
+                lst = self.lchat.setdefault(key, [])
+                lst.append({"id": self.pseq, "from": me, "name": name, "t": body, "ts": now})
+                del lst[:-PCHAT_KEEP]
+                for k in [k for k, v in self.lchat.items() if not v or now - v[-1]["ts"] > LCHAT_IDLE_S]:
+                    del self.lchat[k]
+        with self.lock:
+            lst = list(self.lchat.get(key, ()))
+        lines = [x for x in lst if x["id"] > since][-PCHAT_SHOW:]
+        return {"ok": 1, "err": "", "lk": lk,
+                "pchat": {"lines": [{"id": x["id"], "name": x["name"], "t": x["t"], "me": x["from"] == me, "age": max(0, int(now - x["ts"]))} for x in lines],
+                          "last": lst[-1]["id"] if lst else since}}
+
+    def _quick(self, token, sub, arg):
+        """S_PCHAT / S_MLOG: the cheap path (no database, no state, no last-seen row)."""
+        self.touch(token)
+        me = self.acct(token)
+        if sub == S_PCHAT:
+            s = (arg or "").strip()
+            since = int(s) if s.isdigit() and len(s) < 15 else 0
+            return {"ok": 1, "err": "", "pchat": self._pchat_view(token, me, since)}
+        if sub in (S_LSAY, S_LCHAT):
+            return self._lobby_chat(token, me, sub, arg)
+        chan, _, text = (arg or "").partition("\n")
+        chan = chan.strip()
+        body = self._clean(text)
+        if chan not in ("m", "t") or not body:
+            return {"ok": 0, "err": "bad"}
+        if self._limited(me, self.lrate, MSG_PER_MIN * 2):
+            return {"ok": 0, "err": "rate"}
+        name = self.h.name(token) or token_name_fallback(token)
+        with self.lock:
+            self.mlog.append((self.h.now(), chan, me, name, body))
+        self.h.log("CHAT", "match" if chan == "m" else "team", me, name, repr(body))
+        return {"ok": 1, "err": ""}
 
     def _adopt_once(self, c, token, key):
         if key.startswith("s:") and self.seen_w.get(("adopt", token)) is None:
@@ -816,8 +991,50 @@ class Social:
         if not re.fullmatch(r"[st]:[0-9a-f]{1,20}", key):
             return "bad"
         c.execute("DELETE FROM social_friends WHERE (a=? AND b=?) OR (a=? AND b=?)", (me, key, key, me))
+        c.execute("DELETE FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?)", (me, key, key, me))     # an ex-friend's messages go too
         c.commit()
         return None
+
+    # --- private messages (friends only)
+    def _msg(self, c, me, key, text, sender=""):
+        if not re.fullmatch(r"[st]:[0-9a-f]{1,20}", key or ""):
+            return "bad"
+        if self._rel(c, me, key) != "friend":
+            return "notfriend"
+        body = " ".join(_CTRL.sub(" ", text or "").split())[:MSG_LEN]
+        if not body:
+            return "bad"
+        if self._limited(me, self.mrate, MSG_PER_MIN):
+            return "rate"
+        now = self.h.now()
+        c.execute("INSERT INTO social_msgs(a, b, ts, body, rd) VALUES(?, ?, ?, ?, 0)", (me, key, now, body))
+        # the pair keeps its newest MSG_KEEP; once an hour everything older than MSG_AGE_S goes
+        c.execute("DELETE FROM social_msgs WHERE ((a=? AND b=?) OR (a=? AND b=?)) AND id NOT IN (SELECT id FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?) "
+                  "ORDER BY id DESC LIMIT ?)", (me, key, key, me, me, key, key, me, MSG_KEEP))
+        if now - self._mgc_at > 3600.0:
+            self._mgc_at = now
+            c.execute("DELETE FROM social_msgs WHERE ts < ?", (now - MSG_AGE_S,))
+        c.commit()
+        shown = ingame_text(body)
+        if shown:                       # the friend's game shows it as a FRIENDS toast (notice poll kind p: menus and matches); emoji-only = launcher only
+            self.note_acct(key, "msg", (sender or "PLAYER").replace("\x1f", " ") + "\x1f" + shown)
+        return None
+
+    def _chat(self, c, me, key):
+        """The conversation with one friend, oldest first; what the friend sent is marked read."""
+        rows = c.execute("SELECT id, a, ts, body FROM social_msgs WHERE (a=? AND b=?) OR (a=? AND b=?) ORDER BY id DESC LIMIT ?",
+                         (me, key, key, me, CHAT_SHOW)).fetchall()
+        if c.execute("SELECT 1 FROM social_msgs WHERE a=? AND b=? AND rd=0 LIMIT 1", (key, me)).fetchone():
+            c.execute("UPDATE social_msgs SET rd=1 WHERE a=? AND b=? AND rd=0", (key, me))
+            c.commit()
+        now = self.h.now()
+        out, size = [], 0
+        for i, a, ts, body in rows:                     # newest first; the reply frame is u16-sized, so the history stops at CHAT_BYTES
+            size += len(body.encode("utf-8")) + 48
+            if size > CHAT_BYTES and out:
+                break
+            out.append({"id": i, "me": a == me, "t": body, "age": max(0, int(now - (ts or now)))})
+        return {"with": key, "msgs": out[::-1]}
 
     def _party_op(self, c, token, me, sub, arg, om):
         key = (arg or "").strip()
@@ -847,11 +1064,13 @@ class Social:
         om = self.online_map()
         now = self.h.now()
         friends, inc, out = [], [], []
+        fset = set()
         mates = {self.acct(t): t for t in self.p.members(token)} if self.p.pid(token) else {}
         for a, b, st, since in c.execute("SELECT a, b, state, since FROM social_friends WHERE a=? OR b=?", (me, me)).fetchall():
             other = b if a == me else a
             name = self.name_of(c, other, om)
             if st == 1:
+                fset.add(other)
                 status = self.status_of(other, om)
                 r = c.execute("SELECT last FROM social_seen WHERE acct=?", (other,)).fetchone()
                 friends.append({"id": other, "name": name, "status": status, "seen": None if status != "off" else (int(now - r[0]) if r and r[0] else None),
@@ -879,8 +1098,20 @@ class Social:
         pinv = []
         for inviter, age in self.p.invites_for(token):
             pinv.append({"id": self.acct(inviter), "name": self.h.name(inviter) or "PLAYER", "age": int(age)})
+        unread = {a: n for a, n in c.execute("SELECT a, COUNT(*) FROM social_msgs WHERE b=? AND rd=0 GROUP BY a", (me,)).fetchall()}
+        recent = []
+        parts = c.execute("SELECT CASE WHEN a=? THEN b ELSE a END AS o, MAX(id) AS m FROM social_msgs WHERE a=? OR b=? GROUP BY o ORDER BY m DESC LIMIT ?",
+                          (me, me, me, RECENT_MAX)).fetchall()
+        if parts:
+            last = {i: (a, ts, body) for i, a, ts, body in c.execute(
+                "SELECT id, a, ts, body FROM social_msgs WHERE id IN (%s)" % ",".join("?" * len(parts)), [m for _, m in parts]).fetchall()}
+            for other, mid in parts:
+                if other in fset and mid in last:
+                    a, ts, body = last[mid]
+                    recent.append({"id": other, "name": self.name_of(c, other, om), "t": ingame_text(body, 60), "me": a == me,
+                                   "age": max(0, int(now - (ts or now))), "unread": unread.get(other, 0)})
         return {"v": 1, "me": {"id": me, "name": self.h.name(token) or token_name_fallback(token)}, "friends": friends, "in": inc, "out": out,
-                "party": party, "pinv": pinv, "max": self.p.MAX}
+                "party": party, "pinv": pinv, "max": self.p.MAX, "unread": unread, "recent": recent}
 
 
 def token_name_fallback(token):

@@ -1,4 +1,4 @@
-"""The clan journal ): ONE entry per clan day, written from what that day really did to the clan.
+"""The clan journal: ONE entry per clan day, written from what that day really did to the clan.
 
 Why (re/clan-journal-overhaul-1109.md has the audit): the old journal was the newest 24 of ~7 feed rows a day from five independent generators (diary, ticker, A-Life,
 chronicle / saga, supply perks) glued 3-6 to an "entry" with a random author - unrelated sentences in one paragraph, the same events told three ways, a haul inventory
@@ -561,7 +561,7 @@ _ST_POOL = {1: ("hungry", "f_hungry"), 2: ("st_sad", None), 3: ("sick", "f_sick"
 
 def status_lines(st, per, rng):
     """Every status event of today gets its own sentence e["jl"] = [lid, params]: the journal's sentence about that member when the entry has one, else a line of
-    the state's pool.  No two pending cards carry the same line (two cards must not read "X is hurt and on light duty.")."""
+ the state's pool. No two pending cards carry the same line."""
     S = ((st.get("ch") or {}).get("stat")) or {}
     day = int(st.get("day", 0) or 0)
     ev = S.get("ev") or []

@@ -66,8 +66,10 @@ def intake(supplies, parts, counts, left=False):
     return {"food": f, "water": w, "med": m, "ammo": kills + 2 * hs, "mat": max(0, int(parts)) // 100 + execs}
 
 
-def book(stock, supplies, need, n_before, parts, counts, left=False):
-    """One day. stock = {cat: n} on hand before; returns (new stock, record). The record is what clan.apply_match stores in r["sup"] (all ints)."""
+def book(stock, supplies, need, n_before, parts, counts, left=False, forgive=False):
+    """One day. stock = {cat: n} on hand before; returns (new stock, record). The record is what clan.apply_match stores in r["sup"] (all ints).
+    forgive = the engine forgave this day's deficit (a ping / admin kick, an excused leave, a late join): the camp is not short that day, so the stock
+ pays nothing (three players kicked for ping saw food / water / medicine drawn from the larder for a day the server had forgiven)."""
     stock = {k: max(0, int(dict(stock or {}).get(k, 0))) for k in CATS}
     got = intake(supplies, parts, counts, left)
     nd = need_split(need, n_before)
@@ -87,6 +89,8 @@ def book(stock, supplies, need, n_before, parts, counts, left=False):
         lend = min(spare[k], to_take)
         to_take -= lend
         left_over[k] = spare[k] - lend
+    if forgive:
+        short = {k: 0 for k in SURVIVAL}
     gross = dict(short)
     drawn, net = {}, {}
     new = dict(stock)
@@ -98,6 +102,10 @@ def book(stock, supplies, need, n_before, parts, counts, left=False):
         new[k] = min(BANK_DAYS * max(1, nd[k]), new[k] + left_over[k])
     for k in ("ammo", "mat"):
         have = new[k] + got[k]
+        if forgive:                                                    # a forgiven day uses only what the match brought, never the stock
+            short[k] = gross[k] = drawn[k] = net[k] = 0
+            new[k] = min(STOCK_CAP, new[k] + max(0, got[k] - nd[k]))
+            continue
         short[k] = max(0, nd[k] - have)
         gross[k] = short[k]
         drawn[k] = min(new[k], max(0, nd[k] - got[k]))

@@ -118,7 +118,7 @@ KEEP = {"chess": ("a chessboard", "szachownicę", 5), "guitar": ("a guitar strin
         "teddy": ("a teddy bear", "pluszowego misia", 6), "seeds": ("a pouch of seeds", "woreczek nasion", 4), "cards": ("a deck of cards", "talię kart", 4),
         "harmonica": ("a harmonica", "harmonijkę", 5)}
 CAT_POOL = {"food": "use_food", "med": "use_med", "ammo": "use_ammo", "tool": "use_tool"}
-# portrait ids for the UI: faction/sex/model/expression (pictures land in E:/t2tmp_lead/tmp/portraits/<faction>/<sex>/<model>_<expression>.png)
+# portrait ids for the UI: faction/sex/model/expression (pictures land in <portrait dir>/<faction>/<sex>/<model>_<expression>.png)
 EXPRESSIONS = ["happy", "neutral", "sad", "sick", "hurt", "scared", "hungry", "dead"]
 
 
@@ -185,7 +185,7 @@ for _pool, _rows in T.POOLS.items():
 
 
 def enabled():
-    """Switch: env T2R_CLAN_CHRONICLE=1/0, else tools/clan_chronicle.txt containing 0 / off to turn it off; default ON (it was OFF: without it the journal held only
+    """Switch: env T2R_CLAN_CHRONICLE=1/0, else tools/clan_chronicle.txt containing 0 / off to turn it off; default ON since (it was OFF: without it the journal held only
     unconnected diary rows - no saga, arcs, member memory)."""
     v = os.environ.get("T2R_CLAN_CHRONICLE")
     if v is None:
@@ -661,7 +661,7 @@ def _day_rows(st, newc, r, match=None, used=None, rng=None):
 
 
 # ------------------------------------------------------------------ the UI side: portraits, roster, public view (launcher /clanfeed.json "chron", in-game clan screen)
-PORTRAIT_MODELS = 4          # models per faction and sex the portrait set is expected to have (portraits/index.json overrides it)
+PORTRAIT_MODELS = 4          # models per faction and sex the portrait set is expected to have (portraits/index.json from the render agent overrides it)
 STATE_EXPR = {"h": "neutral", "u": "hungry", "s": "sick"}
 
 
@@ -755,7 +755,7 @@ def portrait_id(p, fk, state=None, morale=50, models=PORTRAIT_MODELS, members=No
 
 def _roster_state(st, p):
     """The state of a roster row: the status card's own state (clan_status.code_of: hungry, sick, sad, injured, depressed, shock), so a member's picture, word and colour agree
-    (members shown HEALTHY wore a depressed face - the row knew only healthy / hungry / sick while the portrait followed the status code). Recovered / new = healthy."""
+ (members shown HEALTHY wore a depressed face - the row knew only healthy / hungry / sick while the portrait followed the status code). Recovered / new = healthy."""
     base = {"h": "healthy", "u": "hungry", "s": "sick"}[p["s"]]
     try:
         import clan_status

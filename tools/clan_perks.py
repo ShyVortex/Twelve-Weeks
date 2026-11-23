@@ -258,7 +258,7 @@ def on_day(c, tid, newc, r, counts, match=None):
                 mp_pl = MAPN.PL.get(mp, mp)
             except Exception:                                        # noqa: BLE001
                 mp_pl = mp
-            # Every match with a perk use used to write up to two feed rows out of ten
+            # - every match with a perk use wrote up to two feed rows out of ten
             # templates. No feed rows any more: a used perk is ONE sentence a day in that day's journal entry (tools/clan_journal.add_perk), from pools whose
             # lines are used once per clan run; when they are spent the journal says nothing rather than the same thing again.
             for cat, _n in drawn:

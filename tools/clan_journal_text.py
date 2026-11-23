@@ -1,4 +1,4 @@
-"""The clan journal's entry set, English.  One voice: the keeper of the camp ledger, first person plural, past tense,
+"""The clan journal's entry set, English. One voice: the keeper of the camp ledger, first person plural, past tense,
 short sentences.  The player's matches are "the raid party".  Every line states something the clan numbers of that day really did (tools/clan_journal.py picks the
 pool from the day's result; the trigger of each pool is written next to it).  A line is used at most ONCE per clan run; a pool that ran dry falls back to the plain
 ledger sentence (FALLBACK), never to a repeat.

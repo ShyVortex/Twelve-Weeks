@@ -5,7 +5,7 @@ Role codes (sent as the 4th field of every rank table entry, tools/rankbadge.py 
 A player with several roles gets the highest code (lead > dev > admin > OG).
 
 Sources, all Steam64 ids, one per line, '#' starts a comment, re-read when the file changes (no restart):
-    <data dir>/og-steamids.txt   OG: every Steam id that played before the public release, frozen from the players table by
+ <data dir>/og-steamids.txt OG: every Steam id that played before the public release, frozen from the players table by
                                  `python tools/roles.py freeze-og <db>` on release day.
     <data dir>/web-admins.txt    admin: the website / admin panel list. A line whose comment contains TEMP (a temporary admin) gets no role.
     <data dir>/devs.txt          dev: '<steamid> [lead] # name'; the word 'lead' after the id marks the lead developer.
