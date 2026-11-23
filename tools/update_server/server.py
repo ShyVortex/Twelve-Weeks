@@ -26,6 +26,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse, parse_qs
 import report_store
+import daemon_lines
 import part1_maps
 
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -391,6 +392,7 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
             except report_store.ReportError as e:
                 return self._json({"ok": False, "error": e.msg}, e.status)
             sys.stderr.write("report %s stored in %s\n" % (r["code"], r["dir"]))
+            daemon_lines.snapshot_later(r["dir"])      # the player's daemon log lines next to the report (the log rotates away in ~90 min)
             return self._json({"ok": True, "code": r["code"], "clipKey": r["clipKey"], "clipRefused": r["clipRefused"]})
 
         def do_GET(self):
@@ -465,6 +467,8 @@ def main():
         print("FATAL update server %s:%d already in use after %.0fs (is another server running?): %s" % (a.host, a.port, BIND_RETRY_S, e), flush=True)
         os._exit(3)
     print("update server on %s:%d, data %s" % (a.host, a.port, os.path.abspath(a.data)))
+    if a.reports != "":
+        daemon_lines.archive_loop()                   # rotated daemon logs kept gzipped for daemon_lines.ARCHIVE_DAYS days
     srv.serve_forever()
 
 

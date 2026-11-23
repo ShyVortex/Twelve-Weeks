@@ -910,6 +910,13 @@ def custom_name(token):
             cn, ct = names.load(c, names.token_id(token))
         return cn, ct
 
+def safe_name(nm):
+    """A shown name never carries '<' / '>'. winmm's text routines read '<' as a markup tag start (<color=> / <scale>): a Steam name
+    with angle brackets crashed every client that drew it (nametag, kill feed: the frame allocator filled up). Clients copy names from the daemon (0x10 own name, lobby / match roster), so it is cleaned here."""
+    if not nm or ("<" not in nm and ">" not in nm):
+        return nm
+    return nm.replace("<", "").replace(">", "").strip() or "PLAYER"
+
 def get_name(token):
     """Shown name: custom name (with [TAG]) > Steam name (bridge/DB) > T2N setup name."""
     if not token:
@@ -917,7 +924,7 @@ def get_name(token):
     hit, v = _cache_get(_name_cache, token)
     if hit:
         return v
-    v = _get_name(token)
+    v = safe_name(_get_name(token))
     _cache_put(_name_cache, token, v)
     return v
 
@@ -1508,6 +1515,11 @@ def clan_finalize(token):
     # the server saw the host's 0x12, or the client's own game ended the match (flags bit 1, winmm's
     # match end ran there): a normal day. Otherwise the player left early.
     left = (mid not in CLAN_ENDED and not (flags & 2)) or (token, mid) in CLAN_QUITTERS
+    if not left and not (flags & 2) and (token, mid) in CLAN_EXCUSED and CLAN_LEFT_AT.get((token, mid), 1e18) <= CLAN_ENDED.get(mid, 0) + 2:
+        # an excused leave (host lost) was itself the last departure, so the abort award ended the match in the same second and
+        # CLAN_ENDED was set before this report resolved -> a normal 0-supply day (21 hungry, 9 sick). A player who left at or before the end
+        # (and whose own game never ran the match end) left; its excuse applies below.
+        left = True
     if left and (flags & 4) and (token, mid) not in CLAN_QUITTERS and (token, mid) not in CLAN_EXCUSED:
         # (the flag is the client's own word - pulling the cable sets it too: at most CLAN_LINK_EXCUSE_MAX per day and token, after that it is a normal early leave)
         _now = time.time()
@@ -2264,7 +2276,7 @@ class Presence:
         return len(old)
     def touch(self, token, name):
         with self.lock:
-            self.players.setdefault(token, {})["name"] = name
+            self.players.setdefault(token, {})["name"] = safe_name(name)
             self.players[token]["last"] = time.time()
     def touch_known(self, token):
         """Refresh `last` of a player that is already present (never creates an entry: the token comes from an unauthenticated poll)."""
@@ -2506,9 +2518,17 @@ def adopt_bridge_name(token, ip):
         return
     NAMELESS_BY_IP[ip] = token
     nm = BRIDGES.name_for_ip(ip)
-    if nm and get_name(token) != nm:
+    if nm and get_name(token) != safe_name(nm):
         set_name(token, nm)
         log("NAME-FROM-BRIDGE", ip, tag(token), "->", nm)
+
+def no_helper_note(token, ip):
+    """(note key, helper name) for a search refused for want of a Steam helper.
+    A nameless login token while a named Steam helper is connected from the same IP: the game and the helper did not log
+    in with the same token. winmm sends a hash substitute when its game-data check flags the install (changed base
+    archives, extra .psarc, other mods), so "open Steam" was the wrong advice."""
+    helper = None if token_name(token) else BRIDGES.name_for_ip(ip)
+    return ("files_changed", helper) if helper else ("steam_off", None)
 
 # --------------------------------------------------- held matchmaking sessions
 class Sessions:
@@ -2727,6 +2747,9 @@ SRV_TEXT = {
     "banned": ("You are banned from the server.", "Masz zakaz wstępu na serwer."),
     "steam_off": ("Steam is not connected: open Steam, then start the game with Play.bat",
                   "Steam nie jest połączony: uruchom Steam, a potem grę przez Play.bat"),
+    # the game's login token is winmm's substitute (its game-data check flagged the install), so it never matches the Steam helper
+    "files_changed": ("Your game files do not match Steam: verify the game files in Steam and remove other mods, then press PLAY in the launcher.",
+                      "Twoje pliki gry nie zgadzają się ze Steamem: zweryfikuj pliki gry w Steamie i usuń inne mody, a potem naciśnij GRAJ w launcherze."),
     "kicked": ("You got kicked from the match.", "Wyrzucono cię z meczu."),
     "kicked_why": ('You got kicked from the match. Reason: "{r}"', 'Wyrzucono cię z meczu. Powód: "{r}"'),
     # anti-AFK (the English text starts like the kick text: the ext shows it as the server toast on the menu, msg_is_kick)
@@ -6455,13 +6478,13 @@ def auth_reply(name="PLAYER", extra=b""):
     # PROVEN sequence (reaches MP menu): 0x10 name + 0x08 both-lists + 0x0d done.
     # Do NOT drop the 0x0d — its absence regressed auth previously. `extra` frames go
     # before the 0x0d so a session socket still parses them.
-    name_field = name.encode()[:31].ljust(32, b"\x00")
+    name_field = (safe_name(name) or "PLAYER").encode()[:31].ljust(32, b"\x00")
     return (msg(0x10, name_field) + msg(0x08, build_server_lists()) + extra
             + msg(0x0d, b"\x01"))
 
 def auth_reply_open(name="PLAYER", extra=b""):
     """auth_reply() without the trailing 0x0d: for the held MP-menu socket (see handle_batch)."""
-    name_field = name.encode()[:31].ljust(32, b"\x00")
+    name_field = (safe_name(name) or "PLAYER").encode()[:31].ljust(32, b"\x00")
     return msg(0x10, name_field) + msg(0x08, build_server_lists()) + extra
 
 def lobby_snapshot():
@@ -7371,9 +7394,11 @@ def handle_batch(conn, addr, st, batch):
                 BRIDGES.steamid(realtok) and BRIDGES.port(realtok) and BRIDGES.conn(realtok)):
             # Steam-only matches (no server relay): a player whose Steam helper isn't
             # registered is not queued; the client (ext) shows why
-            log("MATCHMAKE", addr, "refused (no Steam helper)", tag(realtok))
+            key, helper = no_helper_note(realtok, addr[0])
+            log("MATCHMAKE", addr, "refused (no Steam helper)", tag(realtok),
+                f"- helper {helper!r} on this IP: game files changed (substitute token)" if helper else "")
             MM.rq.drop(realtok)                            # (a refused search ends a requeue ticket - its group does not wait for it)
-            conn.sendall(msg(0x11, srv_note("steam_off", realtok)))
+            conn.sendall(msg(0x11, srv_note(key, realtok)))
             return
         if is_banned(realtok, st.get("name")):
             log("MATCHMAKE", addr, "refused (banned)", tag(realtok))
@@ -7478,7 +7503,7 @@ def handle_batch(conn, addr, st, batch):
             # (row 0 of the lobby list, nameplates) like the old 3 s re-announce did. Also while the player sits in the
             # matchmaking queue (the queued player's own row 0 kept the old name until the next game start); the
             # sent_name dedupe means one 0x10 per rename, never in a running match
-            shown = get_name(tok2) or st["name"]
+            shown = safe_name(get_name(tok2) or st["name"])
             if shown != st.get("sent_name"):
                 conn.sendall(msg(0x10, shown.encode()[:31].ljust(32, b"\x00")))
                 st["sent_name"] = shown
