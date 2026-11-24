@@ -50,9 +50,10 @@ function createPaths({ app, runtime, config }) {
   }
 
   async function getManifest(host, retries = 0) {
-    if (runtime.isLinux) {
+    const first = [...(runtime.isLinux ? [`${channel()}-linux`] : []), `${channel()}-slim`];
+    for (const ch of first) {
       try {
-        return await upd.fetchManifest(host, `${channel()}-linux`, { retries });
+        return await upd.fetchManifest(host, ch, { retries });
       } catch (e) {
         if (!/HTTP 404|no such channel/i.test(String(e.message))) throw e;
       }

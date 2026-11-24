@@ -1,0 +1,24 @@
+[package]
+name = "t2r-slim"
+version = "0.2.0"
+edition = "2021"
+description = "Twelve Weeks slim data: builds t2r-data.slim from t2r-data.bin + the game, and rebuilds t2r-data.bin on the player's PC from the slim file + the player's own game files"
+
+[[bin]]
+name = "t2r-slim"
+path = "src/main.rs"
+
+[dependencies]
+lz4-sys = "=1.9.4"
+zstd-safe = { version = "7", default-features = false, features = ["std"] }
+liblzma = { version = "0.4", features = ["static", "parallel"] }
+flate2 = "1"
+md-5 = "0.10"
+sha2 = "0.10"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

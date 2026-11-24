@@ -14,6 +14,38 @@ Compressed transfer: `publish.py` also writes `blobs/<sha256>.gz` (gzip -9; `.br
 (`manifests/<channel>/<version>.json`); `channels.json` says which one a channel serves. `t2r-play.log`, `t2r-client.json`,
 `linux-config.json` are never published. `news.json` in the data dir is served as-is. Newest first, one entry per build / hotfix: `{"id":10,"date":"2026-10-20","build":"85","kind":"build|hotfix","stamp":"4080fec4","headline":"a few words","sections":{"changed":[],"why":[],"watch":[],"known":[],"fixed":[]}}` (only non-empty sections are shown; hotfix of 85 = `"build":"85.2"`). The old `{date,title,text|body}` shape still renders. Every entry also carries a `pl` object (Polish headline/sections/title/body, merged from `release/news-pl.json` by `release/news_merge_pl.py`); old launchers ignore it. Full field list: `release/launcher/API.md`; the current draft lives in `release/news.json`.
 
+## Publish a client build to GitHub Releases
+```
+python tools/update_server/publish_github.py dist/client --repo <owner>/<repo> --version 198 --data <data>
+```
+Every client file goes up once as a release asset named by its sha256 (plus `<sha256>.gz` where gzip saves >= 5 %, plus `manifest.json`);
+assets must be under 2 GiB. Order: draft release, upload, sizes checked, release made public, and only then the manifest (absolute
+`https://github.com/<repo>/releases/download/build-<version>/<sha256>` urls) is written to `<data>` and promoted. The server keeps an
+entry's `https://` url and `zurl` as they are and does not look for its blob locally, so launchers download from GitHub while
+`/manifest.json`, news and status stay here. Needs the `gh` CLI, logged in with write access to the repository. `--dry-run` prints the
+plan and uploads nothing.
+
+Switching players over: launchers up to 0.1.44 cannot rebuild `t2r-data.bin` from a slim client, so until every player runs a launcher
+with the slim rebuild, publish each build twice. `build_release.py` writes both clients: `<out>/client` (slim) and `<out>/client-full`
+(the same files with `t2r-data.bin`, hardlinked).
+```
+python tools/update_server/publish.py <out>/client-full --data <data> --channel stable --version 198                         # older launchers, served from here
+python tools/update_server/publish_github.py <out>/client --repo <owner>/<repo> --channel stable-slim --version 198 --data <data>
+```
+New launchers ask for `<channel>-slim` first and fall back to `<channel>`. Both manifests carry the same `launcher` entry, so an older
+launcher downloads the full build as before and then updates itself at PLAY. One whose self-update fails (it tries once per version)
+keeps playing the full build. The launcher change for the shipping 0.1.44 source is `release/launcher/patches/0.1.44-slim-data.patch`
+(the repo's launcher tree is older than 0.1.44). Give the new launcher a higher version (0.1.45), or 0.1.44 is not offered it.
+
+The launcher's own updates go the same way:
+```
+python tools/update_server/publish_github.py --repo <owner>/<repo> --launcher TwelveWeeks-Launcher-0.1.45.exe \
+       --launcher-linux TwelveWeeks-Launcher-0.1.45.AppImage --launcher-version 0.1.45 --data <data>
+```
+makes the release `launcher-<version>` (the installers under their own names, so the release page doubles as the download page) and
+writes `launcher.json` / `launcher-linux.json` with their GitHub urls; `/manifest.json` hands those to the launcher's self-update
+(`launcher`, `launcher_linux`). A `launcher.json` without a url (`publish.py --launcher`) is still served from `/files/` here.
+
 ## Run
 ```
 python tools/update_server/server.py --data <data> --port 7002 --public-url http://example.tun.ply.gg:PORT \

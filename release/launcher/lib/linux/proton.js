@@ -200,7 +200,7 @@ function helperArgs({ exe, nameFile, server, tokenFile, aliveFile, logFile }) {
  * @param {object} options
  * @returns {{cmd: string, args: string[], env: object, cwd: string}}
  */
-function slimCommand({ clientDir, game, src, dat, dst, dataDir, deps = {} }) {
+function slimCommand({ clientDir, game, src, dat, dst, files, dataDir, deps = {} }) {
   const home = deps.home || os.homedir();
   const proton = findProton(home);
   if (!proton)
@@ -212,7 +212,7 @@ function slimCommand({ clientDir, game, src, dat, dst, dataDir, deps = {} }) {
   fs.mkdirSync(prefix, { recursive: true });
   return {
     cmd: path.join(proton, 'proton'),
-    args: ['run', exe, winPath(src), winPath(dat), winPath(game), winPath(dst)],
+    args: ['run', exe, ...(files || [src, dat, game, dst]).map(winPath)],
     env: protonEnv(proton, prefix, home),
     cwd: path.dirname(exe),
   };
