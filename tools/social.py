@@ -106,6 +106,7 @@ class Parties:
         self.leaders = {}
         self.ready = set()
         self.events = []
+        self.grace = {}                        # token -> time: restored by restore() (a daemon restart); gc keeps it until then
 
     # --- reads
     def pid(self, token):
@@ -296,12 +297,53 @@ class Parties:
             (self.ready.add if on else self.ready.discard)(token)
         return None
 
+    # --- a daemon restart: parties used to live in memory only, so a server restart broke up every party. The daemon now writes them into its
+    # live state (live-matches.json, every 10 s and at shutdown) and puts them back at start.
+    RESTORE_GRACE = 300.0                      # a restored member is kept this long while its game / launcher reconnects (gc would drop it at the first pass)
+
+    def export(self):
+        """The parties as JSON-able data: members in join order (the order picks the next leader), leaders, ready flags."""
+        with self.lock:
+            return {"of": [[t, p] for t, p in self.of.items()], "leaders": {p: l for p, l in self.leaders.items() if p in self.of.values()},
+                    "ready": sorted(t for t in self.ready if t in self.of)}
+
+    def restore(self, data, now=None):
+        """Put saved parties back (start of the daemon). A token already in a party keeps it; a party left with one member is no party.
+        Returns the number of members restored."""
+        now = self.now() if now is None else now
+        n = 0
+        with self.lock:
+            got = {}
+            for e in (data or {}).get("of") or []:
+                try:
+                    t, p = e
+                except (TypeError, ValueError):
+                    continue
+                if isinstance(t, str) and isinstance(p, str) and t and p and t not in self.of:
+                    got.setdefault(p, []).append(t)
+            for p, mem in got.items():
+                if p in self.of.values() or len(mem) < 2:
+                    continue
+                for t in mem:
+                    self.of[t] = p
+                    self.grace[t] = now + self.RESTORE_GRACE
+                    n += 1
+                l = ((data or {}).get("leaders") or {}).get(p)
+                if l in mem:
+                    self.leaders[p] = l
+            for t in (data or {}).get("ready") or []:
+                if isinstance(t, str) and t in self.grace and t in self.of:
+                    self.ready.add(t)
+        return n
+
     def gc(self, keep, now=None):
         """Drop members that are gone (not in `keep`: a leader hands the party to the next member) and invitations older than their life. Returns the number dropped."""
         now = self.now() if now is None else now
         n = 0
         with self.lock:
-            for t in [t for t in list(self.of) if t not in keep]:
+            for t in [t for t, u in self.grace.items() if u <= now or t not in self.of]:
+                del self.grace[t]
+            for t in [t for t in list(self.of) if t not in keep and t not in self.grace]:
                 if t in self.of:
                     self._leave(t, "timeout")
                 n += 1

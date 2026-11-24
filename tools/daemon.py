@@ -3644,9 +3644,24 @@ def _loc_best(loc):
     ms = [int(m) for _p, m in _re.findall(r"([a-z][a-z0-9]{2,4})=(\d+)", (loc or "").lower())]
     return min(ms) if ms else None
 
-PING_MAX = 4096
+# The cap used to be 4096 directional pairs, and a full table dropped its first 1024 keys in insertion order. With many helpers online the
+# table stayed full, so pairs refreshed every few seconds were dropped and a known ping turned unknown: a joiner refused for its ping could
+# join the same match seconds later and be removed for that ping a minute in. Now: a bigger cap, offline pairs out first, then the least
+# recently reported; and PING_LAST below.
+PING_MAX = int(os.environ.get("T2R_PING_MAX", "16384"))
+# The last pair ping per unordered pair {a, b} = (ms, time), written with every report. The gates read it when PING has no entry (evicted,
+# or reset); the table cap never touches it. Pruned by age (PING_GATE_AGE_S) in gc_state; _drop_pings clears a player's pairs.
+PING_LAST = {}
 def _drop_pings(token):
     for k in [k for k in PING if token in k]:
+        PING.pop(k, None); PING_AT.pop(k, None)
+    for k in [k for k in PING_LAST if token in k]:
+        PING_LAST.pop(k, None)
+
+def _ping_evict(online, n):
+    """Drop n entries of the full PING table: pairs with a player who is not online first, then the least recently reported."""
+    order = sorted(list(PING), key=lambda k: (k[0] in online and k[1] in online, PING_AT.get(k, 0.0)))
+    for k in order[:n]:
         PING.pop(k, None); PING_AT.pop(k, None)
 
 def ping_location(token, loc):
@@ -3711,12 +3726,14 @@ def ping_location(token, loc):
 def ping_report(token, steamid, ms):
     with BRIDGES.lock:
         other = next((t for t, b in BRIDGES.by_token.items() if b["steamid"] == steamid), None)
+        online = set(BRIDGES.by_token) if other and len(PING) >= PING_MAX and (token, other) not in PING else None
     if other and ms >= 0:
-        if len(PING) >= PING_MAX and (token, other) not in PING:     # pairs of helpers that are online at once: bounded by a cap, oldest pairs out
-            for k in list(PING)[:PING_MAX // 4]:
-                PING.pop(k, None); PING_AT.pop(k, None)
+        if online is not None:     # bounded by a cap: offline pairs out first, then the least recently reported
+            _ping_evict(online, max(1, PING_MAX // 8))
         PING.setdefault((token, other), collections.deque(maxlen=5)).append(ms)
-        PING_AT[(token, other)] = time.time()
+        now = time.time()
+        PING_AT[(token, other)] = now
+        PING_LAST[frozenset((token, other))] = (pair_ping(token, other), now)
 
 def _ping_med(d):
     if not d:
@@ -8268,7 +8285,8 @@ def live_export(now=None):
     return {"v": LIVE_VERSION, "saved_at": now, "matches": recs, "clan_ended": ended, "clan_pending": pend,
             "clan_quitters": [[t, m] for t, m in list(CLAN_QUITTERS) if m in mids],
             "clan_credited": [[t, m] for t, m in list(CLAN_CREDITED) if m in mids],
-            "clan_excused": [[t, m] for t, m in list(CLAN_EXCUSED) if m in mids]}
+            "clan_excused": [[t, m] for t, m in list(CLAN_EXCUSED) if m in mids],
+            "parties": PARTIES.export()}             # a restart keeps the parties (social.Parties.restore)
 
 _live_err = [False]
 _live_save_lock = threading.Lock()
@@ -8280,7 +8298,7 @@ def live_save(now=None):
         with _live_save_lock:        # (fuzz seed 225: two threads - status loop + a GAME-START - shared one .tmp file: os.replace raised PermissionError on Windows)
             data = live_export(now)
             path = live_path()
-            if not data["matches"] and not data["clan_pending"] and not os.path.exists(path):
+            if not data["matches"] and not data["clan_pending"] and not data["parties"]["of"] and not os.path.exists(path):
                 return False
             tmp = path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
@@ -8332,6 +8350,12 @@ def live_load(now=None):
         CLAN_CREDITED.add((t, m))
     for t, m in data.get("clan_excused") or []:
         CLAN_EXCUSED.add((t, m))
+    try:
+        n = PARTIES.restore(data.get("parties"), now)
+        if n:
+            log("LIVE-STATE: parties restored -", n, "members in", len({PARTIES.pid(t) for t in PARTIES.grace}), "party(ies), kept %.0f s while they reconnect" % PARTIES.RESTORE_GRACE)
+    except Exception as e:                                           # noqa: BLE001
+        log("LIVE-STATE parties skipped:", repr(e))
     if mids:
         evt("readopt-load", "matches", mids, "waiting %.0f s for a player of each to report" % LIVE_CLAIM_S)
         log("LIVE-STATE: %d running match(es) from before the restart wait to be re-adopted:" % len(mids), mids)
@@ -8593,6 +8617,8 @@ def gc_state(now=None, ttl=None):
     n = _prune_keys(PING, lambda k: k[0] not in keep or k[1] not in keep)
     if n: out["PING"] = n
     _prune_keys(PING_AT, lambda k: k not in PING)
+    n = _prune_keys(PING_LAST, lambda k: now - PING_LAST.get(k, (0, now))[1] > PING_GATE_AGE_S)
+    if n: out["PING_LAST"] = n
     n = 0
     for d in (VOTES, MATCH_MAP, TIMING, SID_KEEP, MATCH_P2P):          # keyed by frozenset(match tokens): gone when none of its players is active any more
         n += _prune_keys(d, lambda k: not (k & busy))
@@ -8882,7 +8908,12 @@ def _ping_gate(a, b, now):
     if ms is not None:
         return ms
     at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
-    return pair_ping(a, b) if at and now - at <= PING_GATE_AGE_S else None
+    if at and now - at <= PING_GATE_AGE_S:
+        return pair_ping(a, b)
+    pl = PING_LAST.get(frozenset((a, b)))              # not in PING (evicted / never kept): the last reported pair ping
+    if pl and pl[0] is not None and now - pl[1] <= PING_GATE_AGE_S:
+        return pl[0]
+    return None
 
 def jip_ping_block(token, mid, host, active, joining, now):
     """Join in progress: the joiner's fresh ping to the host when ping_check would remove it for that ping, else None (unknown ping, under the
