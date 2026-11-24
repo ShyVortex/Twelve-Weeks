@@ -174,6 +174,14 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
             except OSError:               # the client went away (reset / timeout): nothing to answer, no traceback
                 self.close_connection = True
 
+        def _ip(self):
+            """The caller's address. Behind a loopback front (tools/files-rs t2r-files, or a Cloudflare tunnel) every peer is loopback and
+            the visitor's address is in CF-Connecting-IP; a loopback caller without it is a local tool."""
+            ip = self.client_address[0]
+            if ip in ("127.0.0.1", "::1"):
+                ip = (self.headers.get("CF-Connecting-IP") or "").strip() or ip
+            return ip
+
         def _base(self):
             if public_url:
                 return public_url.rstrip("/")
@@ -348,7 +356,7 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
                 self.close_connection = True
                 return self._json({"ok": False, "error": "Clip too big - trim it to under %d MB" % (report_store.CLIP_MAX_EACH >> 20) if n > 0 else "empty clip"}, 413 if n > 0 else 400)
             try:
-                r = report_store.save_clip(reports_dir, q.get("code", ""), q.get("key", ""), n, self.rfile, self.client_address[0])
+                r = report_store.save_clip(reports_dir, q.get("code", ""), q.get("key", ""), n, self.rfile, self._ip())
             except report_store.ReportError as e:
                 self.close_connection = True
                 return self._json({"ok": False, "error": e.msg}, e.status)
@@ -364,7 +372,7 @@ def make_handler(store, public_url, status_file, daemon_addr, db_path="", report
                 return self._json({"error": "not found"}, 404)
             if not reports_dir:
                 return self._json({"ok": False, "error": "reports are not enabled on this server"}, 503)
-            ip = self.client_address[0]
+            ip = self._ip()
             try:
                 n = int(self.headers.get("Content-Length") or 0)
             except ValueError:
