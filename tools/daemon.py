@@ -131,12 +131,18 @@ except Exception as _ex:                      # noqa: BLE001
 import hostcap                                # host upload capacity history (tools/hostcap.py, T2R_HOST_CAP, re/host-capacity-1019.md)
 import modeq  # per-mode queues (tools/modeq.py, op 0xBC / 0xBD)
 import requeue                                # the queue stays after a match (tools/requeue.py)
+import lobbybook                              # stable search lobbies (tools/lobbybook.py)
 import interrogation                          # Interrogation game mode (tools/interrogation.py, T2R_MODE)
 import gunlimit                               # per-team gun limits (tools/gunlimit.py): 1 Tactical Shotgun per team
 import social                                 # friends + parties (tools/social.py, op 0xD8/0xD9; re: header of social.py)
 import notices                                # server notices to players: update available / planned restart / free text (tools/notices.py)
 import map_packs                              # DLC map packs (tools/map_packs.py, T2R_MAP_PACKS, re/part1/map-packs.md)
+import ipaddress
 import private_lobby                          # private matches: lobby, code, rule overrides, no clan / stats (tools/private_lobby.py, op 0xF8 / 0xF9)
+try:
+    import ident                              # identity ids per player (Steam id + install + hardware + IP); optional, not part of this repository
+except Exception as _ex:                      # noqa: BLE001 - matchmaking must keep working without it
+    ident = None
 try:
     import anticheat                          # server-side anti-cheat, flag system, demos, player reports (tools/anticheat.py); optional, T2R_AC=0 = off
 except Exception as _ex:                      # noqa: BLE001 - matchmaking must keep working without it
@@ -206,6 +212,12 @@ RQ_CAP = {}              # token -> time of its last 0xE3 report with flag 0x20
 LOBBY_KEEP = os.environ.get("T2R_LOBBY_KEEP", "1") != "0"
 LOBBY_RELEASE_S = float(os.environ.get("T2R_LOBBY_RELEASE_S", "30"))
 LOBBY_MIN_GAP_S = float(os.environ.get("T2R_LOBBY_MIN_GAP_S", "10"))
+# Stable lobbies (a player seen in the lobby stays until they back out): every public searcher sits in one lobby of at most
+# MATCH_SIZE players; the searching page and the LOBBY chat show that lobby and a match forms from one whole lobby (tools/lobbybook.py).
+LOBBY_BOOK = os.environ.get("T2R_LOBBY_BOOK", "1") != "0"
+def book_on():
+    """The stable lobbies are on: T2R_LOBBY_BOOK and the persistent lobby (T2R_LOBBY_KEEP: the post-match lobby is one of them)."""
+    return LOBBY_BOOK and LOBBY_KEEP
 # ANTI-AFK (ext afk.c): the ext counts the seconds without any input (keys, mouse, any pad) while alive in a running match and reports them on
 # every 0xE3 clock report; at AFK_KICK_S the player is removed through the kick path (counts as leaving early, no requeue). 0 = off. The ext warns at 60 s.
 AFK_KICK_S = float(os.environ.get("T2R_AFK_KICK_S", "90"))      # brief: warning ~60 s, removal ~90 s
@@ -229,10 +241,15 @@ PING_KICKED = set()      # (token, mid) removed for ping (once per match)
 # problem then), not in the first PING_GRACE_S, only observers that received LOSS_MIN_PKTS in the last LOSS_WINDOW_S.
 # Numbers from the reports (59 reports, 271 players): typical median 0.0 %, p90 0.6 %; the teleporting player 44.5 %.
 # T2R_LOSS_KICK_PCT=0 = off. T2R_LOSS_GATE=1 = log only (no removal, no hold).
-LOSS_KICK_PCT = float(os.environ.get("T2R_LOSS_KICK_PCT", "20"))
-LOSS_KICK_S = float(os.environ.get("T2R_LOSS_KICK_S", "60"))
+# 30 % for 120 s, judged against the match: a player is removed only when the rest of the match
+# is clean (median loss of the others under LOSS_BASE_PCT) and fewer than half of the judged players are at LOSS_KICK_PCT / 2 or more. In one
+# match five of eight players sat at 17-22 % (a lossy host / route for all) and the one at 23-34 % was removed.
+LOSS_KICK_PCT = float(os.environ.get("T2R_LOSS_KICK_PCT", "30"))
+LOSS_KICK_S = float(os.environ.get("T2R_LOSS_KICK_S", "120"))
+LOSS_BASE_PCT = float(os.environ.get("T2R_LOSS_BASE_PCT", "8"))
 LOSS_GATE = int(os.environ.get("T2R_LOSS_GATE", "2"))
-LOSS_HOLD_S = float(os.environ.get("T2R_LOSS_HOLD_S", "600"))
+LOSS_HOLD_S = float(os.environ.get("T2R_LOSS_HOLD_S", "300"))
+LOSS_REPEAT_S = float(os.environ.get("T2R_LOSS_REPEAT_S", "7200"))   # the search hold only for a 2nd removal within this (the 1st: back to searching at once)
 LOSS_MIN_OBS = 2
 LOSS_MIN_PKTS = 300       # msg 7 runs at 30-60/s per peer: one 30 s report window holds ~900-1800
 LOSS_WINDOW_S = 75.0      # two 30 s reports
@@ -240,6 +257,7 @@ LOSS = {}                 # (mid, observer, subject) -> deque of (time, received
 LOSS_HIGH = {}            # (token, mid) -> time its median loss was first seen at or above the limit
 LOSS_KICKED = set()       # (token, mid) removed for loss (once per match)
 LOSS_HOLD = {}            # steam id (or token when unknown) -> (time removed, loss %)
+LOSS_STRIKES = {}         # steam id (or token) -> [times removed for loss] (LOSS_REPEAT_S)
 LOSS_FLAGS = {}           # (mid, token) -> (its msg-7 sends are paced, its host upload budget is on) from its last report
 # same-region matchmaking: with more searchers than one match holds,
 # the searchers of the lead region (most searchers; tie = the earliest one's) go first, queue order kept inside each group; a joiner prefers a
@@ -436,6 +454,29 @@ def _search_entries(mode=None):
     c.update(t=now, key=key, ents=ents)
     return ents
 
+_LB_CACHE = {}
+def _lobby_entries(lid):
+    """(LOBBY_BOOK) [(token, shown name bytes, team label bytes)] of one lobby (searching_frame lists only the viewer's lobby), cached like
+    _search_entries."""
+    with MM.lock:
+        q = MM.book.members(lid)
+    key = (lid, tuple(q), _name_ver[0], len(PARTIES.of), tuple(sorted(PARTIES.leaders.items())))
+    now = time.monotonic()
+    c = _LB_CACHE.get(lid)
+    if c and c["key"] == key and now - c["t"] < SF_CACHE_S:
+        return c["ents"]
+    t0, t1 = split_teams(q, {t: PARTIES.pid(t) for t in q if PARTIES.pid(t)}, player_skill(q) if os.environ.get("T2R_TEAM_BALANCE", "1") != "0" else None, top_players(q), rule_groups(q))
+    lab = {t: " [T1]" for t in t0}
+    lab.update({t: " [T2]" for t in t1})
+    for t in q:
+        if PARTIES.pid(t) and len(PARTIES.members(t)) > 1:
+            lab[t] = lab.get(t, "") + (" (party lead)" if PARTIES.is_leader(t) else " (party)")
+    ents = [(t, (get_name(t) or "PLAYER").encode("utf-8", "ignore"), lab.get(t, "").encode()) for t in q]
+    if len(_LB_CACHE) > 256:
+        _LB_CACHE.clear()
+    _LB_CACHE[lid] = {"t": now, "key": key, "ents": ents}
+    return ents
+
 def party_header(tok):
     """'PARTY n/4' row (n = party size, 4 = the team cap) for a token in a party of 2+; None otherwise."""
     if not tok or not PARTIES.pid(tok) or len(PARTIES.members(tok)) < 2:
@@ -463,6 +504,22 @@ def lobby_marks(tok):
     suffix off and draws READY / IN SUMMARY in the row's status slot."""
     if not (REQUEUE and LOBBY_KEEP and tok):
         return None
+    if book_on():
+        # the rows of a post-match lobby: READY = back from that match, IN SUMMARY = still on its screens (seat kept), NEW = everybody else
+        try:
+            now = time.time()
+            with MM.lock:
+                lb = MM.book.get(MM.book.lobby_of(tok))
+                if lb is None or lb.src is None:
+                    return None
+                mem = list(lb.members)
+                back = [t for t in mem if MM.rq.mid_of(t) == lb.src]
+                post = [t for t in MM.rq.tokens() if t not in MM.book.of and t not in MM.queue and MM.rq.mid_of(t) == lb.src and MM.rq.has(t)
+                        and not MM._in_match(t)]
+            return back, post
+        except Exception as ex:                            # noqa: BLE001 - the rows never break the search
+            log("LOBBY rows failed", repr(ex))
+            return None
     try:
         with MM.lock:
             qd = list(MM.queue)
@@ -480,7 +537,11 @@ def searching_frame(self_tok=None):
  match, so the searcher saw itself twice ("Alpha" + "Alpha [T1]"): the
     recipient's own entry is left out here (by token, and by its own shown name), and every
     token / name is listed once (re/mm-boot.md)."""
-    ents = _search_entries(_search_mode(self_tok) if self_tok else None)
+    lid = None
+    if book_on() and self_tok:
+        with MM.lock:
+            lid = MM.book.lobby_of(self_tok)
+    ents = _lobby_entries(lid) if lid else _search_entries(_search_mode(self_tok) if self_tok else None)
     # the " [T1]" / " [T2]" text after a searcher's name is gone for the player - t2r-ext strips it from the row and draws a blue / red tab instead.
     # The marker is RELATIVE to the viewer here: [T1] = our team, [T2] = the enemy (an old ext without the tabs still shows a readable label).
     mine = next((lab for t, _b, lab in ents if t == self_tok and (b"[T1]" in lab or b"[T2]" in lab)), None) if self_tok else None
@@ -879,6 +940,9 @@ def token_steamid(token):
 # Bans: one entry per line in bans.txt next to the database (outlives the PT folders): a Steam id (7656...), a
 # player name (case-insensitive; a name entry also bans every Steam account that ever used that name) or "hwid:<hex>" (a hardware
 # id the client reported, see "HWID bans"). '#' = comment. Re-read when the file changes.
+# "ip:<address>" or "ip:<network/prefix>" (IPv4 or IPv6, e.g.
+# ip:203.0.113.7 or ip:203.0.113.0/24) refuses every connection from that address / range, whatever the account; "pid:P-XXXXXXXX"
+# bans a whole identity (ident.py: every Steam id, install and hardware id tied to it, and any id merged into it later).
 BAN_PATH = os.path.join(os.path.dirname(os.path.abspath(DB_PATH)), "bans.txt")
 BAN_MSG = b"You are banned from the server."          # English form; the live path sends ban_note(token) (the token's language)
 def ban_note(token):
@@ -899,17 +963,18 @@ def ban_note(token):
     except Exception as ex:
         log("BANS reason lookup failed", ex)
     return (base + b" " + why.encode("utf-8", "replace"))[:0xf0] if why else base
-_bans = {"mtime": None, "ids": set(), "names": set(), "hw": set(), "tok": set(), "reason": {}}
+_bans = {"mtime": None, "ids": set(), "names": set(), "hw": set(), "tok": set(), "ip": [], "pid": set(), "reason": {}}
 
 def _bans_load():
     try:
         m = os.path.getmtime(BAN_PATH)
     except OSError:
-        _bans.update(mtime=None, ids=set(), names=set(), hw=set(), tok=set())
+        _bans.update(mtime=None, ids=set(), names=set(), hw=set(), tok=set(), ip=[], pid=set())
         return
     if m == _bans["mtime"]:
         return
     ids, nms, hw, tk = set(), set(), set(), set()
+    ipn, pids = [], set()
     reason = {}
     for line in open(BAN_PATH, encoding="utf-8", errors="ignore"):
         e = line.split("#", 1)[0].strip()
@@ -922,6 +987,15 @@ def _bans_load():
             t = e[6:].strip().lower()
             if len(t) == 64 and all(ch in "0123456789abcdef" for ch in t):
                 tk.add(t)
+            continue
+        if e.lower().startswith("ip:"):
+            try:
+                ipn.append(ipaddress.ip_network(e[3:].strip(), strict=False))
+            except ValueError:
+                log("BANS bad ip entry", e)
+            continue
+        if e.lower().startswith("pid:"):
+            pids.add(e[4:].strip().upper())
             continue
         if e.lower().startswith("hwid:"):
             h = e[5:].strip().lower()
@@ -945,8 +1019,9 @@ def _bans_load():
                             reason.setdefault(str(r[0]), reason[n])
         except Exception as ex:
             log("BANS reason name lookup failed", ex)
-    _bans.update(mtime=m, ids=ids, names=nms, hw=hw, tok=tk, reason=reason)
-    log("BANS loaded", len(ids), "steam id(s),", len(nms), "name(s),", len(hw), "hwid(s),", len(tk), "token(s) from", BAN_PATH)
+    _bans.update(mtime=m, ids=ids, names=nms, hw=hw, tok=tk, ip=ipn, pid=pids, reason=reason)
+    log("BANS loaded", len(ids), "steam id(s),", len(nms), "name(s),", len(hw), "hwid(s),", len(tk), "token(s),", len(ipn), "ip / range(s),",
+        len(pids), "identity id(s) from", BAN_PATH)
 
 # --------------------------------------------------- HWID bans
 # The client (t2r-ext hwid.c; spec's loader/hwid.cpp sources: MachineGuid, SMBIOS UUID, a fixed disk serial) reports on its own short
@@ -1008,7 +1083,7 @@ def hwid_record(token, hashes):
                       "ON CONFLICT(hash,token) DO UPDATE SET steamid=CASE WHEN excluded.steamid THEN excluded.steamid ELSE steamid END,"
                       "name=excluded.name,last_seen=excluded.last_seen", (h, token, sid, nm, now, now))
 
-def hwid_op(pl):
+def hwid_op(pl, ip=None):
     r = parse_hwid_report(pl)
     if not r:
         return msg(OP_HWID_REPLY, b"ok=0")
@@ -1018,6 +1093,7 @@ def hwid_op(pl):
     except Exception as e:
         log("HWID record failed", repr(e))
     log("HWID", tag(tok), len(hashes), "component(s)", " ".join(h[:6] for h in hashes))
+    ident_note(tok, hwids=hashes, ip=ip)
     return msg(OP_HWID_REPLY, b"ok=1")
 
 def banned_hwids():
@@ -1053,12 +1129,128 @@ def token_hwids(token, sid=0):
             h |= {r[0] for r in c.execute("SELECT hash FROM hwids WHERE steamid=?", (sid,))}
     return h
 
-def is_banned(token, name=None):
+# ---------------------------------------------------------------- identities (ident.py, optional)
+_IDENT_SEEN = {}        # (token, steamid, ip, hwids) -> time of the last write (one write per IDENT_EVERY_S per combination)
+IDENT_EVERY_S = 600.0
+
+def ident_note(token, steamid=0, hwids=(), ip=None):
+    """Records what was seen together (ident.link) and logs the identity id when it is new, changes or joins another. Never raises."""
+    if ident is None or not token or len(token) != 64:
+        return None
+    if ip and (ip.startswith("127.") or ip == "::1"):
+        ip = None
+    key = (token, int(steamid or 0), ip, tuple(sorted(hwids)))
+    now = time.time()
+    if now - _IDENT_SEEN.get(key, 0) < IDENT_EVERY_S:
+        return None
+    _IDENT_SEEN[key] = now
+    ident_prune(now)
+    if len(_IDENT_SEEN) > 20000:
+        for k in [k for k, t in _IDENT_SEEN.items() if now - t > IDENT_EVERY_S][:10000]:
+            _IDENT_SEEN.pop(k, None)
+    try:
+        sid = int(steamid or 0) or (BRIDGES.steamid(token) or token_steamid(token) or 0)
+        with _dblock, dbc() as c:
+            pid, merged, created = ident.link(c, token=token, steamid=sid, hwids=hwids, ip=ip, placeholders=HWID_PLACEHOLDERS, now=now)
+        if pid:
+            log("IDENT", pid, tag(token), "steam", sid or "-", "ip", ip or "-", "hwid", len(hwids),
+                "(new identity)" if created else "", ("joined " + " ".join(merged)) if merged else "")
+        return pid
+    except Exception as ex:
+        log("IDENT failed", repr(ex))
+        return None
+
+_IDENT_PRUNE = [0.0]
+
+def ident_prune(now=None):
+    """Once a day: IP addresses not seen for T2R_IP_KEEP_DAYS (180) are forgotten."""
+    now = now or time.time()
+    if ident is None or now - _IDENT_PRUNE[0] < 86400:
+        return
+    _IDENT_PRUNE[0] = now
+    try:
+        with _dblock, dbc() as c:
+            n = ident.prune_ips(c, now=now)
+        if n:
+            log("IDENT forgot", n, "ip address row(s) older than", ident.IP_KEEP_DAYS, "days")
+    except Exception as ex:
+        log("IDENT prune failed", repr(ex))
+
+def ident_backfill():
+    """One time: every account recorded before ident.py (players + hwids) gets its identity, 200 accounts per lock hold."""
+    if ident is None:
+        return
+    try:
+        with _dblock, dbc() as c:
+            ident.ensure_schema(c)
+            c.execute("CREATE TABLE IF NOT EXISTS ident_meta(k TEXT PRIMARY KEY, v TEXT)")
+            r = c.execute("SELECT v FROM ident_meta WHERE k='backfill'").fetchone()
+        after = r[0] if r else ""
+        if after == "done":
+            return
+        n = ids = 0
+        while True:
+            with _dblock, dbc() as c:
+                toks = ident.backfill_tokens(c, after)
+                for t in toks:
+                    pid, merged, created = ident.backfill_one(c, t, HWID_PLACEHOLDERS)
+                    ids += bool(created)
+                    if merged:
+                        log("IDENT backfill", pid, tag(t), "joined", " ".join(merged))
+                after = toks[-1] if toks else "done"
+                c.execute("INSERT OR REPLACE INTO ident_meta(k, v) VALUES('backfill', ?)", (after,))
+            n += len(toks)
+            if not toks:
+                break
+            time.sleep(0.05)
+        log("IDENT backfill done:", n, "account(s),", ids, "new identity id(s)")
+    except Exception as ex:
+        log("IDENT backfill failed", repr(ex))
+
+def ident_pid(token, steamid=0):
+    if ident is None:
+        return None
+    try:
+        sid = int(steamid or 0) or (BRIDGES.steamid(token) or token_steamid(token) or 0)
+        with _dblock, dbc() as c:
+            return ident.pid_of(c, token=token, steamid=sid)
+    except Exception as ex:
+        log("IDENT lookup failed", repr(ex))
+        return None
+
+def ip_banned(ip):
+    """The bans.txt ip: entry that covers this address, or None."""
     _bans_load()
-    if not _bans["ids"] and not _bans["names"] and not _bans["hw"] and not _bans["tok"]:
+    if not ip or not _bans["ip"]:
+        return None
+    try:
+        a = ipaddress.ip_address(ip.split("%", 1)[0])
+    except ValueError:
+        return None
+    if getattr(a, "ipv4_mapped", None):
+        a = a.ipv4_mapped
+    for n in _bans["ip"]:
+        if a.version == n.version and a in n:
+            return n
+    return None
+
+def is_banned(token, name=None, ip=None):
+    _bans_load()
+    if ip and ip_banned(ip):
+        return True
+    if not _bans["ids"] and not _bans["names"] and not _bans["hw"] and not _bans["tok"] and not _bans["pid"]:
         return False
     if token and token.lower() in _bans["tok"]:
         return True
+    if token and _bans["pid"] and ident is not None:
+        try:
+            with _dblock, dbc() as c:
+                live = {ident.resolve(c, p) for p in _bans["pid"]}
+                mine = ident.pid_of(c, token=token, steamid=BRIDGES.steamid(token) or token_steamid(token) or 0)
+            if mine and mine in live:
+                return True
+        except Exception as ex:
+            log("BANS identity check failed", repr(ex))
     sid = BRIDGES.steamid(token) or token_steamid(token)
     if sid and str(sid) in _bans["ids"]:
         return True
@@ -1391,6 +1583,16 @@ CLAN_LAST_DEPART = {}  # mid -> (time, token) of the latest departure from the r
 CLAN_EXCUSED = set()   # (token, mid)
 CLAN_LINK_EXCUSES = {}  # token -> [times]: 'my link was lost' excuses granted (client-reported flag 4, cannot be proven: capped so pulling the cable is not a free way out)
 CLAN_LINK_EXCUSE_MAX, CLAN_LINK_EXCUSE_WINDOW = 2, 86400.0
+# Closing the game window during a match (Alt+F4, the X) must not save the clan from its penalty. It
+# dropped the session like a crash, so the leave was excused. The ext now sends op 0xBC sub 3 just before its window closes in a match
+# (CLAN_CLOSING): a session lost within CLAN_CLOSING_S (20 s) of it is the player's own leave. A kill the ext cannot see (Task Manager, pulled cable) still
+# looks like a crash: those excuses are capped per player (CLAN_LOST_EXCUSE_MAX in CLAN_LOST_EXCUSE_WINDOW s), the rest count as left early.
+CLAN_CLOSING = {}      # token -> (time, mid) of its 'my window is closing' notice
+CLAN_CLOSE_DROPS = set()   # (token, mid): its session dropped within CLAN_CLOSING_S of that notice - the verdict comes SESSION_GRACE_S later
+CLAN_CLOSING_S = float(os.environ.get("T2R_CLAN_CLOSING_S", "20"))   # (short: a close the game asks to confirm and the player cancels must not turn a later crash into a leave)
+CLAN_LOST_EXCUSES = {}  # token -> [times]: crash / lost-connection excuses granted
+CLAN_LOST_EXCUSE_MAX = int(os.environ.get("T2R_CLAN_LOST_EXCUSE_MAX", "3"))
+CLAN_LOST_EXCUSE_WINDOW = float(os.environ.get("T2R_CLAN_LOST_EXCUSE_WINDOW", "86400"))
 _clanlock = threading.Lock()
 
 def clan_key(c, token):
@@ -2775,6 +2977,22 @@ SESSIONS = Sessions()
 SESSION_GRACE_S = float(os.environ.get("T2R_SESSION_GRACE", "60"))
 SESS_LOST = {}                         # token -> (time.time() the session conn was lost, match id)
 
+def clan_closed_book(token, mid):
+    """A closed game sends no match report, and a clan day is booked only from one: book the left-early day (0 parts) here. Finalised
+    after the re-attach window + 20 s, so the leave verdict (leave_running_match) and a match end come first. A start / end grace or update excuse
+    still applies: no day then (like any excused leave)."""
+    if CLAN_MATCH.get(token) != mid or CLAN_DONE.get(token) == mid:
+        return
+    ex = clan_leave_excuse(token, mid, "session lost")
+    if ex is not None:
+        log("CLAN closed", tag(token), "mid", mid, "- excused (%s): no day" % ex)
+        return
+    CLAN_QUITTERS.add((token, mid))
+    with _clanlock:
+        CLAN_PENDING.setdefault(token, (mid, 0, 0, {}))
+    CLAN_DUE[token] = time.time() + SESSION_GRACE_S + 20
+    log("CLAN closed", tag(token), "mid", mid, "- no report comes from a closed game: left-early day (0 parts) booked in %.0f s" % (SESSION_GRACE_S + 20))
+
 def note_session_lost(token, conn):
     """A registered session conn of `token` closed. In a launched, not ended match: remember it for SESSION_GRACE_S (re-attach window)."""
     try:
@@ -2788,6 +3006,14 @@ def note_session_lost(token, conn):
         if not running:
             return False
         SESS_LOST[token] = (time.time(), mid)
+        cl = CLAN_CLOSING.get(token)
+        if cl and time.time() - cl[0] <= CLAN_CLOSING_S and cl[1] in (None, mid):
+            # the leave verdict comes after the re-attach window (SESSION_GRACE_S), long after CLAN_CLOSING_S: decide 'closed' now
+            if len(CLAN_CLOSE_DROPS) > 4000:
+                CLAN_CLOSE_DROPS.clear()
+            CLAN_CLOSE_DROPS.add((token, mid))
+            log("CLAN closed", tag(token), "mid", mid, "- its session dropped %.1f s after its window-close notice: its own leave" % (time.time() - cl[0]))
+            clan_closed_book(token, mid)
         evt("session-lost", mid, tag(token), "session socket lost in a running match; waiting %.0f s for it to re-attach" % SESSION_GRACE_S)
         return True
     except Exception as e:
@@ -2978,8 +3204,10 @@ SRV_TEXT = {
     # ping limit (the ext's kick box reads the three numbers: ping, seconds, limit)
     "ping_kicked": ("You got kicked from the match: your ping to the host was {ms} ms for over {s} seconds (limit {lim} ms).",
                     "Wyrzucono cię z meczu: twój ping do hosta wynosił {ms} ms przez ponad {s} s (limit {lim} ms)."),
-    "loss_kicked": ("You got kicked from the match: your connection lost {pct}% of its packets for over {s} seconds (limit {lim}%). Use a cable, close downloads and try again in {m} min.",
-                    "Wyrzucono cię z meczu: twoje połączenie gubiło {pct}% pakietów przez ponad {s} s (limit {lim}%). Użyj kabla, zamknij pobieranie i spróbuj ponownie za {m} min."),
+    "loss_kicked": ("You got kicked from the match: your connection lost {pct}% of its packets for over {s} seconds (limit {lim}%), the second time in a short while. Use a cable, close downloads and try again in {m} min.",
+                    "Wyrzucono cię z meczu: twoje połączenie gubiło {pct}% pakietów przez ponad {s} s (limit {lim}%). Drugi raz w krótkim czasie. Użyj kabla, zamknij pobieranie i spróbuj ponownie za {m} min."),
+    "loss_kicked_free": ("You got kicked from the match: your connection lost {pct}% of its packets for over {s} seconds (limit {lim}%). A cable or closing downloads helps. You can search again now.",
+                         "Wyrzucono cię z meczu: twoje połączenie gubiło {pct}% pakietów przez ponad {s} s (limit {lim}%). Pomoże kabel albo zamknięcie pobierania. Możesz od razu szukać ponownie."),
     "loss_hold": ("Your connection lost {pct}% of its packets in your last match. You can search again in {m} min.",
                   "Twoje połączenie gubiło {pct}% pakietów w ostatnim meczu. Możesz szukać ponownie za {m} min."),
     # the admin team move - the client recognises this text (ext msg_is_move: "TEAMS:" prefix) and searches again by itself, straight back in on the other team
@@ -3896,9 +4124,25 @@ def _loc_best(loc):
     ms = [int(m) for _p, m in _re.findall(r"([a-z][a-z0-9]{2,4})=(\d+)", (loc or "").lower())]
     return min(ms) if ms else None
 
-PING_MAX = 4096
+# The cap was 4096 directional pairs and a full table dropped its first 1024 keys in INSERTION order. At evening load (90 online,
+# 65 helpers = 4160 pairs) the table was always full, so pairs refreshed every few seconds were dropped at random and a known ping turned
+# unknown: a joiner refused at 233 ms joined the same match 5 s later and was removed 60 s in (70 refused-then-joined, 38 ping-kicked
+# in one day). Now: a bigger cap, offline pairs out first, then the least recently reported; and PING_LAST below.
+PING_MAX = int(os.environ.get("T2R_PING_MAX", "16384"))
+# The last pair ping per unordered pair {a, b} = (ms, time), written with every report. The gates read it when PING has no entry (evicted,
+# or reset); the table cap never touches it. Pruned by age (PING_GATE_AGE_S) in gc_state; _drop_pings clears a player's pairs
+# (connection / region change = the old pings say nothing).
+PING_LAST = {}
 def _drop_pings(token):
     for k in [k for k in PING if token in k]:
+        PING.pop(k, None); PING_AT.pop(k, None)
+    for k in [k for k in PING_LAST if token in k]:
+        PING_LAST.pop(k, None)
+
+def _ping_evict(online, n):
+    """Drop n entries of the full PING table: pairs with a player who is not online first, then the least recently reported."""
+    order = sorted(list(PING), key=lambda k: (k[0] in online and k[1] in online, PING_AT.get(k, 0.0)))
+    for k in order[:n]:
         PING.pop(k, None); PING_AT.pop(k, None)
 
 def ping_location(token, loc):
@@ -3963,12 +4207,14 @@ def ping_location(token, loc):
 def ping_report(token, steamid, ms):
     with BRIDGES.lock:
         other = next((t for t, b in BRIDGES.by_token.items() if b["steamid"] == steamid), None)
+        online = set(BRIDGES.by_token) if other and len(PING) >= PING_MAX and (token, other) not in PING else None
     if other and ms >= 0:
-        if len(PING) >= PING_MAX and (token, other) not in PING:     # pairs of helpers that are online at once: bounded by a cap, oldest pairs out
-            for k in list(PING)[:PING_MAX // 4]:
-                PING.pop(k, None); PING_AT.pop(k, None)
+        if online is not None:     # bounded by a cap: offline pairs out first, then the least recently reported
+            _ping_evict(online, max(1, PING_MAX // 8))
         PING.setdefault((token, other), collections.deque(maxlen=5)).append(ms)
-        PING_AT[(token, other)] = time.time()
+        now = time.time()
+        PING_AT[(token, other)] = now
+        PING_LAST[frozenset((token, other))] = (_pair_raw(token, other), now)
 
 def _ping_med(d):
     if not d:
@@ -4376,6 +4622,7 @@ class MatchMaker:
                                   release_s=LOBBY_RELEASE_S if LOBBY_KEEP else 0.0, min_gap=LOBBY_MIN_GAP_S if LOBBY_KEEP else 0.0)
         self._rq_go = []       # (persistent lobby) the released groups of the current try_form pass: [(mid, searching, still on the screens)]
         self._rq_logged = 0.0
+        self.book = lobbybook.LobbyBook(MATCH_SIZE, log=log)   # (LOBBY_BOOK) the search lobbies
         # join in progress (T2R_JIP=1, re/join-in-progress.md)
         self.departed_vol = set()  # tokens that left their running match on purpose (clean op 0x02): not pulled back into it
         self.departed_t = {}   # token -> time it left its running match (a slot is handed on only after JIP_REUSE_S)
@@ -4436,6 +4683,8 @@ class MatchMaker:
                 log("QUEUE drop (no matchmaking poll / offline)", tag(t))
                 evt("queue-drop", tag(t), ("no poll for %.0f s" % (now - self.seen.get(t, 0))) if t in online else "offline")
                 del self.queue[t]
+                if book_on():
+                    self.book.away(t, now)
             # only players whose client is searching RIGHT NOW: a fresh poll (searching page heartbeat) within QUEUE_FRESH s.
             # After a countdown cancel the others were put back in the queue with 'seen = now' although their UI may have
             # dropped to the menu (A re-queued and was matched with a B that was not searching = empty match).
@@ -4457,6 +4706,141 @@ class MatchMaker:
                 ready, held = social.held_parties(ready, PARTIES)
             except Exception as ex:                                   # noqa: BLE001 - parties never break the queue
                 log("PARTY filter failed", repr(ex))
+            if book_on():
+                try:
+                    return self._book_form(ready, held, now, online)
+                except Exception as ex:                               # noqa: BLE001 - a book bug falls back to the old queue for this pass
+                    log("LOBBY-BOOK ERR (old queue this pass)", repr(ex))
+            return self._form_pick(ready, held, now, online, None)
+
+    # ------------------------------------------------------------ stable lobbies (LOBBY_BOOK, tools/lobbybook.py)
+    def _book_single_unit(self, lb):
+        """(lock held) The lobby is one player or one party (the only lobbies offered a join in progress)."""
+        if lb is None or not lb.members:
+            return True
+        if len(lb.members) == 1:
+            return True
+        p = PARTIES.pid(lb.members[0])
+        return bool(p) and all(PARTIES.pid(t) == p for t in lb.members)
+
+    def _book_unit(self, token):
+        try:
+            if PARTIES.pid(token) and len(PARTIES.members(token)) > 1:
+                return list(PARTIES.members(token))
+        except NameError:
+            pass
+        return [token]
+
+    def _book_fits(self, members, newcomers):
+        """(lock held) May `newcomers` share a lobby with `members`: one game mode, PART I MAPS = ALWAYS only with owners, and the ping gate keeps
+        everybody with one host (unknown pings pass here; the start waits for them, PING_WAIT_S)."""
+        allp = list(members) + [t for t in newcomers if t not in members]
+        if not modeq.forced():
+            ms = {m for m in (_search_mode(t) for t in allp) if m != modeq.ANY}
+            if len(ms) > 1:
+                return False
+        if p1_pref_on():
+            ld = PARTIES.leader
+            if any(p1_always(t, ld(t)) for t in allp) and not all(p1_always(t, ld(t)) or p1_owner(t, ld(t)) for t in allp):
+                return False
+        if MM_PING_GATE and PING_KICK_MS > 0 and len(allp) >= 2:
+            now = time.time()
+            _kept, dropped, _h, _i = hostmig.ping_fit(allp, lambda a, b: _ping_gate(a, b, now), ping_match_ms(), units_fn=PARTIES.members,
+                                                      host_ok=lambda t: not no_host(t))
+            if dropped:
+                return False
+        return True
+
+    def _book_cap(self, lb, incoming=()):
+        """(lock held) Seats of lobby `lb` for `incoming`: MATCH_SIZE minus the seats kept for its post-match members still on the screens and
+        for the party mates of its members that are not searching yet."""
+        inc = set(incoming)
+        res = set()
+        if lb.src is not None and REQUEUE and LOBBY_KEEP:
+            for t in self.rq.tokens():
+                if (t not in inc and t not in self.book.of and t not in self.queue and self.rq.mid_of(t) == lb.src and self.rq.has(t)
+                        and not self._in_match(t)):
+                    res.add(t)
+        for t in lb.members:
+            for m in self._book_unit(t):
+                if m not in inc and m not in self.book.of and m != t:
+                    res.add(m)
+        return MATCH_SIZE - len(res)
+
+    def _book_jip_hold(self, token, unit, now):
+        """(lock held) A lone player / one party that a running match can take now, or a match that starts soon will (room, its mode, ping),
+        stays in its own lobby meanwhile (nobody is merged with it, so nobody sees it go): jip_pass takes it. Never past QUEUE_HOLD_MAX."""
+        if not JIP:
+            return False
+        if QUEUE_HOLD_MAX > 0 and now - min(self.queue.get(u, now) for u in unit if u in self.queue or u == token) >= QUEUE_HOLD_MAX:
+            return False
+        need = len(unit)
+        if self._jip_pick(token, [], JIP_PREFER_LEFT, need):
+            return True
+        for mid, pl in self.matches.items():
+            if mid in self.ended or not pl:
+                continue
+            # forming (lobby / countdown / loading), or started so recently that the join waits JIP_MIN_AGE
+            young = mid not in self.started or (mid in self.started_t and now - self.started_t[mid] < JIP_MIN_AGE + 5)
+            if not young or now - self.formed.get(mid, now) >= 180:
+                continue
+            if not MODEQ.fits(token, mid, PARTIES.leader(token)) or not p1_fits(token, mid, PARTIES.leader(token)):
+                continue
+            act = [t for t in pl if t not in self.departed.get(mid, ())]
+            if len(act) + need > MATCH_SIZE:
+                continue
+            if MM_PING_GATE and jip_ping_block(token, mid, pl[0], act, set(self.joining), now) is not None:
+                continue
+            return True
+        return False
+
+    def _book_form(self, ready, held, now, online):
+        """(lock held) LOBBY_BOOK pass: lobbies follow their matches, members away too long leave, every searcher not in a lobby is placed,
+        lobbies that fit are merged; then ONE whole lobby (biggest first) may form a match (_form_pick with lb)."""
+        bk = self.book
+        bk.sync_matches(lambda m: m in self.matches, lambda m: m in self.started or m in self.ended, list(self.queue), now)
+        bk.expire(now)
+        try:
+            pub = PRIV.split_ready(list(self.queue))[0]
+        except Exception:                                            # noqa: BLE001
+            pub = list(self.queue)
+        tick = set(self.rq.tokens()) if (REQUEUE and LOBBY_KEEP) else set()
+        full = len(pub) >= MATCH_SIZE                                 # a full match can form from the searchers: no join-in-progress holds
+        for t in sorted(pub, key=lambda x: self.queue.get(x, now)):
+            if bk.lobby_of(t):
+                bk.back(t)
+                continue
+            src = None
+            if t in tick:
+                nm = self.rq.next_of(t)
+                if nm and nm in self.matches and nm not in self.ended:
+                    continue                                          # its lobby formed its next match meanwhile: it joins that one (jip_pass)
+                src = self.rq.mid_of(t)
+            unit = self._book_unit(t)
+            solo = len(unit) == 1 or all(u in self.queue for u in unit)
+            solo = solo and not full and self._book_jip_hold(t, unit, now)
+            lid, why = bk.place(t, unit, self._book_fits, self._book_cap, now, src=src, solo=solo, at=self.queue.get(t, now))
+            log("LOBBY-BOOK:", tag(t), why, lid, [tag(x) for x in bk.members(lid)], "(held for a join in progress)" if solo else "")
+        for lb in bk.open_lobbies():
+            if lb.hold and (full or not (self._book_single_unit(lb) and self._book_jip_hold(lb.members[0], self._book_unit(lb.members[0]), now))):
+                lb.hold = False
+        for a, b in bk.merge_pass(self._book_fits, self._book_cap, now):
+            log("LOBBY-BOOK: lobby", b, "merged into", a, [tag(x) for x in bk.members(a)])
+        rset = set(ready)
+        for lb in bk.launch_order():
+            mem = list(lb.members)
+            if not mem or lb.away or lb.hold or now < lb.wait_until or any(t not in rset for t in mem):
+                continue
+            sub = sorted(mem, key=lambda t: self.queue.get(t, now))
+            mid, players = self._form_pick(sub, held, now, online, lb)
+            if mid:
+                bk.launched(lb.lid, mid)
+                return mid, players
+        return None, None
+
+    def _form_pick(self, ready, held, now, online, lb):
+        """(lock held) The match of the matchable `ready` tokens (the whole queue, or with LOBBY_BOOK one lobby `lb` that must go whole)."""
+        if True:
             # per-mode queues: one match forms from the players of ONE mode (a party searches in its leader's mode; T2R_MODE forces)
             grp_mode = None
             try:
@@ -4486,7 +4870,7 @@ class MatchMaker:
             # (PT): first wait for a full 4v4 (MATCH_SIZE); every FILL_WAIT s without a new arrival the wanted size steps
             # down by one player (4v4 -> 3v4 -> 3v3 -> ... -> MIN_PLAYERS). Odd counts play uneven (3v4); the map pool then only offers
             # maps whose max_team fits the bigger team (team_size / max_team_table).
-            quiet = now - self.last_arrival
+            quiet = now - (lb.last_join if lb is not None else self.last_arrival)    # (LOBBY_BOOK) the lobby's own last arrival
             want = max(MIN_PLAYERS, MATCH_SIZE - int(quiet // FILL_WAIT)) if FILL_WAIT > 0 else MIN_PLAYERS
             if fill_rule() == "fast":
                 want, _why = self.fast_want(ready, online, quiet, now)
@@ -4494,8 +4878,8 @@ class MatchMaker:
                 want = MIN_PLAYERS           # PT55 00:54-00:58: arrivals trickled in, each reset the quiet timer - the first searcher waited 4.4 min
             _want0 = want
             if lob:
-                want = MIN_PLAYERS           # (lobby) the lobby goes now: it waited for its players already
-            if JIP and self.matches and len(ready) < MATCH_SIZE and not lob:
+                want = MIN_PLAYERS           # (persistent lobby) the lobby goes now: it waited for its players already
+            if JIP and self.matches and len(ready) < MATCH_SIZE and not lob and (lb is None or self._book_single_unit(lb)):
                 # a running match with room and enough time left beats a new small match (PT55 02:13 formed a 2-player match while a 6-player one
                 # ran; users): the players it can take stay out of the new match, jip_pass puts them in
                 rs = set(ready)
@@ -4513,7 +4897,7 @@ class MatchMaker:
             # (2 searchers, 5 searchers): the hold had no end - 5 searchers waited 6 min (02:31:16-02:37:41) for a full match
             # that could not take them. Searchers held longer than QUEUE_HOLD_MAX s (the oldest one, MIN_PLAYERS present) form their own match.
             _held_long = bool(ready) and len(ready) >= MIN_PLAYERS and QUEUE_HOLD_MAX > 0 and now - min(self.queue.get(t, now) for t in ready) >= QUEUE_HOLD_MAX
-            if SECOND_MATCH_MIN > 0 and len(ready) < SECOND_MATCH_MIN and not lob:
+            if SECOND_MATCH_MIN > 0 and len(ready) < SECOND_MATCH_MIN and not lob and (lb is None or self._book_single_unit(lb)):
                 def _live(mid, pl):
                     if mid in self.ended or all(t in self.departed.get(mid, ()) for t in pl):
                         return False
@@ -4575,7 +4959,7 @@ class MatchMaker:
             # late joiner: the whole lobby starts a player short and the roster / 0xF2 table is rebuilt in the first seconds. Hold the formation
             # for the few seconds those players need to become matchable (at most QUEUE_SETTLE + 2 s since the first hold, never when the lobby
             # is full anyway).
-            settling = [t for t in self.queue if self.settle.get(t, 0) > now and t not in ready]
+            settling = [t for t in self.queue if self.settle.get(t, 0) > now and t not in ready] if lb is None else []
             if settling and len(ready) < MATCH_SIZE and len(ready) >= want:
                 if not self._hold_since:
                     self._hold_since = now
@@ -4633,6 +5017,11 @@ class MatchMaker:
                             log("PING-GATE", ginfo, "- not matched with them (over %d ms to that host):" % _lim,
                                 ", ".join("%s %s ms" % (tag(t), _ping_gate(gh, t, now)) for t in dropped), "| kept", [tag(t) for t in kept])
                     if dropped or unk:
+                        if lb is not None:
+                            # (LOBBY_BOOK) the ones the gate leaves out leave the lobby (they were placed with the pings known then): the lobby is
+                            # the kept players now
+                            for t in [t for t in ready if t not in kept]:
+                                self.book.remove(t, "ping gate at the start (over %d ms to every host, or still unknown)" % _lim, now, lobbybook.BACKOUT_BLOCK_S)
                         ready = kept
                 except Exception as ex:                               # noqa: BLE001 - never breaks the queue
                     log("PING-GATE failed", repr(ex))
@@ -4644,6 +5033,12 @@ class MatchMaker:
                     ready = lob + [t for t in ready if t not in lob]
             _size = max(MIN_PLAYERS, MATCH_SIZE - lob_keep) if lob else MATCH_SIZE
             players = social.pick_units(ready, PARTIES, _size) if len(ready) >= want else []     # whole parties only, 2p - 1 players for a party of p
+            if lb is not None and players and set(players) != set(ready):
+                # (LOBBY_BOOK) the whole lobby or nothing: a party that needs more players (2p - 1) waits with its lobby for them
+                if now - getattr(self, '_book_short_logged', 0.0) >= 20.0:
+                    self._book_short_logged = now
+                    log("LOBBY-BOOK: lobby", lb.lid, "waits: not every member fits one match yet (parties need 2p - 1 players)", [tag(t) for t in ready])
+                return None, None
             if lob and players and not all(t in players for t in lob):
                 log("LOBBY:", lob_mid, "could not keep every member together (parties / size) - formed as picked:", [tag(t) for t in players])
             # live (party of 4 + two solos): the solos formed a 1v1 and the ready party (needs 2p - 1 = 7 players) was left behind with no
@@ -4769,7 +5164,7 @@ class MatchMaker:
                 extra.add(t)
         # lone searchers (no ticket) wait for a waiting lobby that has room for all of them: they fill its open seats when it goes
         others = [t for t in ready if t not in held and t not in tick and t not in extra]
-        if others and waiting:
+        if others and waiting and not book_on():         # (LOBBY_BOOK places them into the lobby itself)
             for gmid, post in waiting.items():
                 size = len(post) + sum(1 for t in held if self.rq.mid_of(t) == gmid)
                 if size + len(others) <= MATCH_SIZE:
@@ -4961,6 +5356,8 @@ class MatchMaker:
                 self.settle[t] = now + QUEUE_SETTLE      # their page goes back to searching first
             self.left[token] = (now, qt.get(token, now))
             self.last_arrival = now                    # give the leaver time to come back
+            if book_on():
+                self.book.cancelled(mid, token, now)   # the others keep their lobby; the leaver is out of it
             return others
     def poll(self, token):
         with self.lock:
@@ -4972,12 +5369,16 @@ class MatchMaker:
             if since is not None:
                 self.left[token] = (time.time(), since)
                 self.settle.pop(token, None)
+                if book_on():
+                    self.book.away(token)              # its seat waits lobbybook.GRACE_S for a search again (page reset / reconnect)
             if self.rq.drop_search(token):              # (not the 0x02 session close right after MATCH-END - that keeps the 'post' ticket)
                 log("requeue:", tag(token), "ticket dropped (left the search)")
             return since is not None
     def leave(self, token):
         with self.lock:
             self.rq.drop(token)
+            if book_on():
+                self.book.remove(token, "left")
             since = self.queue.pop(token, None)
             if since is not None:
                 self.left[token] = (time.time(), since)
@@ -5020,6 +5421,8 @@ class MatchMaker:
             ready = sorted((t for t in self.queue if self.settle.get(t, 0) <= now and now - self.seen.get(t, 0) <= QUEUE_FRESH),
                            key=self.queue.get)
             ready = self._rq_filter(ready, now)                      # (a held searcher is not put into a running match either)
+            if book_on():                                           # a lobby of more than one unit stays together: never pulled apart by a join
+                ready = [t for t in ready if not self.book.lobby_of(t) or self._book_single_unit(self.book.get(self.book.lobby_of(t)))]
         try:
             return social.held_parties(ready, PARTIES)[0]            # a party joins a running match together or not at all
         except Exception:                                            # noqa: BLE001
@@ -5232,6 +5635,21 @@ class MatchMaker:
                     if abs(lv[0] - lv[1]) >= 3 and cnt[lose] + need - cnt[1 - lose] <= max(1, need) and has_slot:
                         want, forced = lose, need > 1
                         log("JIP", mid, "joiner -> losing team %d (lives %d v %d, players %d v %d)" % (lose, lv[0], lv[1], cnt[0], cnt[1]))
+            if want is None and need == 1 and cnt[0] == cnt[1] and os.environ.get("T2R_TEAM_BALANCE", "1") != "0":
+                # (one-sided matches) a lone joiner into an even match took whichever team the next slot index has; joins in progress outnumber
+                # formed matches about 2.5 to 1, so most players reach a match this way. It now takes the team with the lower rating sum
+                # (player_skill) when that team has a slot.
+                try:
+                    tin = [(team_in(mid, i, t), t) for i, t in enumerate(pl) if t not in dep]
+                    sk = player_skill([t for _k, t in tin] + [token])
+                    tot = [sum(sk[t] for k, t in tin if k == side) for side in (0, 1)]
+                    if abs(tot[0] - tot[1]) > 1e-6:
+                        weak = 0 if tot[0] < tot[1] else 1
+                        if any(i % 2 == weak for i in free) or (len(pl) < ENGINE_SLOTS and len(pl) % 2 == weak):
+                            want = weak
+                            log("JIP", mid, "joiner %s (%.2f) -> weaker team %d (rating %.2f v %.2f, players %d v %d)" % (tag(token), sk[token], weak, tot[0], tot[1], cnt[0], cnt[1]))
+                except Exception as ex:                              # noqa: BLE001
+                    log("JIP", mid, "weaker-team pick skipped:", repr(ex))
             if want is None:
                 want = 0 if cnt[0] < cnt[1] else 1 if cnt[1] < cnt[0] else None     # the smaller team; None = even, either
                 if need > 1:
@@ -5366,6 +5784,8 @@ class MatchMaker:
                     d[new_key] = d.pop(old_key)
             since = self.queue.pop(token)
             self.qtime.setdefault(mid, {})[token] = since
+            if book_on():
+                self.book.remove(token, "joined the running match %s" % mid, now)
             self.joining[token] = (mid, now)
             self.polled.get(mid, {}).pop(token, None)
             self.departed_t.pop(token, None)
@@ -5423,25 +5843,60 @@ def token_by_name(name):
             return t
     return None
 
+# Team balance rating (one-sided matches): the teams are balanced by K/D. Measured on 941 matches over three days (match_stats): the team with the higher mean of the old rating
+# (smoothed win rate + parts per match) got more kills in 63 % of the matches, the higher mean smoothed K/D (K + 10) / (D + 10) in 70 %;
+# a K/D gap in the top quarter made a stomp (loser under half the winner's kills) 35 % likely, the bottom quarter 18 %. The rating is now the
+# account's K/D over its last SKILL_MATCHES matches, mapped onto the old scale (same mean 0.63 and spread 0.12 over the 414 players with 5+
+# matches: K/D mean 1.11, spread 0.49), so the top-player bonus, HOST_SWAP_SKILL and the admin view keep their meaning.
+SKILL_KD_PRIOR = 10.0                  # kills and deaths added to the totals: a new account sits at K/D 1.0
+SKILL_MATCHES = 100
+SKILL_A, SKILL_B = 0.36, 0.245         # rating = SKILL_A + SKILL_B x K/D  (0.63 + (kd - 1.11) x 0.12 / 0.49)
+SKILL_NEW = SKILL_A + SKILL_B * 1.0
+SKILL_CACHE_S = 300.0
+_skill_cache = {}                      # token -> (time, rating)
+_skill_index = [False]
+
+
+def skill_of_kd(kills, deaths):
+    kd = (max(0, kills) + SKILL_KD_PRIOR) / (max(0, deaths) + SKILL_KD_PRIOR)
+    return SKILL_A + SKILL_B * kd
+
+
 def player_skill(tokens):
-    """Team balance: a rating per token from the account's history (every install of one
-    Steam account adds up): smoothed win rate (prior 50 % over 6 matches) and parts per finished match (prior 1000 over 4 matches),
-    both scaled to ~0..1 and averaged. New players sit in the middle."""
+    """Team balance rating per token from the account's last SKILL_MATCHES matches with kill stats (every install of one Steam account adds up),
+    see SKILL_KD_PRIOR above. New players sit at K/D 1.0. Cached SKILL_CACHE_S s per token."""
+    now = time.time()
     out = {}
-    try:
-        with _dblock, dbc() as c:
-            for t in tokens:
-                r = c.execute("SELECT steamid FROM players WHERE token=?", (t,)).fetchone()
-                sid = r[0] if r and r[0] else 0
-                q = ("SELECT SUM(wins), SUM(matches), SUM(parts_total), SUM(parts_n), SUM(draws) FROM players WHERE steamid=?", (sid,)) if sid else                     ("SELECT wins, matches, parts_total, parts_n, draws FROM players WHERE token=?", (t,))
-                w, m, pt, pn, dr = c.execute(*q).fetchone() or (0, 0, 0, 0, 0)
-                w, m, pt, pn, dr = w or 0, m or 0, pt or 0, pn or 0, dr or 0
-                wr = (w + 0.5 * dr + 3.0) / (m + 6.0)
-                ppm = (pt + 4000.0) / (pn + 4.0)
-                out[t] = 0.5 * wr + 0.5 * min(ppm / 2000.0, 1.0)
-    except Exception as ex:
-        log("SKILL lookup failed", ex)
-    return {t: out.get(t, 0.5) for t in tokens}
+    need = []
+    for t in tokens:
+        e = _skill_cache.get(t)
+        if e and now - e[0] < SKILL_CACHE_S:
+            out[t] = e[1]
+        else:
+            need.append(t)
+    if need:
+        try:
+            with _dblock, dbc() as c:
+                if not _skill_index[0]:
+                    c.execute("CREATE INDEX IF NOT EXISTS match_stats_token_ts ON match_stats(token, ts)")
+                    _skill_index[0] = True
+                for t in need:
+                    r = c.execute("SELECT steamid FROM players WHERE token=?", (t,)).fetchone()
+                    sid = r[0] if r and r[0] else 0
+                    toks = [x for (x,) in c.execute("SELECT token FROM players WHERE steamid=?", (sid,)).fetchall()] if sid else []
+                    if t not in toks:
+                        toks.append(t)
+                    rows = c.execute("SELECT kills, deaths FROM match_stats WHERE token IN (%s) AND kills >= 0 ORDER BY ts DESC LIMIT ?"
+                                     % ",".join("?" * len(toks)), toks + [SKILL_MATCHES]).fetchall()
+                    v = skill_of_kd(sum(k or 0 for k, _d in rows), sum(max(d or 0, 0) for _k, d in rows))
+                    out[t] = v
+                    _skill_cache[t] = (now, v)
+        except Exception as ex:
+            log("SKILL lookup failed", ex)
+    if len(_skill_cache) > 20000:
+        for k in [k for k, e in list(_skill_cache.items()) if now - e[0] >= SKILL_CACHE_S]:
+            _skill_cache.pop(k, None)
+    return {t: out.get(t, SKILL_NEW) for t in tokens}
 
 TOP_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "top_players.txt")
 _top_cache = {"mt": None, "keys": frozenset()}
@@ -5585,7 +6040,7 @@ def split_teams(players, party_of=None, skill=None, top=None, groups_rules=None)
         import itertools
         top = top or set()
         rg = groups_rules or []
-        w = {t: skill.get(t, 0.5) + (0.5 if t in top else 0.0) for t in players}
+        w = {t: skill.get(t, SKILL_NEW) + (0.5 if t in top else 0.0) for t in players}
         tot = sum(w.values())
         parties = [g for g in groups if 1 < len(g) <= cap]
         best, best_c = None, None
@@ -5620,10 +6075,10 @@ def split_teams(players, party_of=None, skill=None, top=None, groups_rules=None)
         # and they count as the strongest in the sums, so the rest of the lobby is balanced against them
         top = top or set()
         nt = lambda g: sum(1 for x in g if x in top)
-        groups.sort(key=lambda g: (-len(g), -nt(g), -sum(skill.get(x, 0.5) + (0.5 if x in top else 0.0) for x in g)))
+        groups.sort(key=lambda g: (-len(g), -nt(g), -sum(skill.get(x, SKILL_NEW) + (0.5 if x in top else 0.0) for x in g)))
         tot, tops = [0.0, 0.0], [0, 0]
         for g in groups:
-            gs = sum(skill.get(x, 0.5) + (0.5 if x in top else 0.0) for x in g)
+            gs = sum(skill.get(x, SKILL_NEW) + (0.5 if x in top else 0.0) for x in g)
             order = sorted((0, 1), key=lambda i: (tops[i] if nt(g) else 0, tot[i], len(teams[i])))
             placed = False
             for a in order:
@@ -5633,7 +6088,7 @@ def split_teams(players, party_of=None, skill=None, top=None, groups_rules=None)
             if not placed:
                 for x in g:
                     a = 0 if len(teams[0]) < len(teams[1]) or (len(teams[0]) == len(teams[1]) and tot[0] <= tot[1]) else 1
-                    teams[a].append(x); tot[a] += skill.get(x, 0.5) + (0.5 if x in top else 0.0); tops[a] += x in top
+                    teams[a].append(x); tot[a] += skill.get(x, SKILL_NEW) + (0.5 if x in top else 0.0); tops[a] += x in top
         return teams if len(teams[0]) >= len(teams[1]) else (teams[1], teams[0])
     for g in groups:
         a = 0 if len(teams[0]) <= len(teams[1]) else 1
@@ -5982,7 +6437,7 @@ def teams_preview():
         return {"queue": [get_name(t) or "PLAYER" for t in q], "t0": [], "t1": []}
     sk = player_skill(q)
     t0, t1 = split_teams(q, {t: PARTIES.pid(t) for t in q if PARTIES.pid(t)}, sk, top_players(q), rule_groups(q))
-    nm = lambda t: "%s (%.2f)" % (get_name(t) or "PLAYER", sk.get(t, 0.5))
+    nm = lambda t: "%s (%.2f)" % (get_name(t) or "PLAYER", sk.get(t, SKILL_NEW))
     return {"queue": [get_name(t) or "PLAYER" for t in q], "t0": [nm(t) for t in t0], "t1": [nm(t) for t in t1]}
 
 PARTIES = social.Parties(max_size=max(1, MATCH_SIZE // 2), lookup=lambda name: token_by_name(name))    # a party must fit one team (tools/social.py)
@@ -6047,7 +6502,32 @@ class _SocialHost:
             return None
 
 SOCIAL = social.Social(_SocialHost, PARTIES)
-SOCIAL.lobby_of = lambda tok: MM.rq.mid_of(tok) if (REQUEUE and LOBBY_KEEP and tok) else None      # the LOBBY chat channel: the requeue group = the last match id
+def _lobby_chat_key(tok):
+    """The LOBBY chat channel of a token: every searcher shares one room, the players the search page lists (searching_frame). It was the
+    requeue group (the last match's players): a searcher from the queue, the backfill of a lobby, never saw those lines nor reached them."""
+    if not tok:
+        return None
+    if book_on():
+        try:
+            with MM.lock:
+                lid = MM.book.lobby_of(tok)
+                if lid:
+                    return lid
+                m = MM.rq.mid_of(tok) if (REQUEUE and LOBBY_KEEP) else None
+                if m:
+                    return MM.book.key_for_mid(m)                  # on the post-match screens: the room of the lobby that played that match
+                cm = MM._mid_locked(tok)
+                return MM.book.mid_lid.get(cm) if cm else None   # countdown / in the match: the room of the lobby that formed it
+        except Exception:                          # noqa: BLE001 - the chat never breaks the queue
+            return None
+    try:
+        with MM.lock:
+            if tok in MM.queue:
+                return "queue"
+    except Exception:                              # noqa: BLE001 - the chat never breaks the queue
+        return None
+    return MM.rq.mid_of(tok) if (REQUEUE and LOBBY_KEEP) else None
+SOCIAL.lobby_of = _lobby_chat_key
 
 def party_op(pl):
     """Op 0xDA -> reply frame (0xDB)."""
@@ -6842,6 +7322,13 @@ def modeq_op(pl):
     token, sub, mode = req
     if not is_token(token):
         return None
+    if sub == 3:                                   # "my game window is closing" (Alt+F4 / the X during a match): its session drop is its own leave
+        mid_ = MM.mid_of(token)
+        CLAN_CLOSING[token] = (time.time(), mid_)
+        if len(CLAN_CLOSING) > 4000:
+            for _k in list(CLAN_CLOSING)[:1000]:
+                CLAN_CLOSING.pop(_k, None)
+        log("CLAN closing", tag(token), "mid", mid_, "- its game window is closing (a session drop now counts as its own leave)")
     if sub == 1:
         if MODEQ.set(token, mode):
             log("MODEQ", tag(token), "picks", "ANY (quick match)" if mode == modeq.ANY else modeq.MODES[mode])
@@ -6929,13 +7416,20 @@ def abort_award(mid, others, host, why):
     with MM.lock:
         joining = {t for t, (m, _) in MM.joining.items() if m == mid}
     others = [p for p in (others or []) if p not in joining]      # a join-in-progress player that has not started yet is not 'left over' (PT73 12:00)
+    closed = [p for p in others if (p, mid) in CLAN_CLOSE_DROPS]   # a player who closed its window is not 'left over' - its session is just
+    if closed:                                                    # still inside the re-attach window. Its own leave stays 'left early'.
+        others = [p for p in others if p not in closed]
+        for p in closed:
+            if clan_leave_excuse(p, mid, "session lost") is None:
+                CLAN_QUITTERS.add((p, mid))
+        log("ABORT-AWARD", mid, "not for", [tag(p) for p in closed], "(closed the game window)")
     if not others:
         return False
     with MM.lock:
         if mid in MM.ended or mid not in MM.started:
             return False                    # a normal end already ran / the match never went live
     ABORT_AWARDED.add(mid)
-    if host and clan_why_deliberate(why) and clan_leave_excuse(host, mid, why) is None:      # a deliberate host quit stays 'left early' (a crash / timeout / start- or end-grace leave does not)
+    if host and clan_leave_excuse(host, mid, why) is None:      # (a closed window / an over-cap lost link counts too) a deliberate host quit stays 'left early' (a crash / timeout / start- or end-grace leave does not)
         CLAN_QUITTERS.add((host, mid))
     for p in others:                                              # the players it was ended for are never penalised for it (CLAN_ABORTED)
         CLAN_ABORTED[(p, mid)] = why
@@ -6953,18 +7447,39 @@ def abort_award(mid, others, host, why):
 def clan_why_deliberate(why):
     return any(d in (why or "") for d in CLAN_DELIBERATE_WHY)
 
+_CLAN_LOST_COUNTED = set()   # (token, mid) already counted against CLAN_LOST_EXCUSE_MAX
+
 def clan_leave_excuse(token, mid, why):
     """None = a deliberate leave of a running match that counts as 'left early'; else the reason it is excused (crash / timeout / ...)."""
     if CLAN_NO_PENALTY:
         return "no clan penalties on this server (T2R_CLAN_NO_PENALTY)"
     if not clan_why_deliberate(why):
         w = (why or "").lower()
-        kind = ("crash / lost connection (session socket lost, never came back)" if "session lost" in w else
-                "timeout (no packets from the player)" if "timed out" in w else
-                "never loaded the level" if "never loaded" in w or "never started" in w else
-                "removed by an admin" if "admin" in w else "not its own choice (%s)" % why)
-        return kind
-    # the new client ext force-closes the game 60 s after the server's 'update available' notice (kind 'u') reaches it in a match:
+        lost = "session lost" in w or "timed out" in w
+        cl = CLAN_CLOSING.get(token)
+        if lost and ((token, mid) in CLAN_CLOSE_DROPS or (cl and time.time() - cl[0] <= CLAN_CLOSING_S and cl[1] in (None, mid))):
+            why = "closed the game window"              # the player's own leave: the grace windows / the update excuse below still apply
+        else:
+            kind = ("crash / lost connection (session socket lost, never came back)" if "session lost" in w else
+                    "timeout (no packets from the player)" if "timed out" in w else
+                    "never loaded the level" if "never loaded" in w or "never started" in w else
+                    "removed by an admin" if "admin" in w else "not its own choice (%s)" % why)
+            if lost and CLAN_LOST_EXCUSE_MAX > 0:
+                now = time.time()
+                key = (token, mid)
+                ex = [t for t in CLAN_LOST_EXCUSES.get(token, []) if now - t < CLAN_LOST_EXCUSE_WINDOW]
+                if key not in _CLAN_LOST_COUNTED:                    # (one match counts once: abort_award asks again for the same leave)
+                    _CLAN_LOST_COUNTED.add(key)
+                    if len(_CLAN_LOST_COUNTED) > 4000:
+                        _CLAN_LOST_COUNTED.clear()
+                    ex.append(now)
+                CLAN_LOST_EXCUSES[token] = ex
+                if len(ex) > CLAN_LOST_EXCUSE_MAX:
+                    log("CLAN excuse", tag(token), "mid", mid, "%s refused - %d such exits in the last %.0f h (cap %d): counts as left early"
+                        % (kind, len(ex), CLAN_LOST_EXCUSE_WINDOW / 3600, CLAN_LOST_EXCUSE_MAX))
+                    return None
+            return kind
+    # The client ext force-closes the game 60 s after the server's 'update available' notice (kind 'u') reaches it in a match:
     # a player still on an older build than the published one leaves on the update's word, not by choice
     try:
         cv, tv = CLIENT_VERSIONS.get(token), update_target()
@@ -7015,6 +7530,8 @@ def leave_running_match(token, why):
             if _rep is not None and _rep <= hostmig.REPLACED_EXCUSE_S:
                 _why_ex = "replaced as host by a migration %.0f s before (its game left on the server's word)" % _rep
         if _why_ex is not None:
+            if (token, pre_mid) in CLAN_CLOSE_DROPS:
+                CLAN_QUITTERS.discard((token, pre_mid))     # (a later excuse wins over the closed-window day: clan_closed_book)
             CLAN_EXCUSED.add((token, pre_mid))
             CLAN_EXCUSE_WHY[(token, pre_mid)] = _why_ex
             log("CLAN excuse", tag(token), "mid", pre_mid, "leaves (%s): %s" % (why, _why_ex), "- no left-early penalty")
@@ -7763,7 +8280,7 @@ def handle_batch(conn, addr, st, batch):
         for op, pl in batch:
             if op == OP_HWID:
                 try:
-                    conn.sendall(hwid_op(pl))
+                    conn.sendall(hwid_op(pl, addr[0] if addr else None))
                 except (ConnectionError, OSError):
                     raise
                 except Exception as e:
@@ -7936,6 +8453,7 @@ def handle_batch(conn, addr, st, batch):
             if game_tok and game_tok != t:
                 adopt_bridge_name(game_tok, addr[0])
             log("BRIDGE", addr, name, "steamid", steamid, "port", port, "token", tag(t))
+            ident_note(t, steamid=steamid, ip=addr[0] if addr else None)
             try: conn.sendall(msg(0xF1))                   # registration ack: the helper reports "server up" to the menu only after a real reply
             except OSError: pass
             return
@@ -8016,8 +8534,8 @@ def handle_batch(conn, addr, st, batch):
             MM.rq.drop(realtok)                            # (a refused search ends a requeue ticket - its group does not wait for it)
             conn.sendall(msg(0x11, srv_note(key, realtok)))
             return
-        if is_banned(realtok, st.get("name")):
-            log("MATCHMAKE", addr, "refused (banned)", tag(realtok))
+        if is_banned(realtok, st.get("name"), addr[0] if addr else None):
+            log("MATCHMAKE", addr, "refused (banned)", tag(realtok), ident_pid(realtok) or "")
             MM.rq.drop(realtok)
             conn.sendall(msg(0x11, ban_note(realtok)) + msg(0x0d, b"\x02"))   # note, then 0x0d [2]: winmm quits to the title (boat menu)
             return
@@ -8077,11 +8595,14 @@ def handle_batch(conn, addr, st, batch):
                 try: jip_pass()                            # no new match: a running one with room? (jip:)
                 except Exception as e: log("jip: ERR", repr(e))
     elif 0x0f in ops:                                     # BOOT handshake
-        if not st["authed"] and st["token"] and len(st["token"]) == 64 and is_banned(st["token"], st["name"]):
+        if not st["authed"] and st["token"] and len(st["token"]) == 64:
+            ident_note(st["token"], ip=addr[0] if addr else None)          # identity id (Steam id + hardware + IP), ident.py (optional)
+        if not st["authed"] and st["token"] and len(st["token"]) == 64 and is_banned(st["token"], st["name"], addr[0] if addr else None):
             # FACTIONS II pressed on the boat menu: the client opens the session and logs in. Refuse right here: the note (op 0x11,
             # shown by the MP-menu page tick) + 0x0d with payload 2 = spec's MM_REJECT variant that sets winmm's flag 0x180167979, which
             # the same page tick turns into FUN_180065480 = quit to the title (boat menu). Nothing is queued / announced / counted online.
-            log("BOOT", addr, "refused (banned)", tag(st["token"]), "steam", BRIDGES.steamid(st["token"]) or token_steamid(st["token"]))
+            log("BOOT", addr, "refused (banned)", tag(st["token"]), "steam", BRIDGES.steamid(st["token"]) or token_steamid(st["token"]),
+                ident_pid(st["token"]) or "", ("ip ban " + str(ip_banned(addr[0]))) if addr and ip_banned(addr[0]) else "")
             conn.sendall(msg(0x11, ban_note(st["token"])) + msg(0x0d, b"\x02"))
             st["closed_sent"] = True
             return
@@ -8833,7 +9354,8 @@ def live_export(now=None):
     return {"v": LIVE_VERSION, "saved_at": now, "matches": recs, "clan_ended": ended, "clan_pending": pend,
             "clan_quitters": [[t, m] for t, m in list(CLAN_QUITTERS) if m in mids],
             "clan_credited": [[t, m] for t, m in list(CLAN_CREDITED) if m in mids],
-            "clan_excused": [[t, m] for t, m in list(CLAN_EXCUSED) if m in mids]}
+            "clan_excused": [[t, m] for t, m in list(CLAN_EXCUSED) if m in mids],
+            "parties": PARTIES.export()}             # a restart kept no party (social.Parties.restore)
 
 _live_err = [False]
 _live_save_lock = threading.Lock()
@@ -8845,7 +9367,7 @@ def live_save(now=None):
         with _live_save_lock:        # (fuzz seed 225: two threads - status loop + a GAME-START - shared one .tmp file: os.replace raised PermissionError on Windows)
             data = live_export(now)
             path = live_path()
-            if not data["matches"] and not data["clan_pending"] and not os.path.exists(path):
+            if not data["matches"] and not data["clan_pending"] and not data["parties"]["of"] and not os.path.exists(path):
                 return False
             tmp = path + ".tmp"
             with open(tmp, "w", encoding="utf-8") as f:
@@ -8897,6 +9419,12 @@ def live_load(now=None):
         CLAN_CREDITED.add((t, m))
     for t, m in data.get("clan_excused") or []:
         CLAN_EXCUSED.add((t, m))
+    try:
+        n = PARTIES.restore(data.get("parties"), now)
+        if n:
+            log("LIVE-STATE: parties restored -", n, "members in", len({PARTIES.pid(t) for t in PARTIES.grace}), "party(ies), kept %.0f s while they reconnect" % PARTIES.RESTORE_GRACE)
+    except Exception as e:                                           # noqa: BLE001
+        log("LIVE-STATE parties skipped:", repr(e))
     if mids:
         evt("readopt-load", "matches", mids, "waiting %.0f s for a player of each to report" % LIVE_CLAIM_S)
         log("LIVE-STATE: %d running match(es) from before the restart wait to be re-adopted:" % len(mids), mids)
@@ -9173,6 +9701,8 @@ def gc_state(now=None, ttl=None):
     n = _prune_keys(PING, lambda k: k[0] not in keep or k[1] not in keep)
     if n: out["PING"] = n
     _prune_keys(PING_AT, lambda k: k not in PING)
+    n = _prune_keys(PING_LAST, lambda k: now - PING_LAST.get(k, (0, now))[1] > PING_GATE_AGE_S)
+    if n: out["PING_LAST"] = n
     n = 0
     for d in (VOTES, MATCH_MAP, TIMING, SID_KEEP, MATCH_P2P):          # keyed by frozenset(match tokens): gone when none of its players is active any more
         n += _prune_keys(d, lambda k: not (k & busy))
@@ -9485,7 +10015,10 @@ def ping_wait_judge(players, host, pair, now, units_fn=None, helper=None, wait_s
     if len(PING_WAIT_SINCE) > 500:
         for k in [k for k, v in PING_WAIT_SINCE.items() if now - v > 3600]:
             PING_WAIT_SINCE.pop(k, None)
-    if any(now - PING_WAIT_SINCE[t] < wait_s for t in inv):
+    # (20-29 searchers once got one 2-player match in 8 min) holding while ANY unknown player was new starved the queue: with that many
+    # searchers someone new arrives every few seconds. The hold now ends once the longest-waiting unknown player has waited wait_s; the newer ones
+    # whose ping to the host is still unknown are left out of this lobby (the next pass / a join in progress takes them).
+    if max(now - PING_WAIT_SINCE[t] for t in inv) < wait_s:
         return True, set()
     def left_out(h):
         o = {t for t in inv if t != h and (h is None or pair(h, t) is None)}
@@ -9535,6 +10068,10 @@ def _ping_gate(a, b, now):
     if ms is None:
         at = max(PING_AT.get((a, b), 0.0), PING_AT.get((b, a), 0.0))
         ms = pair_ping(a, b, raw=True) if at and now - at <= PING_GATE_AGE_S else None
+    if ms is None:                                        # not in PING (evicted / never kept): the last reported pair ping
+        pl = PING_LAST.get(frozenset((a, b)))
+        if pl and pl[0] is not None and now - pl[1] <= PING_GATE_AGE_S:
+            ms = pl[0]
     if not MEASURED_PAIR and not PING_CORR:
         return ms
     if ms is not None:                                    # the per-player correction on the estimate
@@ -9728,7 +10265,8 @@ def loss_check(now=None):
                 v = sorted(obs.values())
                 med[p] = (v[len(v) // 2] if len(v) % 2 else (v[len(v) // 2 - 1] + v[len(v) // 2]) / 2.0, len(v))
         high = [p for p, (v, n) in med.items() if v >= LOSS_KICK_PCT]
-        if len(med) >= 2 and len(high) * 2 >= len(med):          # half or more are lossy: the host / relay link is the problem, nobody is removed
+        near = [p for p, (v, n) in med.items() if v >= LOSS_KICK_PCT / 2.0]
+        if len(med) >= 2 and len(near) * 2 >= len(med):          # half or more are lossy: the host / relay link is the problem, nobody is removed
             for p in act:
                 LOSS_HIGH.pop((p, mid), None)
             continue
@@ -9738,6 +10276,12 @@ def loss_check(now=None):
             if p not in med:                                      # unknown keeps the timer as it is (as the ping limit)
                 continue
             pct, nobs = med[p]
+            rest = sorted(v for q, (v, n) in med.items() if q != p)
+            base = (rest[len(rest) // 2] if len(rest) % 2 else (rest[len(rest) // 2 - 1] + rest[len(rest) // 2]) / 2.0) if rest else 0.0
+            if p in high and base >= LOSS_BASE_PCT:               # the others lose packets too: the match's route, not this player alone
+                if LOSS_HIGH.pop(key, None) is not None:
+                    log("loss:", tag(p), "%.1f%% but the rest of match %s loses %.1f%% too (limit %.0f%%): not judged" % (pct, mid, base, LOSS_BASE_PCT))
+                continue
             if p not in high:
                 if LOSS_HIGH.pop(key, None) is not None:
                     log("loss:", tag(p), "back under %.0f%% in match %s (%.1f%%, %d observers)" % (LOSS_KICK_PCT, mid, pct, nobs))
@@ -9755,13 +10299,21 @@ def loss_check(now=None):
             if LOSS_GATE < 2:
                 log("loss:", tag(p), "%.1f%% loss for %d s in match %s - would be removed (T2R_LOSS_GATE=%d: log only)" % (pct, secs, mid, LOSS_GATE))
                 continue
-            LOSS_HOLD[BRIDGES.steamid(p) or p] = (now, ipct)
-            if len(LOSS_HOLD) > 5000:
-                LOSS_HOLD.clear()
-            log("loss:", tag(p), "%.1f%% packet loss (%d observers) for %d s in match %s - removed from the match (not counted as leaving early), searches held %d s"
-                % (pct, nobs, secs, mid, LOSS_HOLD_S))
-            did = kick_token(p, "removed: packet loss (%d%% for %d s)" % (ipct, secs),
-                             srv_text("loss_kicked", lang_of(p), pct=ipct, s=secs, lim=int(LOSS_KICK_PCT), m=max(1, int(LOSS_HOLD_S // 60))), "loss-kick",
+            sk = BRIDGES.steamid(p) or p
+            st = [t for t in LOSS_STRIKES.get(sk, []) if now - t < LOSS_REPEAT_S] + [now]
+            LOSS_STRIKES[sk] = st
+            if len(LOSS_STRIKES) > 5000:
+                LOSS_STRIKES.clear()
+            hold = LOSS_HOLD_S if len(st) >= 2 and LOSS_HOLD_S > 0 else 0
+            if hold:
+                LOSS_HOLD[sk] = (now, ipct)
+                if len(LOSS_HOLD) > 5000:
+                    LOSS_HOLD.clear()
+            log("loss:", tag(p), "%.1f%% packet loss (%d observers, rest of the match %.1f%%) for %d s in match %s - removed from the match (not counted as leaving early), %s"
+                % (pct, nobs, base, secs, mid, "searches held %d s (removal %d in %.0f h)" % (hold, len(st), LOSS_REPEAT_S / 3600) if hold else "may search again at once (first removal)"))
+            ktxt = (srv_text("loss_kicked", lang_of(p), pct=ipct, s=secs, lim=int(LOSS_KICK_PCT), m=max(1, int(hold // 60))) if hold else
+                    srv_text("loss_kicked_free", lang_of(p), pct=ipct, s=secs, lim=int(LOSS_KICK_PCT)))
+            did = kick_token(p, "removed: packet loss (%d%% for %d s)" % (ipct, secs), ktxt, "loss-kick",
                              "%d%% packet loss for %d s (limit %d%%)" % (ipct, secs, int(LOSS_KICK_PCT)), keep_out=True, no_penalty=True)
             log("loss:", tag(p), "removal done:", ", ".join(did) or "nothing")
             out.append(p)
@@ -10018,5 +10570,6 @@ if __name__ == "__main__":
     _clan_sched[0] = True; threading.Thread(target=supervised(clan_scheduler, "clan-scheduler"), daemon=True).start()
     admin_start()
     install_exit_hooks()
+    threading.Thread(target=ident_backfill, daemon=True).start()     # identity ids for accounts recorded before ident.py (optional)
     log("daemon start")
     tcp_server()

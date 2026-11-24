@@ -2,6 +2,7 @@
 next lobby waits until all of them search (tools/requeue.py + daemon MatchMaker.end / try_form / jip_ready, 0xBD 'rq=' / 'rqw=' for the client text).
 Run: python tools/tests/test_requeue.py   (no sockets are opened, temp DB)."""
 import os, sys, tempfile, time, struct
+os.environ.setdefault("T2R_LOBBY_BOOK", "0")   # these cases test the queue without the stable search lobbies (tools/lobbybook.py)
 import sys as _t2s, os as _t2o; _t2s.path.append(_t2o.path.normpath(_t2o.path.join(_t2o.path.dirname(_t2o.path.abspath(__file__)), ".."))); import t2rtmp  # noqa: E402,F401  (temp hygiene: tools/t2rtmp.py)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

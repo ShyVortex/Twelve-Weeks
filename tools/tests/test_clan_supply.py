@@ -95,5 +95,13 @@ for fac in ("W", "S"):
                     check("{" not in row["text"] and row["text"].startswith("DAY %d:" % day), "lack scene text is finished: " + row["text"][:60]) if rows_lack <= 2 else None
 check(seen_lack > 0, "hungry / sick members carry m['lack'] (the category that ran short) in the saga memory")
 check(rows_lack > 0, "shortage days produce 'lack' scenes in the saga (%d)" % rows_lack)
+# ---- forgiven day (ping kick / excused leave / late join): the stock pays nothing
+import clan_supply as _cs
+stk = {"food": 35, "water": 10, "med": 15, "ammo": 0, "mat": 702}
+newf, recf = _cs.book(dict(stk), 6, 33, 30, 310, {1: 1, 2: 1}, False, True)
+check(all(v == 0 for v in recf["drawn"].values()) and all(v == 0 for v in recf["net"].values()), "forgiven day: nothing drawn, no net shortage")
+check(all(newf[k] >= stk[k] for k in ("food", "water", "med", "mat")), "forgiven day: no survival / material stock lost")
+newn, recn = _cs.book(dict(stk), 6, 33, 30, 310, {1: 1, 2: 1}, False)
+check(recn["drawn"]["food"] > 0, "a normal short day still draws the stock")
 print("\n%d failure(s)" % len(FAILS))
 sys.exit(1 if FAILS else 0)
