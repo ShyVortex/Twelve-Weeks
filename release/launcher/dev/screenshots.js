@@ -176,7 +176,7 @@ async function scenarioAlert({ wait, snap, shot, log }) {
  * @param {object} ctx
  * @returns {Promise<void>}
  */
-async function scenarioDisplay({ wait, snap, shot, log }) {
+async function scenarioDisplay({ wait, snap, shot, js, log }) {
   await wait(7000);
   await shot(`view('settings')`);
   await wait(800);
@@ -184,6 +184,9 @@ async function scenarioDisplay({ wait, snap, shot, log }) {
   await wait(1500);
   log('DISPLAY blocker ' + (await shot('bgBlock()')));
   await snap('display-' + (process.env.F2_TAG || 'x'));
+  await js(`document.getElementById('mus-set').scrollIntoView({block: 'center'})`); // the music rows below the fold
+  await wait(600);
+  await snap('display-music-' + (process.env.F2_TAG || 'x'));
 }
 
 /**
@@ -452,6 +455,42 @@ async function scenarioMaps({ wait, snap, shot, click }) {
 }
 
 /**
+ * Part I importer UI scenario: MAPS tab in four states (no Part I, Part I set, converting, installed). Drives the renderer with
+ * realistic state objects, no real conversion (F2_SHOT_NAME = file prefix).
+ * @param {object} ctx
+ * @returns {Promise<void>}
+ */
+async function scenarioP1Maps({ wait, snap, shot, js, click }) {
+  const pre = process.env.F2_SHOT_NAME || 'p1maps';
+  await wait(5000);
+  await shot(`view('settings')`);
+  await wait(1500);
+  await shot(`sub('maps')`);
+  await wait(2500);
+  const draw = (o) =>
+    js(`(() => { const b = JSON.parse(JSON.stringify(mapsSt));
+      const o = ${JSON.stringify(o)};
+      b.converter = o.converter; b.tlou1 = o.tlou1; b.reimport = false;
+      b.part1.forEach((m) => { m.installed = o.installed; });
+      drawMaps(b); hideProgress(); })()`);
+  await draw({ converter: true, installed: false, tlou1: { dir: '', valid: false, reason: '' } });
+  await wait(600);
+  await snap(pre + '-1-locked');
+  const dir = 'D:\\Games\\The Last of Us Part I';
+  await draw({ converter: true, installed: false, tlou1: { dir, valid: true, reason: '' } });
+  await click('.mp[data-id=p1-bookstore]');
+  await wait(600);
+  await snap(pre + '-2-ready');
+  await js(`(() => { $('mp-conv').disabled = true; $('mp-cancel').hidden = false;
+    showProgress({ phase: 'play-convert', label: 'Converting p1-bookstore:levels', done: 18, total: 40, files: 40, filesDone: 18, unit: 'pct', eta: 410 }); })()`);
+  await wait(600);
+  await snap(pre + '-3-converting');
+  await draw({ converter: true, installed: true, tlou1: { dir, valid: true, reason: '' } });
+  await wait(600);
+  await snap(pre + '-4-installed');
+}
+
+/**
  * FRIENDS tab scenario: the four tabs (needs a daemon with demo friends: F2_SERVER).
  * @param {object} ctx
  * @returns {Promise<void>}
@@ -648,6 +687,53 @@ async function scenarioBan(ctx) {
   await snap('ban-reason');
 }
 
+/**
+ * REAL Part I import for a recording (F2_SHOT_ONLY=p1real, F2_SHOT_NOFIX=1, F2_P1CONV + F2_P1RECIPE, game_dir a real client under the temp
+ * dir): MAPS tab, INSTALL FROM MY PART I pressed, one frame every F2_SHOT_EVERY ms until the job ends (frames f00001.png ...).
+ * @param {object} ctx
+ * @returns {Promise<void>}
+ */
+async function scenarioP1Real({ wait, snap, shot, js, log }) {
+  const every = parseInt(process.env.F2_SHOT_EVERY || '1500', 10);
+  let n = 0;
+  const frame = () => snap('f' + String(++n).padStart(5, '0'));
+  await wait(6000);
+  await shot(`view('settings')`);
+  await wait(1500);
+  await shot(`sub('maps')`);
+  await wait(2500);
+  await frame();
+  await js(`document.querySelector('.mp[data-id=p1-bookstore]').click()`);
+  await wait(900);
+  for (let i = 0; i < 3; i++) await frame();
+  await js(`$('mp-conv').click()`);
+  const t0 = Date.now();
+  await wait(800);
+  for (;;) {
+    await frame();
+    const busyNow = await js(`typeof mapsDl === 'undefined' ? null : mapsDl`);
+    if (busyNow === false) break;
+    if (Date.now() - t0 > 90 * 60000) {
+      log('p1real: 90 min timeout');
+      break;
+    }
+    if (process.env.F2_SHOT_MAXFRAMES && n >= +process.env.F2_SHOT_MAXFRAMES) {
+      log('p1real: frame limit, cancelling the job');
+      await js(`$('mp-cancel').click()`);
+      for (let k = 0; k < 40 && (await js(`mapsDl`)); k++) await wait(500);
+      break;
+    }
+    await wait(every);
+  }
+  log(
+    `p1real: job ended after ${Math.round((Date.now() - t0) / 1000)} s; msg=${await js(`$('mp-msg').textContent`)}`,
+  );
+  for (let i = 0; i < 6; i++) {
+    await wait(700);
+    await frame();
+  }
+}
+
 const SCENARIOS = {
   ban: scenarioBan,
   friends: scenarioFriends,
@@ -661,6 +747,8 @@ const SCENARIOS = {
   gear: scenarioGear,
   clan: scenarioClan,
   maps: scenarioMaps,
+  p1maps: scenarioP1Maps,
+  p1real: scenarioP1Real,
   status: scenarioStatus,
   kofi: scenarioKofi,
   steam: scenarioSteam,
@@ -679,7 +767,11 @@ async function runScreenshots(options) {
   fs.mkdirSync(dir, { recursive: true });
 
   try {
-    if (cfg.game_dir && cfg.game_dir.toLowerCase().startsWith(os.tmpdir().toLowerCase())) {
+    if (
+      !process.env.F2_SHOT_NOFIX &&
+      cfg.game_dir &&
+      cfg.game_dir.toLowerCase().startsWith(os.tmpdir().toLowerCase())
+    ) {
       fs.writeFileSync(path.join(cfg.game_dir, 't2r-ext.log'), 'boot ok\n'.repeat(2000));
       fs.writeFileSync(path.join(cfg.game_dir, 'crash-test.mdmp'), Buffer.alloc(1200000, 3));
     }

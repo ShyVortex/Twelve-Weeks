@@ -11,6 +11,8 @@ const { pipeline } = require('stream/promises');
 const { LOCK_CODES, SPACE_CODES, tunables, sleep, DECODERS } = require('./util');
 const { explainError, ensureSpace } = require('./errors');
 const { request } = require('./net');
+const { downloadBlocks } = require('./blocks');
+const { applyPatch } = require('./patch');
 
 /**
  * Write a file through a temporary path and atomic rename.
@@ -318,6 +320,74 @@ async function downloadCompressed(f, dest, { onBytes, signal, headers } = {}) {
   throw lastErr || new Error('compressed download failed');
 }
 
+/**
+ * The patch entry (if any) for the installed copy at opts.oldPath.
+ * @param {object} f
+ * @param {string} oldPath
+ * @returns {Promise<object|null>}
+ */
+async function patchFor(f, oldPath) {
+  let st;
+  try {
+    st = await fsp.stat(oldPath);
+  } catch {
+    return null;
+  }
+  if (!st.isFile() || st.size < 1) return null;
+  const sha = await sha256File(oldPath);
+  if (sha === f.sha256) return null;
+  return f.patches.find((p) => p && p.from === sha) || null;
+}
+
+/**
+ * Patch path: download the patch for the installed copy (<dest>.patch, resumable, sha-checked), build <dest>.part from the installed copy
+ * and the patch, check the result's sha256 against the manifest, move it into place. Resolves false when no patch fits the installed copy.
+ * The patch's own url is the file's url with the patch sha in place of the file's (same blob store, same query).
+ * @param {object} f
+ * @param {string} dest
+ * @param {object} opts
+ * @returns {Promise<boolean>}
+ */
+async function downloadPatched(f, dest, opts) {
+  const { onBytes, signal, headers, log } = opts;
+  const p = await patchFor(f, opts.oldPath);
+  if (!p) return false;
+  const u = new URL(f.url);
+  if (!u.pathname.endsWith('/' + f.sha256)) return false;
+  u.pathname = u.pathname.slice(0, -f.sha256.length) + p.sha256;
+  const patchFile = dest + '.patch',
+    part = dest + '.part';
+  let got = 0;
+  await fetchResumable(u.toString(), patchFile + '.part', p.size, {
+    signal,
+    headers,
+    onBytes: (n) => {
+      got += n;
+      if (onBytes) onBytes(n);
+    },
+  });
+  if ((await sha256File(patchFile + '.part')) !== p.sha256) {
+    await fsp.unlink(patchFile + '.part').catch(() => {});
+    throw new Error('patch checksum mismatch');
+  }
+  await fsp.rename(patchFile + '.part', patchFile);
+  const t0 = Date.now();
+  await applyPatch(opts.oldPath, patchFile, part, {
+    signal,
+    expectFrom: p.from,
+    expectTo: f.sha256,
+  });
+  if ((await sha256File(part)) !== f.sha256) throw new Error('checksum mismatch after the patch');
+  await moveInto(part, dest);
+  await fsp.unlink(patchFile).catch(() => {});
+  if (onBytes) onBytes(f.size - got); // the file counts as fully done
+  if (log)
+    log(
+      `${f.path}: patched from the installed copy - ${Math.round(p.size / 1e6)} MB downloaded instead of ${Math.round(f.size / 1e6)} MB (${Math.round((Date.now() - t0) / 1000)} s)`,
+    );
+  return true;
+}
+
 // Download one file resumably into <dest>.part, verify, move into place. With f.zurl the compressed twin is tried first and the raw url is
 // the fallback. onTotal(delta) is told when the byte budget changes (compressed -> raw fallback).
 /**
@@ -340,6 +410,65 @@ function downloadFile(f, dest, opts = {}) {
           return;
         }
       } catch {}
+    }
+    // a patch from the installed copy (lib/update/patch.js): only the changed chunks of the pack are downloaded; any failure falls back
+    // to the block download below
+    if (Array.isArray(f.patches) && f.patches.length && opts.oldPath && f.url) {
+      let counted = 0;
+      try {
+        if (
+          await downloadPatched(f, dest, {
+            ...opts,
+            onBytes: (n) => {
+              counted += n;
+              if (onBytes) onBytes(n);
+            },
+          })
+        )
+          return;
+      } catch (e) {
+        if (String(e.message) === 'cancelled') throw e;
+        if (opts.log)
+          opts.log(
+            `${f.path}: patch failed (${e.message}) - downloading the changed blocks instead`,
+          );
+      }
+      await fsp.unlink(part).catch(() => {});
+      await fsp.unlink(dest + '.patch').catch(() => {});
+      if (counted && onBytes) onBytes(-counted);
+    }
+    // big file with a block list: only the blocks not already on disk, several ranges at once (lib/update/blocks.js); any failure falls
+    // back to the plain whole-file download below
+    if (f.blocks && !f.zurl && f.url) {
+      let counted = 0;
+      try {
+        const r = await downloadBlocks(f, part, {
+          oldPath: opts.oldPath,
+          signal,
+          headers,
+          log: opts.log,
+          onBytes: (n) => {
+            counted += n;
+            if (onBytes) onBytes(n);
+          },
+        });
+        if ((await sha256File(part)) !== f.sha256)
+          throw new Error('checksum mismatch after the block download');
+        await moveInto(part, dest);
+        if (opts.log) {
+          const mb = (x) => Math.round(x / 1e6);
+          opts.log(
+            `${f.path}: ${mb(r.reused + r.copied)} MB were already on disk, ${mb(r.fetched)} MB downloaded`,
+          );
+        }
+        return;
+      } catch (e) {
+        if (String(e.message) === 'cancelled') throw e;
+        if (opts.log)
+          opts.log(`${f.path}: block download failed (${e.message}) - downloading the whole file`);
+        await fsp.unlink(part).catch(() => {});
+        if (onBytes) onBytes(-counted);
+      }
     }
     if (f.zurl) {
       let counted = 0;
@@ -493,7 +622,7 @@ async function runPool(queue, worker, concurrency) {
 async function downloadAll(
   list,
   dir,
-  { onProgress, signal, headers, concurrency = 4, stage = false } = {},
+  { onProgress, signal, headers, concurrency = 4, stage = false, log = null } = {},
 ) {
   const sfx = stage ? '.new' : '';
   await ensureDownloadSpace(list, dir, sfx);
@@ -511,6 +640,8 @@ async function downloadAll(
           signal,
           headers,
           reuse: stage,
+          oldPath: path.join(dir, f.path),
+          log,
           onTotal: progress.addTotal,
           onBytes: (n) => {
             progress.addDone(n);
@@ -536,4 +667,5 @@ module.exports = {
   downloadCompressed,
   downloadFile,
   downloadAll,
+  downloadPatched,
 };

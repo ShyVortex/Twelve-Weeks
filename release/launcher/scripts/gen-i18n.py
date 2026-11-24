@@ -3,7 +3,7 @@ taken from the mod's own Polish table tools/loc/pl/*.txt ("EN => PL" lines, {1} 
 Prints the strings of src/gamedata.js that have no Polish line yet (those must be added to src/i18n/pl.json by hand).  Run from release/launcher."""
 import glob, json, os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
-LOC = os.path.join(HERE, "..", "..", "..", "tools", "loc", "pl")
+LOC = os.path.join(os.environ.get("T2R_SRC_ROOT") or os.path.join(HERE, "..", "..", ".."), "tools", "loc", "pl")   # T2R_SRC_ROOT: as gen-gamedata.py
 loc = {}
 for f in sorted(glob.glob(os.path.join(LOC, "*.txt"))):
     for line in open(f, encoding="utf-8"):
@@ -51,6 +51,12 @@ for slot in G["weapons"].values():                      # "SUPPRESSED HUNTING RI
         if w["supIcon"]:
             k = "SUPPRESSED " + w["name"]
             if k in loc: out[k] = loc[k]
+# a string the Polish table no longer has keeps the line the launcher shipped before (the game shows English for it then)
+_prev = os.path.join(HERE, "..", "src", "i18n", "game-pl.json")
+if os.path.exists(_prev):
+    _old = json.load(open(_prev, encoding="utf-8"))
+    for m in list(missing):
+        if m in _old: out[m] = _old[m]; missing.remove(m)
 os.makedirs(os.path.join(HERE, "..", "src", "i18n"), exist_ok=True)
 json.dump(out, open(os.path.join(HERE, "..", "src", "i18n", "game-pl.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 print(len(out), "game strings with Polish;", len(missing), "missing:")

@@ -6,6 +6,19 @@
 const game = require('../lib/game');
 const dmn = require('../lib/daemon');
 
+/** Cut a string to at most max UTF-8 bytes without splitting a character (the daemon reads 200 bytes of argument). */
+function fitBytes(s, max) {
+  let out = '',
+    n = 0;
+  for (const ch of s) {
+    const b = Buffer.byteLength(ch, 'utf8');
+    if (n + b > max) break;
+    out += ch;
+    n += b;
+  }
+  return out;
+}
+
 /**
  * Create the friends/party service.
  * @param {{ config: object, paths: object, player: object, locale: object }} options
@@ -27,9 +40,12 @@ function createSocial({ config, paths, player, locale }) {
     get: () => call('state'),
     act: (sub, arg) => {
       if (!ACTS.has(sub)) throw new Error('Unknown friends action.');
-      return call(sub, String(arg || '').slice(0, 120));
+      return call(
+        sub,
+        sub === 'msg' ? fitBytes(String(arg || ''), 200) : String(arg || '').slice(0, 120),
+      );
     },
   };
 }
 
-module.exports = { createSocial };
+module.exports = { createSocial, fitBytes };

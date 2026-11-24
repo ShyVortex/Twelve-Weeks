@@ -626,7 +626,7 @@ upd.tunables.freeBytes = () => 500 * 1024 ** 3;
     assert.ok(src.indexOf('assertWritableNextTo') > 0 && src.indexOf('assertWritableNextTo') < src.indexOf("app.quit(), 600"), 'check must run before the launcher quits');
   });
 
-  await T('R-VW4C: client folder == game folder: install refuses (slim would rebuild the client winmm.dll in place), paths ignore the setting, startup heals it', async () => {
+  await T('client folder == game folder: install refuses (slim would rebuild the client winmm.dll in place), paths ignore the setting, startup heals it', async () => {
     const gd = mkGame(); const slimDll = winmmFixture(777);
     fs.writeFileSync(path.join(gd, 'winmm.dll'), slimDll); fs.writeFileSync(path.join(gd, 'version.txt'), 'v2\n'); fs.writeFileSync(path.join(gd, 't2r-version.txt'), 'v2\n');
     fs.writeFileSync(path.join(gd, 't2r-slim.dat'), 'dat'); fs.mkdirSync(path.join(gd, 'slim')); fs.copyFileSync(nodeExe, path.join(gd, 'slim', 't2r-slim.exe'));

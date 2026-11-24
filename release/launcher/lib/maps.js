@@ -133,6 +133,13 @@ const PART1 = [
     source: 'The Last of Us Part I - Pittsburgh checkpoint bookstore',
     pack: 'part1-a',
   },
+  {
+    id: 'p1-plaza',
+    place: 'Pittsburgh',
+    name: 'Plaza',
+    source: 'The Last of Us Part I - Pittsburgh financial district plaza',
+    pack: 'part1-a',
+  },
 ];
 
 /** The Part I PC version the conversion recipes are written for (exe string-table FileVersion). */
@@ -335,6 +342,83 @@ function hasPart1Dat(gameDir) {
   }
 }
 
+/**
+ * The build id the mod's winmm.dll expects at the end of part1.dat: 16 bytes at +0x68 of its '.t2rps' section (tools/features/p1_side_map.py,
+ * descriptor magic 'P1SD'). null = no such section (not a side-file build) or the file cannot be read.
+ * @param {string} dll
+ * @returns {Buffer|null}
+ */
+function winmmPart1Id(dll) {
+  let fd;
+  try {
+    fd = fs.openSync(dll, 'r');
+    const rd = (pos, n) => {
+      const b = Buffer.alloc(n);
+      return fs.readSync(fd, b, 0, n, pos) === n ? b : null;
+    };
+    const dos = rd(0, 64);
+    if (!dos || dos.toString('latin1', 0, 2) !== 'MZ') return null;
+    const nt = dos.readUInt32LE(0x3c);
+    const fh = rd(nt, 24);
+    if (!fh || fh.toString('latin1', 0, 4) !== 'PE\0\0') return null;
+    const nsec = fh.readUInt16LE(6);
+    const sec0 = nt + 24 + fh.readUInt16LE(20);
+    for (let i = 0; i < nsec && i < 96; i++) {
+      const sh = rd(sec0 + i * 40, 40);
+      if (!sh) return null;
+      if (sh.toString('latin1', 0, 6) !== '.t2rps' || sh[6] !== 0) continue;
+      const raw = sh.readUInt32LE(20);
+      const d = rd(raw, 0x78);
+      if (!d || d.readUInt32LE(0) !== 0x44533150) return null;
+      return d.subarray(0x68, 0x78);
+    }
+    return null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+/**
+ * The build id a part1.dat carries: its last 16 bytes. null = no file / too small.
+ * @param {string} gameDir
+ * @returns {Buffer|null}
+ */
+function part1DatId(gameDir) {
+  let fd;
+  try {
+    const p = path.join(part1Dir(gameDir), 'part1.dat');
+    const n = fs.statSync(p).size;
+    if (n < 16) return null;
+    fd = fs.openSync(p, 'r');
+    const b = Buffer.alloc(16);
+    return fs.readSync(fd, b, 0, 16, n - 16) === 16 ? b : null;
+  } catch {
+    return null;
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
+/**
+ * Does the part1.dat in the game folder belong to the installed mod build? An older build's part1.dat (players kept an old build's when the next one dropped
+ * it from the client) is refused by winmm, so it must not count as installed. true / false; null = not known (no side-file winmm found).
+ * The client folder's winmm.dll is the build being played after the next sync, so it wins over the game folder's copy.
+ * @param {string} gameDir
+ * @param {string} [clientDir]
+ * @returns {boolean|null}
+ */
+function part1Current(gameDir, clientDir) {
+  const dat = part1DatId(gameDir);
+  for (const d of [clientDir, gameDir]) {
+    if (!d) continue;
+    const want = winmmPart1Id(path.join(d, 'winmm.dll'));
+    if (want) return !!dat && dat.equals(want);
+  }
+  return null;
+}
+
 function part1Dir(gameDir) {
   return path.join(gameDir || '', PACK_DIR, PART1_SUB);
 }
@@ -406,19 +490,24 @@ function installedFileset(gameDir) {
 /**
  * The state the MAPS tab shows.
  * @param {{game_dir?: string, tlou1_dir?: string}} cfg
+ * @param {{clientDir?: string}} [opts] clientDir = the client folder (its winmm.dll names the part1.dat build it needs)
  * @returns {object}
  */
-function mapsState(cfg) {
+function mapsState(cfg, { clientDir } = {}) {
   const p1 = cfg.tlou1_dir ? validatePart1Dir(cfg.tlou1_dir) : { ok: false, reason: '' };
   const packs = cfg.game_dir ? installedPacks(cfg.game_dir) : [];
   const have = new Set(packs.map((p) => p.id));
   const set = cfg.game_dir ? installedFileset(cfg.game_dir) : null;
   if (set) have.add(set.pack);
-  // the Part I file set (server download 'part1-<build>', converter 'part1-a') or the part1.dat the client ships: Bookstore is there
-  if ((set && /^part1-/.test(set.pack)) || hasPart1Dat(cfg.game_dir)) have.add('part1-a');
+  // the Part I file set (server download 'part1-<build>', converter 'part1-a') or a part1.dat in the game folder: Bookstore + Plaza are there,
+  // unless that part1.dat is another build's (winmm turns the Part I maps off for it): then they are missing and the download is offered again
+  const cur = cfg.game_dir ? part1Current(cfg.game_dir, clientDir) : null;
+  if (cur === false) have.delete('part1-a');
+  else if ((set && /^part1-/.test(set.pack)) || hasPart1Dat(cfg.game_dir)) have.add('part1-a');
   return {
     part2: PART2,
     part1: PART1.map((m) => ({ ...m, installed: have.has(m.pack) })),
+    part1Stale: cur === false && hasPart1Dat(cfg.game_dir),
     tester: p1Tester(cfg),
     tlou1: { dir: cfg.tlou1_dir || '', valid: p1.ok, reason: p1.ok ? '' : p1.reason || '' },
     packDir: cfg.game_dir ? path.join(cfg.game_dir, PACK_DIR) : '',
@@ -467,6 +556,8 @@ module.exports = {
   beginMarkerUpdate,
   endMarkerUpdate,
   part1Dir,
+  part1Current,
+  winmmPart1Id,
   readFilesMarker,
   writeFilesMarker,
   installedFileset,

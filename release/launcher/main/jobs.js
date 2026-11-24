@@ -75,6 +75,27 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
       })
     ).response === 0;
 
+  // the game runs without the mod (plain single-player menu): say what to do (lib/game/play.js watchModLoad)
+  const modMissingDialog = async ({ steamStarted }) => {
+    try {
+      await dialog.showMessageBox(getWindow(), {
+        type: 'warning',
+        buttons: [I18N.T('OK')],
+        title: 'Twelve Weeks',
+        message: steamStarted
+          ? I18N.T('Steam started the game again without the mod.')
+          : I18N.T('The game started without the mod.'),
+        detail: steamStarted
+          ? I18N.T(
+              'The game the launcher started closed right away and Steam started its own copy, which shows the single-player menu. Close the game, exit Steam completely (Steam menu > Exit), start Steam again and wait until it is signed in, then press PLAY here.',
+            )
+          : I18N.T(
+              'The mod did not load within 90 seconds, so the game shows the single-player menu. Close the game, press REPAIR INSTALL in Settings > Files, then press PLAY again.',
+            ),
+      });
+    } catch {}
+  };
+
   async function runUpdate({ full = false } = {}) {
     if (ban) ban.assertNotBanned();
     upd.resetDown();
@@ -126,6 +147,7 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
           await upd.downloadAll(list, dir, {
             signal: abort.signal,
             stage: true,
+            log,
             onProgress: (p) => send('progress', { phase: 'download', ...p }),
           });
           await upd.applyStaged(list, dir, manifest);
@@ -163,7 +185,7 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
       throw new Error('The game is running. Close it first: it uses these map files.');
   }
 
-  async function runMapsDownload() {
+  async function runMapsDownload(sids = []) {
     return withJob('maps', async () => {
       await refuseIfGameUp();
       const host = paths.fileHost();
@@ -178,6 +200,7 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
       try {
         const r = await mapsRemote.downloadRemotePack(host, config.values.game_dir, {
           signal: abort.signal,
+          sids,
           onProgress: (p) =>
             send('progress', {
               phase: 'play-maps',
@@ -211,22 +234,87 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
         throw new Error(
           'Test mode: map files are only written to a game folder inside the temp dir.',
         );
-      const exe = mapsConvert.converterPath(runtime.userData);
-      if (!exe) throw new Error('The Part I converter is not installed.');
       send('progress', { phase: 'check', done: 0, total: 1 });
-      const r = await mapsConvert.convertFromInstall({
-        exe,
-        part1Dir: config.values.tlou1_dir,
-        gameDir: config.values.game_dir,
-        signal: abort.signal,
-        onProgress: (p) =>
-          send('progress', {
-            phase: 'play-maps',
-            label: 'Converting Part I maps',
-            unit: 'pct',
-            ...p,
-          }),
-      });
+      // the converter + this build's recipe from the update server (F2_P1CONV + F2_P1RECIPE: a local converter / recipe, dev and tests)
+      let exe = mapsConvert.converterPath(runtime.userData);
+      let recipe = process.env.F2_P1RECIPE || '';
+      let buildId = '';
+      if (!(process.env.F2_P1CONV && recipe)) {
+        const imp = await mapsConvert.fetchImporter(paths.fileHost());
+        // the recipe must be for the game data this launcher plays: the client's winmm names the part1.dat build it maps
+        const want = mapsLib.winmmPart1Id(path.join(paths.clientDir(), 'winmm.dll'));
+        if (want && want.toString('hex') !== imp.buildId)
+          throw new Error(
+            'The Part I importer on the server is for another game version. Press UPDATE first.',
+          );
+        const got = await mapsConvert.ensureImporter(paths.fileHost(), runtime.userData, {
+          signal: abort.signal,
+          importer: imp,
+          onProgress: (p) =>
+            send('progress', {
+              phase: 'play-maps',
+              label: 'Downloading the Part I importer',
+              unit: 'bytes',
+              ...p,
+            }),
+        });
+        exe = process.env.F2_P1CONV ? exe : got.exe;
+        recipe = got.recipe;
+        buildId = got.buildId;
+        log(`Part I importer ready: build ${buildId}, converter ${path.basename(got.exe)}.`);
+      }
+      if (!exe) throw new Error('The Part I converter is not installed.');
+      // Linux: p1conv.exe under Proton (Part I's archives need the game's Windows Oodle DLL), in the slim tool's prefix
+      let wrap = {};
+      if (process.platform === 'linux') {
+        const proton = linux.findProton();
+        if (!proton)
+          throw new Error(
+            'No Proton was found in your Steam folders: the Part I importer runs under Proton. Install Proton Experimental in Steam.',
+          );
+        const prefix = path.join(runtime.userData, 't2r-steam-prefix');
+        fs.mkdirSync(prefix, { recursive: true });
+        wrap = {
+          command: path.join(proton, 'proton'),
+          prefixArgs: ['run', exe],
+          env: linux.protonEnv(proton, prefix),
+          pathArg: linux.winPath,
+        };
+      }
+      // the bar says what runs from the converter's start on: its first stages send no progress for minutes (reports: "stuck at Checking for updates")
+      // + elapsed time, ticking every 5 s: a level of the first map converts for minutes with the bar standing still
+      const t0 = Date.now();
+      let lastP = { done: 0, total: 0 };
+      const sendConv = () =>
+        send('progress', {
+          phase: 'play-maps',
+          label: 'Converting Part I maps',
+          unit: 'pct',
+          ...lastP,
+          elapsed: Math.round((Date.now() - t0) / 1000),
+        });
+      sendConv();
+      const tick = setInterval(sendConv, 5000);
+      log(
+        `Part I maps: starting the converter (${process.platform === 'linux' ? 'Proton' : 'Windows'}), recipe ${path.basename(recipe)}.`,
+      );
+      const r = await mapsConvert
+        .convertFromInstall({
+          exe,
+          ...wrap,
+          recipe,
+          buildId,
+          workDir: path.join(mapsConvert.importerDir(runtime.userData), 'work'),
+          part1Dir: config.values.tlou1_dir,
+          gameDir: config.values.game_dir,
+          signal: abort.signal,
+          log,
+          onProgress: (p) => {
+            lastP = p;
+            sendConv();
+          },
+        })
+        .finally(() => clearInterval(tick));
       log(`Part I maps: converted ${r.files} files (${r.bytes} bytes).`);
       return { ...r };
     });
@@ -270,6 +358,7 @@ function createJobs({ runtime, config, paths, log, send, getWindow, mode, locale
             if (slimChild === child) slimChild = null;
           });
         },
+        onModMissing: modMissingDialog,
         confirmEnd: confirmEndDialog,
       });
       try {

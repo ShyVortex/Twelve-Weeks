@@ -487,6 +487,10 @@ function applyLook() {
   Snd.setEnabled(cfg.sounds);
   Mus.setVolume(cfg.musicVolume == null ? 35 : cfg.musicVolume);
   Mus.setEnabled(cfg.music !== false);
+  Mus.setMood(cfg.musicSet || 'grim');
+  $$('#mus-set .fopt').forEach((b) =>
+    b.classList.toggle('active', b.dataset.set === (cfg.musicSet || 'grim')),
+  );
   $$('#thumbs .th').forEach((t) =>
     t.classList.toggle(
       'active',

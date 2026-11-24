@@ -93,8 +93,14 @@ const Mus = (() => {
     neutral: ['01-ambient', '02-slide-guitar', '03-guitar'],
     wlf: ['wlf-01-seattle', 'wlf-02-watchtower', 'wlf-03-brewery'],
     sera: ['sera-01-forest', 'sera-02-island', 'sera-03-abby-island'],
+    // Settings > CUSTOMIZE > MUSIC: GRIM = the faction sets above (they follow the clan), CALM / HOPEFUL = one set each for every faction
+    // (scripts/gen-music-sets.py)
+    calm: ['calm-01-ride', 'calm-02-farm', 'calm-03-lullaby'],
+    hopeful: ['hope-01-jackson', 'hope-02-walk'],
   };
   let theme = 'neutral',
+    faction = 'neutral',
+    mood = 'grim',
     files = sets.neutral;
   let vol = 0.35,
     enabled = true,
@@ -162,18 +168,30 @@ const Mus = (() => {
       .catch(() => {});
   }
   let forceUntil = 0;
-  function setTheme(t) {
-    t = sets[t] ? t : 'neutral';
+  // the set that plays: the faction's while the mood is GRIM, else the mood's own set
+  function pick(now) {
+    const t = mood === 'grim' ? faction : mood;
     if (t === theme) return;
     theme = t;
     files = sets[t];
     idx = 0; // the running track plays out, the following ones come from the new set
-    const force = performance.now() < forceUntil;
+    const force = now || performance.now() < forceUntil;
     forceUntil = 0; // an SP / MP switch changes the set at once
     if (started && cur && wanted() && (force || performance.now() - curAt < EARLY)) {
       clearTimeout(timer);
       next(THEME_FADE);
     }
+  }
+  function setTheme(t) {
+    faction = t === 'wlf' || t === 'sera' ? t : 'neutral';
+    pick(false);
+  }
+  function setMood(m) {
+    m = m === 'calm' || m === 'hopeful' ? m : 'grim';
+    if (m === mood) return;
+    const first = !started;
+    mood = m;
+    pick(!first); // the player's own pick: cross-fade to the new set at once
   }
   function switchNow() {
     forceUntil = performance.now() + 15000;
@@ -204,6 +222,7 @@ const Mus = (() => {
       }
     },
     setTheme,
+    setMood,
     switchNow,
     setVolume(v) {
       vol = v / 100;

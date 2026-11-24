@@ -1,8 +1,9 @@
 'use strict';
 // FRIENDS tab (daemon op 0xD8, tools/social.py; lib/daemon.js social()): friends with presence (online first, status dot + text, offline greyed with
 // the last seen), pending requests (incoming accept / decline, sent cancel), add friend (search by name or Steam id), and the party (leader crown,
-// ready state, invite from the friends list, leave, kick / make leader for the leader). The game side is automatic: the leader's FIND MATCH in the
-// game asks the members to follow, the matchmaker queues the party as one unit on one team.
+// ready state, invite from the friends list, leave, kick / make leader for the leader), and private messages between friends (MESSAGE on a friend
+// row or in the PLAYERS ONLINE right-click menu opens the chat; unread counts on the rows, the tab and the menu pip). The game side is automatic:
+// the leader's FIND MATCH in the game asks the members to follow, the matchmaker queues the party as one unit on one team.
 const Social = (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) =>
@@ -22,8 +23,32 @@ const Social = (() => {
     rendered = '',
     first = true,
     timer = 0,
-    started = false;
+    started = false,
+    chatWith = '', // the friend id whose chat is open in the FRIENDS tab
+    chat = null, // { with, msgs: [{ id, me, t, age }] } of chatWith
+    draft = ''; // the unsent text of the chat box
   const seen = new Set(); // ids of requests / invitations already announced
+  let lastUnread = null; // { friend id: unread count } of the previous state (new messages are announced)
+  const MSG_BYTES = 200; // the daemon reads 200 bytes of argument: "<friend id>\n<text>"
+  const u8 = (ch) => {
+    const c = ch.codePointAt(0);
+    return c < 0x80 ? 1 : c < 0x800 ? 2 : c < 0x10000 ? 3 : 4;
+  };
+  const room4 = (id) => MSG_BYTES - [...(id + '\n')].reduce((n, ch) => n + u8(ch), 0);
+  function fit(s, max) {
+    let out = '',
+      n = 0;
+    for (const ch of s) {
+      const b = u8(ch);
+      if (n + b > max) break;
+      out += ch;
+      n += b;
+    }
+    return out;
+  }
+  const unreadOf = (id) => (data && data.unread && data.unread[id]) || 0;
+  const unreadAll = () =>
+    data && data.unread ? Object.values(data.unread).reduce((a, b) => a + b, 0) : 0;
 
   const ERR = {
     self: 'That is you.',
@@ -37,6 +62,7 @@ const Social = (() => {
     expired: 'That request or invitation is no longer valid.',
     rate: 'Too many actions in a short time. Wait a moment.',
     notfriend: 'You can only invite friends to a party.',
+    notfriendmsg: 'You can only message friends.',
     offline: 'That friend is offline.',
     notleader: 'Only the party leader can do that.',
     full: 'The party is full.',
@@ -85,7 +111,9 @@ const Social = (() => {
       off = fl.filter((f) => f.status === 'off');
     const room = !party || (party.meLeader && party.members.length < party.max);
     const one = (f) => {
-      let acts = '';
+      const u = unreadOf(f.id);
+      let acts = btn('chat', f.id, 'MESSAGE', u ? 'fr-hot' : '');
+      if (u) acts = `<em class="fr-n hot" title="${esc(T('Unread messages'))}">${u}</em>` + acts;
       if (inMine(f)) acts += `<span class="fr-tag">${esc(T('IN YOUR PARTY'))}</span>`;
       else if (f.status !== 'off' && room) acts += btn('invite', f.id, 'INVITE TO PARTY');
       acts += btn(
@@ -100,6 +128,36 @@ const Social = (() => {
       (on.length ? head(T('ONLINE - {n}', { n: on.length })) + on.map(one).join('') : '') +
       (off.length ? head(T('OFFLINE - {n}', { n: off.length })) + off.map(one).join('') : '')
     );
+  }
+  function chatFriend() {
+    return (data && data.friends.find((f) => f.id === chatWith)) || null;
+  }
+  function msgsHtml() {
+    const ms = chat && chat.with === chatWith ? chat.msgs : null;
+    if (ms == null) return `<div class="empty">${esc(T('Loading messages...'))}</div>`;
+    if (!ms.length) return `<div class="empty">${esc(T('No messages yet.'))}</div>`;
+    return ms
+      .map(
+        (m) =>
+          `<div class="fr-msg ${m.me ? 'me' : 'them'}"><p>${esc(m.t)}</p><small>${esc(ago(m.age))}</small></div>`,
+      )
+      .join('');
+  }
+  function chatPane() {
+    const f = chatFriend();
+    if (!f) return `<div class="empty">${esc(T('That player is not your friend any more.'))}</div>`;
+    return (
+      `<div class="fr-chat">` +
+      `<div class="fr-ch-head">${btn('back', '', 'BACK', 'quiet')}${row(f.status, f.name, statusLine(f), '')}</div>` +
+      `<div id="fr-msgs" class="fr-msgs" aria-live="polite">${msgsHtml()}</div>` +
+      `<div class="fr-add fr-send"><input id="fr-m" data-with="${esc(f.id)}" type="text" spellcheck="true" autocomplete="off" placeholder="${esc(T('Write a message to {n}', { n: f.name }))}" value="${esc(draft)}">` +
+      btn('send', f.id, 'SEND') +
+      `</div><div class="msub fr-hint">${esc(T('Only friends can message you. Messages are kept for 30 days.'))}</div></div>`
+    );
+  }
+  function scrollMsgs() {
+    const m = $('fr-msgs');
+    if (m) m.scrollTop = m.scrollHeight;
   }
   function pendingPane() {
     const inc = data.in,
@@ -257,6 +315,9 @@ const Social = (() => {
         esc(T(LABEL[t])) +
         (n
           ? ` <em class="fr-n ${t === 'pending' || (t === 'party' && data && data.pinv.length) ? 'hot' : ''}">${n}</em>`
+          : '') +
+        (t === 'friends' && unreadAll()
+          ? ` <em class="fr-n hot" title="${esc(T('Unread messages'))}">${unreadAll()}</em>`
           : '');
     }
   }
@@ -268,9 +329,12 @@ const Social = (() => {
       return;
     }
     drawTabs();
+    if (tab === 'friends' && chatWith && !chatFriend() && data) chatWith = '';
     const pane =
       tab === 'friends'
-        ? friendsPane()
+        ? chatWith
+          ? chatPane()
+          : friendsPane()
         : tab === 'pending'
           ? pendingPane()
           : tab === 'add'
@@ -288,13 +352,47 @@ const Social = (() => {
       $('fr-found').innerHTML = foundHtml(); // (typing: only the results change, never the box)
       return;
     }
+    if (
+      tab === 'friends' &&
+      chatWith &&
+      !force &&
+      rendered &&
+      $('fr-m') &&
+      $('fr-m').dataset.with === chatWith
+    ) {
+      // this chat is on screen: only the messages and the friend's status change, never the box (typing, focus); the list stays at the bottom
+      const m = $('fr-msgs'),
+        atEnd = m.scrollHeight - m.scrollTop - m.clientHeight < 30,
+        h = msgsHtml(),
+        f = chatFriend(),
+        hr = el.querySelector('.fr-ch-head .fr-row'),
+        rh = row(f.status, f.name, statusLine(f), '');
+      if (hr && hr.outerHTML !== rh) hr.outerHTML = rh;
+      if (m.innerHTML !== h) {
+        m.innerHTML = h;
+        if (atEnd) scrollMsgs();
+      }
+      rendered = html;
+      return;
+    }
+    const keep = document.activeElement && document.activeElement.id === 'fr-m';
     rendered = html;
     el.innerHTML = html;
+    if (tab === 'friends' && chatWith) {
+      scrollMsgs();
+      if (keep) {
+        const i = $('fr-m');
+        if (i) {
+          i.focus();
+          i.setSelectionRange(i.value.length, i.value.length);
+        }
+      }
+    }
   }
 
   // ---------------------------------------------------------------- data
   const badge = () => {
-    const n = data ? data.in.length + data.pinv.length : 0;
+    const n = data ? data.in.length + data.pinv.length + unreadAll() : 0;
     $('fr-pip').hidden = !n;
   };
   function announce() {
@@ -306,6 +404,19 @@ const Social = (() => {
     for (const i of data.pinv)
       if (!seen.has('p' + i.id))
         fresh.push(['p' + i.id, T('{n} invited you to a party.', { n: i.name })]);
+    const un = data.unread || {};
+    if (lastUnread)
+      for (const id of Object.keys(un)) {
+        const open = chatWith === id && curView === 'friends';
+        if (un[id] > (lastUnread[id] || 0) && !open) {
+          const f = data.friends.find((x) => x.id === id);
+          fresh.push([
+            'm' + id + ':' + un[id],
+            T('{n} sent you a message.', { n: f ? f.name : T('A friend') }),
+          ]);
+        }
+      }
+    lastUnread = Object.assign({}, un);
     for (const [k] of fresh) seen.add(k);
     if (!first && fresh.length) {
       Snd.play('confirm');
@@ -322,12 +433,14 @@ const Social = (() => {
     offline = false;
     data = r.social;
     if (!data.v) data = null;
+    else if (data.chat) chat = data.chat;
     return !!data;
   }
   async function load(force) {
     if ((busy && !force) || document.body.classList.contains('sp-mode')) return;
     try {
-      if (take(await f2.social())) {
+      const inChat = chatWith && curView === 'friends' && tab === 'friends';
+      if (take(await (inChat ? f2.socialAct('chat', chatWith) : f2.social()))) {
         announce();
         badge();
       }
@@ -345,7 +458,9 @@ const Social = (() => {
       if (take(r)) {
         if (r.social.found) found = r.social.found;
         if (!r.social.ok && r.social.err) {
-          err = errText(r.social.err);
+          err = errText(
+            sub === 'msg' && r.social.err === 'notfriend' ? 'notfriendmsg' : r.social.err,
+          );
           Snd.play('error');
         } else if (opts && opts.done) toast(T(opts.done), true, T('FRIENDS'));
         announce();
@@ -381,6 +496,18 @@ const Social = (() => {
     const a = b.dataset.fr,
       id = b.dataset.id;
     if (a === 'invite') return act('invite', id, { done: 'Invitation sent.' });
+    if (a === 'chat') return openChat(id);
+    if (a === 'back') {
+      chatWith = '';
+      chat = null;
+      draft = '';
+      err = '';
+      render(true);
+      const r = $('fr-body').querySelector('[data-fr="chat"]');
+      if (r) r.focus();
+      return;
+    }
+    if (a === 'send') return send();
     if (a === 'remove') {
       if (armed !== 'remove:' + id) {
         armed = 'remove:' + id;
@@ -418,6 +545,39 @@ const Social = (() => {
     }
     await act('search', q);
   }
+  async function send() {
+    const i = $('fr-m'),
+      text = fit(((i ? i.value : draft) || '').trim(), room4(chatWith));
+    if (!text || !chatWith || busy) return;
+    draft = '';
+    if (i) i.value = '';
+    await act('msg', chatWith + '\n' + text);
+    if (err) draft = text; // (not sent: the text comes back into the box)
+    render(true);
+    const box = $('fr-m');
+    if (box) {
+      if (err) box.value = draft;
+      box.focus();
+    }
+  }
+  function openChat(id) {
+    if (chatWith !== id) {
+      chat = null;
+      draft = '';
+    }
+    chatWith = id;
+    tab = 'friends';
+    err = '';
+    if (curView !== 'friends') showView('friends');
+    else {
+      render(true);
+      load(true).then(schedule);
+    }
+    setTimeout(() => {
+      const i = $('fr-m');
+      if (i) i.focus();
+    }, 80);
+  }
   function init() {
     const body = $('fr-body');
     body.addEventListener('click', clicked);
@@ -426,9 +586,23 @@ const Social = (() => {
         e.preventDefault();
         runSearch();
       }
+      if (e.key === 'Enter' && e.target.id === 'fr-m') {
+        e.preventDefault();
+        send();
+      }
+      if (e.key === 'Escape' && e.target.id === 'fr-m' && !e.target.value) {
+        e.preventDefault();
+        e.stopPropagation();
+        $('fr-body').querySelector('[data-fr="back"]').click();
+      }
     });
     body.addEventListener('input', (e) => {
       if (e.target.id === 'fr-q') query = e.target.value;
+      if (e.target.id === 'fr-m') {
+        const v = fit(e.target.value, room4(chatWith));
+        if (v !== e.target.value) e.target.value = v;
+        draft = v;
+      }
     });
   }
   // polls: every 5 s while the tab is open, else every 20 s (the badge + the "online" mark for the friends); 60 s while the game runs
@@ -437,7 +611,9 @@ const Social = (() => {
     const gap = document.body.classList.contains('game-on')
       ? 60000
       : curView === 'friends'
-        ? 5000
+        ? chatWith && tab === 'friends'
+          ? 3000
+          : 5000
         : 20000;
     timer = setTimeout(async () => {
       await load();
@@ -457,9 +633,49 @@ const Social = (() => {
     render();
     load(true).then(schedule);
   }
+  // the PLAYERS ONLINE panel (src/players.js): what a right click on a name can do, and doing it (the server takes an exact player name)
+  const same = (x, y) => String(x || '').toLowerCase() === String(y || '').toLowerCase();
+  function relOf(name) {
+    if (!data) return null;
+    if (data.me && same(data.me.name, name)) return { rel: 'self' };
+    const f = data.friends.find((x) => same(x.name, name));
+    if (f) {
+      const party = data.party;
+      const inMine = !!party && party.members.some((m) => m.id === f.id);
+      const room = !party || (party.meLeader && party.members.length < party.max);
+      return {
+        rel: 'friend',
+        id: f.id,
+        inParty: inMine,
+        invite: !inMine && f.status !== 'off' && room,
+      };
+    }
+    if (data.out.some((x) => same(x.name, name))) return { rel: 'out' };
+    const i = data.in.find((x) => same(x.name, name));
+    return i ? { rel: 'in', id: i.id } : { rel: null };
+  }
+  async function quick(sub, arg, done) {
+    try {
+      const r = await f2.socialAct(sub, String(arg));
+      if (!take(r)) return toast(T('The game server did not answer.'), false, T('FRIENDS'));
+      if (!r.social.ok && r.social.err) toast(errText(r.social.err), false, T('FRIENDS'));
+      else if (done) toast(T(done), true, T('FRIENDS'));
+      announce();
+      badge();
+      if (curView === 'friends') render(true);
+    } catch {
+      toast(T('Something went wrong. Try again.'), false, T('FRIENDS'));
+    }
+  }
+
   return {
     start,
     open,
+    relOf,
+    addByName: (name) => quick('add', name, 'Friend request sent.'),
+    accept: (id) => quick('accept', id, null),
+    invite: (id) => quick('invite', id, 'Invitation sent.'),
+    openChat,
     rerender: () => {
       rendered = '';
       if (curView === 'friends') render(true);

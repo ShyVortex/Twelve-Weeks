@@ -314,8 +314,9 @@ function showProgress(p) {
       p.unit === 'time'
         ? T('{n} s', { n: p.done })
         : p.unit === 'pct'
-          ? T('{pct}%', { pct: pct.toFixed(0) }) +
-            (p.eta ? '  ' + T('{t} left', { t: fmtEta(p.eta) }) : '')
+          ? (p.total ? T('{pct}%', { pct: pct.toFixed(0) }) : '') +
+            (p.eta ? '  ' + T('{t} left', { t: fmtEta(p.eta) }) : '') +
+            (p.elapsed ? ' · ' + T('{t} elapsed', { t: fmtEta(p.elapsed) }) : '')
           : p.unit === 'bytes'
             ? T('{pct}%  {a} of {b}', {
                 pct: pct.toFixed(0),

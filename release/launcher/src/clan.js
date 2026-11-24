@@ -383,7 +383,7 @@ const Clan = (() => {
     const ok = r && r.ok && r.hasClan && r.status === 'alive';
     const spm = document.body.classList.contains('sp-mode');   // SP: the plain game's title, no TWELVE WEEKS line
     $('t-fac').textContent = ok ? T(r.factionName) : ''; $('t-fac').hidden = !ok; $('t-sub').hidden = spm;
-    // a living clan (MP): the TWELVE WEEKS text logo stays as the title and WEEK n: DAY d sits under it, smaller (user 11-15)
+    // a living clan (MP): the TWELVE WEEKS text logo stays as the title and WEEK n: DAY d sits under it, smaller
     const clanTitle = ok && !spm;
     $('title').classList.toggle('clan', clanTitle);
     $('t-main').textContent = spm ? 'THE LAST OF US PART II' : 'THE LAST OF US';

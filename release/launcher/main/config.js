@@ -22,6 +22,7 @@ const DEFAULTSETTINGS = {
   sounds: true,
   music: true,
   musicVolume: 35,
+  musicSet: 'grim', // Settings > CUSTOMIZE > MUSIC: 'grim' | 'calm' | 'hopeful' (without this key applyPatch dropped the choice)
   debug_mode: false,
   sp_mode: false,
   loadout: null,
@@ -110,6 +111,7 @@ function createConfigStore({ runtime, log }) {
     for (const key of Object.keys(patch || {})) {
       if (!(key in DEFAULTSETTINGS) || key === 'token_id' || key === 'sp_mode') continue;
       if (key === 'server_target' && patch[key] !== 'live' && patch[key] !== 'test') continue;
+      if (key === 'musicSet' && !['grim', 'calm', 'hopeful'].includes(patch[key])) continue;
       values[key] =
         key === 'effects' || key === 'rpc' ? { ...values[key], ...patch[key] } : patch[key];
     }

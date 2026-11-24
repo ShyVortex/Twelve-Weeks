@@ -9,6 +9,7 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const https = require('https');
+const hosts = require('./update/hosts');
 
 const IMG_MAX_FILES = 5,
   IMG_MAX_EACH = 8 * 1024 * 1024;
@@ -203,6 +204,12 @@ function screenshotEntries(list) {
  * @returns {Promise<object>}
  */
 function uploadClip(host, code, key, file, onProgress, opts = {}) {
+  // 0.1.46: clips go to the direct address (Cloudflare refuses uploads over 100 MB), the other one when it is blocked (lib/update/hosts.js)
+  const url = `${host.replace(/\/+$/, '')}/report-clip?code=${encodeURIComponent(code)}&key=${encodeURIComponent(key)}`;
+  return hosts.withFallback(url, (u) => uploadClipTo(u, file, onProgress, opts));
+}
+
+function uploadClipTo(url, file, onProgress, opts = {}) {
   return new Promise((resolve, reject) => {
     let st;
     try {
@@ -210,9 +217,7 @@ function uploadClip(host, code, key, file, onProgress, opts = {}) {
     } catch (e) {
       return reject(e);
     }
-    const u = new URL(
-        `${host.replace(/\/+$/, '')}/report-clip?code=${encodeURIComponent(code)}&key=${encodeURIComponent(key)}`,
-      ),
+    const u = new URL(url),
       lib = u.protocol === 'https:' ? https : http;
     const req = lib.request(
       u,
@@ -226,6 +231,10 @@ function uploadClip(host, code, key, file, onProgress, opts = {}) {
         timeout: opts.timeout || 180000,
       },
       (res) => {
+        if (hosts.blockedRedirect(res, url)) {
+          res.resume(); // a filter's redirect (0.1.51): try the next address
+          return reject(new Error(`redirected (blocked?) by ${u.host} (HTTP ${res.statusCode})`));
+        }
         const ch = [];
         res.on('data', (c) => ch.push(c));
         res.on('error', reject);

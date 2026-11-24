@@ -11,7 +11,7 @@ Run: python scripts/gen-gamedata.py   (from release/launcher)
 import json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", ".."))
+ROOT = os.path.abspath(os.environ.get("T2R_SRC_ROOT") or os.path.join(HERE, "..", "..", ".."))   # T2R_SRC_ROOT = a checkout of the live build's line
 SKILLS_C = os.path.join(ROOT, "tools", "ext", "skills.c")
 EXT_C = os.path.join(ROOT, "tools", "ext", "t2r-ext.c")
 
@@ -26,7 +26,7 @@ for m in re.finditer(r"\[(SK_[A-Z]+)\] = \{\"([^\"]+)\", SK_ICON\(\"([^\"]+)\"\)
     skills.append({"key": key, "name": name, "icon": icon, "levels": int(nlv), "cost": [int(x) for x in costs.split(",")][: int(nlv)],
                    "desc": [d.replace('\\"', '"').replace("|gen:flashlight|", "the mark button").replace("|gen:jump|", "jump") for d in ds][: int(nlv)]})
 keys = [s["key"] for s in skills]
-assert len(skills) == 31, len(skills)
+assert len(skills) == 32, len(skills)   # with FOOTWORK (release line)
 
 # ---- weapons: exactly the rows / names / LP / icons of the mod's GEAR UP tables (tools/ext/t2r-ext.c install_weapon_tables + the original
 # winmm.dll rows read from the dll: large 0x1800A0DB0, small 0x1800A0E90, purchasable 0x1800A0F40; LP patches in features/winmm_patches.py).
@@ -38,11 +38,11 @@ weapons = {
     "large": [W("rifle-vepr", "VARIABLE RIFLE", 2, "vepr-scp", "vepr-supp", 2), W("rifle-remington-bolt", "HUNTING RIFLE", 2, "remington-bolt-scp", "remington-bolt-supp", 2),
               W("bow-ellie", "BOW", 3, "bow"), W("rifle-mpx5", "FULL-AUTO RIFLE", 2, "mpx5-nocan", "mpx5", 2), W("rifle-m14-semi", "SEMI-AUTO RIFLE", 2, "m14", "m14-supp", 2),
               W("shotgun-tactical", "TACTICAL SHOTGUN", 3, "tac-shotgun", "tac-shotgun-supp", 2), W("rifle-frontier", "FRONTIER RIFLE", 2, "frontier", "frontier-supp", 2),
-              W("rifle-burst", "BURST RIFLE", 2, "burst-rifle", "burst-rifle-supp", 2)],
-    "small": [W("pistol-beretta", "9MM PISTOL", 0, "colt", "colt-supp", 1), W("pistol-revolver-taurus", "REVOLVER", 0, "revolver-brl"),
+              W("rifle-burst", "BURST RIFLE", 2, "burst-rifle", "burst-rifle-supp", 2), W("rifle-vintage", "VINTAGE RIFLE", 2, "vintage-rifle")],
+    "small": [W("pistol-beretta", "9MM PISTOL", 0, "colt", "colt-supp", 1), W("pistol-revolver-taurus", "REVOLVER", 0, "revolver-brl"), W("pistol-snubby", "SNUBBY", 0, "snubby"),
               W("pistol-glock", "BURST PISTOL", 1, "glock", "glock-supp", 1), W("pistol-cz75-enforcer", "ENFORCER", 1, "cz75", "cz75-supp", 1), W("shotgun-shorty", "SHORTY", 1, "shorty")],
     "purch": [W("shotgun-remington-pump", "PUMP SHOTGUN", 4, "pump-shotgun"), W("pistol-xcaliber", "HUNTING PISTOL", 3, "hunting-pistol"), W("rifle-galil", "SPECTER", 3, "specter"),
-              W("crossbow", "CROSSBOW", 3, "crossbow"), W("pistol-el-diablo", "EL DIABLO", 3, "el-diablo"), W("machete", "MACHETE", 2, "machete"),
+              W("crossbow", "CROSSBOW", 3, "crossbow"), W("pistol-el-diablo", "EL DIABLO", 3, "el-diablo"), W("machete", "MACHETE", 3, "machete"),
               W("rifle-milsniper", "MILITARY SNIPER", 3, "milsniper"), W("shotgun-baserri-over-under", "DOUBLE BARREL", 1, "double-barrel"),
               W("rifle-assault-firefly-ellie-player", "ASSAULT RIFLE", 3, "assault-rifle")],
 }
@@ -52,7 +52,8 @@ DESC = {
     "rifle-remington-bolt": "Bolt-action. Two body shots to down, a headshot kills.", "bow-ellie": "Silent and lethal. Arrows can be recovered.",
     "rifle-mpx5": "Full-auto. Steady damage at mid range.", "rifle-m14-semi": "A reliable mid-range killer. Three body shots to down.",
     "shotgun-tactical": "Tight spread, long reach. Two shots to down.", "rifle-frontier": "A lever-action rifle. Heavy hits, slow cycling. Two body shots to down.",
-    "rifle-burst": "A short range monster. Three shots per burst.", "pistol-beretta": "Reliable sidearm with a fast draw.", "pistol-revolver-taurus": "Heavy hitting, slow to reload.",
+    "rifle-burst": "A short range monster. Three shots per burst.", "rifle-vintage": "An old bolt-action rifle with iron sights. Quick bolt, small magazine. Close to mid range: two body shots to down up close, three at long range.",
+    "pistol-snubby": "A snub-nose revolver. Fast and light, hard to aim. Four body shots to down up close.", "pistol-beretta": "Reliable sidearm with a fast draw.", "pistol-revolver-taurus": "Heavy hitting, slow to reload.",
     "pistol-glock": "Larger magazine, lighter per shot.", "pistol-cz75-enforcer": "A versatile pistol with great range and accuracy.", "shotgun-shorty": "A widespread shotgun. Downs in two shots up close.",
     "shotgun-remington-pump": "Pump-action shotgun with a tighter spread than the double barrel. Pumps a shell between shots; deadly up close.",
     "pistol-xcaliber": "Precision sidearm with huge stopping power. Slow between shots, so make the first one count.",
@@ -68,6 +69,7 @@ _blk = _ext[_ext.index("static const struct { const char *weapon; int rof, reloa
 _blk = _blk[:_blk.index("};")]
 STATS = {m.group(1): [int(x) for x in m.groups()[1:]] for m in re.finditer(r'\{"([a-z0-9-]+)", (\d+), (\d+), (\d+), (\d+)\}', _blk)}
 STATS["rifle-assault-firefly-ellie-player"] = [int(x) for x in re.search(r'\{ASSAULT_ID, (\d+), (\d+), (\d+), (\d+)\}', _blk).groups()]   # same row of GUN_STATS
+STATS["rifle-vintage"] = [int(x) for x in re.search(r'\{VINTAGE_ID, (\d+), (\d+), (\d+), (\d+)\}', _blk).groups()]
 for _slot in weapons.values():
     for _w in _slot:
         _w["desc"] = DESC[_w["id"]]

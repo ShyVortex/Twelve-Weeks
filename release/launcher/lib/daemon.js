@@ -252,6 +252,8 @@ const SOCIAL_SUBS = {
   kick: 10,
   promote: 11,
   ready: 12,
+  msg: 13,
+  chat: 14,
 };
 /**
  * Call the friends/party service of the daemon.

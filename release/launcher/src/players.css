@@ -78,3 +78,60 @@ body.players-on #online {
   right: 40px;
   top: 36px;
 }
+/* right click on a player (players.js openMenu) */
+#players .fr-row[data-name] {
+  cursor: context-menu;
+}
+#players .fr-row[data-name]:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+}
+.pp-menu {
+  position: fixed;
+  z-index: 80;
+  min-width: 170px;
+  padding: 4px;
+  background: rgba(14, 16, 18, 0.97);
+  border: 1px solid var(--panel-line);
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.pp-menu[hidden] {
+  display: none;
+}
+.pp-mh {
+  padding: 6px 10px 7px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--muted, #9a9a92);
+  border-bottom: 1px solid var(--bar-line);
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+.pp-mi {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  background: none;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.pp-mi:hover:not([disabled]),
+.pp-mi:focus-visible {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  outline: none;
+}
+.pp-mi[disabled] {
+  color: var(--muted, #9a9a92);
+  cursor: default;
+}

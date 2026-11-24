@@ -124,10 +124,14 @@
  "A lever-action rifle. Heavy hits, slow cycling. Two body shots to down.": "Karabin dźwigniowy. Mocny, wolny. Dwa trafienia powalają.",
  "BURST RIFLE": "KARABIN SERYJNY",
  "A short range monster. Three shots per burst.": "Bestia na krótki dystans. Trzy strzały w serii.",
+ "VINTAGE RIFLE": "ZABYTKOWY KARABIN",
+ "An old bolt-action rifle with iron sights. Quick bolt, small magazine. Close to mid range: two body shots to down up close, three at long range.": "Stary karabin powtarzalny z mechanicznymi przyrządami celowniczymi. Szybki zamek, mały magazynek. Bliski i średni dystans: z bliska dwa trafienia powalają, z daleka trzy.",
  "9MM PISTOL": "PISTOLET 9 MM",
  "Reliable sidearm with a fast draw.": "Niezawodna broń boczna z szybkim dobywaniem.",
  "REVOLVER": "REWOLWER",
  "Heavy hitting, slow to reload.": "Mocne uderzenie, wolne przeładowanie.",
+ "SNUBBY": "KRÓTKI REWOLWER",
+ "A snub-nose revolver. Fast and light, hard to aim. Four body shots to down up close.": "Krótki rewolwer. Szybki i lekki, trudny w celowaniu. Cztery strzały w tułów powalają z bliska.",
  "BURST PISTOL": "PISTOLET SERYJNY",
  "Larger magazine, lighter per shot.": "Większy magazynek, lżejszy odrzut.",
  "ENFORCER": "EGZEKUTOR",
@@ -141,7 +145,6 @@
  "SPECTER": "SPECTER",
  "A silenced fully automatic rifle that kills from the shadows. Steady damage at mid range, a deep magazine.": "Wyciszony karabin automatyczny. Stałe obrażenia na średni dystans, pojemny magazynek.",
  "CROSSBOW": "KUSZA",
- "Silent. Two body shots to down, a headshot kills. Bolts that hit scenery can be picked up again.": "Cicha. Dwa trafienia powalają, strzał w głowę zabija. Bełty z otoczenia można podnieść.",
  "EL DIABLO": "EL DIABLO",
  "Handgun that comes with a scope. Two body shots to down.": "Pistolet z lunetą. Dwa trafienia powalają.",
  "MACHETE": "MACZETA",
@@ -230,6 +233,7 @@
  "NEEDED PER DAY:": "POTRZEBNE DZIENNIE:",
  "%d SURVIVORS": "OCALALI: {1}",
  "WEEK %d: DAY %d": "TYDZIEŃ {1}: DZIEŃ {2}",
+ "RESET LOADOUT": "ZRESETUJ WYPOSAŻENIE",
  "CUSTOM LOADOUT %d": "WŁASNE WYPOSAŻENIE {1}",
  "NOT ENOUGH POINTS": "ZA MAŁO PUNKTÓW",
  "Spend your loadout points elsewhere.": "Wydaj punkty wyposażenia na coś innego.",
@@ -316,5 +320,6 @@
  "SUPPRESSED HUNTING RIFLE": "CICHY KARABIN MYŚLIWSKI",
  "SUPPRESSED BURST RIFLE": "CICHY KARABIN SERYJNY",
  "SUPPRESSED 9MM PISTOL": "CICHY PISTOLET 9 MM",
- "SUPPRESSED ENFORCER": "EGZEKUTOR Z TŁUMIKIEM"
+ "SUPPRESSED ENFORCER": "EGZEKUTOR Z TŁUMIKIEM",
+ "Silent. Two body shots to down, a headshot kills. Bolts that hit scenery can be picked up again.": "Cicha. Dwa trafienia powalają, strzał w głowę zabija. Bełty z otoczenia można podnieść."
 }

@@ -54,8 +54,10 @@ async function startSteamHelper(clientDir, cfg, server, log, deps = {}) {
       },
     );
     let exited = false;
-    child.on('exit', () => {
+    let code = null;
+    child.on('exit', (c) => {
       exited = true;
+      code = c;
     });
     child.on('error', () => {
       exited = true;
@@ -67,8 +69,21 @@ async function startSteamHelper(clientDir, cfg, server, log, deps = {}) {
       const n = cleanName(fs.readFileSync(out, 'utf8').split(/\r?\n/)[0]);
       return n || null;
     }
-    if (!exited || attempt === 4 || !(await probe())) return null; // still waiting for Steam (the helper keeps going), or Steam is gone
-    log(`Steam helper exited at once (Steam not ready yet?) - trying again (${attempt}/3).`);
+    if (!exited) return null; // still waiting for Steam (the helper keeps going)
+    // 0.1.51: the exit code says why (a one-line helper log alone said nothing): 2 = SteamAPI_Init failed, 3 = steam_api64.dll missing / not loadable
+    const why =
+      code === 2
+        ? 'Steam init failed'
+        : code === 3
+          ? 'steam_api64.dll could not be loaded'
+          : 'exit code ' + code;
+    if (attempt === 4 || !(await probe())) {
+      log(`Steam helper exited at once (${why}; details in t2r-steam.log) - giving up.`);
+      return null; // Steam is gone, or four tries failed
+    }
+    log(
+      `Steam helper exited at once (${why}; details in t2r-steam.log) - trying again (${attempt}/3).`,
+    );
     await sleep(4000);
   }
   return null;

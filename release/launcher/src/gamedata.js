@@ -597,6 +597,21 @@ const GAMEDATA = {
      4,
      4
     ]
+   },
+   {
+    "id": "rifle-vintage",
+    "name": "VINTAGE RIFLE",
+    "lp": 2,
+    "icon": "vintage-rifle",
+    "supIcon": null,
+    "supp": 0,
+    "desc": "An old bolt-action rifle with iron sights. Quick bolt, small magazine. Close to mid range: two body shots to down up close, three at long range.",
+    "stats": [
+     2,
+     4,
+     8,
+     6
+    ]
    }
   ],
   "small": [
@@ -628,6 +643,21 @@ const GAMEDATA = {
      4,
      5,
      6
+    ]
+   },
+   {
+    "id": "pistol-snubby",
+    "name": "SNUBBY",
+    "lp": 0,
+    "icon": "snubby",
+    "supIcon": null,
+    "supp": 0,
+    "desc": "A snub-nose revolver. Fast and light, hard to aim. Four body shots to down up close.",
+    "stats": [
+     7,
+     4,
+     4,
+     3
     ]
    },
    {
@@ -750,7 +780,7 @@ const GAMEDATA = {
    {
     "id": "machete",
     "name": "MACHETE",
-    "lp": 2,
+    "lp": 3,
     "icon": "machete",
     "supIcon": null,
     "supp": 0,

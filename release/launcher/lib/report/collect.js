@@ -102,6 +102,8 @@ function collectLogs({ gameDir, clientDir, steamLogDir, matchLogs }, out, add) {
     const sd = steamLogDir || os.tmpdir();
     add('t2r-steam.log', path.join(sd, 't2r-steam.log'), 'log');
     add('t2r-steam.prev.log', path.join(sd, 't2r-steam.prev.log'), 'log');
+    // 0.1.51: the helper's heartbeat ("1 <unix time>" while Steam is up); missing or stale = the game shows SERVER UNAVAILABLE
+    add('t2r-steam-status.txt', path.join(sd, 't2r-steam-status.txt'), 'text');
   }
   return gdir;
 }

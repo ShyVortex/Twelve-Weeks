@@ -16,6 +16,7 @@ const rpt = require('../lib/report');
 const att = require('../lib/attach');
 const sysinfo = require('../lib/sysinfo');
 const dmn = require('../lib/daemon');
+const { netProbe } = require('../lib/report/netprobe');
 
 // PLAYER REPORT: the players of the last 3 matches come from the game server (op 0xD6), the report goes back to it (op 0xD4).
 // Nothing but the picked match / slot, the reasons and the typed text is sent; the server checks that the player really was in one of the player's last matches.
@@ -211,11 +212,18 @@ function createReport({ app, runtime, config, paths, log, send, getWindow, playe
       includeDumps: !!form.includeDumps,
       clips: attachments.filter((item) => item.kind === 'video').length,
     };
+    // 0.1.51: what each update address and the game server answer from this PC (files/network.txt), at most ~10 s
+    send('report-progress', { phase: 'collect', pct: 50 });
+    const network = await netProbe({
+      gameServer: paths.serverAddress(),
+      fileHost: paths.fileHost(),
+    }).catch((e) => `network check failed: ${e.message}\n`);
     return rpt.build(
       list,
       meta,
       rpt.systemInfo({ ...meta, wer: rpt.werLocalDumps() }),
       att.screenshotEntries(attachments),
+      [{ name: 'network.txt', text: network }],
     );
   }
 

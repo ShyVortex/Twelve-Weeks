@@ -75,11 +75,12 @@ function fakeDaemon(handler) {
     for (let i = 0; i < 30 && n === null; i++) { await new Promise((r) => setTimeout(r, 500)); n = await dm.onlineCount('127.0.0.1', port); }
     assert.ok(n !== null, 'daemon up');
     const r = await dm.recentPlayers('127.0.0.1', port, TOKEN);
-    assert.deepStrictEqual(r, [], 'a token that played nothing has no recent players');
+    if (fs.existsSync(path.join(root, 'tools', 'anticheat.py'))) assert.deepStrictEqual(r, [], 'a token that played nothing has no recent players');
+    else assert.strictEqual(r, null, 'without the anti-cheat module the daemon does not answer the recent-players request');
     const rr = await dm.reportPlayer('127.0.0.1', port, TOKEN, { mid: 'abcd0001', slot: 1, reasons: 1, text: 'x' });
     if (fs.existsSync(path.join(root, 'tools', 'anticheat.py')))
       assert.ok(rr && rr.ok === false && rr.err === 'not in that match', 'the real daemon refuses a report about a match the token was not in: ' + JSON.stringify(rr));
-    else assert.ok(rr && rr.ok === false && rr.err === 'unavailable', 'without the anti-cheat module the daemon says reports are unavailable: ' + JSON.stringify(rr));
+    else assert.strictEqual(rr, null, 'without the anti-cheat module the daemon does not answer a report: ' + JSON.stringify(rr));
     assert.ok(!fs.existsSync(path.join(tmp, 'review', 'ac.db')) || true);
     console.log('playerreport-test OK');
   } finally {

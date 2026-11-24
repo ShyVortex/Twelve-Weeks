@@ -84,7 +84,7 @@ const none = maps.mapsState({ game_dir: path.join(tmp, 'game3') });
 assert.ok(none.part2.some((m) => m.name === 'Supermarket') && none.part2.length >= 18);
 assert.ok(none.part2.every((m) => m.id && m.name && m.source));
 assert.ok(maps.PART2.every((m) => !/p1-|Bookstore/.test(m.id + m.name)), 'no Part I map in the Part II list');
-assert.deepStrictEqual(none.part1.map((m) => [m.id, m.installed]), [['p1-bookstore', false]]);
+assert.deepStrictEqual(none.part1.map((m) => [m.id, m.installed]), [['p1-bookstore', false], ['p1-plaza', false]]);
 assert.strictEqual(none.tlou1.valid, false);
 const set = maps.mapsState({ game_dir: game, tlou1_dir: p1 });
 assert.strictEqual(set.tlou1.valid, true);
@@ -108,6 +108,40 @@ assert.strictEqual(r.packs, 1);
 assert.deepStrictEqual(fs.readdirSync(path.join(game4, 't2r-maps')).sort(), ['part1-a.psarc', 'part1-a.txt']);
 assert.strictEqual(maps.mapsState({ game_dir: game4 }).part1[0].installed, true);
 assert.throws(() => maps.importFiles(game4, []), /No map files/);
+// a part1.dat counts only when its trailer is the build id the client's winmm.dll expects ('.t2rps' +0x68); Plaza is in the same pack
+{
+  const pe = (id) => {
+    const b = Buffer.alloc(0x400);
+    b.write('MZ', 0, 'latin1');
+    b.writeUInt32LE(0x40, 0x3c);
+    b.write('PE\0\0', 0x40, 'latin1');
+    b.writeUInt16LE(1, 0x40 + 6);
+    b.writeUInt16LE(0xf0, 0x40 + 20);
+    const sh = 0x40 + 24 + 0xf0;
+    b.write('.t2rps', sh, 'latin1');
+    b.writeUInt32LE(0x300, sh + 20);
+    b.writeUInt32LE(0x44533150, 0x300);
+    id.copy(b, 0x300 + 0x68);
+    return b;
+  };
+  const idA = Buffer.alloc(16, 0xa1), idB = Buffer.alloc(16, 0xb2);
+  const gs = path.join(tmp, 'game-side'), cs = path.join(tmp, 'client-side');
+  w(path.join(cs, 'winmm.dll'), pe(idA));
+  assert.deepStrictEqual(maps.winmmPart1Id(path.join(cs, 'winmm.dll')), idA);
+  assert.strictEqual(maps.winmmPart1Id(path.join(tmp, 'nope.dll')), null);
+  w(path.join(gs, 't2r-maps', 'part1', 'part1.dat'), Buffer.concat([Buffer.alloc(64), idA]));
+  let st = maps.mapsState({ game_dir: gs }, { clientDir: cs });
+  assert.deepStrictEqual(st.part1.map((m) => [m.id, m.installed]), [['p1-bookstore', true], ['p1-plaza', true]]);
+  assert.strictEqual(st.part1Stale, false);
+  w(path.join(gs, 't2r-maps', 'part1', 'part1.dat'), Buffer.concat([Buffer.alloc(64), idB]));   // an older build's part1.dat
+  st = maps.mapsState({ game_dir: gs }, { clientDir: cs });
+  assert.deepStrictEqual(st.part1.map((m) => m.installed), [false, false]);
+  assert.strictEqual(st.part1Stale, true);
+  w(path.join(gs, 'winmm.dll'), pe(idB));   // the game folder's winmm is still the old build: the client's wins
+  assert.strictEqual(maps.mapsState({ game_dir: gs }, { clientDir: cs }).part1[0].installed, false);
+  assert.strictEqual(maps.mapsState({ game_dir: gs }).part1[0].installed, true);   // no client folder: the game folder's winmm decides
+}
+
 assert.throws(() => maps.importFiles('', [path.join(src, 'part1-a.psarc')]), /Game folder not set/);
 w(path.join(src, 'evil.exe'), 'MZ');
 assert.throws(() => maps.importFiles(game4, [path.join(src, 'evil.exe')]), /Only map pack files/);

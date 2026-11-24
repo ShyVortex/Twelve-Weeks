@@ -15,6 +15,14 @@ const install = require('./install');
  * @returns {object} Path helpers for client, portable, user-data and generated data.
  */
 function createPaths({ app, runtime, config }) {
+  // the official update server's two addresses (lib/update/hosts.js); an F2_FILE_HOST override (dev / test) uses its one address as given
+  if (!process.env.F2_FILE_HOST)
+    upd.hosts.configure({
+      api: defaults.OFFICIAL_FILE_HOST,
+      direct: defaults.OFFICIAL_DIRECT_HOST,
+      tls: defaults.OFFICIAL_TLS_HOST,
+      ip: defaults.OFFICIAL_IP_HOST,
+    });
   function portableDir() {
     // installed layout: the folder the old portable exe sat in (its client\ folder), else the fixed root
     if (runtime.installRoot)
@@ -26,7 +34,7 @@ function createPaths({ app, runtime, config }) {
   }
 
   function clientDir() {
-    // a client folder that is the game folder is never used (the slim rebuild would overwrite the client's own winmm.dll: R-VW4C)
+    // a client folder that is the game folder is never used (the slim rebuild would overwrite the client's own winmm.dll)
     if (
       config.values.client_dir &&
       !game.sameLocation(config.values.client_dir, config.values.game_dir)

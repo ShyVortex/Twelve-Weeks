@@ -8,6 +8,7 @@ const path = require('path');
 const http = require('http');
 const https = require('https');
 const { QUEUE_MAX_FILES, QUEUE_MAX_BYTES, QUEUE_MAX_AGE } = require('./constants');
+const hosts = require('../update/hosts');
 
 /**
  * Upload a report body with progress reporting.
@@ -18,6 +19,11 @@ const { QUEUE_MAX_FILES, QUEUE_MAX_BYTES, QUEUE_MAX_AGE } = require('./constants
  * @returns {Promise<object>}
  */
 function post(url, body, onProgress, opts = {}) {
+  // 0.1.46: tried on the update server's other address when this one is blocked (lib/update/hosts.js)
+  return hosts.withFallback(url, (u) => postOnce(u, body, onProgress, opts));
+}
+
+function postOnce(url, body, onProgress, opts = {}) {
   return new Promise((resolve, reject) => {
     const u = new URL(url),
       lib = u.protocol === 'https:' ? https : http;
@@ -33,6 +39,10 @@ function post(url, body, onProgress, opts = {}) {
         timeout: opts.timeout || 120000,
       },
       (res) => {
+        if (hosts.blockedRedirect(res, url)) {
+          res.resume(); // a filter's redirect: the next address (withFallback), else saved for later (retryable)
+          return reject(new Error(`redirected (blocked?) by ${u.host} (HTTP ${res.statusCode})`));
+        }
         const ch = [];
         res.on('data', (c) => ch.push(c));
         res.on('error', reject);
@@ -73,7 +83,7 @@ function post(url, body, onProgress, opts = {}) {
  */
 const retryable = (e) =>
   !e ||
-  /timeout|ECONN|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|EPIPE|connection lost|socket hang up|ETIMEDOUT/i.test(
+  /timeout|ECONN|ENOTFOUND|EHOSTUNREACH|ENETUNREACH|EAI_AGAIN|EPIPE|connection lost|socket hang up|ETIMEDOUT|redirected/i.test(
     String(e.code || e.message || e),
   );
 /**

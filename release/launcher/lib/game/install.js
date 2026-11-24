@@ -174,7 +174,7 @@ function prepareInstall(clientDir, cfg) {
     );
   if (upd.hasPendingUpdate(clientDir))
     throw new Error(
-      'The last update did not finish (the client files are half old, half new). Press Update client, then play again.',
+      'The last update did not finish (the client files are half old, half new). Press UPDATE CLIENT, then play again.',
     );
   // leftovers of an earlier install that was cut off (killed launcher, power loss): never reused, never left to fill the drive
   for (const x of [dst + '.tmp', dst + '.t2r-new']) {
@@ -228,22 +228,33 @@ async function buildSlimMod({ clientDir, game, src, dst, slimDat, extra, log, pr
 }
 
 function slimFailure(r, freeHint) {
-  const why = (r.stderr.trim().split(/\r?\n/).pop() || `exit code ${r.code}`).replace(/^t2r-slim: /, '');
+  const why = (r.stderr.trim().split(/\r?\n/).pop() || `exit code ${r.code}`).replace(
+    /^t2r-slim: /,
+    '',
+  );
   const space = /space|ENOSPC|error 112|disk full|cannot create/i.test(why),
     run = /running|error 5\b|error 32\b|denied|being used/i.test(why);
   const spaceText = ` (the drive of the game folder is probably full: free about ${freeHint} and try again)`;
-  const runText = ' (close the game and the Steam helper, wait for the antivirus scan to finish, then try again)';
-  return new Error(`Could not prepare the mod from your game files: ${why}${space ? spaceText : ''}${run ? runText : ''}`);
+  const runText =
+    ' (close the game and the Steam helper, wait for the antivirus scan to finish, then try again)';
+  return new Error(
+    `Could not prepare the mod from your game files: ${why}${space ? spaceText : ''}${run ? runText : ''}`,
+  );
 }
 
 async function buildSlimData({ clientDir, game, extra, log, progress, onChild }) {
-  const todo = slimdata.slimTargets(clientDir, game).filter((t) => !slimdata.dataCurrent(t.slim, t.target));
+  const todo = slimdata
+    .slimTargets(clientDir, game)
+    .filter((t) => !slimdata.dataCurrent(t.slim, t.target));
   if (!todo.length) return;
   const slimExe = path.join(clientDir, 'slim', 't2r-slim.exe');
   if (!exists(slimExe)) throw new Error('slim\\t2r-slim.exe is missing from the client files.');
   for (const t of todo) {
     const head = slimdata.readSlimHead(t.slim);
-    if (!head) throw new Error(`${t.shown.replace(/\.bin$/, '.slim')} in the client files is damaged. Press REPAIR INSTALL in Settings > Files, then Play again.`);
+    if (!head)
+      throw new Error(
+        `${t.shown.replace(/\.bin$/, '.slim')} in the client files is damaged. Press REPAIR INSTALL in Settings > Files, then Play again.`,
+      );
     fs.mkdirSync(path.dirname(t.target), { recursive: true });
     try {
       fs.unlinkSync(t.target + '.tmp');
@@ -252,15 +263,32 @@ async function buildSlimData({ clientDir, game, extra, log, progress, onChild })
     log(`Preparing ${t.shown} from your game files (one time per update, a minute or two) ...`);
     let r;
     if ((extra.platform || process.platform) === 'linux') {
-      const sc = linux.slimCommand({ clientDir, files: [t.slim, game, t.target], dataDir: extra.userData, deps: extra.linuxDeps });
-      r = await runSlim(sc.cmd, sc.args, { progress, onChild, timeout: 30 * 60 * 1000, spawnOpts: { env: sc.env, cwd: sc.cwd } });
-    } else r = await runSlim(slimExe, [t.slim, game, t.target], { progress, onChild, timeout: 30 * 60 * 1000 });
+      const sc = linux.slimCommand({
+        clientDir,
+        files: [t.slim, game, t.target],
+        dataDir: extra.userData,
+        deps: extra.linuxDeps,
+      });
+      r = await runSlim(sc.cmd, sc.args, {
+        progress,
+        onChild,
+        timeout: 30 * 60 * 1000,
+        spawnOpts: { env: sc.env, cwd: sc.cwd },
+      });
+    } else
+      r = await runSlim(slimExe, [t.slim, game, t.target], {
+        progress,
+        onChild,
+        timeout: 30 * 60 * 1000,
+      });
     try {
       fs.unlinkSync(t.target + '.tmp');
     } catch {}
     if (r.code !== 0) throw slimFailure(r, `${Math.ceil(head.outSize / 1e9) + 1} GB`);
     if (!slimdata.dataCurrent(t.slim, t.target))
-      throw new Error(`Could not prepare the mod from your game files: ${t.shown} was not written correctly. Press REPAIR INSTALL in Settings > Files, then Play again.`);
+      throw new Error(
+        `Could not prepare the mod from your game files: ${t.shown} was not written correctly. Press REPAIR INSTALL in Settings > Files, then Play again.`,
+      );
   }
 }
 
@@ -450,6 +478,35 @@ async function syncFeatureFlags(clientDir, game) {
       fs.unlinkSync(path.join(game, flag));
     } catch {}
   }
+  removeDevSwitches(game);
+}
+
+// The launcher decides which switch files sit in the game folder, not the update: on every Play, every
+// t2r-*.txt whose name marks a developer / test switch is removed (t2r-dev-*, t2r-debug-* except the launcher's own
+// t2r-debug-mode.txt, names with test / probe, and names ending -try / -dev). Player state files (t2r-loadout.txt, t2r-name.txt,
+// t2r-settings.txt ...) never match.
+const LAUNCHER_OWNED = new Set(['t2r-debug-mode.txt']);
+function isDevSwitch(name) {
+  const n = name.toLowerCase();
+  if (!/^t2r-.*\.txt$/.test(n) || LAUNCHER_OWNED.has(n)) return false;
+  return /^t2r-(dev|debug)-/.test(n) || /test|probe/.test(n) || /-(try|dev)\.txt$/.test(n);
+}
+function removeDevSwitches(game) {
+  let names = [];
+  try {
+    names = fs.readdirSync(game);
+  } catch {
+    return [];
+  }
+  const gone = [];
+  for (const n of names) {
+    if (!isDevSwitch(n)) continue;
+    try {
+      fs.unlinkSync(path.join(game, n));
+      gone.push(n);
+    } catch {}
+  }
+  return gone;
 }
 
 /**
@@ -533,8 +590,7 @@ function missingModFiles(clientDir, gameDir) {
     for (const f of listFiles(maps)) {
       if (slimdata.isSlimManaged(f)) continue;
       const d = path.join(gameDir, 't2r-maps', path.relative(maps, f));
-      if (!exists(d) || filesDiffer(f, d))
-        out.push('t2r-maps/' + path.relative(maps, f));
+      if (!exists(d) || filesDiffer(f, d)) out.push('t2r-maps/' + path.relative(maps, f));
     }
   for (const t of slimdata.slimTargets(clientDir, gameDir))
     if (!slimdata.dataCurrent(t.slim, t.target)) out.push(t.shown);
@@ -575,6 +631,8 @@ module.exports = {
   runSlim,
   installMod,
   syncFeatureFlags,
+  isDevSwitch,
+  removeDevSwitches,
   writeToken,
   missingModFiles,
   modCurrent,

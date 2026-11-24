@@ -51,6 +51,14 @@ function bindSettings() {
     save({ volume: cfg.volume });
     Snd.play('tick');
   };
+  $$('#mus-set .fopt').forEach((b) =>
+    b.addEventListener('click', async () => {
+      if ((cfg.musicSet || 'grim') === b.dataset.set) return;
+      cfg.musicSet = b.dataset.set;
+      await save({ musicSet: cfg.musicSet });
+      applyLook();
+    }),
+  );
   $('in-music').onchange = async () => {
     cfg.music = $('in-music').checked;
     await save({ music: cfg.music });

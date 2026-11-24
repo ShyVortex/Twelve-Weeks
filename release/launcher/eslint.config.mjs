@@ -106,6 +106,7 @@ const rendererGlobals = {
   toast: 'readonly',
   notify: 'readonly',
   f2show: 'readonly',
+  showView: 'readonly',
   curView: 'writable',
 };
 

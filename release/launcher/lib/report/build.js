@@ -18,7 +18,7 @@ const { readTail } = require('./artifacts');
  * @param {object[]} shots
  * @returns {{entries: object[], files: object[], skipped: string[]}}
  */
-function buildModel(list, meta, systemText, shots) {
+function buildModel(list, meta, systemText, shots, extras) {
   // shots: optional [{name:'screenshot-1.png', data}] (lib/attach.js), stored as files/<name> and listed with their size
   const entries = [],
     sent = [],
@@ -30,6 +30,8 @@ function buildModel(list, meta, systemText, shots) {
   };
   push('system.txt', Buffer.from(scrub(systemText), 'utf8'));
   for (const s of shots || []) push(s.name, s.data, s.name, s.mtime);
+  // extras: optional generated text files [{name:'network.txt', text}] (0.1.51 network check), scrubbed like system.txt
+  for (const x of extras || []) push(x.name, Buffer.from(scrub(String(x.text || '')), 'utf8'));
   for (const f of list.filter((x) => x.kind !== 'dump' && x.kind !== 'missing')) {
     let t;
     try {
@@ -107,8 +109,8 @@ function encodeReport(model) {
  * @param {object[]} shots
  * @returns {Promise<Buffer>}
  */
-function build(list, meta, systemText, shots) {
-  return encodeReport(buildModel(list, meta, systemText, shots));
+function build(list, meta, systemText, shots, extras) {
+  return encodeReport(buildModel(list, meta, systemText, shots, extras));
 }
 
 module.exports = { build, buildModel, encodeReport };

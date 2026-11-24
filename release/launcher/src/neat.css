@@ -249,7 +249,7 @@ body.sp-mode .rowbar.st:has(#srv-state) { display: none !important; }
 /* the tag below the title grows the title block: the menu moves down by the tag's height so it never clips into the first button */
 #title:has(#test-tag:not([hidden])) ~ #menu { top: 160px; }
 #title:has(#test-tag:not([hidden])):has(#t-sub:not([hidden])) ~ #menu { top: 172px; }
-/* a living clan (clan.js summary): faction label, the TWELVE WEEKS text logo (tw-logo.png = the game's tw-title texture, ink cropped) as the title, WEEK n: DAY d under it, smaller (user 11-15) */
+/* a living clan (clan.js summary): faction label, the TWELVE WEEKS text logo (tw-logo.png = the game's tw-title texture, ink cropped) as the title, WEEK n: DAY d under it, smaller */
 #t-logo { display: none; height: 54px; width: 255px; background: currentColor; -webkit-mask: url('tw-logo.png') left center / contain no-repeat; mask: url('tw-logo.png') left center / contain no-repeat; }
 #title.clan #t-logo { display: block; margin-top: 4px; }
 #title.clan h1 { display: none; }
@@ -277,3 +277,6 @@ body.sp-mode .rowbar.st:has(#srv-state) { display: none !important; }
 .rowbar.nwrow:hover b { color: #fff; }
 
 .rowbar.nwrow b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* controller / arrow-key navigation (padnav.js): a clear focus ring while the pad drives the menus */
+body.pad-nav :focus:not(#app):not(.view), body.pad-nav .pad-focus { outline: 2px solid #fff !important; outline-offset: 3px; }
+body.pad-nav .mi:focus, body.pad-nav .mi.pad-focus { color: #fff; }

@@ -25,7 +25,14 @@ const {
   writeToken,
   listFiles,
 } = require('./install');
-const { psGameProcs, killProc, killSteamHelpers, spTopUp } = require('./processes');
+const {
+  psGameProcs,
+  gameProcDetails,
+  killProc,
+  killSteamHelpers,
+  spTopUp,
+} = require('./processes');
+const { quarantineForeignFiles } = require('./quarantine');
 const {
   steamGate,
   STEAM_MSG,
@@ -117,7 +124,9 @@ async function playSingleplayer(opts) {
     }
     if (w.windowUp) opts.log(`Game window up after ${Math.round(w.waitedMs / 1000)} s.`);
     else if (w.exited)
-      throw new Error(health.NEXT_STEPS.replace('press Play again', 'press PLAY SINGLEPLAYER again'));
+      throw new Error(
+        health.NEXT_STEPS.replace('press Play again', 'press PLAY SINGLEPLAYER again'),
+      );
     else
       opts.log(
         `No game window after ${Math.round(w.waitedMs / 1000)} s - still waiting in the background (is Steam asking for a login or an update?).`,
@@ -171,15 +180,46 @@ function modBootedSince(gameDir, sinceMs) {
   }
   return false;
 }
-function watchModLoad({ gameDir, spawnedAt, log, waitMs = 90000, pollMs = 3000 }) {
+// Several reports: the game this launcher started closed right away, Steam started the game again by itself,
+// and that copy showed the plain single-player menu with every mod file in place - until the player fully restarted Steam. All three had
+// used ADD TO STEAM (which restarts Steam) before. The warning now also logs which process runs (exe, command line, parent, the winmm.dll it
+// loaded) and, through onMissing, tells the player what to do: a game Steam started by itself -> exit Steam completely and start it again.
+/**
+ * Describe the running game processes in one log line each.
+ * @param {Array<object>} list from gameProcDetails()
+ * @returns {string[]}
+ */
+function describeGameProcs(list) {
+  return list.map(
+    (p) =>
+      `game process: pid ${p.pid} (${startedPids.has(p.pid) ? 'started by this launcher' : 'NOT started by this launcher'}) exe ${p.exe || '?'} | command line ${p.cmd || '?'} | parent ${p.parent || '?'} (pid ${p.ppid}${p.parentExe ? ', ' + p.parentExe : ''}) | winmm.dll ${p.winmm === '?' ? 'not readable' : p.winmm || 'NOT LOADED'}`,
+  );
+}
+function watchModLoad({
+  gameDir,
+  spawnedAt,
+  log,
+  relaunched = false,
+  onMissing = null,
+  waitMs = 90000,
+  pollMs = 3000,
+}) {
   const t0 = Date.now();
-  const tick = () => {
+  const tick = async () => {
     try {
       if (modBootedSince(gameDir, spawnedAt - 2000)) return;
       if (Date.now() - t0 < waitMs) return void setTimeout(tick, pollMs).unref();
       log(
         `WARNING: the game is running but the mod did not load (no t2r-ext-boot.txt / t2r-ext.log write ${Math.round(waitMs / 1000)} s after the start) - it is probably showing the plain single-player menu. Game folder: ${modFilesSnapshot(gameDir)}. Press REPAIR INSTALL in Settings > Files, then Play again.`,
       );
+      const procs = await gameProcDetails();
+      for (const l of describeGameProcs(procs)) log(l);
+      const steamStarted = relaunched || procs.some((p) => !startedPids.has(p.pid));
+      if (steamStarted)
+        log(
+          "The game that runs was started by Steam, not by this launcher (the launcher's own start closed right away). Fix that worked for players: close the game, exit Steam completely (Steam menu > Exit), start Steam, wait until it is signed in, then press Play.",
+        );
+      if (onMissing) await onMissing({ steamStarted });
     } catch {}
   };
   setTimeout(tick, pollMs).unref();
@@ -238,7 +278,7 @@ async function awaitGameStart(opts, progress, log, gameDir, spawnedAt) {
     timeoutMs: opts.restartGraceMs ?? 60000,
     goneAfter: Infinity,
   });
-  if (w2.windowUp) return { ...w2, waitedMs: w.waitedMs + w2.waitedMs };
+  if (w2.windowUp) return { ...w2, waitedMs: w.waitedMs + w2.waitedMs, relaunched: true };
   if (!w2.alive) return w; // Steam never restarted it: a real startup failure
   log(STEAM_STARTING_LOG);
   const w3 = await waitForGameWindow({
@@ -250,7 +290,7 @@ async function awaitGameStart(opts, progress, log, gameDir, spawnedAt) {
     timeoutMs: opts.steamWaitMs ?? 300000,
   });
   const waitedMs = w.waitedMs + w2.waitedMs + w3.waitedMs;
-  if (w3.windowUp) return { ...w3, waitedMs };
+  if (w3.windowUp) return { ...w3, waitedMs, relaunched: true };
   if (w3.exited) return { windowUp: false, exited: true, waitedMs, afterRestart: true }; // alive for a while, then gone without the mod
   return { windowUp: false, exited: false, waitedMs }; // still alive after the wait: not a crash, the caller keeps waiting in the background
 }
@@ -782,7 +822,14 @@ async function launchWindowsPlay({ opts, cfg, pn, server, log, progress }) {
   await spawnGameExe(cfg);
   // a cold start shows no window for a minute or more: wait for it (up to 3 min), with live progress; never end the process
   const w = await awaitGameStart(opts, progress, log, cfg.game_dir, spawnedAt);
-  if (w.windowUp && !testHooks.spawn) watchModLoad({ gameDir: cfg.game_dir, spawnedAt, log });
+  if (w.windowUp && !testHooks.spawn)
+    watchModLoad({
+      gameDir: cfg.game_dir,
+      spawnedAt,
+      log,
+      relaunched: !!w.relaunched,
+      onMissing: opts.onModMissing || null,
+    });
   if (w.windowUp) {
     health.recordStartOk(opts.healthFile);
     log(
@@ -845,6 +892,15 @@ async function play(opts) {
       );
   }
   await handleLeftoverProcesses(opts, log, progress);
+  // other mods' archives / loaders make winmm log in with a substitute token: the server then refuses every search
+  progress({
+    phase: 'play-check',
+    label: 'Checking the game files',
+    unit: 'none',
+    done: 0,
+    total: 0,
+  });
+  quarantineForeignFiles(cfg.game_dir, log, { skipCheck: opts.skipCheck });
 
   const dll = path.join(cfg.game_dir, 'winmm.dll');
   await prepareClientFiles({ clientDir, cfg, log, progress, opts, extra });

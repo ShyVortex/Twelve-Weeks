@@ -91,6 +91,63 @@ async function helperRunning() {
   );
   return /yes/.test(r.stdout);
 }
+// What a running game process is, for the "mod did not load" warning: exe path, command line, parent process and the winmm.dll it loaded.
+// A player whose game opens the plain single-player menu with every mod file in place cannot be told apart from the launcher log alone
+// (exe started by Steam instead of the launcher, a different exe, winmm.dll taken from System32 instead of the game folder, an antivirus block).
+// Read-only. -> [{ pid, exe, cmd, ppid, parent, parentExe, winmm }] (winmm '' = no winmm.dll in the process, '?' = modules not readable).
+const PROC_DETAILS_PS = [
+  'Get-CimInstance Win32_Process -Filter "Name like \'tlou-ii%\'" | ForEach-Object {',
+  '  $p = $_;',
+  '  $par = Get-CimInstance Win32_Process -Filter ("ProcessId=" + $p.ParentProcessId) -ErrorAction SilentlyContinue;',
+  "  $w = '?';",
+  "  try { $m = (Get-Process -Id $p.ProcessId -ErrorAction Stop).Modules | Where-Object { $_.ModuleName -eq 'winmm.dll' } | Select-Object -First 1; $w = if ($m) { $m.FileName } else { '' } } catch {}",
+  '  @($p.ProcessId, $p.ExecutablePath, $p.CommandLine, $p.ParentProcessId, $par.Name, $par.ExecutablePath, $w) -join [char]9',
+  '}',
+].join(' ');
+/**
+ * Parse the PROC_DETAILS_PS output (one tab-separated line per process).
+ * @param {string} stdout
+ * @returns {Array<object>}
+ */
+function parseProcDetails(stdout) {
+  return String(stdout || '')
+    .split(/\r?\n/)
+    .filter((l) => l.trim())
+    .map((l) => {
+      const [pid, exe, cmd, ppid, parent, parentExe, winmm] = l.replace(/\r$/, '').split('\t');
+      return {
+        pid: +pid,
+        exe: exe || '',
+        cmd: cmd || '',
+        ppid: +ppid || 0,
+        parent: parent || '',
+        parentExe: parentExe || '',
+        winmm: winmm === undefined ? '?' : winmm,
+      };
+    })
+    .filter((p) => p.pid > 0);
+}
+/**
+ * Describe every running tlou-ii*.exe process (Windows only; [] elsewhere or on error).
+ * @returns {Promise<Array<object>>}
+ */
+async function gameProcDetails() {
+  if (testHooks.procDetails) return testHooks.procDetails();
+  if (ctx.plat === 'linux') return [];
+  try {
+    const r = await run(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', PROC_DETAILS_PS],
+      {
+        low: true,
+      },
+    );
+    return parseProcDetails(r.stdout);
+  } catch {
+    return [];
+  }
+}
+
 // SWITCH TO SP / MP (lib/spmode.js) with this module's process probes and winmm check
 /**
  * Build the dependency bundle used by the SP/MP switch.
@@ -152,6 +209,8 @@ async function gameStatus() {
 
 module.exports = {
   psGameProcs,
+  gameProcDetails,
+  parseProcDetails,
   killProc,
   killSteamHelpers,
   helperRunning,

@@ -5,7 +5,8 @@
 
 let mapsSt = null,
   mapsSel = null,
-  mapsDl = false;
+  mapsDl = false,
+  p1Server = null; // may this PC download the server Part I pack: true / false / null (not known yet)
 
 /**
  * Draw one list of map tiles (the background picker's selection model: one active tile, an accent underline).
@@ -48,9 +49,9 @@ function drawMapDetails() {
   if (m) {
     if (!m.pack) st = T('Included');
     else if (m.installed) st = T('Installed');
-    else if (mapsSt.tlou1.valid) st = T('Not installed');
+    else if (mapsSt.tlou1.valid || mapsSt.reimport) st = T('Not installed');
     else st = T('Needs Part I');
-    if (m.pack && !m.installed && !mapsSt.tlou1.valid)
+    if (m.pack && !m.installed && !mapsSt.tlou1.valid && !mapsSt.reimport)
       cap = T('Set the location of The Last of Us Part I, or import the map files.');
   }
   // import / download actions belong to Part I maps only
@@ -65,10 +66,13 @@ function drawMapDetails() {
  */
 function drawMaps(st) {
   mapsSt = st;
+  // the server pack is only for accounts from before the public release: for anyone else both buttons are removed, not greyed
+  if ('serverPack' in st) p1Server = st.serverPack;
+  if (p1Server === false) for (const id of ['mp-get', 'mp-get2']) if ($(id)) $(id).remove();
   if (!mapsSel) mapsSel = st.part2[0].id;
   drawMapList('mp-list2', st.part2);
   drawMapList('mp-list1', st.part1);
-  const unlocked = st.tlou1.valid || st.part1.some((m) => m.installed);
+  const unlocked = st.tlou1.valid || st.reimport || st.part1.some((m) => m.installed);
   $('mp-p1').classList.toggle('locked', !unlocked);
   $('mp-dir').value = st.tlou1.dir;
   $('mp-dir').placeholder = T('Not set');
@@ -76,9 +80,12 @@ function drawMaps(st) {
   $('mp-loc').hidden = !unlocked;
   $('mp-change').hidden = !unlocked;
   // TEMPORARY server download: offered while a Part I map is missing (the lock overlay has its own button)
-  $('mp-get2').hidden = !unlocked || st.part1.every((m) => m.installed);
-  $('mp-conv').hidden = !(st.converter && st.tlou1.valid) || st.part1.every((m) => m.installed);
-  $('mp-get').hidden = st.part1.every((m) => m.installed);
+  if ($('mp-get2'))
+    $('mp-get2').hidden = p1Server !== true || !unlocked || st.part1.every((m) => m.installed);
+  // (an earlier import rebuilds part1.dat for a new update without Part I: p1conv asks for Part I only when the update changed its maps)
+  $('mp-conv').hidden =
+    !(st.converter && (st.tlou1.valid || st.reimport)) || st.part1.every((m) => m.installed);
+  if ($('mp-get')) $('mp-get').hidden = p1Server !== true || st.part1.every((m) => m.installed);
   drawDownloadButtons();
   drawMapDetails();
 }
@@ -88,8 +95,7 @@ function drawMaps(st) {
  */
 function drawDownloadButtons() {
   const on = mapsDl || busy;
-  $('mp-get').disabled = on;
-  $('mp-get2').disabled = on;
+  for (const id of ['mp-get', 'mp-get2']) if ($(id)) $(id).disabled = on;
   $('mp-conv').disabled = on;
   $('mp-cancel').hidden = !mapsDl;
 }
@@ -130,14 +136,16 @@ async function convertP1() {
   drawDownloadButtons();
   $('mp-msg').textContent = '';
   showProgress({ phase: 'check', done: 0, total: 1 });
+  $('mp-msg').textContent = T('This can take up to an hour. Keep the launcher open.');
   const r = await f2.mapsConvert();
   mapsDl = false;
   hideProgress();
+  $('mp-msg').textContent = '';
   if (r.ok) drawMaps(r.state);
   else drawDownloadButtons();
   if (!r.ok) {
     if (/cancel/i.test(r.error || ''))
-      return void ($('mp-msg').textContent = T('Download cancelled.'));
+      return void ($('mp-msg').textContent = T('Import cancelled.'));
     return denied(T('Conversion failed'), r.error);
   }
   toast(T('Part I maps installed.'), true);
@@ -168,8 +176,7 @@ function bindMaps() {
     const r = await f2.mapsClearP1();
     if (r.ok) drawMaps(r.state);
   };
-  $('mp-get').onclick = downloadP1;
-  $('mp-get2').onclick = downloadP1;
+  for (const id of ['mp-get', 'mp-get2']) if ($(id)) $(id).onclick = downloadP1;
   $('mp-conv').onclick = convertP1;
   $('mp-cancel').onclick = () => f2.cancel();
   f2.onBusy(drawDownloadButtons);

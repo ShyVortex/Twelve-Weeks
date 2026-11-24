@@ -8,6 +8,7 @@
 const { safeRel, tunables, isNetErr, baseUrl } = require('./update/util');
 const { explainError, ensureSpace, freeBytes } = require('./update/errors');
 const { resetDown, getJson, getBuffer, fetchManifest } = require('./update/net');
+const hosts = require('./update/hosts');
 const {
   writeFileAtomic,
   sha256File,
@@ -32,6 +33,7 @@ const {
 } = require('./update/launcher');
 
 module.exports = {
+  hosts,
   assertWritableNextTo,
   clearJournal,
   hasPendingUpdate,
