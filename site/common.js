@@ -91,7 +91,8 @@ const api = async (path) => {
     l.outerHTML = `<a href="/player.html?id=${esc(me.id)}" class="login me${page === 'me' ? ' on' : ''}">${esc(name)}</a><a href="/auth/logout" class="logout">Log out</a>`;
   }).catch(() => {});
 
-  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }), { threshold: 0.12 });
+  // a section shows once its top is 12% into the screen: a ratio threshold never fired for a section taller than ~8 screens (the news list on a phone)
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } }), { threshold: 0, rootMargin: '0px 0px -12% 0px' });
   document.querySelectorAll('.rv').forEach((el) => io.observe(el));
   window.revealNew = () => document.querySelectorAll('.rv:not(.on)').forEach((el) => io.observe(el));
 })();
