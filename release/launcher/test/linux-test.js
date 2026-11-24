@@ -110,7 +110,29 @@ const put = (f, t = '') => { fs.mkdirSync(path.dirname(f), { recursive: true });
   r = linux.prepareGamePrefix(gdir, { procDir: mk('noproc2') });
   assert.deepStrictEqual([r.ok, r.changed], [true, true]);
   assert.ok(fs.readFileSync(regFile, 'utf8').includes('"winmm"="native,builtin"') && fs.readFileSync(regFile + '.t2r-backup', 'utf8') === reg0);
-  assert.deepStrictEqual(linux.prepareGamePrefix(gdir, { procDir: mk('noproc3') }), { ok: true, changed: false });
+  assert.deepStrictEqual(linux.prepareGamePrefix(gdir, { procDir: mk('noproc3') }), { ok: true, changed: false, reg: regFile });
+  // a game moved to the SD card keeps its prefix in the internal library: found there
+  const sd2 = mk('sdcard2');
+  const gdir2 = mk('sdcard2', 'steamapps', 'common', 'The Last of Us Part II');
+  put(path.join(gdir2, 'tlou-ii.exe'), 'MZ');
+  const home2 = mk('home2');
+  const steam2 = mk('home2', '.local', 'share', 'Steam');
+  put(path.join(steam2, 'steamapps', 'libraryfolders.vdf'), `"libraryfolders" { "0" { "path" "${steam2.replace(/\\/g, '\\\\')}" } "1" { "path" "${sd2.replace(/\\/g, '\\\\')}" } }`);
+  r = linux.prepareGamePrefix(gdir2, { procDir: mk('noproc4'), home: home2 });
+  assert.ok(!r.ok && /never been started through Steam/.test(r.reason) && r.looked.length === 2, JSON.stringify(r));
+  const internalReg = put(path.join(steam2, 'steamapps', 'compatdata', '2531310', 'pfx', 'user.reg'), reg0);
+  r = linux.prepareGamePrefix(gdir2, { procDir: mk('noproc5'), home: home2 });
+  assert.deepStrictEqual([r.ok, r.changed, r.reg], [true, true, internalReg]);
+  assert.ok(fs.readFileSync(internalReg, 'utf8').includes('"winmm"="native,builtin"'));
+  // the game's own library wins once it has a prefix; of two elsewhere, the newest
+  const ownReg = put(linux.userRegFor(gdir2), reg0);
+  assert.strictEqual(linux.findUserReg(gdir2, { home: home2 }).reg, ownReg);
+  fs.unlinkSync(ownReg);
+  const sd3 = mk('sdcard3');
+  put(path.join(steam2, 'steamapps', 'libraryfolders.vdf'), `"libraryfolders" { "0" { "path" "${steam2.replace(/\\/g, '\\\\')}" } "1" { "path" "${sd2.replace(/\\/g, '\\\\')}" } "2" { "path" "${sd3.replace(/\\/g, '\\\\')}" } }`);
+  const newer = put(path.join(sd3, 'steamapps', 'compatdata', '2531310', 'pfx', 'user.reg'), reg0);
+  fs.utimesSync(internalReg, new Date(1e12), new Date(1e12));
+  assert.strictEqual(linux.findUserReg(gdir2, { home: home2 }).reg, newer);
 
   // ---- launch options (informational)
   put(path.join(steam, 'userdata', '1', 'config', 'localconfig.vdf'), '"UserLocalConfigStore" { "Software" { "valve" { "Steam" { "apps" { "2531310" { "LaunchOptions" "WINEDLLOVERRIDES=\\"winmm=n,b\\" %command%" } } } } } }');
