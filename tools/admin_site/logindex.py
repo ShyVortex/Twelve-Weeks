@@ -14,6 +14,7 @@ import time
 LINE = re.compile(r"^\[(\d\d):(\d\d):(\d\d)\] (.*)$")
 HEADER = re.compile(r"^# daemon (log continued )?(\w{3} \w{3} +\d+ \d\d:\d\d:\d\d \d{4})")
 ERR_RE = re.compile(r"ERR\b|ERROR|Traceback|FATAL|Exception|HANDLER ERR|-ERR\b|not saved|not started|CORRUPT|crash", re.I)
+ERR_KEYS = ("err", "traceback", "fatal", "exception", "not saved", "not started", "corrupt", "crash")   # every ERR_RE alternative contains one of these
 MAX_EVENTS = 40000
 MAX_ERRORS = 300
 
@@ -165,7 +166,10 @@ class LogIndex:
                 self.version = body.split()[2]
             elif body.startswith("TCP LISTEN "):
                 self.listen = body.split()[2]
-            if ERR_RE.search(body) and not body.startswith(("TCP (", "UDP (")) and "recv" not in body[:40]:
+            # (ERR_RE.search on every line was 70 % of a full log read; the lower-case keyword test is a necessary condition for a match,
+            # so the regex now runs only on the few lines that can match)
+            if (not body.startswith(("TCP (", "UDP (")) and "recv" not in body[:40] and any(k in body.lower() for k in ERR_KEYS)
+                    and ERR_RE.search(body)):
                 self.errors.append({"ts": ts, "line": body[:300]})
                 if len(self.errors) > MAX_ERRORS:
                     del self.errors[:100]
@@ -200,11 +204,29 @@ class LogIndex:
         return [p for _n, p in sorted(rot, reverse=True)]
 
     # ------------------------------------------------------------------ public
+    def _rotated_from(self, ino):
+        """The rotated file (daemon.log.N) that is the file we were reading (same inode): the daemon renames daemon.log -> daemon.log.1 and starts a
+        new daemon.log, so the old file lives on under a new name."""
+        for p in self._rotated(self.path)[::-1]:                  # .1 first
+            try:
+                if os.stat(p).st_ino == ino:
+                    return p
+            except OSError:
+                pass
+        return ""
+
     def refresh(self, min_interval=1.5):
         if not self.path and not self.follow:
             return
         now = time.time()
-        with self.lock:
+        # Once loaded, a refresh that another request thread is already doing is skipped (the caller serves the current data) instead of
+        # queueing every request thread on the lock
+        if self.loaded:
+            if not self.lock.acquire(blocking=False):
+                return
+        else:
+            self.lock.acquire()
+        try:
             if now - self.checked < min_interval:
                 return
             self.checked = now
@@ -221,7 +243,18 @@ class LogIndex:
             except OSError:
                 return
             sig = (st.st_ino, )
-            if self.sig is not None and (st.st_size < self.pos or sig != self.sig):    # rotated or replaced
+            if self.loaded and self.sig is not None and sig != self.sig:
+                # Rotated (every 8 MB, ~15 min at peak). Before, this was a full re-read of every rotated log + the prior build's logs
+                # (~70 MB, 9 s on a desktop, minutes on the 1-vCPU host) under the lock: the whole admin site hung (Cloudflare 524). Now the rest
+                # of the old file is read under its new name and the new file is followed from its start; nothing already read is parsed again.
+                old = self._rotated_from(self.sig[0])
+                if old:
+                    self._read_new(old, self.pos)
+                    self.sig = sig
+                    self.pos = 0
+                else:
+                    self._reset()                                   # replaced by something else: start over
+            if self.sig is not None and (st.st_size < self.pos or sig != self.sig):    # truncated in place, or replaced
                 self._reset()
             if not self.loaded:
                 self.sig = sig
@@ -239,6 +272,8 @@ class LogIndex:
                 self.loaded = True
             self.sig = sig
             self.pos = self._read_new(self.path, self.pos)
+        finally:
+            self.lock.release()
 
     def earliest(self):
         with self.lock:
